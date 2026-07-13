@@ -3,13 +3,27 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Kryv live streaming platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: me
+    description: Current user operations
+  - name: categories
+    description: Browse categories
+  - name: channels
+    description: Channel operations (Kryv Live — Twitch/Kick-style live streaming)
+  - name: chat
+    description: Live chat operations
+  - name: discover
+    description: Discovery / home page aggregates
+  - name: videos
+    description: On-demand video operations (Kryv Watch — YouTube-style uploads)
+  - name: cinema
+    description: Curated originals browsing (Kryv Cinema — Netflix-style library)
 paths:
   /healthz:
     get:
@@ -24,6 +38,540 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /me:
+    get:
+      operationId: getMe
+      tags: [me]
+      summary: Get current user profile, own channel, and followed channels
+      responses:
+        "200":
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List browse categories with live counts. Filter by kind — live_game categories for Kryv Live, genre categories for Kryv Watch/Cinema.
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [live_game, genre]
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  /discover/summary:
+    get:
+      operationId: getDiscoverSummary
+      tags: [discover]
+      summary: Home page aggregate — featured live channels, top categories, totals
+      responses:
+        "200":
+          description: Discovery summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverSummary"
+
+  /channels:
+    get:
+      operationId: listChannels
+      tags: [channels]
+      summary: Browse channels, optionally filtered by category, live status, or search
+      parameters:
+        - name: categorySlug
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: live
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of channels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChannelSummary"
+    post:
+      operationId: createChannel
+      tags: [channels]
+      summary: Create a channel for the current user (become a creator)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelInput"
+      responses:
+        "201":
+          description: Created channel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelDetail"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: User already has a channel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}:
+    get:
+      operationId: getChannel
+      tags: [channels]
+      summary: Get a single channel's detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Channel detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelDetail"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateChannel
+      tags: [channels]
+      summary: Update the current user's own channel (profile, category, offline)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelUpdate"
+      responses:
+        "200":
+          description: Updated channel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the channel owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}/stream:
+    post:
+      operationId: createChannelStream
+      tags: [channels]
+      summary: Create or fetch this channel's live ingest credentials (RTMP URL, stream key, playback id)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ingest credentials for broadcasting software (OBS, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamCredentials"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the channel owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}/follow:
+    post:
+      operationId: followChannel
+      tags: [channels]
+      summary: Follow a channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated channel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: unfollowChannel
+      tags: [channels]
+      summary: Unfollow a channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated channel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}/messages:
+    get:
+      operationId: listChannelMessages
+      tags: [chat]
+      summary: List recent chat messages for a channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recent chat messages, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      operationId: createChannelMessage
+      tags: [chat]
+      summary: Post a chat message to a channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "201":
+          description: Created chat message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /videos:
+    get:
+      operationId: listVideos
+      tags: [videos]
+      summary: Browse on-demand videos (Kryv Watch), optionally filtered by channel, genre, or search
+      parameters:
+        - name: channelId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: categorySlug
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: contentType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [upload, original]
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of videos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VideoSummary"
+    post:
+      operationId: createVideo
+      tags: [videos]
+      summary: Create a video record and start a direct upload session for the current user's channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VideoInput"
+      responses:
+        "201":
+          description: Created video with an upload URL for the raw video file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoCreateResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Current user has no channel yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /videos/{id}:
+    get:
+      operationId: getVideo
+      tags: [videos]
+      summary: Get a single video's detail and register a view
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Video detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoDetail"
+        "404":
+          description: Video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateVideo
+      tags: [videos]
+      summary: Update a video's metadata (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VideoUpdate"
+      responses:
+        "200":
+          description: Updated video
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the video owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: deleteVideo
+      tags: [videos]
+      summary: Delete a video (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the video owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /cinema/home:
+    get:
+      operationId: getCinemaHome
+      tags: [cinema]
+      summary: Kryv Cinema home page — hero title plus genre rows of curated originals
+      responses:
+        "200":
+          description: Cinema home layout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CinemaHome"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +582,262 @@ components:
       required:
         - status
 
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Category:
+      type: object
+      required: [id, name, slug, kind, imageUrl, liveChannelCount, viewerCount]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        kind:
+          description: live_game categories power Kryv Live's browse sidebar; genre categories power Kryv Watch/Cinema
+          type: string
+          enum: [live_game, genre]
+        imageUrl: { type: ["string", "null"] }
+        liveChannelCount: { type: integer }
+        viewerCount: { type: integer }
+
+    ChannelSummary:
+      type: object
+      required:
+        [
+          id,
+          slug,
+          displayName,
+          avatarUrl,
+          bannerUrl,
+          streamTitle,
+          isLive,
+          viewerCount,
+          followerCount,
+          categoryId,
+          categoryName,
+          playbackId,
+        ]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        displayName: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        bannerUrl: { type: ["string", "null"] }
+        streamTitle: { type: ["string", "null"] }
+        isLive: { type: boolean }
+        viewerCount: { type: integer }
+        followerCount: { type: integer }
+        categoryId: { type: ["integer", "null"] }
+        categoryName: { type: ["string", "null"] }
+        playbackId:
+          description: Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+          type: ["string", "null"]
+
+    ChannelDetail:
+      allOf:
+        - $ref: "#/components/schemas/ChannelSummary"
+        - type: object
+          required: [description, isFollowing, isOwner, ownerUserId, createdAt]
+          properties:
+            description: { type: ["string", "null"] }
+            isFollowing: { type: boolean }
+            isOwner: { type: boolean }
+            ownerUserId: { type: string }
+            createdAt: { type: string, format: date-time }
+
+    ChannelInput:
+      type: object
+      required: [displayName]
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 60 }
+        description: { type: string, maxLength: 500 }
+        categoryId: { type: integer }
+
+    ChannelUpdate:
+      type: object
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 60 }
+        description: { type: string, maxLength: 500 }
+        avatarUrl: { type: string }
+        bannerUrl: { type: string }
+        categoryId: { type: integer }
+        streamTitle: { type: string, maxLength: 140 }
+
+    StreamCredentials:
+      type: object
+      required: [rtmpUrl, streamKey, playbackId]
+      properties:
+        rtmpUrl:
+          description: RTMP ingest server URL to enter in broadcasting software (e.g. OBS)
+          type: string
+        streamKey:
+          description: Secret stream key — combined with rtmpUrl to start broadcasting. Never shown to anyone but the owner.
+          type: string
+        playbackId:
+          description: Public Mux playback id for this channel's live stream
+          type: string
+
+    VideoSummary:
+      type: object
+      required:
+        [
+          id,
+          title,
+          thumbnailUrl,
+          posterUrl,
+          backdropUrl,
+          durationSeconds,
+          viewCount,
+          channelId,
+          channelName,
+          channelAvatarUrl,
+          categoryId,
+          categoryName,
+          contentType,
+          playbackId,
+          uploadStatus,
+          createdAt,
+        ]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        thumbnailUrl:
+          description: Landscape 16:9 thumbnail — used in Kryv Watch grids
+          type: ["string", "null"]
+        posterUrl:
+          description: Portrait 2:3 poster — used in Kryv Cinema rows
+          type: ["string", "null"]
+        backdropUrl:
+          description: Wide cinematic backdrop — used in Kryv Cinema hero banners
+          type: ["string", "null"]
+        durationSeconds: { type: ["integer", "null"] }
+        viewCount: { type: integer }
+        channelId: { type: integer }
+        channelName: { type: string }
+        channelAvatarUrl: { type: ["string", "null"] }
+        categoryId: { type: ["integer", "null"] }
+        categoryName: { type: ["string", "null"] }
+        contentType:
+          type: string
+          enum: [upload, original]
+        playbackId:
+          description: Mux playback id for HLS playback. Null until Mux finishes processing the upload.
+          type: ["string", "null"]
+        uploadStatus:
+          type: string
+          enum: [waiting, processing, ready, errored]
+        createdAt: { type: string, format: date-time }
+
+    VideoDetail:
+      allOf:
+        - $ref: "#/components/schemas/VideoSummary"
+        - type: object
+          required: [description, isOwner]
+          properties:
+            description: { type: ["string", "null"] }
+            isOwner: { type: boolean }
+
+    VideoInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, maxLength: 5000 }
+        categoryId: { type: integer }
+        contentType:
+          type: string
+          enum: [upload, original]
+
+    VideoCreateResponse:
+      allOf:
+        - $ref: "#/components/schemas/VideoDetail"
+        - type: object
+          required: [uploadUrl]
+          properties:
+            uploadUrl:
+              description: Mux direct-upload URL — PUT the raw video file here from the browser
+              type: string
+
+    VideoUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, maxLength: 5000 }
+        categoryId: { type: integer }
+
+    CinemaRow:
+      type: object
+      required: [title, items]
+      properties:
+        title: { type: string }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VideoSummary"
+
+    CinemaHome:
+      type: object
+      required: [hero, rows]
+      properties:
+        hero:
+          oneOf:
+            - $ref: "#/components/schemas/VideoSummary"
+            - type: "null"
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/CinemaRow"
+
+    ChatMessage:
+      type: object
+      required: [id, channelId, userId, username, avatarUrl, message, createdAt]
+      properties:
+        id: { type: integer }
+        channelId: { type: integer }
+        userId: { type: string }
+        username: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        message: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    ChatMessageInput:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 500 }
+
+    Me:
+      type: object
+      required: [id, username, avatarUrl, channel, followedChannels]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        channel:
+          oneOf:
+            - $ref: "#/components/schemas/ChannelSummary"
+            - type: "null"
+        followedChannels:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelSummary"
+
+    DiscoverSummary:
+      type: object
+      required: [featuredChannels, topCategories, totalLiveChannels, totalViewers]
+      properties:
+        featuredChannels:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelSummary"
+        topCategories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+        totalLiveChannels: { type: integer }
+        totalViewers: { type: integer }
