@@ -1,45 +1,32 @@
-# [Project name]
+# Kryv
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Kryv is a live-entertainment platform combining three connected experiences under one account:
 
-## Run & Operate
+- **Kryv Live** — real-time broadcasting (Twitch/Kick-style): browse live channels by category, watch with live chat, go live yourself with real RTMP ingest.
+- **Kryv Watch** — creator on-demand video (YouTube-style): upload, browse, and watch videos.
+- **Kryv Cinema** — curated originals library (Netflix-style): hero banner + genre rows of featured titles.
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+All three share one identity system, one login, and a signature rotating neon color-theme + animated canvas background.
 
-## Stack
+## Architecture
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- **Monorepo**: pnpm workspace. See `.local/skills/pnpm-workspace/SKILL.md` for conventions.
+- **Frontend** (`artifacts/blyze`, artifact title "Kryv"): React + Vite, wouter routing, TanStack Query, Tailwind, Clerk auth.
+- **Backend** (`artifacts/api-server`): Express 5, contract-first via `lib/api-spec/openapi.yaml` → codegen (`lib/api-zod`, `lib/api-client-react`).
+- **Database** (`lib/db`): Drizzle ORM / Postgres. Tables: `users`, `categories` (kind: live_game | genre), `channels`, `videos` (contentType: upload | original), `chat_messages`, `follows`.
+- **Real video infrastructure**: Mux Video powers both real RTMP live streaming (Kryv Live) and real on-demand upload/transcoding (Kryv Watch/Cinema) — no simulated/mocked video anywhere. A Mux webhook (`/api/webhooks/mux`, raw body) keeps `isLive` and video `uploadStatus`/`playbackId` in sync with real broadcasts and uploads.
+- **Auth**: Clerk (proxy middleware + `clerkMiddleware`), JIT-provisions a local `users` row on first authenticated request.
 
-## Where things live
+## Notable decisions
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
-
-## Architecture decisions
-
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
+- The artifact's internal directory/slug remains `blyze` (renaming is a heavy operation); only the artifact `title` and all UI copy are branded "Kryv".
+- `categories.kind` distinguishes Kryv Live's game/IRL categories from Kryv Watch/Cinema's genres, sharing one table instead of two parallel ones.
+- `videos` table powers both Kryv Watch (`contentType: "upload"`) and Kryv Cinema (`contentType: "original"`) — same on-demand playback pipeline, differentiated by content type and artwork fields (thumbnail vs. poster/backdrop).
+- No demo/placeholder channels, streams, or videos are seeded — only the category taxonomy. Live and on-demand content only ever appears once real users create it for real, keeping the "no mocked functional data" principle intact.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Wants real infrastructure, not simulated/demo video — Mux was chosen deliberately for real RTMP + real on-demand playback since Replit has no first-party live-streaming integration.
+- Rejected several platform name candidates before "Kryv" was chosen autonomously per their "figure it out" instruction.
+- Prefers the agent to make naming/creative decisions independently rather than asking repeatedly.
+- GitHub connector is not available on their plan — connecting to GitHub for this project goes through a user-provided Personal Access Token instead of the connector flow.

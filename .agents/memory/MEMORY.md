@@ -1,0 +1,3 @@
+- [Mux Node SDK webhooks](mux-webhooks.md) — `webhooks.unwrap`/`verifySignature` are instance methods on a client, not static `Mux.Webhooks` methods.
+- [GitHub connector unavailable on some plans](github-connector-plan-limits.md) — fall back to a user-provided PAT + direct git/API calls when ProposeIntegration is dismissed as "no upgraded version".
+- [Kryv project shape](kryv-project.md) — one Postgres schema powers 3 live-entertainment product surfaces (live/VOD/curated) sharing category + video tables via discriminator columns.
