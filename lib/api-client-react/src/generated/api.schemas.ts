@@ -232,13 +232,53 @@ export interface ChatMessageInput {
   message: string;
 }
 
+export type MeRole = typeof MeRole[keyof typeof MeRole];
+
+
+export const MeRole = {
+  user: 'user',
+  owner: 'owner',
+} as const;
+
 export interface Me {
   id: string;
   username: string;
   /** @nullable */
   avatarUrl: string | null;
+  role: MeRole;
   channel: ChannelSummary | null;
   followedChannels: ChannelSummary[];
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalChannels: number;
+  liveChannels: number;
+  totalVideos: number;
+  totalViews: number;
+  bannedUsers: number;
+}
+
+export type AdminUserRole = typeof AdminUserRole[keyof typeof AdminUserRole];
+
+
+export const AdminUserRole = {
+  user: 'user',
+  owner: 'owner',
+} as const;
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  /** @nullable */
+  avatarUrl: string | null;
+  role: AdminUserRole;
+  banned: boolean;
+  createdAt: string;
+}
+
+export interface AdminUserUpdate {
+  banned?: boolean;
 }
 
 export interface DiscoverSummary {

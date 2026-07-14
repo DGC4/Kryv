@@ -18,6 +18,9 @@ import CinemaHome from '@/pages/cinema/Home';
 import CinemaDetail from '@/pages/cinema/Detail';
 import DashboardLive from '@/pages/dashboard/Live';
 import DashboardWatch from '@/pages/dashboard/Watch';
+import DashboardAdmin from '@/pages/dashboard/Admin';
+import Privacy from '@/pages/legal/Privacy';
+import Terms from '@/pages/legal/Terms';
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -197,6 +200,18 @@ function ClerkProviderWithRoutes() {
             <ProtectedRoute>
               <Layout><DashboardWatch /></Layout>
             </ProtectedRoute>
+          </Route>
+          <Route path="/dashboard/admin">
+            <ProtectedRoute>
+              <Layout><DashboardAdmin /></Layout>
+            </ProtectedRoute>
+          </Route>
+
+          <Route path="/privacy">
+            <Layout><Privacy /></Layout>
+          </Route>
+          <Route path="/terms">
+            <Layout><Terms /></Layout>
           </Route>
 
           <Route>

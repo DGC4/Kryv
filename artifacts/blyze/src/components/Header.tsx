@@ -1,8 +1,9 @@
 import { useLocation } from 'wouter';
 import { useAuth, useUser, useClerk } from '@clerk/react';
+import { useGetMe } from '@workspace/api-client-react';
 import { Link } from 'wouter';
 import { useThemeStore } from '../store/theme';
-import { Palette, Tv, PlaySquare, Radio, Search, Plus, User, LogOut } from 'lucide-react';
+import { Palette, Tv, PlaySquare, Radio, Search, Plus, User, LogOut, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -11,6 +12,7 @@ export function Header() {
   const { isSignedIn } = useAuth();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { data: me } = useGetMe({ query: { enabled: !!isSignedIn } });
   const cycleTheme = useThemeStore((s) => s.cycleTheme);
 
   const navItems = [
@@ -101,6 +103,14 @@ export function Header() {
                     <span>Upload Video</span>
                   </Link>
                 </DropdownMenuItem>
+                {me?.role === 'owner' && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/admin" className="flex items-center w-full cursor-pointer text-primary">
+                      <ShieldAlert className="mr-2 h-4 w-4" />
+                      <span>Owner Console</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut()} className="text-destructive focus:text-destructive cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />

@@ -24,6 +24,7 @@ export const GetMeResponse = zod.object({
   "id": zod.string(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['user', 'owner']),
   "channel": zod.union([zod.object({
   "id": zod.number(),
   "slug": zod.string(),
@@ -559,5 +560,117 @@ export const GetCinemaHomeResponse = zod.object({
 }))
 }))
 })
+
+
+/**
+ * @summary Owner-only platform totals
+ */
+export const GetAdminStatsResponse = zod.object({
+  "totalUsers": zod.number(),
+  "totalChannels": zod.number(),
+  "liveChannels": zod.number(),
+  "totalVideos": zod.number(),
+  "totalViews": zod.number(),
+  "bannedUsers": zod.number()
+})
+
+
+/**
+ * @summary Owner-only user list
+ */
+export const ListAdminUsersResponseItem = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['user', 'owner']),
+  "banned": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem)
+
+
+/**
+ * @summary Owner-only — ban or unban a user
+ */
+export const UpdateAdminUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateAdminUserBody = zod.object({
+  "banned": zod.boolean().optional()
+})
+
+export const UpdateAdminUserResponse = zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['user', 'owner']),
+  "banned": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Owner-only channel list
+ */
+export const ListAdminChannelsResponseItem = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
+})
+export const ListAdminChannelsResponse = zod.array(ListAdminChannelsResponseItem)
+
+
+/**
+ * @summary Owner-only — remove a channel
+ */
+export const DeleteAdminChannelParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteAdminChannelResponse = zod.void()
+
+
+/**
+ * @summary Owner-only video list
+ */
+export const ListAdminVideosResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('Mux playback id for HLS playback. Null until Mux finishes processing the upload.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+})
+export const ListAdminVideosResponse = zod.array(ListAdminVideosResponseItem)
+
+
+/**
+ * @summary Owner-only — remove a video
+ */
+export const DeleteAdminVideoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteAdminVideoResponse = zod.void()
 
 

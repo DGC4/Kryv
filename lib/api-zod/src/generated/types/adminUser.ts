@@ -5,15 +5,14 @@
  * Kryv live streaming platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { ChannelSummary } from './channelSummary';
-import type { MeRole } from './meRole';
+import type { AdminUserRole } from './adminUserRole';
 
-export interface Me {
+export interface AdminUser {
   id: string;
   username: string;
   /** @nullable */
   avatarUrl: string | null;
-  role: MeRole;
-  channel: ChannelSummary | null;
-  followedChannels: ChannelSummary[];
+  role: AdminUserRole;
+  banned: boolean;
+  createdAt: Date;
 }

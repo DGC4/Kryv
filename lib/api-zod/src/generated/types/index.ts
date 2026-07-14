@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './adminStats';
+export * from './adminUser';
+export * from './adminUserRole';
+export * from './adminUserUpdate';
 export * from './category';
 export * from './categoryKind';
 export * from './channelDetail';
@@ -25,6 +29,7 @@ export * from './listChannelsParams';
 export * from './listVideosContentType';
 export * from './listVideosParams';
 export * from './me';
+export * from './meRole';
 export * from './streamCredentials';
 export * from './videoCreateResponse';
 export * from './videoDetail';

@@ -24,6 +24,8 @@ tags:
     description: On-demand video operations (Kryv Watch — YouTube-style uploads)
   - name: cinema
     description: Curated originals browsing (Kryv Cinema — Netflix-style library)
+  - name: admin
+    description: Owner-only backend administration (platform stats, user/channel/video moderation)
 paths:
   /healthz:
     get:
@@ -572,6 +574,176 @@ paths:
               schema:
                 $ref: "#/components/schemas/CinemaHome"
 
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Owner-only platform totals
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: Owner-only user list
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/users/{id}:
+    patch:
+      operationId: updateAdminUser
+      tags: [admin]
+      summary: Owner-only — ban or unban a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/channels:
+    get:
+      operationId: listAdminChannels
+      tags: [admin]
+      summary: Owner-only channel list
+      responses:
+        "200":
+          description: Channels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChannelSummary"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/channels/{id}:
+    delete:
+      operationId: deleteAdminChannel
+      tags: [admin]
+      summary: Owner-only — remove a channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/videos:
+    get:
+      operationId: listAdminVideos
+      tags: [admin]
+      summary: Owner-only video list
+      responses:
+        "200":
+          description: Videos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VideoSummary"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/videos/{id}:
+    delete:
+      operationId: deleteAdminVideo
+      tags: [admin]
+      summary: Owner-only — remove a video
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   schemas:
     HealthStatus:
@@ -813,11 +985,12 @@ components:
 
     Me:
       type: object
-      required: [id, username, avatarUrl, channel, followedChannels]
+      required: [id, username, avatarUrl, role, channel, followedChannels]
       properties:
         id: { type: string }
         username: { type: string }
         avatarUrl: { type: ["string", "null"] }
+        role: { type: string, enum: [user, owner] }
         channel:
           oneOf:
             - $ref: "#/components/schemas/ChannelSummary"
@@ -826,6 +999,41 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ChannelSummary"
+
+    AdminStats:
+      type: object
+      required:
+        [
+          totalUsers,
+          totalChannels,
+          liveChannels,
+          totalVideos,
+          totalViews,
+          bannedUsers,
+        ]
+      properties:
+        totalUsers: { type: integer }
+        totalChannels: { type: integer }
+        liveChannels: { type: integer }
+        totalVideos: { type: integer }
+        totalViews: { type: integer }
+        bannedUsers: { type: integer }
+
+    AdminUser:
+      type: object
+      required: [id, username, avatarUrl, role, banned, createdAt]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        role: { type: string, enum: [user, owner] }
+        banned: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    AdminUserUpdate:
+      type: object
+      properties:
+        banned: { type: boolean }
 
     DiscoverSummary:
       type: object
