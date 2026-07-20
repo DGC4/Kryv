@@ -6,6 +6,8 @@ import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wo
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "./components/Layout";
+import { ThemeProvider } from "./lib/themeProvider";
+import "./styles/theme.css";
 
 // Pages
 import NotFound from '@/pages/not-found';
@@ -225,9 +227,11 @@ function ClerkProviderWithRoutes() {
 
 function App() {
   return (
-    <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
-    </WouterRouter>
+    <ThemeProvider>
+      <WouterRouter base={basePath}>
+        <ClerkProviderWithRoutes />
+      </WouterRouter>
+    </ThemeProvider>
   );
 }
 

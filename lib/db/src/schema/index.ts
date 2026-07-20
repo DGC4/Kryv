@@ -4,3 +4,5 @@ export * from "./channels";
 export * from "./videos";
 export * from "./chatMessages";
 export * from "./follows";
+
+export * from "./watchHistory";
