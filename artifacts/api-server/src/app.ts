@@ -1,4 +1,4 @@
-import express, { type Express, type Request, type Response, type NextFunction } from "express";
+import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
@@ -72,26 +72,42 @@ app.get("/", (_req: Request, res: Response) => {
   res.redirect("/health");
 });
 
-// If a built frontend exists in ../blyze/dist, serve it as static files so a single
-// service can host both API and frontend. This is optional and will only run when
+// If a built frontend exists in ../blyze/dist or ../blyze/dist/public, serve it as static files
+// so a single service can host both API and frontend. This is optional and will only run when
 // the dist folder exists in the expected location after a build.
-const frontendDist = path.join(__dirname, "..", "..", "blyze", "dist");
-try {
-  if (fs.existsSync(frontendDist)) {
-    app.use(express.static(frontendDist));
-    // Serve index.html for any route not handled by /api
-    app.get("*", (req: Request, res: Response) => {
-      // Don't interfere with API routes or Clerk proxy path
-      if (req.path.startsWith("/api") || req.path.startsWith(CLERK_PROXY_PATH)) {
-        // Let other handlers handle it (or return 404)
-        return res.status(404).end();
-      }
-      res.sendFile(path.join(frontendDist, "index.html"));
-    });
+const frontendBase = path.join(__dirname, "..", "..", "blyze");
+const distCandidates = [
+  path.join(frontendBase, "dist"),
+  path.join(frontendBase, "dist", "public"),
+];
+
+let served = false;
+for (const frontendDist of distCandidates) {
+  try {
+    if (fs.existsSync(frontendDist)) {
+      app.use(express.static(frontendDist));
+      // Serve index.html for any route not handled by /api
+      app.get("*", (req: Request, res: Response) => {
+        // Don't interfere with API routes or Clerk proxy path
+        if (req.path.startsWith("/api") || req.path.startsWith(CLERK_PROXY_PATH)) {
+          return res.status(404).end();
+        }
+        res.sendFile(path.join(frontendDist, "index.html"));
+      });
+      // eslint-disable-next-line no-console
+      console.info(`Serving frontend static files from ${frontendDist}`);
+      served = true;
+      break;
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("Error while trying to enable static frontend serving:", err);
   }
-} catch (err) {
+}
+
+if (!served) {
   // eslint-disable-next-line no-console
-  console.warn("Error while trying to enable static frontend serving:", err);
+  console.info("No frontend build found at expected locations; frontend will not be served by the API server.");
 }
 
 export default app;
