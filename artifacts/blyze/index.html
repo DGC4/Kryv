@@ -16,9 +16,72 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      :root { font-family: Inter, system-ui, Arial; background:#0b0b0d; color:#e6eef6 }
+      body { margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh }
+      .card { max-width:760px; width:100%; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:28px }
+      h1 { margin:0 0 8px 0; font-size:20px }
+      p { margin:0 0 12px 0; color:#bcd3ea }
+      code { background:#06121a;padding:2px 6px;border-radius:6px }
+      .row { display:flex; gap:8px; margin-top:12px }
+      button { background:#06b6d4; color:#021018; border:0; padding:8px 12px; border-radius:8px; cursor:pointer }
+      button.secondary { background:transparent; color:#9fc9dc; border:1px solid rgba(255,255,255,0.04) }
+      .status { margin-top:12px; color:#9fc9dc }
+      a.link { color:#8be0ff }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div class="card">
+      <h1>Blyze — Development placeholder</h1>
+      <p>The full React application has not been built or could not be loaded. To show the real site you need to build and deploy the frontend assets <strong>or</strong> have the API service serve a built frontend.</p>
+
+      <p>What you can do right now:</p>
+      <ul>
+        <li>Build the frontend: run <code>pnpm --filter @workspace/blyze build</code> in the repo and ensure <code>artifacts/blyze/dist</code> exists.</li>
+        <li>Deploy frontend separately and set env variables: <code>VITE_CLERK_PUBLISHABLE_KEY</code>, <code>BASE_PATH</code> (if you use a subpath).</li>
+        <li>Or, build the frontend and let the backend serve it (the API server looks for <code>artifacts/blyze/dist</code>).</li>
+      </ul>
+
+      <div class="row">
+        <button id="check-health">Check API /health</button>
+        <button id="open-github" class="secondary">Open repo on GitHub</button>
+      </div>
+
+      <div id="status" class="status">Status: unknown</div>
+
+      <p style="margin-top:12px;color:#bcd3ea">If you'd like I can add automatic build workflow or Render/Vercel configuration to build the frontend and/or have the API serve it. Ask me to add a CI workflow or deploy config.</p>
+    </div>
+
+    <script>
+      const statusEl = document.getElementById('status');
+      document.getElementById('check-health').addEventListener('click', async () => {
+        statusEl.textContent = 'Checking...';
+        try {
+          const res = await fetch('/health', { cache: 'no-store' });
+          if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
+          const json = await res.json();
+          statusEl.textContent = 'API status: ' + JSON.stringify(json);
+        } catch (err) {
+          statusEl.textContent = 'API check failed: ' + (err && err.message ? err.message : String(err));
+        }
+      });
+
+      document.getElementById('open-github').addEventListener('click', () => {
+        window.open('https://github.com/DGC4/Kryv', '_blank');
+      });
+
+      // Try to dynamically load the real app if a build or dev server is present.
+      (async function tryLoadApp() {
+        // Common Vite dev entry (used by original index) -- will fail in production if no dev server is present.
+        try {
+          // This will succeed if Vite dev server proxied /src/main.tsx
+          await import('/src/main.tsx');
+          // If import succeeded, the real app took over the page; nothing more to do here.
+        } catch (e) {
+          // Do nothing; keep placeholder UI. If assets exist as /assets/*.js the built index.html will be served instead
+          console.info('Real app not loaded via /src/main.tsx — showing placeholder.');
+        }
+      })();
+    </script>
   </body>
 </html>
