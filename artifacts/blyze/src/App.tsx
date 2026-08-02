@@ -30,7 +30,7 @@ const clerkPubKey = publishableKeyFromHost(
 );
 
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const basePath = (import.meta.env.BASE_URL || "").replace(/\/$/, "");
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -38,8 +38,15 @@ function stripBase(path: string): string {
     : path;
 }
 
-if (!clerkPubKey) {
-  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
+const hasClerkKey = Boolean(clerkPubKey);
+
+if (!hasClerkKey) {
+  // Instead of throwing (which broke the whole app), warn and render a limited UI.
+  // This makes the frontend visible even when VITE_CLERK_PUBLISHABLE_KEY is not configured.
+  // Authentication will be disabled until the env var is set.
+  // Keep the app from crashing so users can see an error banner in the UI and you can fix envs.
+  // eslint-disable-next-line no-console
+  console.warn('Missing VITE_CLERK_PUBLISHABLE_KEY. Clerk features will be disabled. Set VITE_CLERK_PUBLISHABLE_KEY in your environment to enable authentication.');
 }
 
 const clerkAppearance = {
@@ -92,6 +99,16 @@ const clerkAppearance = {
 };
 
 function SignInPage() {
+  if (!hasClerkKey) {
+    return (
+      <Layout>
+        <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center py-12 px-4 relative z-10">
+          <div className="bg-[#0f0f12] border border-white/10 rounded-2xl p-6">Authentication is disabled because VITE_CLERK_PUBLISHABLE_KEY is not set. Configure the environment variable to enable sign-in.</div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center py-12 px-4 relative z-10">
@@ -102,6 +119,16 @@ function SignInPage() {
 }
 
 function SignUpPage() {
+  if (!hasClerkKey) {
+    return (
+      <Layout>
+        <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center py-12 px-4 relative z-10">
+          <div className="bg-[#0f0f12] border border-white/10 rounded-2xl p-6">Registration is disabled because VITE_CLERK_PUBLISHABLE_KEY is not set. Configure the environment variable to enable sign-up.</div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center py-12 px-4 relative z-10">
@@ -151,77 +178,143 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
+  // If we have a Clerk key, wrap routes in the real ClerkProvider.
+  if (hasClerkKey) {
+    return (
+      <ClerkProvider
+        publishableKey={clerkPubKey}
+        proxyUrl={clerkProxyUrl}
+        appearance={clerkAppearance}
+        signInUrl={`${basePath}/sign-in`}
+        signUpUrl={`${basePath}/sign-up`}
+        routerPush={(to) => setLocation(stripBase(to))}
+        routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+      >
+        <QueryClientProvider client={queryClient}>
+          <ClerkQueryClientCacheInvalidator />
+          <Switch>
+            <Route path="/" component={HomeRedirect} />
+
+            <Route path="/sign-in/*?" component={SignInPage} />
+            <Route path="/sign-up/*?" component={SignUpPage} />
+
+            <Route path="/live">
+              <Layout><LiveHome /></Layout>
+            </Route>
+            <Route path="/live/categories/:slug">
+              <Layout><LiveCategory /></Layout>
+            </Route>
+            <Route path="/live/:channelSlugOrId">
+              <Layout><LiveChannel /></Layout>
+            </Route>
+
+            <Route path="/watch">
+              <Layout><WatchHome /></Layout>
+            </Route>
+            <Route path="/watch/:id">
+              <Layout><WatchDetail /></Layout>
+            </Route>
+
+            <Route path="/cinema">
+              <Layout><CinemaHome /></Layout>
+            </Route>
+            <Route path="/cinema/:id">
+              <Layout><CinemaDetail /></Layout>
+            </Route>
+
+            <Route path="/dashboard/live">
+              <ProtectedRoute>
+                <Layout><DashboardLive /></Layout>
+              </ProtectedRoute>
+            </Route>
+            <Route path="/dashboard/watch">
+              <ProtectedRoute>
+                <Layout><DashboardWatch /></Layout>
+              </ProtectedRoute>
+            </Route>
+            <Route path="/dashboard/admin">
+              <ProtectedRoute>
+                <Layout><DashboardAdmin /></Layout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/privacy">
+              <Layout><Privacy /></Layout>
+            </Route>
+            <Route path="/terms">
+              <Layout><Terms /></Layout>
+            </Route>
+
+            <Route>
+              <Layout><NotFound /></Layout>
+            </Route>
+          </Switch>
+        </QueryClientProvider>
+      </ClerkProvider>
+    );
+  }
+
+  // Otherwise render routes without Clerk but with notices on auth pages.
   return (
-    <ClerkProvider
-      publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
-      appearance={clerkAppearance}
-      signInUrl={`${basePath}/sign-in`}
-      signUpUrl={`${basePath}/sign-up`}
-      routerPush={(to) => setLocation(stripBase(to))}
-      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-    >
-      <QueryClientProvider client={queryClient}>
-        <ClerkQueryClientCacheInvalidator />
-        <Switch>
-          <Route path="/" component={HomeRedirect} />
-          
-          <Route path="/sign-in/*?" component={SignInPage} />
-          <Route path="/sign-up/*?" component={SignUpPage} />
+    <QueryClientProvider client={queryClient}>
+      <Switch>
+        <Route path="/" component={HomeRedirect} />
 
-          <Route path="/live">
-            <Layout><LiveHome /></Layout>
-          </Route>
-          <Route path="/live/categories/:slug">
-            <Layout><LiveCategory /></Layout>
-          </Route>
-          <Route path="/live/:channelSlugOrId">
-            <Layout><LiveChannel /></Layout>
-          </Route>
+        <Route path="/sign-in/*?" component={SignInPage} />
+        <Route path="/sign-up/*?" component={SignUpPage} />
 
-          <Route path="/watch">
-            <Layout><WatchHome /></Layout>
-          </Route>
-          <Route path="/watch/:id">
-            <Layout><WatchDetail /></Layout>
-          </Route>
+        <Route path="/live">
+          <Layout><LiveHome /></Layout>
+        </Route>
+        <Route path="/live/categories/:slug">
+          <Layout><LiveCategory /></Layout>
+        </Route>
+        <Route path="/live/:channelSlugOrId">
+          <Layout><LiveChannel /></Layout>
+        </Route>
 
-          <Route path="/cinema">
-            <Layout><CinemaHome /></Layout>
-          </Route>
-          <Route path="/cinema/:id">
-            <Layout><CinemaDetail /></Layout>
-          </Route>
+        <Route path="/watch">
+          <Layout><WatchHome /></Layout>
+        </Route>
+        <Route path="/watch/:id">
+          <Layout><WatchDetail /></Layout>
+        </Route>
 
-          <Route path="/dashboard/live">
-            <ProtectedRoute>
-              <Layout><DashboardLive /></Layout>
-            </ProtectedRoute>
-          </Route>
-          <Route path="/dashboard/watch">
-            <ProtectedRoute>
-              <Layout><DashboardWatch /></Layout>
-            </ProtectedRoute>
-          </Route>
-          <Route path="/dashboard/admin">
-            <ProtectedRoute>
-              <Layout><DashboardAdmin /></Layout>
-            </ProtectedRoute>
-          </Route>
+        <Route path="/cinema">
+          <Layout><CinemaHome /></Layout>
+        </Route>
+        <Route path="/cinema/:id">
+          <Layout><CinemaDetail /></Layout>
+        </Route>
 
-          <Route path="/privacy">
-            <Layout><Privacy /></Layout>
-          </Route>
-          <Route path="/terms">
-            <Layout><Terms /></Layout>
-          </Route>
+        <Route path="/dashboard/live">
+          <ProtectedRoute>
+            <Layout><DashboardLive /></Layout>
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboard/watch">
+          <ProtectedRoute>
+            <Layout><DashboardWatch /></Layout>
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboard/admin">
+          <ProtectedRoute>
+            <Layout><DashboardAdmin /></Layout>
+          </ProtectedRoute>
+        </Route>
 
-          <Route>
-            <Layout><NotFound /></Layout>
-          </Route>
-        </Switch>
-      </QueryClientProvider>
-    </ClerkProvider>
+        <Route path="/privacy">
+          <Layout><Privacy /></Layout>
+        </Route>
+        <Route path="/terms">
+          <Layout><Terms /></Layout>
+        </Route>
+
+        <Route>
+          <Layout><NotFound /></Layout>
+        </Route>
+      </Switch>
+    </QueryClientProvider>
   );
 }
 
