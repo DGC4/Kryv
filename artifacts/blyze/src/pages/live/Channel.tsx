@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'wouter';
-import { useGetChannel, useListChannelMessages, useCreateChannelMessage, useFollowChannel, useUnfollowChannel } from '@workspace/api-client-react';
+import { useGetChannel, useListChannelMessages, useCreateChannelMessage, useFollowChannel, useListChannels, useUnfollowChannel } from '@workspace/api-client-react';
 import { useAuth } from '@clerk/react';
 import MuxPlayer from '@mux/mux-player-react';
 import { Loader2, Users, Heart, Share2, Send, Crown } from 'lucide-react';
@@ -11,18 +11,19 @@ import { formatDistanceToNow } from 'date-fns';
 export default function LiveChannel() {
   const { channelSlugOrId } = useParams<{ channelSlugOrId: string }>();
   const isId = /^\d+$/.test(channelSlugOrId || '');
+  const numericChannelId = Number(channelSlugOrId || 0);
+  const { data: slugMatches, isLoading: isResolvingSlug } = useListChannels(
+    isId ? undefined : { search: channelSlugOrId },
+    { query: { enabled: Boolean(channelSlugOrId) && !isId } },
+  );
+  const channelId = isId
+    ? numericChannelId
+    : slugMatches?.find((candidate) => candidate.slug === channelSlugOrId)?.id ?? 0;
   
-  // Note: API expects ID, but we might have a slug from the URL. 
-  // We should ideally resolve slug to ID, but the current API only has `useGetChannel(id)`.
-  // To handle this properly given the generated client, let's assume we can fetch channels
-  // and find the ID if it's a slug, but for simplicity let's assume channelSlugOrId is the ID for now
-  // or we can use useListChannels with a search or something. 
-  // Wait, let's just fetch it as ID. 
-  const channelId = parseInt(channelSlugOrId || '0', 10);
-  
-  const { data: channel, isLoading } = useGetChannel(channelId, {
+  const { data: channel, isLoading: isLoadingChannel } = useGetChannel(channelId, {
     query: { enabled: !!channelId, refetchInterval: 10000 }
   });
+  const isLoading = (!isId && isResolvingSlug) || isLoadingChannel;
   
   const { data: messages, refetch: refetchMessages } = useListChannelMessages(channelId, {
     query: { enabled: !!channelId, refetchInterval: 3000 }

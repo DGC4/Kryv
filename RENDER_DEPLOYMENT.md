@@ -36,6 +36,12 @@ Deploy the backend as a Web Service and the frontend as a Static Site.
    DATABASE_URL="<your neon url>" pnpm --filter @workspace/db run push
    ```
    Re-run this any time the schema changes (e.g. after pulling future updates).
+3. If you deployed an earlier Kryv revision that wrote stream keys to the database,
+   run this one-time cleanup before enabling Mux live ingest. It removes only the
+   legacy database copy; it does not invalidate a creator’s Mux configuration.
+   ```
+   DATABASE_URL="<your neon url>" pnpm --filter @workspace/db run clear:legacy-stream-keys
+   ```
 
 ## 2. Backend — Render Web Service
 

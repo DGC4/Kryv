@@ -16,6 +16,7 @@ import {
 import { requireAuth, attachUserId, getOrCreateUser } from "../lib/auth";
 import { toVideoSummary, toVideoDetail } from "../lib/videoSerializer";
 import { createMuxDirectUpload, MuxNotConfiguredError } from "../lib/mux";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -99,7 +100,7 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
     res.status(201).json(CreateVideoResponse.parse({ ...detail, uploadUrl }));
   } catch (err) {
     if (err instanceof MuxNotConfiguredError) {
-      req.log.warn("Mux not configured — cannot start video upload");
+      logger.warn("Mux not configured — cannot start video upload");
       res.status(503).json({ error: err.message });
       return;
     }

@@ -9,9 +9,13 @@ import videosRouter from "./videos";
 import cinemaRouter from "./cinema";
 import adminRouter from "./admin";
 import locationRouter from "./location";
+import webhooksRouter from "./webhooks";
 
 const router: IRouter = Router();
 
+// This route receives the raw, signature-verified Mux payload registered in
+// app.ts before JSON parsing. It is the source of truth for live/offline state.
+router.use(webhooksRouter);
 router.use(healthRouter);
 router.use(meRouter);
 router.use(categoriesRouter);

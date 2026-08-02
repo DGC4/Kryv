@@ -3,7 +3,7 @@ import { useAuth, useUser, useClerk } from '@clerk/react';
 import { useGetMe } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
 import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Crown } from 'lucide-react';
-import { KryvLogo, GoldenDBadge, UserBadge } from './brand/BrandIdentity';
+import { KryvLogo, GoldenDBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -107,7 +107,7 @@ export function Header() {
                   <DropdownMenuLabel className="font-normal pb-2">
                     <div className="flex items-center gap-2 mb-0.5">
                       <p className="text-sm font-bold text-white truncate">{user?.username}</p>
-                      {me?.role === 'owner' ? <GoldenDBadge /> : (me?.role === 'admin' && <UserBadge type="admin" size="sm" />)}
+                      {me?.role === 'owner' && <GoldenDBadge />}
                     </div>
                     <p className="text-xs text-white/40 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
                   </DropdownMenuLabel>
@@ -125,7 +125,7 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/watch" className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/dashboard/live" className="flex items-center gap-2 cursor-pointer">
                       <LayoutDashboard className="w-4 h-4 text-white/50" />
                       <span>Creator Dashboard</span>
                     </Link>

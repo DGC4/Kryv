@@ -20,6 +20,10 @@ export function getMux(): Mux {
   return cached;
 }
 
+export function isMuxConfigured(): boolean {
+  return Boolean(process.env.MUX_TOKEN_ID && process.env.MUX_TOKEN_SECRET);
+}
+
 export class MuxNotConfiguredError extends Error {
   constructor() {
     super(
@@ -37,9 +41,26 @@ export async function createMuxLiveStream() {
     new_asset_settings: { playback_policy: ["public"] },
     reconnect_window: 60,
   });
-  const playbackId = stream.playback_ids?.[0]?.id ?? null;
+  const playbackId = stream.playback_ids?.[0]?.id;
+  if (!playbackId) {
+    throw new Error("Mux did not return a public playback ID for the live stream");
+  }
   return {
     muxLiveStreamId: stream.id,
+    muxStreamKey: stream.stream_key,
+    muxPlaybackId: playbackId,
+  };
+}
+
+/** Resets an existing creator stream key without creating an orphaned live-stream configuration. */
+export async function resetMuxLiveStreamKey(liveStreamId: string) {
+  const mux = getMux();
+  const stream = await mux.video.liveStreams.resetStreamKey(liveStreamId);
+  const playbackId = stream.playback_ids?.[0]?.id;
+  if (!playbackId) {
+    throw new Error("Mux did not return a public playback ID when resetting the stream key");
+  }
+  return {
     muxStreamKey: stream.stream_key,
     muxPlaybackId: playbackId,
   };

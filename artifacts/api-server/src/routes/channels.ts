@@ -24,7 +24,12 @@ import {
   toChannelDetail,
   uniqueChannelSlug,
 } from "../lib/channelSerializer";
-import { createMuxLiveStream, MuxNotConfiguredError } from "../lib/mux";
+import {
+  createMuxLiveStream,
+  MuxNotConfiguredError,
+  resetMuxLiveStreamKey,
+} from "../lib/mux";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -45,7 +50,8 @@ router.get("/channels", attachUserId, async (req, res): Promise<void> => {
     rows = rows.filter(
       (c) =>
         c.displayName.toLowerCase().includes(needle) ||
-        (c.streamTitle ?? "").toLowerCase().includes(needle),
+        (c.streamTitle ?? "").toLowerCase().includes(needle) ||
+        c.slug.toLowerCase().includes(needle),
     );
   }
   if (query.data.categorySlug) {
@@ -187,12 +193,34 @@ router.post(
     }
 
     try {
+      if (channel.muxLiveStreamId) {
+        const { muxStreamKey, muxPlaybackId } = await resetMuxLiveStreamKey(
+          channel.muxLiveStreamId,
+        );
+
+        await db
+          .update(channelsTable)
+          .set({ muxStreamKey: null, muxPlaybackId })
+          .where(eq(channelsTable.id, channel.id));
+
+        res.json(
+          CreateChannelStreamResponse.parse({
+            rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+            streamKey: muxStreamKey,
+            playbackId: muxPlaybackId,
+          }),
+        );
+        return;
+      }
+
       const { muxLiveStreamId, muxStreamKey, muxPlaybackId } =
         await createMuxLiveStream();
 
       await db
         .update(channelsTable)
-        .set({ muxLiveStreamId, muxStreamKey, muxPlaybackId })
+        // Store only the Mux configuration ID and public playback ID. The stream
+        // key is returned once to its owner and never persisted in plaintext.
+        .set({ muxLiveStreamId, muxStreamKey: null, muxPlaybackId })
         .where(eq(channelsTable.id, channel.id));
 
       res.json(
@@ -204,7 +232,7 @@ router.post(
       );
     } catch (err) {
       if (err instanceof MuxNotConfiguredError) {
-        req.log.warn("Mux not configured — cannot create live stream");
+        logger.warn("Mux not configured — cannot create live stream");
         res.status(503).json({ error: err.message });
         return;
       }

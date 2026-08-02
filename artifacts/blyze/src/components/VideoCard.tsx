@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { VideoSummary } from '@workspace/api-client-react/src/generated/api.schemas';
+import type { VideoSummary } from '@workspace/api-client-react';
 import { formatDistanceToNow } from 'date-fns';
 
 function fmtDuration(s: number | null) {

@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import Mux from "@mux/mux-node";
 import { db, channelsTable, videosTable } from "@workspace/db";
+import { getMux, MuxNotConfiguredError } from "../lib/mux";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -14,34 +15,34 @@ const router: IRouter = Router();
  */
 router.post("/webhooks/mux", async (req, res): Promise<void> => {
   const rawBody = req.body as Buffer;
-  const signature = req.header("mux-signature") ?? "";
   const webhookSecret = process.env.MUX_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    logger.error("MUX_WEBHOOK_SECRET is not configured — rejecting Mux webhook");
+    res.status(503).json({ error: "Mux webhook verification is not configured" });
+    return;
+  }
 
   let event: { type: string; data: Record<string, unknown> };
   try {
-    if (webhookSecret) {
-      const mux = new Mux({
-        tokenId: process.env.MUX_TOKEN_ID || "unset",
-        tokenSecret: process.env.MUX_TOKEN_SECRET || "unset",
-      });
-      event = (await mux.webhooks.unwrap(
-        rawBody.toString("utf8"),
-        req.headers as Record<string, string>,
-        webhookSecret,
-      )) as unknown as typeof event;
-    } else {
-      req.log.warn(
-        "MUX_WEBHOOK_SECRET not set — accepting webhook payload unverified",
-      );
-      event = JSON.parse(rawBody.toString("utf8"));
-    }
+    const mux = getMux();
+    event = (await mux.webhooks.unwrap(
+      rawBody.toString("utf8"),
+      req.headers as Record<string, string>,
+      webhookSecret,
+    )) as unknown as typeof event;
   } catch (err) {
-    req.log.warn({ err }, "Rejected Mux webhook — signature verification failed");
+    if (err instanceof MuxNotConfiguredError) {
+      logger.error("Mux API credentials are not configured — rejecting webhook");
+      res.status(503).json({ error: "Mux API credentials are not configured" });
+      return;
+    }
+    logger.warn({ err }, "Rejected Mux webhook — signature verification failed");
     res.status(400).json({ error: "Invalid signature" });
     return;
   }
 
-  req.log.info({ type: event.type }, "Received Mux webhook");
+  logger.info({ type: event.type }, "Received Mux webhook");
 
   switch (event.type) {
     case "video.live_stream.active": {

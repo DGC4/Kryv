@@ -20,5 +20,7 @@ export default defineConfig({
   server: {
     port,
     host: "0.0.0.0",
+    // Scoped to Manus preview subdomains; this only affects the Vite dev server.
+    allowedHosts: [".manus.computer"],
   },
 });
