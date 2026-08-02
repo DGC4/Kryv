@@ -1,0 +1,23 @@
+# Project TODO
+
+- [x] Review the supplied Kryv requirements and existing project materials, including the pasted specification.
+- [x] Evaluate the provided dashboard layout component and existing route structure before implementation.
+- [x] Create a secure creator profile, channel settings, notification preferences, stream configuration, stream credential, activity, stream history, and payout data model.
+- [x] Apply the database migration and verify the schema using a non-destructive query.
+- [x] Add authenticated tRPC procedures that scope creator data and mutations to the signed-in Manus OAuth user.
+- [x] Protect all creator dashboard routes and present an intentional sign-in state for unauthenticated visitors.
+- [x] Implement Kryv dark-theme brand tokens, responsive layout rules, and accessible navigation states.
+- [x] Build the creator dashboard home with live status, viewer/follower/revenue summaries, and a recent activity feed.
+- [x] Build the stream URL and key page with sensitive-key masking, copy controls, confirmation-gated key regeneration, encoder recommendations, and streaming software guidance.
+- [x] Build creator profile and channel settings for display name, bio, avatar URL, channel branding, and persistence feedback.
+- [x] Build analytics with viewer trend and follower-growth charts plus a stream history log.
+- [x] Build monetization with earnings summary and payout history.
+- [x] Build notification preferences for stream alerts and follower notifications.
+- [x] Add robust empty, loading, error, keyboard, and mobile navigation states across the dashboard.
+- [x] Write and run Vitest coverage for protected creator procedures and critical stream-key behavior.
+- [ ] Connect an RTMP ingest, playback, and analytics provider, then configure `KRYV_RTMP_SERVER_URL` to enable actual broadcasts and verified viewer counts.
+- [ ] Integrate authenticated real-time chat with moderation and scalable event delivery.
+- [ ] Connect a payment and payout provider before enabling subscription checkout, revenue collection, or payout delivery.
+- [ ] Connect an outbound notification provider before enabling live alert delivery.
+- [x] Validate the desktop and mobile dashboard visually, resolve defects, and update this worklist.
+- [ ] Review the complete pasted specification, summarize the implementation decisions, commit the work, and push it to GitHub.
