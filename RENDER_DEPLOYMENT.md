@@ -11,8 +11,19 @@ have (or will provision):
   secret you'll create in the next step
 - A `SESSION_SECRET` (any long random string)
 
-Kryv is two services: the backend API (`artifacts/api-server`) and the frontend
-(`artifacts/blyze`). Deploy them as two separate Render services.
+Kryv can be deployed as two separate services (recommended for scale) or as a single unified service (easier to manage).
+
+### Option A: Unified Service (Backend + Frontend together)
+This is the simplest way to get up and running. The backend will serve the frontend assets.
+
+- **Service Type**: Web Service
+- **Root Directory**: repo root
+- **Build Command**: `corepack enable && pnpm install && pnpm --filter @workspace/blyze build && pnpm --filter @workspace/api-server build`
+- **Start Command**: `node artifacts/api-server/dist/index.mjs`
+- **Environment Variables**: See Backend variables below.
+
+### Option B: Separate Services
+Deploy the backend as a Web Service and the frontend as a Static Site.
 
 ## 1. Database (Neon)
 

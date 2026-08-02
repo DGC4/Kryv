@@ -1,0 +1,30 @@
+services:
+  # Unified Service: Backend + Frontend
+  - type: web
+    name: kryv-app
+    runtime: node
+    buildCommand: corepack enable && pnpm install && pnpm --filter @workspace/blyze build && pnpm --filter @workspace/api-server build
+    startCommand: node artifacts/api-server/dist/index.mjs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kryv-db
+          property: connectionString
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: MUX_TOKEN_ID
+        sync: false
+      - key: MUX_TOKEN_SECRET
+        sync: false
+      - key: MUX_WEBHOOK_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+
+databases:
+  - name: kryv-db
+    plan: free
