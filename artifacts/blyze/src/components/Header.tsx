@@ -2,7 +2,8 @@ import { useLocation, Link } from 'wouter';
 import { useAuth, useUser, useClerk } from '@clerk/react';
 import { useGetMe } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
-import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard } from 'lucide-react';
+import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Crown } from 'lucide-react';
+import { KryvLogo, GoldenDBadge, UserBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -29,13 +30,8 @@ export function Header() {
 
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_16px_hsl(var(--primary)/0.5)] group-hover:shadow-[0_0_24px_hsl(var(--primary)/0.7)] transition-shadow">
-              <span className="font-black text-primary-foreground text-sm tracking-tight">K</span>
-            </div>
-            <span className="font-black text-lg tracking-tight text-white hidden sm:block kryv-logo">
-              KRYV
-            </span>
+          <Link href="/">
+            <KryvLogo />
           </Link>
 
           <nav className="flex items-center gap-0.5">
@@ -109,7 +105,10 @@ export function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-52 bg-black/90 border-white/10 backdrop-blur-xl" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal pb-2">
-                    <p className="text-sm font-bold text-white truncate">{user?.username}</p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-bold text-white truncate">{user?.username}</p>
+                      {me?.role === 'owner' ? <GoldenDBadge /> : (me?.role === 'admin' && <UserBadge type="admin" size="sm" />)}
+                    </div>
                     <p className="text-xs text-white/40 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-white/[0.07]" />

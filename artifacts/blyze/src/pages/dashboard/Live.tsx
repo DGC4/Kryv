@@ -11,7 +11,8 @@ import {
   Loader2, Copy, RefreshCcw, Save, Radio, CheckCircle2,
   Monitor, ExternalLink, MapPin, Wifi,
   Settings, BarChart2, Users, MessageSquare, Eye, EyeOff,
-  ChevronRight, Lock, Globe, Signal,
+  ChevronRight, Lock, Unlock, Globe, Signal, CreditCard,
+  Zap, Shield,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -573,28 +574,69 @@ export default function DashboardLive() {
 
         {/* ── Settings tab ── */}
         {activeTab === 'settings' && (
-          <div className="p-5 max-w-xl">
-            <h2 className="text-lg font-black text-white mb-5">Channel Settings</h2>
-            <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02] space-y-4">
+          <div className="p-5 max-w-5xl">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Profile Settings */}
               <div>
-                <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Channel Name</label>
-                <input
-                  type="text"
-                  defaultValue={channel.displayName}
-                  className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary/50 transition-all"
-                  maxLength={60}
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Channel URL</label>
-                <div className="flex items-center gap-2 bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5">
-                  <span className="text-white/30 text-sm">kryv.tv/live/</span>
-                  <span className="text-white text-sm font-mono">{channel.slug}</span>
+                <h2 className="text-lg font-black text-white mb-5 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-primary" />
+                  Channel Settings
+                </h2>
+                <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02] space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Channel Name</label>
+                    <input
+                      type="text"
+                      defaultValue={channel.displayName}
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary/50 transition-all"
+                      maxLength={60}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Channel URL</label>
+                    <div className="flex items-center gap-2 bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5">
+                      <span className="text-white/30 text-sm">kryv.tv/live/</span>
+                      <span className="text-white text-sm font-mono">{channel.slug}</span>
+                    </div>
+                  </div>
+                  <Button className="font-bold bg-primary text-primary-foreground rounded-xl px-6">
+                    <Save className="w-4 h-4 mr-2" /> Save Settings
+                  </Button>
                 </div>
               </div>
-              <Button className="font-bold bg-primary text-primary-foreground rounded-xl px-6">
-                <Save className="w-4 h-4 mr-2" /> Save Settings
-              </Button>
+
+              {/* Subscription Plans */}
+              <div>
+                <h2 className="text-lg font-black text-white mb-5 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  Subscription Plans
+                </h2>
+                <div className="space-y-3">
+                  {[
+                    { name: 'Free Tier', price: '$0', desc: 'Standard streaming with ads', icon: Signal, color: 'text-white/40' },
+                    { name: 'Plus Plan', price: '$4.99', desc: 'One platform ad-free', icon: Zap, color: 'text-blue-400' },
+                    { name: 'Pro Bundle', price: '$9.99', desc: 'Two platforms ad-free', icon: Shield, color: 'text-purple-400' },
+                    { name: 'Kryv Ultra', price: '$14.99', desc: 'Full ad-free experience', icon: Crown, color: 'text-yellow-400', best: true },
+                  ].map((plan) => (
+                    <div key={plan.name} className={`p-4 border rounded-2xl flex items-center gap-4 transition-all hover:bg-white/[0.04] cursor-pointer ${plan.best ? 'border-primary/40 bg-primary/[0.03]' : 'border-white/[0.07] bg-white/[0.01]'}`}>
+                      <div className={`w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center shrink-0 ${plan.color}`}>
+                        <plan.icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-white">{plan.name}</p>
+                          {plan.best && <span className="text-[9px] font-black bg-primary text-primary-foreground px-1.5 py-0.5 rounded uppercase">Best Value</span>}
+                        </div>
+                        <p className="text-xs text-white/40">{plan.desc}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-black text-white">{plan.price}</p>
+                        <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest">/ month</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}

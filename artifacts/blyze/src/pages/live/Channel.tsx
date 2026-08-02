@@ -3,7 +3,8 @@ import { useParams } from 'wouter';
 import { useGetChannel, useListChannelMessages, useCreateChannelMessage, useFollowChannel, useUnfollowChannel } from '@workspace/api-client-react';
 import { useAuth } from '@clerk/react';
 import MuxPlayer from '@mux/mux-player-react';
-import { Loader2, Users, Heart, Share2, Send } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Crown } from 'lucide-react';
+import { GoldenDBadge, UserBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -145,7 +146,10 @@ export default function LiveChannel() {
                   {channel.streamTitle || `${channel.displayName}'s stream`}
                 </h1>
                 <div className="flex items-center gap-2 mb-2 text-primary font-medium">
-                  <span className="text-white font-bold">{channel.displayName}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white font-bold">{channel.displayName}</span>
+                    {channel.ownerUserId === 'user_3HM7RPKoUzqjn7dGwNjtZsZg89z' && <GoldenDBadge />}
+                  </div>
                   {channel.categoryName && (
                     <>
                       <span className="text-muted-foreground font-normal">playing</span>
@@ -190,8 +194,11 @@ export default function LiveChannel() {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatScrollRef}>
           {messages?.map((msg) => (
-            <div key={msg.id} className="text-sm">
-              <span className="font-bold text-primary mr-2">{msg.username}</span>
+            <div key={msg.id} className="text-sm flex flex-col gap-0.5">
+              <div className="flex items-center gap-1.5">
+                {msg.username.toLowerCase().includes('fano') && <GoldenDBadge className="w-3.5 h-3.5" />}
+                <span className="font-bold text-primary">{msg.username}</span>
+              </div>
               <span className="text-white/90 break-words">{msg.message}</span>
             </div>
           ))}
