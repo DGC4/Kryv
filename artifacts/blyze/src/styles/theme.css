@@ -1,116 +1,20 @@
+/* Theme transitions */
 :root {
-  --color-primary: #1a1a1a;
-  --color-secondary: #2d2d2d;
-  --color-accent: #00d4ff;
-  --color-bg: #0a0a0a;
-  
   --transition-duration: 0.3s;
   --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
-  transition: background-color var(--transition-duration) var(--transition-timing),
-              color var(--transition-duration) var(--transition-timing),
-              border-color var(--transition-duration) var(--transition-timing);
+/* Smooth theme color transitions on key properties only */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: var(--transition-duration);
+  transition-timing-function: var(--transition-timing);
 }
 
-body {
-  background-color: var(--color-bg);
-  color: var(--color-primary);
-}
-
-/* Dark Theme */
-.theme-dark {
-  --color-primary: #1a1a1a;
-  --color-secondary: #2d2d2d;
-  --color-accent: #00d4ff;
-  --color-bg: #0a0a0a;
-}
-
-/* Light Theme */
-.theme-light {
-  --color-primary: #ffffff;
-  --color-secondary: #f5f5f5;
-  --color-accent: #0066cc;
-  --color-bg: #fafafa;
-}
-
-/* Neon Theme */
-.theme-neon {
-  --color-primary: #0d0221;
-  --color-secondary: #3a0ca3;
-  --color-accent: #fb5607;
-  --color-bg: #000000;
-}
-
-/* Sunset Theme */
-.theme-sunset {
-  --color-primary: #ff6b35;
-  --color-secondary: #f7931e;
-  --color-accent: #fdb833;
-  --color-bg: #1a1a1a;
-}
-
-/* Ocean Theme */
-.theme-ocean {
-  --color-primary: #0077b6;
-  --color-secondary: #00b4d8;
-  --color-accent: #90e0ef;
-  --color-bg: #03045e;
-}
-
-/* Forest Theme */
-.theme-forest {
-  --color-primary: #1b4332;
-  --color-secondary: #2d6a4f;
-  --color-accent: #52b788;
-  --color-bg: #0b3d2c;
-}
-
-/* Cyberpunk Theme */
-.theme-cyberpunk {
-  --color-primary: #ff006e;
-  --color-secondary: #8338ec;
-  --color-accent: #3a86ff;
-  --color-bg: #0a0e27;
-}
-
-/* Retro Theme */
-.theme-retro {
-  --color-primary: #ffd60a;
-  --color-secondary: #ffc300;
-  --color-accent: #ff006e;
-  --color-bg: #2a2a2a;
-}
-
-/* Apply theme colors to common elements */
-button {
-  background-color: var(--color-accent);
-  color: var(--color-bg);
-  border: 2px solid var(--color-accent);
-}
-
-button:hover {
-  opacity: 0.8;
-}
-
-a {
-  color: var(--color-accent);
-}
-
-input, textarea, select {
-  background-color: var(--color-secondary);
-  color: var(--color-primary);
-  border: 1px solid var(--color-accent);
-}
-
-.card, .container {
-  background-color: var(--color-secondary);
-  color: var(--color-primary);
-  border: 1px solid var(--color-accent);
-}
-
-.header, nav {
-  background-color: var(--color-primary);
-  color: var(--color-bg);
+/* Override: don't animate transforms or opacity via transition shorthand */
+*[class*="animate-"],
+*[class*="transition-"] {
+  transition: inherit;
 }

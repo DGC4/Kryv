@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -40,6 +41,7 @@
   --color-destructive-border: var(--destructive-border);
 
   --font-sans: "Space Grotesk", sans-serif;
+  --font-display: "Outfit", sans-serif;
   --font-serif: "Instrument Serif", serif;
   --font-mono: "Space Mono", monospace;
 
@@ -50,36 +52,36 @@
 }
 
 :root, .dark {
-  --background: 240 10% 4%;
-  --foreground: 0 0% 98%;
+  --background: 240 12% 3%;
+  --foreground: 0 0% 97%;
 
-  --border: 240 10% 12%;
-  --input: 240 10% 12%;
+  --border: 240 10% 14%;
+  --input: 240 10% 14%;
   --ring: var(--primary);
 
   --card: 240 10% 6%;
-  --card-foreground: 0 0% 98%;
+  --card-foreground: 0 0% 97%;
   --card-border: 240 10% 12%;
 
-  --popover: 240 10% 6%;
-  --popover-foreground: 0 0% 98%;
-  --popover-border: 240 10% 12%;
+  --popover: 240 12% 5%;
+  --popover-foreground: 0 0% 97%;
+  --popover-border: 240 10% 14%;
 
   /* Base theme: Cyan */
   --primary: 180 100% 50%;
   --primary-foreground: 240 10% 4%;
-  
-  --secondary: 240 10% 12%;
-  --secondary-foreground: 0 0% 98%;
 
-  --muted: 240 10% 12%;
-  --muted-foreground: 240 5% 65%;
+  --secondary: 240 10% 12%;
+  --secondary-foreground: 0 0% 97%;
+
+  --muted: 240 10% 10%;
+  --muted-foreground: 240 5% 55%;
 
   --accent: 240 10% 12%;
-  --accent-foreground: 0 0% 98%;
+  --accent-foreground: 0 0% 97%;
 
   --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive-foreground: 0 0% 97%;
 
   --radius: 0.5rem;
 
@@ -99,31 +101,68 @@
   --opaque-button-border-intensity: 9;
 }
 
-[data-theme="cyan"] {
-  --primary: 180 100% 50%;
-}
-[data-theme="pink"] {
-  --primary: 320 100% 50%;
-}
-[data-theme="green"] {
-  --primary: 120 100% 50%;
-}
-[data-theme="purple"] {
-  --primary: 280 100% 65%;
-}
-[data-theme="orange"] {
-  --primary: 24 100% 50%;
-}
+[data-theme="cyan"]   { --primary: 180 100% 50%; }
+[data-theme="pink"]   { --primary: 320 100% 55%; }
+[data-theme="green"]  { --primary: 142 100% 50%; }
+[data-theme="purple"] { --primary: 280 100% 68%; }
+[data-theme="orange"] { --primary: 24 100% 55%; }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply font-sans antialiased bg-background text-foreground;
-  }
+  * { @apply border-border; }
+  body { @apply font-sans antialiased bg-background text-foreground; }
+  h1, h2, h3 { font-family: var(--font-display); }
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Glow utilities (DGC-brand-inspired)
+   ────────────────────────────────────────────────────────────── */
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px hsl(var(--primary) / 0.3); }
+  50%       { box-shadow: 0 0 24px hsl(var(--primary) / 0.6), 0 0 48px hsl(var(--primary) / 0.2); }
+}
+
+@keyframes logo-glow {
+  0%   { text-shadow: 0 0 8px hsl(var(--primary) / 0.7); }
+  50%  { text-shadow: 0 0 20px hsl(var(--primary)), 0 0 40px hsl(var(--primary) / 0.4); }
+  100% { text-shadow: 0 0 8px hsl(var(--primary) / 0.7); }
+}
+
+.text-gradient-shift {
+  background: linear-gradient(
+    270deg,
+    hsl(var(--primary)),
+    #FF8C00,
+    #FF1493,
+    #B44FFF,
+    #00D4FF,
+    hsl(var(--primary))
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 5s ease infinite;
+}
+
+.glow-border {
+  border-color: hsl(var(--primary) / 0.4);
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.kryv-logo {
+  animation: logo-glow 4s ease-in-out infinite;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Elevation utilities
+   ────────────────────────────────────────────────────────────── */
 
 @layer utilities {
   .toggle-elevate::before,
@@ -136,13 +175,8 @@
     z-index: -1;
   }
 
-  .toggle-elevate.toggle-elevated::before {
-    background-color: var(--elevate-2);
-  }
-
-  .border.toggle-elevate::before {
-    inset: -1px;
-  }
+  .toggle-elevate.toggle-elevated::before { background-color: var(--elevate-2); }
+  .border.toggle-elevate::before { inset: -1px; }
 
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
@@ -181,15 +215,6 @@
     inset: -1px;
   }
 
-  /* Font classes */
-  .font-display {
-    font-family: var(--font-sans);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-
-  /* Utilities to enforce no emojis */
-  .no-emoji {
-    font-family: var(--font-sans);
-  }
+  .font-display { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+  .no-emoji { font-family: var(--font-sans); }
 }
