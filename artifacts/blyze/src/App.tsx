@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { dark } from '@clerk/themes';
@@ -97,11 +97,29 @@ const clerkAppearance = {
   },
 };
 
+function useIpLocation() {
+  const [loc, setLoc] = useState<{ city: string | null; region: string | null; ip: string } | null>(null);
+  useEffect(() => {
+    fetch('/api/location').then(r => r.json()).then(setLoc).catch(() => {});
+  }, []);
+  return loc;
+}
+
 function SignInPage() {
+  const loc = useIpLocation();
   return (
     <Layout>
       <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center py-12 px-4 relative z-10">
-        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+        <div className="w-full max-w-md">
+          {loc && (
+            <div className="flex items-center justify-center gap-2 mb-4 text-xs text-white/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span>{[loc.city, loc.region].filter(Boolean).join(', ') || 'Location detected'}</span>
+              <span className="text-white/20 font-mono">{loc.ip}</span>
+            </div>
+          )}
+          <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+        </div>
       </div>
     </Layout>
   );

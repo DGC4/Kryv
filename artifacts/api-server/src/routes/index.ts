@@ -8,6 +8,7 @@ import chatRouter from "./chat";
 import videosRouter from "./videos";
 import cinemaRouter from "./cinema";
 import adminRouter from "./admin";
+import locationRouter from "./location";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(chatRouter);
 router.use(videosRouter);
 router.use(cinemaRouter);
 router.use(adminRouter);
+router.use(locationRouter);
 
 export default router;

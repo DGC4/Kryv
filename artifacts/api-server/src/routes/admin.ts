@@ -91,9 +91,14 @@ router.patch(
       res.status(404).json({ error: "User not found" });
       return;
     }
-    // The owner account cannot be banned via this endpoint.
+    // FanoDGC (owner) is permanently protected — no modification allowed via any endpoint.
     if (existing.role === "owner") {
-      res.status(403).json({ error: "Cannot modify the owner account" });
+      res.status(403).json({ error: "The owner account cannot be modified." });
+      return;
+    }
+    // Block any attempt to grant owner role to another account.
+    if ((parsed.data as any).role === "owner") {
+      res.status(403).json({ error: "Cannot assign owner role via this endpoint." });
       return;
     }
 

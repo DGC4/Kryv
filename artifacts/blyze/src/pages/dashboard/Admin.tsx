@@ -16,20 +16,23 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldAlert, Ban, ShieldCheck, Trash2, Users, Radio, Film, Eye } from 'lucide-react';
+import {
+  Loader2, Ban, ShieldCheck, Trash2, Users, Radio, Film, Eye,
+  Crown, Lock, ShieldAlert, Activity,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type Tab = 'users' | 'channels' | 'videos';
 
-function StatCard({ label, value, icon: Icon }: { label: string; value: number; icon: any }) {
+function StatCard({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: boolean }) {
   return (
-    <div className="p-4 rounded-xl border border-white/10 bg-black/40 backdrop-blur flex items-center gap-4">
-      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+    <div className={`p-4 rounded-xl border bg-black/40 backdrop-blur flex items-center gap-4 ${accent ? 'border-primary/30 bg-primary/[0.04]' : 'border-white/[0.08]'}`}>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${accent ? 'bg-primary/15 text-primary' : 'bg-white/[0.06] text-white/50'}`}>
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className="text-2xl font-display font-bold text-white leading-none">{value}</p>
-        <p className="text-xs text-muted-foreground mt-1">{label}</p>
+        <p className={`text-2xl font-display font-black leading-none ${accent ? 'text-primary' : 'text-white'}`}>{value}</p>
+        <p className="text-xs text-white/40 mt-1">{label}</p>
       </div>
     </div>
   );
@@ -71,7 +74,7 @@ export default function DashboardAdmin() {
         toast({ title: !banned ? 'User banned' : 'User unbanned' });
         invalidateAll();
       },
-      onError: (err: any) => toast({ title: 'Failed', description: err.message, variant: 'destructive' }),
+      onError: (err: any) => toast({ title: 'Failed', description: err?.body?.error || err.message, variant: 'destructive' }),
     });
   };
 
@@ -79,7 +82,7 @@ export default function DashboardAdmin() {
     if (!confirm('Remove this channel permanently?')) return;
     deleteChannel.mutate({ id }, {
       onSuccess: () => { toast({ title: 'Channel removed' }); invalidateAll(); },
-      onError: (err: any) => toast({ title: 'Failed', description: err.message, variant: 'destructive' }),
+      onError: (err: any) => toast({ title: 'Failed', description: err?.body?.error || err.message, variant: 'destructive' }),
     });
   };
 
@@ -87,7 +90,7 @@ export default function DashboardAdmin() {
     if (!confirm('Remove this video permanently?')) return;
     deleteVideo.mutate({ id }, {
       onSuccess: () => { toast({ title: 'Video removed' }); invalidateAll(); },
-      onError: (err: any) => toast({ title: 'Failed', description: err.message, variant: 'destructive' }),
+      onError: (err: any) => toast({ title: 'Failed', description: err?.body?.error || err.message, variant: 'destructive' }),
     });
   };
 
@@ -104,33 +107,54 @@ export default function DashboardAdmin() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl relative z-10">
-      <div className="flex items-center gap-3 mb-2">
-        <ShieldAlert className="w-7 h-7 text-primary" />
-        <h1 className="text-4xl font-display font-bold text-white">Owner Console</h1>
-      </div>
-      <p className="text-muted-foreground mb-8">Full backend visibility and moderation for Kryv — owner access only.</p>
+    <div className="relative z-10 max-w-6xl mx-auto px-4 py-8">
 
+      {/* Header */}
+      <div className="flex items-start gap-4 mb-8">
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+          <Crown className="w-6 h-6 text-primary" />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-display font-black text-white">Owner Console</h1>
+            <span className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+              <Lock className="w-2.5 h-2.5" />
+              FanoDGC · Permanent Owner
+            </span>
+          </div>
+          <p className="text-white/40 text-sm mt-1">
+            Full platform visibility and moderation. This account is permanently locked as owner and cannot be demoted or overridden.
+          </p>
+        </div>
+      </div>
+
+      {/* Stats */}
       {statsLoading ? (
-        <Loader2 className="w-6 h-6 animate-spin text-primary mb-8" />
+        <div className="flex items-center gap-2 mb-8">
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          <span className="text-sm text-white/40">Loading stats…</span>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <StatCard label="Total users" value={stats?.totalUsers ?? 0} icon={Users} />
-          <StatCard label="Banned users" value={stats?.bannedUsers ?? 0} icon={Ban} />
-          <StatCard label="Channels" value={stats?.totalChannels ?? 0} icon={Radio} />
-          <StatCard label="Live now" value={stats?.liveChannels ?? 0} icon={Radio} />
-          <StatCard label="Videos" value={stats?.totalVideos ?? 0} icon={Film} />
-          <StatCard label="Total views" value={stats?.totalViews ?? 0} icon={Eye} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+          <StatCard label="Total Users"   value={stats?.totalUsers ?? 0}    icon={Users}       />
+          <StatCard label="Banned"        value={stats?.bannedUsers ?? 0}   icon={Ban}         />
+          <StatCard label="Channels"      value={stats?.totalChannels ?? 0} icon={Radio}       />
+          <StatCard label="Live Now"      value={stats?.liveChannels ?? 0}  icon={Activity}    accent />
+          <StatCard label="Videos"        value={stats?.totalVideos ?? 0}   icon={Film}        />
+          <StatCard label="Total Views"   value={stats?.totalViews ?? 0}    icon={Eye}         />
         </div>
       )}
 
-      <div className="flex gap-1 border-b border-white/10 mb-6">
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-white/[0.08] mb-5">
         {(['users', 'channels', 'videos'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium capitalize border-b-2 transition-colors ${
-              tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
+            className={`px-4 py-2.5 text-sm font-bold capitalize border-b-2 transition-colors ${
+              tab === t
+                ? 'border-primary text-primary'
+                : 'border-transparent text-white/40 hover:text-white'
             }`}
           >
             {t}
@@ -138,51 +162,68 @@ export default function DashboardAdmin() {
         ))}
       </div>
 
+      {/* Users table */}
       {tab === 'users' && (
-        <div className="rounded-xl border border-white/10 bg-black/40 backdrop-blur overflow-hidden">
+        <div className="rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur overflow-hidden">
           {usersLoading ? (
             <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-muted-foreground border-b border-white/10">
-                  <th className="p-3 font-medium">Username</th>
-                  <th className="p-3 font-medium">Role</th>
-                  <th className="p-3 font-medium">Status</th>
-                  <th className="p-3 font-medium">Joined</th>
-                  <th className="p-3 font-medium text-right">Action</th>
+                <tr className="text-left border-b border-white/[0.08] bg-white/[0.02]">
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Username</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Role</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Joined</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {users?.map((u) => (
-                  <tr key={u.id} className="border-b border-white/5 last:border-0">
-                    <td className="p-3 text-white font-medium">{u.username}</td>
+                  <tr key={u.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${u.role === 'owner' ? 'bg-primary/20 text-primary' : 'bg-white/10 text-muted-foreground'}`}>
+                      <div className="flex items-center gap-2">
+                        {u.role === 'owner' && <Crown className="w-3.5 h-3.5 text-primary shrink-0" />}
+                        <span className="text-white font-semibold">{u.username}</span>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                        u.role === 'owner'
+                          ? 'bg-primary/15 text-primary border border-primary/20'
+                          : 'bg-white/[0.06] text-white/50 border border-white/[0.08]'
+                      }`}>
                         {u.role}
                       </span>
                     </td>
                     <td className="p-3">
-                      {u.banned ? <span className="text-destructive font-medium">Banned</span> : <span className="text-muted-foreground">Active</span>}
+                      {u.banned
+                        ? <span className="text-red-400 font-semibold text-xs">Banned</span>
+                        : <span className="text-green-400/70 font-semibold text-xs">Active</span>
+                      }
                     </td>
-                    <td className="p-3 text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td className="p-3 text-white/40 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td className="p-3 text-right">
-                      {u.role !== 'owner' && (
+                      {u.role !== 'owner' ? (
                         <Button
                           size="sm"
                           variant={u.banned ? 'secondary' : 'destructive'}
                           onClick={() => toggleBan(u.id, u.banned)}
                           disabled={updateUser.isPending}
+                          className="text-xs"
                         >
-                          {u.banned ? <ShieldCheck className="w-4 h-4 mr-1" /> : <Ban className="w-4 h-4 mr-1" />}
-                          {u.banned ? 'Unban' : 'Ban'}
+                          {u.banned ? <><ShieldCheck className="w-3.5 h-3.5 mr-1" /> Unban</> : <><Ban className="w-3.5 h-3.5 mr-1" /> Ban</>}
                         </Button>
+                      ) : (
+                        <span className="text-[10px] text-primary/50 font-bold uppercase tracking-wider flex items-center gap-1 justify-end">
+                          <Lock className="w-3 h-3" /> Protected
+                        </span>
                       )}
                     </td>
                   </tr>
                 ))}
                 {users?.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No users yet.</td></tr>
+                  <tr><td colSpan={5} className="p-8 text-center text-white/30">No users yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -190,37 +231,43 @@ export default function DashboardAdmin() {
         </div>
       )}
 
+      {/* Channels table */}
       {tab === 'channels' && (
-        <div className="rounded-xl border border-white/10 bg-black/40 backdrop-blur overflow-hidden">
+        <div className="rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur overflow-hidden">
           {channelsLoading ? (
             <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-muted-foreground border-b border-white/10">
-                  <th className="p-3 font-medium">Channel</th>
-                  <th className="p-3 font-medium">Category</th>
-                  <th className="p-3 font-medium">Live</th>
-                  <th className="p-3 font-medium">Followers</th>
-                  <th className="p-3 font-medium text-right">Action</th>
+                <tr className="text-left border-b border-white/[0.08] bg-white/[0.02]">
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Channel</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Category</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Followers</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {channels?.map((c) => (
-                  <tr key={c.id} className="border-b border-white/5 last:border-0">
-                    <td className="p-3 text-white font-medium">{c.displayName}</td>
-                    <td className="p-3 text-muted-foreground">{c.categoryName ?? '—'}</td>
-                    <td className="p-3">{c.isLive ? <span className="text-primary font-bold">LIVE</span> : <span className="text-muted-foreground">Offline</span>}</td>
-                    <td className="p-3 text-muted-foreground">{c.followerCount}</td>
+                  <tr key={c.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
+                    <td className="p-3 text-white font-semibold">{c.displayName}</td>
+                    <td className="p-3 text-white/40 text-xs">{c.categoryName ?? '—'}</td>
+                    <td className="p-3">
+                      {c.isLive
+                        ? <span className="text-red-400 font-black text-xs animate-pulse">● LIVE</span>
+                        : <span className="text-white/30 text-xs">Offline</span>
+                      }
+                    </td>
+                    <td className="p-3 text-white/40 text-xs">{c.followerCount}</td>
                     <td className="p-3 text-right">
-                      <Button size="sm" variant="destructive" onClick={() => removeChannel(c.id)} disabled={deleteChannel.isPending}>
-                        <Trash2 className="w-4 h-4 mr-1" /> Remove
+                      <Button size="sm" variant="destructive" onClick={() => removeChannel(c.id)} disabled={deleteChannel.isPending} className="text-xs">
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
                       </Button>
                     </td>
                   </tr>
                 ))}
                 {channels?.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No channels yet.</td></tr>
+                  <tr><td colSpan={5} className="p-8 text-center text-white/30">No channels yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -228,37 +275,38 @@ export default function DashboardAdmin() {
         </div>
       )}
 
+      {/* Videos table */}
       {tab === 'videos' && (
-        <div className="rounded-xl border border-white/10 bg-black/40 backdrop-blur overflow-hidden">
+        <div className="rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur overflow-hidden">
           {videosLoading ? (
             <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-muted-foreground border-b border-white/10">
-                  <th className="p-3 font-medium">Title</th>
-                  <th className="p-3 font-medium">Type</th>
-                  <th className="p-3 font-medium">Status</th>
-                  <th className="p-3 font-medium">Views</th>
-                  <th className="p-3 font-medium text-right">Action</th>
+                <tr className="text-left border-b border-white/[0.08] bg-white/[0.02]">
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Title</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Type</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Views</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {videos?.map((v) => (
-                  <tr key={v.id} className="border-b border-white/5 last:border-0">
-                    <td className="p-3 text-white font-medium">{v.title}</td>
-                    <td className="p-3 text-muted-foreground capitalize">{v.contentType}</td>
-                    <td className="p-3 text-muted-foreground capitalize">{v.uploadStatus}</td>
-                    <td className="p-3 text-muted-foreground">{v.viewCount}</td>
+                  <tr key={v.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
+                    <td className="p-3 text-white font-semibold">{v.title}</td>
+                    <td className="p-3 text-white/40 text-xs capitalize">{v.contentType}</td>
+                    <td className="p-3 text-white/40 text-xs capitalize">{v.uploadStatus}</td>
+                    <td className="p-3 text-white/40 text-xs">{v.viewCount}</td>
                     <td className="p-3 text-right">
-                      <Button size="sm" variant="destructive" onClick={() => removeVideo(v.id)} disabled={deleteVideo.isPending}>
-                        <Trash2 className="w-4 h-4 mr-1" /> Remove
+                      <Button size="sm" variant="destructive" onClick={() => removeVideo(v.id)} disabled={deleteVideo.isPending} className="text-xs">
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
                       </Button>
                     </td>
                   </tr>
                 ))}
                 {videos?.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No videos yet.</td></tr>
+                  <tr><td colSpan={5} className="p-8 text-center text-white/30">No videos yet.</td></tr>
                 )}
               </tbody>
             </table>

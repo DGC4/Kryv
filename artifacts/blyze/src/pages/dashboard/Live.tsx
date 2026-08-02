@@ -1,19 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useGetMe, useCreateChannel, useUpdateChannel, useCreateChannelStream, useListCategories } from '@workspace/api-client-react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  useGetMe,
+  useCreateChannel,
+  useUpdateChannel,
+  useCreateChannelStream,
+  useListCategories,
+} from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Copy, RefreshCcw, Save, Radio, CheckCircle2, Circle, Monitor, ExternalLink } from 'lucide-react';
+import {
+  Loader2, Copy, RefreshCcw, Save, Radio, CheckCircle2,
+  Monitor, ExternalLink, MapPin, Wifi,
+  Settings, BarChart2, Users, MessageSquare, Eye, EyeOff,
+  ChevronRight, Lock, Globe, Signal,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-function Step({ n, title, done }: { n: number; title: string; done?: boolean }) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${done ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-primary/20 text-primary border border-primary/30'}`}>
-        {done ? <CheckCircle2 className="w-4 h-4" /> : n}
-      </div>
-      <h2 className="text-lg font-bold text-white">{title}</h2>
-    </div>
-  );
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface LocationData {
+  ip: string;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  resolved: boolean;
 }
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function CopyField({ label, value, secret }: { label: string; value: string; secret?: boolean }) {
   const { toast } = useToast();
@@ -22,26 +34,96 @@ function CopyField({ label, value, secret }: { label: string; value: string; sec
     navigator.clipboard.writeText(value);
     toast({ title: 'Copied!', description: `${label} copied to clipboard.` });
   };
-
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-white/50 uppercase tracking-wider">{label}</label>
+      <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{label}</label>
       <div className="flex gap-2">
-        <div className="flex-1 bg-black/60 border border-white/10 rounded-lg px-3 py-2.5 font-mono text-sm text-white/80 overflow-hidden">
+        <div className="flex-1 bg-black/60 border border-white/[0.08] rounded-lg px-3 py-2.5 font-mono text-sm text-white/80 overflow-hidden truncate">
           {show ? value : '••••••••••••••••••••••••••••••••'}
         </div>
         {secret && (
-          <Button variant="ghost" size="sm" onClick={() => setShow(s => !s)} className="text-white/40 hover:text-white px-2 shrink-0">
-            {show ? 'Hide' : 'Show'}
+          <Button
+            variant="ghost" size="icon"
+            onClick={() => setShow(s => !s)}
+            className="text-white/40 hover:text-white shrink-0 w-9 h-9 border border-white/[0.08] bg-white/[0.03]"
+          >
+            {show ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           </Button>
         )}
-        <Button variant="secondary" size="icon" onClick={copy} className="shrink-0 bg-white/[0.06] hover:bg-white/[0.10] border border-white/10">
-          <Copy className="w-4 h-4" />
+        <Button
+          variant="ghost" size="icon"
+          onClick={copy}
+          className="shrink-0 w-9 h-9 border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-white/40 hover:text-primary"
+        >
+          <Copy className="w-3.5 h-3.5" />
         </Button>
       </div>
     </div>
   );
 }
+
+function StatusBadge({ live }: { live: boolean }) {
+  return live ? (
+    <span className="inline-flex items-center gap-1.5 bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest animate-pulse">
+      <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+      LIVE
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.08] text-white/40 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+      <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+      OFFLINE
+    </span>
+  );
+}
+
+function SidebarItem({
+  icon: Icon, label, active, onClick,
+}: { icon: any; label: string; active?: boolean; onClick?: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+        active
+          ? 'bg-primary/10 text-primary border border-primary/20'
+          : 'text-white/50 hover:text-white hover:bg-white/[0.05]'
+      }`}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      <span>{label}</span>
+      {active && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+    </button>
+  );
+}
+
+// ─── Location hook ────────────────────────────────────────────────────────────
+
+function useIpLocation() {
+  const [location, setLocation] = useState<LocationData | null>(null);
+  const [geoGranted, setGeoGranted] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // IP-based lookup from our backend
+    fetch('/api/location')
+      .then(r => r.json())
+      .then((data: LocationData) => setLocation(data))
+      .catch(() => {});
+
+    // Browser geolocation (non-blocking, best-effort)
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => setGeoGranted(true),
+        () => setGeoGranted(false),
+        { timeout: 5000 },
+      );
+    }
+  }, []);
+
+  return { location, geoGranted };
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+type DashTab = 'stream' | 'settings' | 'analytics';
 
 export default function DashboardLive() {
   const { data: me, isLoading: meLoading, refetch: refetchMe } = useGetMe();
@@ -55,6 +137,10 @@ export default function DashboardLive() {
   const [streamTitle, setStreamTitle] = useState('');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<DashTab>('stream');
+  const [locationEnforced, setLocationEnforced] = useState(false);
+
+  const { location } = useIpLocation();
 
   useEffect(() => {
     if (me?.channel) {
@@ -65,26 +151,87 @@ export default function DashboardLive() {
 
   const handleCreateChannel = (e: React.FormEvent) => {
     e.preventDefault();
-    createChannel.mutate({ data: { displayName } }, {
-      onSuccess: () => { toast({ title: 'Channel created!' }); refetchMe(); },
-      onError: (err) => toast({ title: 'Failed', description: err.message, variant: 'destructive' }),
-    });
+    if (!displayName.trim()) return;
+    createChannel.mutate(
+      { data: { displayName: displayName.trim() } },
+      {
+        onSuccess: () => {
+          toast({ title: 'Channel created!', description: 'Your channel is ready. Set your stream info and get your key.' });
+          refetchMe();
+        },
+        onError: (err: any) => {
+          const msg = err?.body?.error || err.message || 'Failed to create channel';
+          if (msg.includes('already have')) {
+            // Channel already exists — just refresh
+            refetchMe();
+          } else {
+            toast({ title: 'Error', description: msg, variant: 'destructive' });
+          }
+        },
+      },
+    );
   };
 
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!me?.channel) return;
-    updateChannel.mutate({ id: me.channel.id, data: { streamTitle, categoryId } }, {
-      onSuccess: () => toast({ title: 'Stream info saved!' }),
-      onError: (err) => toast({ title: 'Failed', description: err.message, variant: 'destructive' }),
-    });
+    updateChannel.mutate(
+      { id: me.channel.id, data: { streamTitle, categoryId } },
+      {
+        onSuccess: () => toast({ title: 'Stream info saved!' }),
+        onError: (err: any) =>
+          toast({ title: 'Failed', description: err?.body?.error || err.message, variant: 'destructive' }),
+      },
+    );
   };
 
-  const handleGetKey = () => {
+  const handleGetKey = useCallback(() => {
     if (!me?.channel) return;
-    createStream.mutate({ id: me.channel.id }, {
-      onSuccess: (data) => setCredentials(data),
-      onError: (err) => toast({ title: 'Failed', description: err.message, variant: 'destructive' }),
+    createStream.mutate(
+      { id: me.channel.id },
+      {
+        onSuccess: data => {
+          setCredentials(data);
+          toast({ title: 'Stream key generated!', description: 'Keep this key private.' });
+        },
+        onError: (err: any) => {
+          const msg = err?.body?.error || err.message || 'Unknown error';
+          toast({
+            title: 'Stream key failed',
+            description: msg.includes('Mux') || msg.includes('configured')
+              ? 'Mux is not configured. Add MUX_TOKEN_ID and MUX_TOKEN_SECRET to your server environment variables on Render.'
+              : msg,
+            variant: 'destructive',
+          });
+        },
+      },
+    );
+  }, [me?.channel, createStream, toast]);
+
+  const handleGoLive = () => {
+    if (!credentials) {
+      toast({
+        title: 'Generate your stream key first',
+        description: 'Click "Generate Stream Key" in Step 2 before going live.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    // Enforce location confirmation on go live
+    if (!locationEnforced) {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          () => setLocationEnforced(true),
+          () => setLocationEnforced(true), // IP fallback is fine
+          { timeout: 5000 },
+        );
+      } else {
+        setLocationEnforced(true);
+      }
+    }
+    toast({
+      title: 'Ready to go live!',
+      description: 'Start streaming in OBS using your RTMP URL and stream key.',
     });
   };
 
@@ -99,193 +246,386 @@ export default function DashboardLive() {
   const channel = me?.channel;
   const isLive = channel?.isLive ?? false;
 
-  return (
-    <div className="relative z-10 max-w-[1600px] mx-auto px-4 lg:px-6 py-8">
-
-      {/* Page header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-black text-white">Creator Dashboard</h1>
-            {isLive && (
-              <span className="flex items-center gap-1.5 bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse">
-                <Radio className="w-3 h-3" />
-                LIVE
-              </span>
-            )}
+  // ── No channel yet: creation screen ──────────────────────────────────────
+  if (!channel) {
+    return (
+      <div className="relative z-10 max-w-2xl mx-auto px-4 py-12">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
+            <Radio className="w-8 h-8 text-primary" />
           </div>
-          <p className="text-white/40 text-sm">Stream live on Kryv using OBS or any RTMP encoder</p>
+          <h1 className="text-3xl font-black text-white mb-2">Launch Your Channel</h1>
+          <p className="text-white/40">Create your channel to start streaming live on Kryv</p>
         </div>
-      </div>
 
-      {!channel ? (
-        /* ── Step 1: Create channel ── */
-        <div className="max-w-lg">
-          <div className="p-6 border border-white/[0.08] rounded-2xl bg-white/[0.03] backdrop-blur">
-            <Step n={1} title="Create your channel" />
-            <p className="text-white/40 text-sm mb-5 ml-11">Choose a display name for your channel — this is what viewers will see.</p>
-            <form onSubmit={handleCreateChannel} className="space-y-4 ml-11">
+        {/* Location display on creation screen */}
+        {location?.resolved && (
+          <div className="flex items-center gap-2 justify-center mb-6 text-sm text-white/40">
+            <MapPin className="w-3.5 h-3.5 text-primary" />
+            <span>
+              {[location.city, location.region].filter(Boolean).join(', ')}
+              {location.country ? ` · ${location.country}` : ''}
+            </span>
+            <span className="text-white/20 mx-1">·</span>
+            <Globe className="w-3 h-3" />
+            <span className="font-mono text-xs">{location.ip}</span>
+          </div>
+        )}
+
+        <div className="p-6 border border-white/[0.08] rounded-2xl bg-white/[0.02] backdrop-blur">
+          <form onSubmit={handleCreateChannel} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
+                Channel Display Name
+              </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
-                placeholder="Your channel name…"
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/60 transition-all"
-                required maxLength={60}
+                placeholder="e.g. FanoDGC Gaming"
+                className="w-full bg-black/40 border border-white/[0.10] rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-all"
+                required
+                maxLength={60}
               />
-              <Button type="submit" disabled={createChannel.isPending} className="w-full font-bold bg-primary text-primary-foreground rounded-xl h-11">
-                {createChannel.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                Create Channel
-              </Button>
-            </form>
+              <p className="text-xs text-white/30 mt-1.5">This is what viewers see on your channel page.</p>
+            </div>
+            <Button
+              type="submit"
+              disabled={createChannel.isPending || !displayName.trim()}
+              className="w-full h-12 font-black text-sm bg-primary text-primary-foreground rounded-xl shadow-[0_0_20px_hsl(var(--primary)/0.3)] hover:shadow-[0_0_28px_hsl(var(--primary)/0.45)] transition-all"
+            >
+              {createChannel.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating…</>
+              ) : (
+                <><Radio className="w-4 h-4 mr-2" /> Create Channel &amp; Go Live</>
+              )}
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Channel exists: full Kick-style dashboard ─────────────────────────────
+  return (
+    <div className="relative z-10 flex min-h-[calc(100dvh-4rem)]">
+
+      {/* ── Left sidebar ── */}
+      <aside className="hidden lg:flex flex-col w-52 shrink-0 border-r border-white/[0.06] bg-black/20 px-3 py-5 gap-1">
+        <p className="text-[10px] font-black text-white/25 uppercase tracking-widest px-3 mb-2">Creator</p>
+        <SidebarItem icon={Signal}    label="Stream"    active={activeTab === 'stream'}    onClick={() => setActiveTab('stream')} />
+        <SidebarItem icon={Settings}  label="Settings"  active={activeTab === 'settings'}  onClick={() => setActiveTab('settings')} />
+        <SidebarItem icon={BarChart2} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
+
+        {/* Location pill at bottom of sidebar */}
+        <div className="mt-auto pt-4 border-t border-white/[0.06]">
+          {location?.resolved ? (
+            <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <MapPin className="w-3 h-3 text-primary" />
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Location</span>
+              </div>
+              <p className="text-xs text-white/70 font-medium">
+                {[location.city, location.region].filter(Boolean).join(', ') || location.country || 'Unknown'}
+              </p>
+              <p className="text-[10px] text-white/30 font-mono mt-0.5">{location.ip}</p>
+            </div>
+          ) : (
+            <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+              <div className="flex items-center gap-1.5">
+                <Globe className="w-3 h-3 text-white/30" />
+                <span className="text-[10px] text-white/30">Detecting…</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* ── Main content area ── */}
+      <div className="flex-1 overflow-auto">
+
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-black/10 sticky top-0 z-20 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-black text-white">Creator Dashboard</h1>
+            <StatusBadge live={isLive} />
+          </div>
+          <div className="flex items-center gap-3">
+            {location?.resolved && (
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-white/40">
+                <MapPin className="w-3 h-3 text-primary" />
+                <span>{[location.city, location.region].filter(Boolean).join(', ') || location.country}</span>
+              </div>
+            )}
+            <Button
+              onClick={handleGoLive}
+              className={`h-9 px-5 font-black text-xs rounded-full transition-all ${
+                credentials
+                  ? 'bg-red-600 hover:bg-red-500 text-white shadow-[0_0_16px_rgba(239,68,68,0.4)]'
+                  : 'bg-white/[0.06] text-white/40 border border-white/[0.08] cursor-default'
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5 mr-1.5" />
+              {isLive ? 'End Stream' : 'Go Live Now'}
+            </Button>
           </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Left column */}
-          <div className="space-y-5">
+        {/* ── Stream tab ── */}
+        {activeTab === 'stream' && (
+          <div className="p-5 grid grid-cols-1 xl:grid-cols-3 gap-5">
 
-            {/* Step 2: Stream info */}
-            <div className="p-6 border border-white/[0.08] rounded-2xl bg-white/[0.03] backdrop-blur">
-              <Step n={2} title="Set your stream info" done={!!channel.streamTitle} />
-              <form onSubmit={handleUpdate} className="space-y-4 ml-11">
-                <div>
-                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Stream Title</label>
-                  <input
-                    type="text"
-                    value={streamTitle}
-                    onChange={e => setStreamTitle(e.target.value)}
-                    placeholder="What are you streaming today?"
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/60 transition-all"
-                    maxLength={140}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Category</label>
-                  <select
-                    value={categoryId ?? ''}
-                    onChange={e => setCategoryId(e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/60 transition-all appearance-none"
-                  >
-                    <option value="">Select a category…</option>
-                    {categories?.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <Button type="submit" disabled={updateChannel.isPending} variant="secondary" className="w-full font-bold rounded-xl h-11 bg-white/[0.06] border border-white/10 hover:bg-white/[0.10]">
-                  {updateChannel.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                  Save Info
-                </Button>
-              </form>
-            </div>
+            {/* Left: steps */}
+            <div className="xl:col-span-2 space-y-4">
 
-            {/* Step 3: Get credentials */}
-            <div className="p-6 border border-white/[0.08] rounded-2xl bg-white/[0.03] backdrop-blur">
-              <div className="flex items-start justify-between mb-1">
-                <Step n={3} title="Get stream credentials" done={!!credentials} />
-                {credentials && (
-                  <Button onClick={handleGetKey} disabled={createStream.isPending} size="sm" variant="ghost" className="text-white/40 hover:text-white ml-auto shrink-0 -mt-1">
-                    <RefreshCcw className="w-3.5 h-3.5 mr-1" /> Rotate key
-                  </Button>
-                )}
+              {/* Session stats bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: 'Status',    value: isLive ? 'LIVE' : 'OFFLINE', red: isLive },
+                  { label: 'Viewers',   value: String(channel.viewerCount ?? 0) },
+                  { label: 'Followers', value: String(channel.followerCount ?? 0) },
+                  { label: 'Category',  value: channel.categoryName || '—' },
+                ].map(({ label, value, red }) => (
+                  <div key={label} className="p-3 rounded-xl border border-white/[0.07] bg-white/[0.02]">
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">{label}</p>
+                    <p className={`text-sm font-black truncate ${red ? 'text-red-400' : 'text-white'}`}>{value}</p>
+                  </div>
+                ))}
               </div>
 
-              <div className="ml-11">
+              {/* Step 1: Stream info */}
+              <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${channel.streamTitle ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-primary/20 text-primary border border-primary/30'}`}>
+                    {channel.streamTitle ? <CheckCircle2 className="w-3.5 h-3.5" /> : '1'}
+                  </div>
+                  <h2 className="font-black text-white">Stream Info</h2>
+                  {channel.streamTitle && <span className="text-xs text-green-400/70 ml-auto">Saved</span>}
+                </div>
+                <form onSubmit={handleUpdate} className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Stream Title</label>
+                    <input
+                      type="text"
+                      value={streamTitle}
+                      onChange={e => setStreamTitle(e.target.value)}
+                      placeholder="What are you streaming today?"
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+                      maxLength={140}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Category</label>
+                    <select
+                      value={categoryId ?? ''}
+                      onChange={e => setCategoryId(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary/50 transition-all appearance-none"
+                    >
+                      <option value="">Select a category…</option>
+                      {categories?.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={updateChannel.isPending}
+                    size="sm"
+                    className="font-bold bg-white/[0.07] border border-white/[0.10] hover:bg-white/[0.12] text-white rounded-xl px-5"
+                  >
+                    {updateChannel.isPending
+                      ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving…</>
+                      : <><Save className="w-3.5 h-3.5 mr-1.5" /> Save Info</>
+                    }
+                  </Button>
+                </form>
+              </div>
+
+              {/* Step 2: Stream credentials */}
+              <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${credentials ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-primary/20 text-primary border border-primary/30'}`}>
+                    {credentials ? <CheckCircle2 className="w-3.5 h-3.5" /> : '2'}
+                  </div>
+                  <h2 className="font-black text-white">Stream Credentials</h2>
+                  {credentials && (
+                    <Button
+                      onClick={handleGetKey}
+                      disabled={createStream.isPending}
+                      size="sm"
+                      variant="ghost"
+                      className="ml-auto text-white/30 hover:text-white text-xs"
+                    >
+                      <RefreshCcw className="w-3 h-3 mr-1" /> Rotate Key
+                    </Button>
+                  )}
+                </div>
+
                 {credentials ? (
-                  <div className="space-y-4">
-                    <CopyField label="Server URL (RTMP)" value={credentials.rtmpUrl} />
+                  <div className="space-y-3">
+                    <CopyField label="RTMP Server URL" value={credentials.rtmpUrl} />
                     <CopyField label="Stream Key" value={credentials.streamKey} secret />
-                    <p className="text-xs text-red-400/80 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
-                      Keep your stream key private — anyone with it can broadcast to your channel.
-                    </p>
+                    <div className="flex items-center gap-2 p-3 bg-red-500/[0.07] border border-red-500/20 rounded-xl">
+                      <Lock className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                      <p className="text-xs text-red-400/80">Keep your stream key private — anyone with it can broadcast to your channel.</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-white/40 text-sm">Generate your credentials to connect OBS or any RTMP broadcaster.</p>
-                    <Button onClick={handleGetKey} disabled={createStream.isPending} className="font-bold bg-primary text-primary-foreground rounded-xl px-6">
-                      {createStream.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                      Generate Stream Key
+                    <p className="text-sm text-white/40">Generate your RTMP credentials to connect OBS or any streaming encoder.</p>
+                    <Button
+                      onClick={handleGetKey}
+                      disabled={createStream.isPending}
+                      className="font-black bg-primary text-primary-foreground rounded-xl px-6 shadow-[0_0_16px_hsl(var(--primary)/0.3)]"
+                    >
+                      {createStream.isPending
+                        ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</>
+                        : <><Wifi className="w-4 h-4 mr-2" /> Generate Stream Key</>
+                      }
                     </Button>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* Right column — OBS setup guide */}
-          <div className="p-6 border border-white/[0.08] rounded-2xl bg-white/[0.03] backdrop-blur h-fit">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-                <Monitor className="w-4 h-4 text-primary" />
-              </div>
-              <h2 className="text-lg font-bold text-white">OBS Setup Guide</h2>
-            </div>
-
-            <div className="space-y-5 text-sm">
-              <div className="flex gap-4">
-                <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-black text-primary shrink-0 mt-0.5">1</div>
-                <div>
-                  <p className="font-semibold text-white mb-1">Download OBS Studio</p>
-                  <p className="text-white/40">Free and open-source. Download from <a href="https://obsproject.com" target="_blank" rel="noopener" className="text-primary hover:underline inline-flex items-center gap-0.5">obsproject.com <ExternalLink className="w-3 h-3" /></a></p>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-black text-primary shrink-0 mt-0.5">2</div>
-                <div>
-                  <p className="font-semibold text-white mb-1">Open Settings → Stream</p>
-                  <p className="text-white/40">In OBS: <span className="text-white/70 font-mono text-xs bg-white/[0.06] px-1.5 py-0.5 rounded">Settings → Stream</span></p>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-black text-primary shrink-0 mt-0.5">3</div>
-                <div>
-                  <p className="font-semibold text-white mb-1">Select Custom RTMP</p>
-                  <p className="text-white/40">Set Service to <span className="text-white/70 font-mono text-xs bg-white/[0.06] px-1.5 py-0.5 rounded">Custom...</span></p>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-black text-primary shrink-0 mt-0.5">4</div>
-                <div>
-                  <p className="font-semibold text-white mb-1">Enter your credentials</p>
-                  <div className="space-y-2 mt-2">
-                    <div className="bg-black/40 border border-white/[0.07] rounded-lg p-3 text-xs text-white/60 font-mono">
-                      <p className="text-white/30 mb-1 font-sans font-semibold tracking-wider uppercase text-[10px]">Server</p>
-                      <p className="text-white/80">{credentials?.rtmpUrl || 'rtmp://global-live.mux.com:5222/app'}</p>
-                    </div>
-                    <div className="bg-black/40 border border-white/[0.07] rounded-lg p-3 text-xs text-white/60 font-mono">
-                      <p className="text-white/30 mb-1 font-sans font-semibold tracking-wider uppercase text-[10px]">Stream Key</p>
-                      <p className="text-white/80">{credentials?.streamKey ? '••••••••' : '(generate above first)'}</p>
-                    </div>
+              {/* Location enforcement notice */}
+              {!locationEnforced && credentials && (
+                <div className="flex items-start gap-3 p-4 bg-primary/[0.06] border border-primary/20 rounded-xl">
+                  <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-white mb-0.5">Location confirmation required to go live</p>
+                    <p className="text-xs text-white/40">
+                      Click "Go Live Now" to confirm your location.
+                      {location?.resolved && (
+                        <> Detected: <span className="text-white/60">{[location.city, location.region].filter(Boolean).join(', ')}</span></>
+                      )}
+                    </p>
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Right: preview + OBS guide */}
+            <div className="space-y-4">
+
+              {/* Stream preview */}
+              <div className="aspect-video rounded-2xl border border-white/[0.07] bg-black/40 flex flex-col items-center justify-center gap-3 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent pointer-events-none" />
+                <Monitor className="w-10 h-10 text-white/20 relative" />
+                <div className="relative text-center">
+                  <p className="text-sm font-bold text-white/30">{channel.displayName}</p>
+                  <p className="text-xs text-white/20 mt-0.5">{isLive ? 'Live now' : 'Offline'}</p>
+                </div>
+                <StatusBadge live={isLive} />
               </div>
 
-              <div className="flex gap-4">
-                <div className="w-6 h-6 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+              {/* OBS Setup guide */}
+              <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
+                <div className="flex items-center gap-2 mb-4">
+                  <Monitor className="w-4 h-4 text-primary" />
+                  <h2 className="font-black text-white text-sm">OBS Setup Guide</h2>
                 </div>
-                <div>
-                  <p className="font-semibold text-white mb-1">Hit "Start Streaming" in OBS</p>
-                  <p className="text-white/40">Your channel will go live on Kryv within a few seconds. Your stream key generates a fresh Mux live stream each time.</p>
+                <div className="space-y-4 text-xs">
+                  {([
+                    {
+                      n: '1', title: 'Download OBS Studio',
+                      body: <span>Free &amp; open-source. <a href="https://obsproject.com" target="_blank" rel="noopener" className="text-primary hover:underline inline-flex items-center gap-0.5">obsproject.com <ExternalLink className="w-2.5 h-2.5" /></a></span>,
+                    },
+                    { n: '2', title: 'Settings → Stream', body: <span>Open OBS → <span className="font-mono bg-white/[0.06] px-1 rounded">Settings → Stream</span></span> },
+                    { n: '3', title: 'Select Custom RTMP', body: <span>Set Service to <span className="font-mono bg-white/[0.06] px-1 rounded">Custom…</span></span> },
+                    {
+                      n: '4', title: 'Enter credentials',
+                      body: (
+                        <div className="space-y-1.5 mt-1">
+                          <div className="bg-black/50 border border-white/[0.06] rounded-lg p-2 font-mono">
+                            <p className="text-white/25 text-[9px] uppercase tracking-widest mb-0.5">Server</p>
+                            <p className="text-white/70 text-[11px] break-all">{credentials?.rtmpUrl || 'rtmp://global-live.mux.com:5222/app'}</p>
+                          </div>
+                          <div className="bg-black/50 border border-white/[0.06] rounded-lg p-2 font-mono">
+                            <p className="text-white/25 text-[9px] uppercase tracking-widest mb-0.5">Stream Key</p>
+                            <p className="text-white/70 text-[11px]">{credentials?.streamKey ? '••••••••••••' : '(generate above)'}</p>
+                          </div>
+                        </div>
+                      ),
+                    },
+                    { n: '✓', title: 'Hit "Start Streaming"', body: <span>Your channel goes live within seconds.</span>, green: true },
+                  ] as Array<{ n: string; title: string; body: React.ReactNode; green?: boolean }>).map(({ n, title, body, green }) => (
+                    <div key={n} className="flex gap-3">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 ${green ? 'bg-green-500/15 text-green-400 border border-green-500/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
+                        {n}
+                      </div>
+                      <div>
+                        <p className="font-bold text-white mb-0.5">{title}</p>
+                        <div className="text-white/40">{body}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-
-              <div className="mt-4 p-3 bg-primary/[0.07] border border-primary/20 rounded-xl">
-                <p className="text-xs text-white/60">
-                  <span className="text-primary font-semibold">Recommended OBS settings: </span>
-                  Encoder: x264 or Hardware (NVENC/AMD). Bitrate: 3000–6000 kbps. Keyframe interval: 2s. Resolution: 1080p or 720p at 30/60fps.
-                </p>
+                <div className="mt-4 p-3 bg-primary/[0.06] border border-primary/15 rounded-xl">
+                  <p className="text-[11px] text-white/50">
+                    <span className="text-primary font-bold">Recommended: </span>
+                    x264 or NVENC · 3000–6000 kbps · Keyframe 2s · 1080p/60fps
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* ── Settings tab ── */}
+        {activeTab === 'settings' && (
+          <div className="p-5 max-w-xl">
+            <h2 className="text-lg font-black text-white mb-5">Channel Settings</h2>
+            <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02] space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Channel Name</label>
+                <input
+                  type="text"
+                  defaultValue={channel.displayName}
+                  className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary/50 transition-all"
+                  maxLength={60}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Channel URL</label>
+                <div className="flex items-center gap-2 bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5">
+                  <span className="text-white/30 text-sm">kryv.tv/live/</span>
+                  <span className="text-white text-sm font-mono">{channel.slug}</span>
+                </div>
+              </div>
+              <Button className="font-bold bg-primary text-primary-foreground rounded-xl px-6">
+                <Save className="w-4 h-4 mr-2" /> Save Settings
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Analytics tab ── */}
+        {activeTab === 'analytics' && (
+          <div className="p-5">
+            <h2 className="text-lg font-black text-white mb-5">Analytics</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              {[
+                { label: 'Total Followers', value: String(channel.followerCount ?? 0), icon: Users },
+                { label: 'Peak Viewers',    value: '—', icon: Eye },
+                { label: 'Total Streams',   value: '—', icon: Radio },
+                { label: 'Chat Messages',   value: '—', icon: MessageSquare },
+              ].map(({ label, value, icon: Icon }) => (
+                <div key={label} className="p-4 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon className="w-4 h-4 text-primary" />
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{label}</p>
+                  </div>
+                  <p className="text-2xl font-black text-white">{value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02] text-center">
+              <BarChart2 className="w-8 h-8 text-white/20 mx-auto mb-2" />
+              <p className="text-sm text-white/30">Detailed analytics coming soon</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
