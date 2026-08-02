@@ -13,7 +13,7 @@ import {
   UpdateVideoResponse,
   DeleteVideoParams,
 } from "@workspace/api-zod";
-import { requireAuth, attachUserId } from "../lib/auth";
+import { requireAuth, attachUserId, getOrCreateUser } from "../lib/auth";
 import { toVideoSummary, toVideoDetail } from "../lib/videoSerializer";
 import { createMuxDirectUpload, MuxNotConfiguredError } from "../lib/mux";
 
@@ -61,12 +61,20 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const user = await getOrCreateUser(userId);
   const [channel] = await db
     .select()
     .from(channelsTable)
     .where(eq(channelsTable.ownerUserId, userId));
+
   if (!channel) {
     res.status(403).json({ error: "Create a channel before uploading videos" });
+    return;
+  }
+
+  // Lock 'original' content type to owner only.
+  if (parsed.data.contentType === "original" && user.role !== "owner") {
+    res.status(403).json({ error: "Only cinema staff can post original content." });
     return;
   }
 
