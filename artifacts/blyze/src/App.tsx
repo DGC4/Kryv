@@ -1,106 +1,244 @@
-﻿import { Switch, Route } from "wouter";
+import { useEffect, useRef } from "react";
+import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
+import { publishableKeyFromHost } from '@clerk/react/internal';
+import { dark } from '@clerk/themes';
+import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import NotFound from "@/pages/not-found";
-
-// Live
-import LiveHome from "@/pages/live/Home";
-import ChannelDetail from "@/pages/live/Channel";
-import CategoryDetail from "@/pages/live/Category";
-
-// Watch
-import WatchHome from "@/pages/watch/Home";
-import WatchDetail from "@/pages/watch/Detail";
-
-// Cinema
-import CinemaHome from "@/pages/cinema/Home";
-import CinemaDetail from "@/pages/cinema/Detail";
-
-// Dashboard
-import DashboardLive from "@/pages/dashboard/Live";
-import DashboardWatch from "@/pages/dashboard/Watch";
-import DashboardAdmin from "@/pages/dashboard/Admin";
-
-// Legal
-import Privacy from "@/pages/legal/Privacy";
-import Terms from "@/pages/legal/Terms";
-
-// Clerk
-import { ClerkProvider, SignIn, SignUp } from "@clerk/react";
-import { dark } from "@clerk/themes";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { Layout } from "./components/Layout";
+import { ThemeProvider } from "./lib/themeProvider";
 import { setBaseUrl } from "@workspace/api-client-react";
+import "./styles/theme.css";
 
 // Configure API base URL if provided, otherwise use relative paths
 if (import.meta.env.VITE_API_URL) {
   setBaseUrl(import.meta.env.VITE_API_URL);
 }
 
-function Router() {
+// Pages
+import NotFound from '@/pages/not-found';
+import LiveHome from '@/pages/live/Home';
+import LiveCategory from '@/pages/live/Category';
+import LiveChannel from '@/pages/live/Channel';
+import WatchHome from '@/pages/watch/Home';
+import WatchDetail from '@/pages/watch/Detail';
+import CinemaHome from '@/pages/cinema/Home';
+import CinemaDetail from '@/pages/cinema/Detail';
+import DashboardLive from '@/pages/dashboard/Live';
+import DashboardWatch from '@/pages/dashboard/Watch';
+import DashboardAdmin from '@/pages/dashboard/Admin';
+import Privacy from '@/pages/legal/Privacy';
+import Terms from '@/pages/legal/Terms';
+
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
+
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function stripBase(path: string): string {
+  return basePath && path.startsWith(basePath)
+    ? path.slice(basePath.length) || "/"
+    : path;
+}
+
+if (!clerkPubKey) {
+  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
+}
+
+const clerkAppearance = {
+  theme: dark,
+  cssLayerName: "clerk",
+  options: {
+    logoPlacement: "inside" as const,
+    logoLinkUrl: basePath || "/",
+    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+  },
+  variables: {
+    colorPrimary: "hsl(180, 100%, 50%)",
+    colorForeground: "hsl(0, 0%, 98%)",
+    colorMutedForeground: "hsl(240, 5%, 65%)",
+    colorDanger: "hsl(0, 84%, 60%)",
+    colorBackground: "hsl(240, 10%, 6%)",
+    colorInput: "hsl(240, 10%, 12%)",
+    colorInputForeground: "hsl(0, 0%, 98%)",
+    colorNeutral: "hsl(240, 10%, 12%)",
+    fontFamily: "Space Grotesk, sans-serif",
+    borderRadius: "0.5rem",
+  },
+  elements: {
+    rootBox: "w-full flex justify-center",
+    cardBox: "bg-[#0f0f12] border border-white/10 rounded-2xl w-[440px] max-w-full overflow-hidden shadow-2xl",
+    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    headerTitle: "text-2xl font-bold font-display text-white",
+    headerSubtitle: "text-muted-foreground",
+    socialButtonsBlockButtonText: "text-white font-medium",
+    formFieldLabel: "text-white/80 font-medium",
+    footerActionLink: "text-primary hover:text-primary/80 font-medium transition-colors",
+    footerActionText: "text-muted-foreground",
+    dividerText: "text-muted-foreground bg-[#0f0f12] px-2",
+    identityPreviewEditButton: "text-primary hover:text-primary/80",
+    formFieldSuccessText: "text-green-400",
+    alertText: "text-destructive-foreground",
+    logoBox: "mb-6 flex justify-center",
+    logoImage: "h-10",
+    socialButtonsBlockButton: "border-white/10 hover:bg-white/5 transition-colors text-white",
+    formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90 font-bold transition-colors",
+    formFieldInput: "bg-black/20 border-white/10 text-white focus:border-primary focus:ring-1 focus:ring-primary transition-all",
+    footerAction: "bg-black/20 py-4 border-t border-white/10",
+    dividerLine: "bg-white/10",
+    alert: "bg-destructive/10 border-destructive/20 text-destructive",
+    otpCodeFieldInput: "bg-black/20 border-white/10 text-white focus:border-primary",
+    formFieldRow: "mb-4",
+    main: "px-8 py-8",
+  },
+};
+
+function SignInPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header />
-      <main className="flex-grow">
-        <Switch>
-          {/* Main Navigation */}
-          <Route path="/" component={LiveHome} />
-          <Route path="/live" component={LiveHome} />
-          <Route path="/live/categories/:slug" component={CategoryDetail} />
-          <Route path="/live/:id" component={ChannelDetail} />
-          
-          <Route path="/watch" component={WatchHome} />
-          <Route path="/watch/:id" component={WatchDetail} />
-          
-          <Route path="/cinema" component={CinemaHome} />
-          <Route path="/cinema/:id" component={CinemaDetail} />
-          
-          {/* Dashboard / Creator routes */}
-          <Route path="/dashboard/live" component={DashboardLive} />
-          <Route path="/dashboard/watch" component={DashboardWatch} />
-          <Route path="/dashboard/admin" component={DashboardAdmin} />
-          
-          {/* Auth routes */}
-          <Route path="/sign-in">
-            <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-              <SignIn routing="path" path="/sign-in" />
-            </div>
-          </Route>
-          <Route path="/sign-up">
-            <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-              <SignUp routing="path" path="/sign-up" />
-            </div>
-          </Route>
-
-          {/* Legal */}
-          <Route path="/privacy" component={Privacy} />
-          <Route path="/terms" component={Terms} />
-          <Route path="/legal/privacy" component={Privacy} />
-          <Route path="/legal/terms" component={Terms} />
-
-          {/* Fallback */}
-          <Route component={NotFound} />
-        </Switch>
-      </main>
-      <Footer />
-    </div>
+    <Layout>
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center py-12 px-4 relative z-10">
+        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      </div>
+    </Layout>
   );
 }
 
-export default function App() {
+function SignUpPage() {
   return (
-    <ClerkProvider 
-      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
-      appearance={{ 
-        baseTheme: dark,
-        variables: { colorPrimary: 'hsl(188, 91%, 43%)' }
-      }}
+    <Layout>
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center py-12 px-4 relative z-10">
+        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      </div>
+    </Layout>
+  );
+}
+
+function ClerkQueryClientCacheInvalidator() {
+  const { addListener } = useClerk();
+  const queryClient = useQueryClient();
+  const prevUserIdRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = addListener(({ user }) => {
+      const userId = user?.id ?? null;
+      if (
+        prevUserIdRef.current !== undefined &&
+        prevUserIdRef.current !== userId
+      ) {
+        queryClient.clear();
+      }
+      prevUserIdRef.current = userId;
+    });
+    return unsubscribe;
+  }, [addListener, queryClient]);
+
+  return null;
+}
+
+function HomeRedirect() {
+  const [location] = useLocation();
+  if (location === '/') return <Redirect to="/live" />;
+  return null;
+}
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <Show when="signed-in">{children}</Show>
+      <Show when="signed-out"><Redirect to="/sign-in" /></Show>
+    </>
+  );
+}
+
+function ClerkProviderWithRoutes() {
+  const [, setLocation] = useLocation();
+
+  return (
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
+      appearance={clerkAppearance}
+      signInUrl={`${basePath}/sign-in`}
+      signUpUrl={`${basePath}/sign-up`}
+      routerPush={(to) => setLocation(stripBase(to))}
+      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
-        <Router />
-        <Toaster />
+        <ClerkQueryClientCacheInvalidator />
+        <Switch>
+          <Route path="/" component={HomeRedirect} />
+          
+          <Route path="/sign-in/*?" component={SignInPage} />
+          <Route path="/sign-up/*?" component={SignUpPage} />
+
+          <Route path="/live">
+            <Layout><LiveHome /></Layout>
+          </Route>
+          <Route path="/live/categories/:slug">
+            <Layout><LiveCategory /></Layout>
+          </Route>
+          <Route path="/live/:channelSlugOrId">
+            <Layout><LiveChannel /></Layout>
+          </Route>
+
+          <Route path="/watch">
+            <Layout><WatchHome /></Layout>
+          </Route>
+          <Route path="/watch/:id">
+            <Layout><WatchDetail /></Layout>
+          </Route>
+
+          <Route path="/cinema">
+            <Layout><CinemaHome /></Layout>
+          </Route>
+          <Route path="/cinema/:id">
+            <Layout><CinemaDetail /></Layout>
+          </Route>
+
+          <Route path="/dashboard/live">
+            <ProtectedRoute>
+              <Layout><DashboardLive /></Layout>
+            </ProtectedRoute>
+          </Route>
+          <Route path="/dashboard/watch">
+            <ProtectedRoute>
+              <Layout><DashboardWatch /></Layout>
+            </ProtectedRoute>
+          </Route>
+          <Route path="/dashboard/admin">
+            <ProtectedRoute>
+              <Layout><DashboardAdmin /></Layout>
+            </ProtectedRoute>
+          </Route>
+
+          <Route path="/privacy">
+            <Layout><Privacy /></Layout>
+          </Route>
+          <Route path="/terms">
+            <Layout><Terms /></Layout>
+          </Route>
+
+          <Route>
+            <Layout><NotFound /></Layout>
+          </Route>
+        </Switch>
       </QueryClientProvider>
     </ClerkProvider>
   );
 }
+
+function App() {
+  return (
+    <ThemeProvider>
+      <WouterRouter base={basePath}>
+        <ClerkProviderWithRoutes />
+      </WouterRouter>
+    </ThemeProvider>
+  );
+}
+
+export default App;
