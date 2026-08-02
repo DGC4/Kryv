@@ -20,4 +20,4 @@
 - [ ] Connect a payment and payout provider before enabling subscription checkout, revenue collection, or payout delivery.
 - [ ] Connect an outbound notification provider before enabling live alert delivery.
 - [x] Validate the desktop and mobile dashboard visually, resolve defects, and update this worklist.
-- [ ] Review the complete pasted specification, summarize the implementation decisions, commit the work, and push it to GitHub.
+- [x] Review the complete pasted specification, summarize the implementation decisions, commit the work, and push it to GitHub.
