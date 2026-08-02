@@ -12,4 +12,4 @@
 - [x] Add an explicit one-time production cleanup command for any legacy plaintext Mux stream-key copies.
 - [ ] Verify desktop and mobile visual consistency with the existing Kryv public surfaces.
 - [ ] Configure the real Render deployment with `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`, `MUX_WEBHOOK_SECRET`, and Clerk credentials, then verify an end-to-end authenticated broadcast and signed live-state webhook.
-- [ ] Run the existing workspace build and type checks, resolve failures, commit the source integration, and push it to GitHub.
+- [x] Run the existing workspace build and type checks, resolve failures, commit the source integration, and push it to GitHub.
