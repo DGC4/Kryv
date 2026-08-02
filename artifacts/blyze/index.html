@@ -1,11 +1,3 @@
-﻿# apply_kryv_fixes.ps1
-# Run this from the Kryv repo root (PowerShell)
-
-# ensure dirs exist
-New-Item -ItemType Directory -Force -Path artifacts\blyze, artifacts\blyze\src, artifacts\api-server\src, .github\workflows | Out-Null
-
-# write placeholder index.html
-@'
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -13,7 +5,17 @@ New-Item -ItemType Directory -Force -Path artifacts\blyze, artifacts\blyze\src, 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>Kryv</title>
     <meta name="description" content="Kryv — built on Replit. Update this description to reflect the app." />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:title" content="Kryv" />
+    <meta property="og:description" content="Kryv — built on Replit. Update this description to reflect the app." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Kryv" />
+    <meta name="twitter:description" content="Kryv — built on Replit. Update this description to reflect the app." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       :root { font-family: Inter, system-ui, Arial; background:#0b0b0d; color:#e6eef6 }
       body { margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh }
