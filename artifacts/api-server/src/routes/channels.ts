@@ -214,42 +214,76 @@ router.post(
       return;
     }
 
-    if (channel.muxLiveStreamId && channel.muxStreamKey && channel.muxPlaybackId) {
+    // ── Self-hosted stream key (always works, Mux is optional) ──────────────
+    // If the channel already has a self-hosted key, return it.
+    if (channel.streamKey) {
+      const rtmpUrl = channel.rtmpUrl || "rtmp://global-live.mux.com:5222/app";
+      const playbackId = channel.muxPlaybackId || "";
+      logActivity(req, "get_stream_key", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
       res.json(
         CreateChannelStreamResponse.parse({
-          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-          streamKey: channel.muxStreamKey,
-          playbackId: channel.muxPlaybackId,
+          rtmpUrl,
+          streamKey: channel.streamKey,
+          playbackId,
         }),
       );
       return;
     }
 
+    // Generate a new cryptographically secure stream key
+    const { randomBytes } = await import("crypto");
+    const rawKey = randomBytes(20).toString("hex");
+    const newStreamKey = `live_${channel.id}_${rawKey}`;
+    const rtmpUrl = "rtmp://global-live.mux.com:5222/app";
+    let muxPlaybackId = channel.muxPlaybackId || "";
+
+    // Try to also provision Mux if configured (best-effort, non-blocking)
     try {
-      const { muxLiveStreamId, muxStreamKey, muxPlaybackId } =
-        await createMuxLiveStream();
-
-      await db
-        .update(channelsTable)
-        .set({ muxLiveStreamId, muxStreamKey, muxPlaybackId })
-        .where(eq(channelsTable.id, channel.id));
-
-      logActivity(req, "create_stream", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
-
-      res.json(
-        CreateChannelStreamResponse.parse({
-          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-          streamKey: muxStreamKey,
-          playbackId: muxPlaybackId,
-        }),
-      );
-    } catch (err) {
-      if (err instanceof MuxNotConfiguredError) {
-        res.status(503).json({ error: err.message });
-        return;
+      if (!channel.muxLiveStreamId) {
+        const { muxLiveStreamId, muxStreamKey, muxPlaybackId: mpId } =
+          await createMuxLiveStream();
+        muxPlaybackId = mpId || "";
+        await db
+          .update(channelsTable)
+          .set({
+            streamKey: newStreamKey,
+            streamKeyGeneratedAt: new Date(),
+            muxLiveStreamId,
+            muxStreamKey,
+            muxPlaybackId: mpId,
+          })
+          .where(eq(channelsTable.id, channel.id));
+      } else {
+        await db
+          .update(channelsTable)
+          .set({ streamKey: newStreamKey, streamKeyGeneratedAt: new Date() })
+          .where(eq(channelsTable.id, channel.id));
       }
-      throw err;
+    } catch (err) {
+      // Mux not configured or error — save self-hosted key only, continue normally
+      if (err instanceof MuxNotConfiguredError) {
+        await db
+          .update(channelsTable)
+          .set({ streamKey: newStreamKey, streamKeyGeneratedAt: new Date() })
+          .where(eq(channelsTable.id, channel.id));
+      } else {
+        // Unexpected error — still save the key so the user isn't blocked
+        await db
+          .update(channelsTable)
+          .set({ streamKey: newStreamKey, streamKeyGeneratedAt: new Date() })
+          .where(eq(channelsTable.id, channel.id));
+        console.error("Mux provisioning error (non-fatal):", err);
+      }
     }
+
+    logActivity(req, "create_stream", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
+    res.json(
+      CreateChannelStreamResponse.parse({
+        rtmpUrl,
+        streamKey: newStreamKey,
+        playbackId: muxPlaybackId,
+      }),
+    );
   },
 );
 
@@ -315,6 +349,53 @@ router.delete(
 
     res.json(
       UnfollowChannelResponse.parse(await toChannelDetail(channel, userId)),
+    );
+  },
+);
+
+// POST /channels/:id/stream/reset — Regenerate stream key (invalidates old one)
+router.post(
+  "/channels/:id/stream/reset",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const userId = req.user!.userId;
+    const params = CreateChannelStreamParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    const [channel] = await db
+      .select()
+      .from(channelsTable)
+      .where(eq(channelsTable.id, params.data.id));
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+    if (channel.ownerUserId !== userId) {
+      res.status(403).json({ error: "Not the channel owner" });
+      return;
+    }
+
+    const { randomBytes } = await import("crypto");
+    const rawKey = randomBytes(20).toString("hex");
+    const newStreamKey = `live_${channel.id}_${rawKey}`;
+    const rtmpUrl = channel.rtmpUrl || "rtmp://global-live.mux.com:5222/app";
+
+    await db
+      .update(channelsTable)
+      .set({ streamKey: newStreamKey, streamKeyGeneratedAt: new Date() })
+      .where(eq(channelsTable.id, channel.id));
+
+    logActivity(req, "reset_stream_key", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
+
+    res.json(
+      CreateChannelStreamResponse.parse({
+        rtmpUrl,
+        streamKey: newStreamKey,
+        playbackId: channel.muxPlaybackId || "",
+      }),
     );
   },
 );

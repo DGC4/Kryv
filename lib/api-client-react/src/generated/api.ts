@@ -836,6 +836,53 @@ export const useCreateChannelStream = <TError = ErrorType<Error>,
       return useMutation(getCreateChannelStreamMutationOptions(options));
     }
 
+export const getResetChannelStreamUrl = (id: number,) => {
+  return `/api/channels/${id}/stream/reset`
+}
+
+/**
+ * @summary Regenerate the stream key (invalidates the old one)
+ */
+export const resetChannelStream = async (id: number, options?: RequestInit): Promise<StreamCredentials> => {
+  return customFetch<StreamCredentials>(getResetChannelStreamUrl(id),
+  {
+    ...options,
+    method: 'POST'
+  });
+}
+
+export const getResetChannelStreamMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetChannelStream>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetChannelStream>>, TError,{id: number}, TContext> => {
+const mutationKey = ['resetChannelStream'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetChannelStream>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+          return  resetChannelStream(id,requestOptions)
+        }
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetChannelStreamMutationResult = NonNullable<Awaited<ReturnType<typeof resetChannelStream>>>
+    export type ResetChannelStreamMutationError = ErrorType<Error>
+
+    /**
+ * @summary Regenerate the stream key (invalidates the old one)
+ */
+export const useResetChannelStream = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetChannelStream>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetChannelStream>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getResetChannelStreamMutationOptions(options));
+    }
+
 export const getFollowChannelUrl = (id: number,) => {
 
 

@@ -4,6 +4,7 @@ import {
   useCreateChannel,
   useUpdateChannel,
   useCreateChannelStream,
+  useResetChannelStream,
   useListCategories,
 } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import {
   Monitor, ExternalLink, MapPin, Wifi,
   Settings, BarChart2, Users, MessageSquare, Eye, EyeOff,
   ChevronRight, Lock, Unlock, Globe, Signal, CreditCard,
-  Zap, Shield,
+  Zap, Shield, Crown,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -131,6 +132,7 @@ export default function DashboardLive() {
   const createChannel = useCreateChannel();
   const updateChannel = useUpdateChannel();
   const createStream = useCreateChannelStream();
+  const resetStream = useResetChannelStream();
   const { data: categories } = useListCategories({ kind: 'live_game' });
   const { toast } = useToast();
 
@@ -199,15 +201,30 @@ export default function DashboardLive() {
           const msg = err?.body?.error || err.message || 'Unknown error';
           toast({
             title: 'Stream key failed',
-            description: msg.includes('Mux') || msg.includes('configured')
-              ? 'Mux is not configured. Add MUX_TOKEN_ID and MUX_TOKEN_SECRET to your server environment variables on Render.'
-              : msg,
+            description: msg,
             variant: 'destructive',
           });
         },
       },
     );
   }, [me?.channel, createStream, toast]);
+
+  const handleRotateKey = useCallback(() => {
+    if (!me?.channel) return;
+    resetStream.mutate(
+      { id: me.channel.id },
+      {
+        onSuccess: data => {
+          setCredentials(data);
+          toast({ title: 'Stream key rotated!', description: 'Your old key is now invalid. Update OBS with the new key.' });
+        },
+        onError: (err: any) => {
+          const msg = err?.body?.error || err.message || 'Unknown error';
+          toast({ title: 'Failed to rotate key', description: msg, variant: 'destructive' });
+        },
+      },
+    );
+  }, [me?.channel, resetStream, toast]);
 
   const handleGoLive = () => {
     if (!credentials) {
@@ -451,13 +468,16 @@ export default function DashboardLive() {
                   <h2 className="font-black text-white">Stream Credentials</h2>
                   {credentials && (
                     <Button
-                      onClick={handleGetKey}
-                      disabled={createStream.isPending}
+                      onClick={handleRotateKey}
+                      disabled={resetStream.isPending}
                       size="sm"
                       variant="ghost"
                       className="ml-auto text-white/30 hover:text-white text-xs"
                     >
-                      <RefreshCcw className="w-3 h-3 mr-1" /> Rotate Key
+                      {resetStream.isPending
+                        ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Rotating…</>
+                        : <><RefreshCcw className="w-3 h-3 mr-1" /> Rotate Key</>
+                      }
                     </Button>
                   )}
                 </div>

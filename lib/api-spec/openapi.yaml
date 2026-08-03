@@ -289,6 +289,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /channels/{id}/stream/reset:
+    post:
+      operationId: resetChannelStream
+      tags: [channels]
+      summary: Regenerate the stream key (invalidates the old one)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: New ingest credentials with a fresh stream key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamCredentials"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the channel owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /channels/{id}/follow:
     post:
       operationId: followChannel
