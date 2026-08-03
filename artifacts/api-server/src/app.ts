@@ -69,6 +69,7 @@ app.get("/api/debug/paths", (req, res) => {
     __dirname,
     possibleDistPaths,
     actualDistPath: frontendDist,
+    envKeys: Object.keys(process.env).filter(k => k.includes("MUX")),
     filesInCwd: fs.existsSync(process.cwd()) ? fs.readdirSync(process.cwd()) : [],
     filesInParent: fs.existsSync(path.resolve(process.cwd(), "..")) ? fs.readdirSync(path.resolve(process.cwd(), "..")) : [],
   });

@@ -142,7 +142,16 @@ export default function DashboardLive() {
     const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
   const [activeTab, setActiveTab] = useState<DashTab>('stream');
   const [locationEnforced, setLocationEnforced] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   const { location } = useIpLocation();
+
+  // Fetch debug info
+  useEffect(() => {
+    fetch('/api/debug/paths')
+      .then(r => r.json())
+      .then(d => setDebugInfo(d))
+      .catch(() => {});
+  }, []);
 
   // Auto-fetch credentials on mount if channel exists
   useEffect(() => {
@@ -502,6 +511,20 @@ export default function DashboardLive() {
                   <div className="space-y-3">
                     <CopyField label="RTMP Server URL" value={credentials.rtmpUrl} />
                     <CopyField label="Stream Key" value={credentials.streamKey} secret />
+                    
+                    {credentials.streamKey.startsWith('live_') && (
+                      <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-start gap-3">
+                        <Unlock className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-bold text-yellow-500 uppercase tracking-widest mb-1">Placeholder Key Active</p>
+                          <p className="text-[10px] text-yellow-500/60 leading-relaxed">
+                            This is a temporary fallback key. To get a real Mux key, click <strong>Rotate Key</strong> above. 
+                            If it fails, check your MUX_TOKEN_ID in Render.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2 p-3 bg-red-500/[0.07] border border-red-500/20 rounded-xl">
                       <Lock className="w-3.5 h-3.5 text-red-400 shrink-0" />
                       <p className="text-xs text-red-400/80">Keep your stream key private — anyone with it can broadcast to your channel.</p>

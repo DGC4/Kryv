@@ -216,7 +216,7 @@ router.post(
 
     // ── Robust Stream Key Logic ──────────────────────────────────────────
     
-    // 1. If we already have a Mux key, return it.
+    // 1. If we already have a REAL Mux key, return it.
     if (channel.muxStreamKey) {
       return res.json(CreateChannelStreamResponse.parse({
         rtmpUrl: "rtmp://global-live.mux.com:5222/app",
@@ -225,16 +225,7 @@ router.post(
       }));
     }
 
-    // 2. If we have a self-hosted key, return it.
-    if (channel.streamKey) {
-      return res.json(CreateChannelStreamResponse.parse({
-        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-        streamKey: channel.streamKey,
-        playbackId: "",
-      }));
-    }
-
-    // 3. Try to provision a new Mux live stream
+    // 2. Try to provision a new Mux live stream
     try {
       const { muxLiveStreamId, muxStreamKey, muxPlaybackId } = await createMuxLiveStream();
       
@@ -252,8 +243,16 @@ router.post(
         playbackId: muxPlaybackId ?? "",
       }));
     } catch (err) {
-      // 4. Fallback ONLY if Mux is not configured at all
+      // 3. Fallback ONLY if Mux is not configured at all AND we don't have any key yet
       if (err instanceof MuxNotConfiguredError) {
+        if (channel.streamKey) {
+          return res.json(CreateChannelStreamResponse.parse({
+            rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+            streamKey: channel.streamKey,
+            playbackId: "",
+          }));
+        }
+
         console.warn("Mux is not configured, using placeholder stream key.");
         const { randomBytes } = await import("crypto");
         const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
@@ -270,7 +269,7 @@ router.post(
         }));
       }
 
-      // 5. If Mux IS configured but failing (e.g. invalid tokens), we MUST report the error
+      // 4. If Mux IS configured but failing (e.g. invalid tokens), we MUST report the error
       console.error("Mux API Error:", err);
       const errorMessage = err instanceof Error ? err.message : "Unknown Mux error";
       return res.status(502).json({ 
@@ -371,7 +370,7 @@ router.post(
       return;
     }
 
-    // Resetting should always try to get a fresh Mux stream if possible
+    // Resetting MUST always try to get a fresh REAL Mux stream
     try {
       const { muxLiveStreamId, muxStreamKey, muxPlaybackId } = await createMuxLiveStream();
       
@@ -390,20 +389,10 @@ router.post(
       }));
     } catch (err) {
       if (err instanceof MuxNotConfiguredError) {
-        console.warn("Mux is not configured, using placeholder stream key.");
-        const { randomBytes } = await import("crypto");
-        const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
-
-        await db.update(channelsTable).set({ 
-          streamKey: selfHostedKey, 
-          streamKeyGeneratedAt: new Date() 
-        }).where(eq(channelsTable.id, channel.id));
-
-        return res.json(CreateChannelStreamResponse.parse({
-          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-          streamKey: selfHostedKey,
-          playbackId: "",
-        }));
+        // If they explicitly clicked "Rotate" but Mux isn't set up, we should tell them
+        return res.status(503).json({ 
+          error: "Mux is not configured. Please set MUX_TOKEN_ID and MUX_TOKEN_SECRET in Render to generate a real stream key." 
+        });
       }
 
       console.error("Mux API Error (Reset):", err);
