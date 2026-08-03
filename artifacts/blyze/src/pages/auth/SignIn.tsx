@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout";
+import { getApiUrl } from "@/lib/api";
 
 export default function SignInPage() {
   const [, setLocation] = useLocation();
@@ -19,7 +20,7 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch(getApiUrl("/api/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password }),
@@ -28,6 +29,7 @@ export default function SignInPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        console.error("Login failed at:", getApiUrl("/api/login"), "Status:", res.status, "Data:", data);
         throw new Error(data.error || "Login failed");
       }
 

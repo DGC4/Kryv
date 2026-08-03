@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout";
+import { getApiUrl } from "@/lib/api";
 
 export default function SignUpPage() {
   const [, setLocation] = useLocation();
@@ -20,7 +21,7 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/signup", {
+      const res = await fetch(getApiUrl("/api/signup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, username, password }),
@@ -29,6 +30,7 @@ export default function SignUpPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        console.error("Signup failed at:", getApiUrl("/api/signup"), "Status:", res.status, "Data:", data);
         throw new Error(data.error || "Signup failed");
       }
 

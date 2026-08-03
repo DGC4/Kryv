@@ -3,7 +3,7 @@ services:
   - type: web
     name: kryv-app
     runtime: node
-    buildCommand: corepack enable && pnpm install && pnpm --filter @workspace/blyze build && pnpm --filter @workspace/api-server build
+    buildCommand: corepack enable && pnpm install && pnpm --filter @workspace/blyze build && pnpm --filter @workspace/api-server build && ls -R artifacts/blyze/dist
     startCommand: node artifacts/api-server/dist/index.mjs
     envVars:
       - key: NODE_ENV
