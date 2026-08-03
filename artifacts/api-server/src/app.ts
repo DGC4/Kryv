@@ -1,5 +1,6 @@
 ﻿import express from "express";
 import path from "path";
+import { fileURLToPath } from "url";
 import fs from "fs";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -7,6 +8,9 @@ import routes from "./routes";
 import webhooksRouter from "./routes/webhooks";
 import { attachUserId } from "./lib/auth";
 import { trackVisitor } from "./middleware/visitor";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -44,6 +48,7 @@ app.get("/health", (_req, res) => res.json({ status: "ok" }));
 // Serve frontend in production
 const possibleDistPaths = [
   path.resolve(__dirname, "../../blyze/dist"),
+  path.resolve(__dirname, "../../../artifacts/blyze/dist"),
   path.resolve(process.cwd(), "artifacts/blyze/dist"),
   path.resolve(process.cwd(), "blyze/dist"),
   "/opt/render/project/src/artifacts/blyze/dist"

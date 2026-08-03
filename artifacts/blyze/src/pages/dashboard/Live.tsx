@@ -189,15 +189,22 @@ export default function DashboardLive() {
   };
 
   const handleGetKey = useCallback(() => {
-    if (!me?.channel) return;
+    if (!me?.channel) {
+      console.warn('handleGetKey: No channel found for user');
+      return;
+    }
+    
+    console.log('handleGetKey: Requesting stream key for channel', me.channel.id);
     createStream.mutate(
       { id: me.channel.id },
       {
         onSuccess: data => {
+          console.log('handleGetKey: Success', data);
           setCredentials(data);
           toast({ title: 'Stream key generated!', description: 'Keep this key private.' });
         },
         onError: (err: any) => {
+          console.error('handleGetKey: Error', err);
           const msg = err?.body?.error || err.message || 'Unknown error';
           toast({
             title: 'Stream key failed',
