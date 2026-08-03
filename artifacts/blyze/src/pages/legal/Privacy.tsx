@@ -19,7 +19,7 @@ export default function Privacy() {
             <li><span className="text-white font-medium">Account information:</span> your username, and — if provided — an email address, used for sign-in and account recovery.</li>
             <li><span className="text-white font-medium">Content you create:</span> channel profiles, stream titles, uploaded videos, chat messages, and any other content you post.</li>
             <li><span className="text-white font-medium">Usage data:</span> viewing history, follows, and interactions used to operate features like Discover and view counts.</li>
-            <li><span className="text-white font-medium">Broadcast &amp; upload data:</span> live stream and video files you send to our streaming infrastructure provider (Mux) for ingest, transcoding, and delivery.</li>
+            <li><span className="text-white font-medium">Broadcast &amp; upload data:</span> live stream and video files you send to our streaming infrastructure provider (FastPix) for ingest, transcoding, and delivery.</li>
             <li><span className="text-white font-medium">Technical data:</span> IP address, device/browser information, and log data collected automatically to secure and operate the Service.</li>
           </ul>
         </section>
@@ -33,7 +33,7 @@ export default function Privacy() {
           <h2 className="text-xl font-bold text-white mb-2">3. How We Share Information</h2>
           <p>
             We share information with service providers who help us run Kryv, most notably our
-            authentication provider (Clerk) and our video infrastructure provider (Mux), who process
+            authentication provider (Clerk) and our video infrastructure provider (FastPix), who process
             data on our behalf under their own privacy and security commitments. We do not sell your
             personal information. We may disclose information if required by law, to protect the
             rights and safety of our users, or to enforce our Terms.

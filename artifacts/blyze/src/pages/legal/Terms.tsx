@@ -63,7 +63,7 @@ export default function Terms() {
           <h2 className="text-xl font-bold text-white mb-2">6. Live Streaming &amp; Video Infrastructure</h2>
           <p>
             Live broadcasts and video uploads are processed and delivered through Kryv's video
-            infrastructure provider (Mux). Stream keys are unique per channel and must not be shared.
+            infrastructure provider (FastPix). Stream keys are unique per channel and must not be shared.
             Kryv is not responsible for interruptions caused by your broadcasting hardware, software,
             or network connection.
           </p>

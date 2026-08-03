@@ -1,4 +1,4 @@
-import FastPix from "@fastpix/fastpix-node";
+import { Fastpix } from "@fastpix/fastpix-node";
 
 // Map user's .env names to what FastPix SDK expects or use them directly
 const accessTokenId = process.env.FASTPIX_ACCESS_TOKEN_ID || process.env.ACCESS_TOKEN;
@@ -9,7 +9,7 @@ if (!accessTokenId || !secretKey) {
   console.warn("FastPix credentials not found. Set ACCESS_TOKEN and SECRET_KEY in environment.");
 }
 
-export const fastpix = new FastPix({
+export const fastpix = new Fastpix({
   accessTokenId: accessTokenId || "",
   secretKey: secretKey || "",
   webhookSecret: webhookSecret || "",
