@@ -11,6 +11,7 @@ export type ChannelDetail = ChannelSummary & ({
   /** @nullable */
   description: string | null;
   isFollowing: boolean;
+  isSubscribed: boolean;
   isOwner: boolean;
   ownerUserId: string;
   createdAt: Date;

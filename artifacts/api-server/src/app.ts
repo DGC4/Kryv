@@ -38,12 +38,21 @@ app.use("/api", routes);
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 // Serve frontend in production
-const frontendDist = path.join(__dirname, "..", "..", "blyze", "dist");
+// On Render, the build command puts the frontend dist in artifacts/blyze/dist
+// Our current file is in artifacts/api-server/dist/index.mjs (after esbuild)
+// So __dirname is artifacts/api-server/dist
+const frontendDist = path.resolve(__dirname, "../../blyze/dist");
+
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
   app.get("*", (req, res) => {
     if (req.path.startsWith("/api")) return res.status(404).end();
     res.sendFile(path.join(frontendDist, "index.html"));
+  });
+} else {
+  // Fallback for when the frontend isn't built or path is wrong
+  app.get("/", (req, res) => {
+    res.send("Kryv API is running. Frontend not found at: " + frontendDist);
   });
 }
 

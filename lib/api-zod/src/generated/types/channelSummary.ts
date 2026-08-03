@@ -19,6 +19,7 @@ export interface ChannelSummary {
   isLive: boolean;
   viewerCount: number;
   followerCount: number;
+  subscriberCount: number;
   /** @nullable */
   categoryId: number | null;
   /** @nullable */

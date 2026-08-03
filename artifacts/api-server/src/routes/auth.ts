@@ -34,8 +34,8 @@ router.post("/signup", async (req, res) => {
       .from(usersTable)
       .where(
         or(
-          sql`lower(${usersTable.email}) = lower(${email})`,
-          sql`lower(${usersTable.username}) = lower(${username})`,
+          sql`LOWER(${usersTable.email}) = LOWER(${email})`,
+          sql`LOWER(${usersTable.username}) = LOWER(${username})`,
         ),
       );
 
@@ -103,8 +103,8 @@ router.post("/login", async (req, res) => {
       .from(usersTable)
       .where(
         or(
-          sql`lower(${usersTable.email}) = lower(${identifier})`,
-          sql`lower(${usersTable.username}) = lower(${identifier})`,
+          sql`LOWER(${usersTable.email}) = LOWER(${identifier})`,
+          sql`LOWER(${usersTable.username}) = LOWER(${identifier})`,
         ),
       );
 

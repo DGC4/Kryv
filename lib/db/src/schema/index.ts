@@ -10,3 +10,4 @@ export * from "./watchHistory";
 export * from "./visitors";
 export * from "./activityLogs";
 export * from "./deviceHistory";
+export * from "./streaming";

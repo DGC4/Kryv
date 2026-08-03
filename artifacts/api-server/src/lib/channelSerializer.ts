@@ -4,6 +4,7 @@ import {
   categoriesTable,
   channelsTable,
   followsTable,
+  subscriptionsTable,
   type Channel,
 } from "@workspace/db";
 
@@ -12,6 +13,19 @@ export async function followerCountFor(channelId: number): Promise<number> {
     .select({ n: count() })
     .from(followsTable)
     .where(eq(followsTable.channelId, channelId));
+  return row?.n ?? 0;
+}
+
+export async function subscriberCountFor(channelId: number): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(subscriptionsTable)
+    .where(
+      and(
+        eq(subscriptionsTable.channelId, channelId),
+        eq(subscriptionsTable.status, "active"),
+      ),
+    );
   return row?.n ?? 0;
 }
 
@@ -27,8 +41,9 @@ export async function categoryNameFor(
 }
 
 export async function toChannelSummary(channel: Channel) {
-  const [followerCount, categoryName] = await Promise.all([
+  const [followerCount, subscriberCount, categoryName] = await Promise.all([
     followerCountFor(channel.id),
+    subscriberCountFor(channel.id),
     categoryNameFor(channel.categoryId),
   ]);
   return {
@@ -41,6 +56,7 @@ export async function toChannelSummary(channel: Channel) {
     isLive: channel.isLive,
     viewerCount: channel.viewerCount,
     followerCount,
+    subscriberCount,
     categoryId: channel.categoryId,
     categoryName,
     playbackId: channel.muxPlaybackId,
@@ -65,10 +81,27 @@ export async function toChannelDetail(
       );
     isFollowing = (row?.n ?? 0) > 0;
   }
+
+  let isSubscribed = false;
+  if (viewerUserId) {
+    const [row] = await db
+      .select({ n: count() })
+      .from(subscriptionsTable)
+      .where(
+        and(
+          eq(subscriptionsTable.channelId, channel.id),
+          eq(subscriptionsTable.userId, viewerUserId),
+          eq(subscriptionsTable.status, "active"),
+        ),
+      );
+    isSubscribed = (row?.n ?? 0) > 0;
+  }
+
   return {
     ...summary,
     description: channel.description,
     isFollowing,
+    isSubscribed,
     isOwner: viewerUserId === channel.ownerUserId,
     ownerUserId: channel.ownerUserId,
     createdAt: channel.createdAt,

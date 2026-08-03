@@ -35,6 +35,7 @@ export const GetMeResponse = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
@@ -49,6 +50,7 @@ export const GetMeResponse = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
@@ -89,6 +91,7 @@ export const GetDiscoverSummaryResponse = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
@@ -126,6 +129,7 @@ export const ListChannelsResponseItem = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
@@ -158,12 +162,14 @@ export const CreateChannelResponse = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
   "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
@@ -195,12 +201,14 @@ export const GetChannelResponse = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
   "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
@@ -241,12 +249,14 @@ export const UpdateChannelResponse = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
   "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
@@ -284,12 +294,14 @@ export const FollowChannelResponse = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
   "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
@@ -313,12 +325,14 @@ export const UnfollowChannelResponse = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
   "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
@@ -631,6 +645,7 @@ export const ListAdminChannelsResponseItem = zod.object({
   "isLive": zod.boolean(),
   "viewerCount": zod.number(),
   "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
