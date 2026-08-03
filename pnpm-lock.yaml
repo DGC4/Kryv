@@ -183,6 +183,9 @@ importers:
 
   artifacts/api-server:
     dependencies:
+      '@fastpix/fastpix-node':
+        specifier: ^2.0.9
+        version: 2.0.9
       '@mux/mux-node':
         specifier: ^14.1.1
         version: 14.1.1
@@ -817,6 +820,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fastpix/fastpix-node@2.0.9':
+    resolution: {integrity: sha512-58vLQ6GajBmHHJagLB5egc+QNj6prCN0ZKwZqtyUfQysLR1jDgyac9V2XmM0dp6/F0t57XCA45uXZwvsTVVyTQ==}
 
   '@floating-ui/core@1.7.5':
     resolution: {integrity: sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ==}
@@ -3513,6 +3519,10 @@ snapshots:
     optional: true
 
   '@esbuild/win32-x64@0.27.3': {}
+
+  '@fastpix/fastpix-node@2.0.9':
+    dependencies:
+      zod: 3.25.76
 
   '@floating-ui/core@1.7.5':
     dependencies:

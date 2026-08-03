@@ -1,6 +1,6 @@
 import { useParams, Link } from 'wouter';
 import { useGetVideo } from '@workspace/api-client-react';
-import MuxPlayer from '@mux/mux-player-react';
+import HlsPlayer from '@/components/video/HlsPlayer';
 import { Loader2, ArrowLeft, Play, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -38,13 +38,14 @@ export default function CinemaDetail() {
 
       <div className="w-full h-screen relative">
         {video.playbackId ? (
-          <MuxPlayer
-            playbackId={video.playbackId}
+          <HlsPlayer
+            src={video.fastpixPlaybackId 
+              ? `https://stream.fastpix.com/${video.playbackId}/playlist.m3u8`
+              : `https://stream.mux.com/${video.playbackId}.m3u8`
+            }
             poster={video.backdropUrl || undefined}
             className="w-full h-full object-contain bg-black"
-            accentColor="hsl(var(--primary))"
             autoPlay
-            crossOrigin="anonymous"
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center relative">

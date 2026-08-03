@@ -59,7 +59,9 @@ export async function toChannelSummary(channel: Channel) {
     subscriberCount,
     categoryId: channel.categoryId,
     categoryName,
-    playbackId: channel.muxPlaybackId,
+    playbackId: channel.fastpixPlaybackId || channel.muxPlaybackId,
+    fastpixPlaybackId: channel.fastpixPlaybackId,
+    muxPlaybackId: channel.muxPlaybackId,
   };
 }
 

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import Mux from "@mux/mux-node";
 import { db, channelsTable, videosTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { fastpix } from "../lib/fastpix";
 
 const router: IRouter = Router();
 
@@ -100,6 +101,94 @@ router.post("/webhooks/mux", async (req, res): Promise<void> => {
         .update(videosTable)
         .set({ uploadStatus: "processing", muxAssetId: upload.asset_id })
         .where(eq(videosTable.muxUploadId, upload.id));
+      break;
+    }
+    default:
+      break;
+  }
+
+  res.status(200).json({ received: true });
+});
+
+/**
+ * FastPix delivers live-stream state changes and on-demand asset processing
+ * events here. Configure this URL (`https://<your-domain>/api/webhooks/fastpix`)
+ * in the FastPix dashboard.
+ */
+router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
+  const rawBody = req.body as Buffer;
+  
+  let event: any;
+  try {
+    event = fastpix.webhooks.unwrap(
+      rawBody.toString("utf8"),
+      req.headers as Record<string, string>
+    );
+  } catch (err) {
+    logger.warn({ err }, "Rejected FastPix webhook — signature verification failed");
+    res.status(400).json({ error: "Invalid signature" });
+    return;
+  }
+
+  logger.info({ type: event.type }, "Received FastPix webhook");
+
+  switch (event.type) {
+    case "video.live_stream.updated": {
+      const liveStream = event.data;
+      const isLive = liveStream.status === "active";
+      await db
+        .update(channelsTable)
+        .set({ isLive })
+        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
+      break;
+    }
+    case "video.live_stream.deleted": {
+      const liveStream = event.data;
+      await db
+        .update(channelsTable)
+        .set({ isLive: false, viewerCount: 0 })
+        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
+      break;
+    }
+    case "video.media.ready": {
+      const media = event.data;
+      const playbackId = media.playbackIds?.[0]?.id ?? null;
+      
+      // Try to find by uploadId or by assetId
+      const uploadId = (media as any).uploadId;
+      if (uploadId) {
+        await db
+          .update(videosTable)
+          .set({
+            uploadStatus: "ready",
+            fastpixAssetId: media.id,
+            fastpixPlaybackId: playbackId,
+            durationSeconds: media.duration ? Math.round(media.duration) : null,
+          })
+          .where(eq(videosTable.fastpixUploadId, uploadId));
+      }
+      break;
+    }
+    case "video.media.failed": {
+      const media = event.data;
+      const uploadId = (media as any).uploadId;
+      if (uploadId) {
+        await db
+          .update(videosTable)
+          .set({ uploadStatus: "errored" })
+          .where(eq(videosTable.fastpixUploadId, uploadId));
+      }
+      break;
+    }
+    case "video.media.created": {
+      const media = event.data;
+      const uploadId = (media as any).uploadId;
+      if (uploadId) {
+        await db
+          .update(videosTable)
+          .set({ uploadStatus: "processing", fastpixAssetId: media.id })
+          .where(eq(videosTable.fastpixUploadId, uploadId));
+      }
       break;
     }
     default:

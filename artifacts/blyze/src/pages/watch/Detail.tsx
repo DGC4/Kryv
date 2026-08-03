@@ -1,6 +1,6 @@
 import { useParams, Link } from 'wouter';
 import { useGetVideo } from '@workspace/api-client-react';
-import MuxPlayer from '@mux/mux-player-react';
+import HlsPlayer from '@/components/video/HlsPlayer';
 import { Loader2, Eye, Share2, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -33,11 +33,13 @@ export default function WatchDetail() {
     <div className="container mx-auto px-4 py-6 max-w-6xl relative z-10">
       <div className="bg-black aspect-video rounded-xl overflow-hidden border border-white/10 mb-6 shadow-2xl relative">
         {video.playbackId ? (
-          <MuxPlayer
-            playbackId={video.playbackId}
+          <HlsPlayer
+            src={video.fastpixPlaybackId 
+              ? `https://stream.fastpix.com/${video.playbackId}/playlist.m3u8`
+              : `https://stream.mux.com/${video.playbackId}.m3u8`
+            }
             poster={video.thumbnailUrl || undefined}
             className="w-full h-full"
-            accentColor="hsl(var(--primary))"
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-black/80">

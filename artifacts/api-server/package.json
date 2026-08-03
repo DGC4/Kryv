@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@fastpix/fastpix-node": "^2.0.9",
     "@mux/mux-node": "^14.1.1",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",

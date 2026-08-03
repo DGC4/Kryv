@@ -139,19 +139,10 @@ export default function DashboardLive() {
   const [displayName, setDisplayName] = useState('');
   const [streamTitle, setStreamTitle] = useState('');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
-    const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
+  const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
   const [activeTab, setActiveTab] = useState<DashTab>('stream');
   const [locationEnforced, setLocationEnforced] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
   const { location } = useIpLocation();
-
-  // Fetch debug info
-  useEffect(() => {
-    fetch('/api/debug/paths')
-      .then(r => r.json())
-      .then(d => setDebugInfo(d))
-      .catch(() => {});
-  }, []);
 
   // Auto-fetch credentials on mount if channel exists
   useEffect(() => {
@@ -484,20 +475,9 @@ export default function DashboardLive() {
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${credentials ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-primary/20 text-primary border border-primary/30'}`}>
                     {credentials ? <CheckCircle2 className="w-3.5 h-3.5" /> : '2'}
                   </div>
-                  <h2 className="font-black text-white">Stream Credentials</h2>
+                  <h2 className="font-black text-white">Stream Credentials (FastPix)</h2>
                   {credentials && (
                     <div className="ml-auto flex items-center gap-3">
-                      {debugInfo?.envKeys?.includes('MUX_TOKEN_ID') ? (
-                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[9px] font-bold text-green-400 uppercase tracking-widest">
-                          <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
-                          Mux Linked
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] font-bold text-red-400 uppercase tracking-widest">
-                          <span className="w-1 h-1 rounded-full bg-red-400" />
-                          Mux Disconnected
-                        </span>
-                      )}
                       <Button
                         onClick={handleRotateKey}
                         disabled={resetStream.isPending}
@@ -525,8 +505,8 @@ export default function DashboardLive() {
                         <div>
                           <p className="text-xs font-bold text-yellow-500 uppercase tracking-widest mb-1">Placeholder Key Active</p>
                           <p className="text-[10px] text-yellow-500/60 leading-relaxed">
-                            This is a temporary fallback key. To get a real Mux key, click <strong>Rotate Key</strong> above. 
-                            If it fails, check your MUX_TOKEN_ID in Render.
+                            This is a temporary fallback key. To get a real FastPix key, click <strong>Rotate Key</strong> above. 
+                            If it fails, check your FastPix credentials in Render.
                           </p>
                         </div>
                       </div>
@@ -604,9 +584,9 @@ export default function DashboardLive() {
                       body: (
                         <div className="space-y-1.5 mt-1">
                           <div className="bg-black/50 border border-white/[0.06] rounded-lg p-2 font-mono">
-                            <p className="text-white/25 text-[9px] uppercase tracking-widest mb-0.5">Server</p>
-                            <p className="text-white/70 text-[11px] break-all">{credentials?.rtmpUrl || 'rtmp://global-live.mux.com:5222/app'}</p>
-                          </div>
+	                            <p className="text-white/25 text-[9px] uppercase tracking-widest mb-0.5">Server</p>
+	                            <p className="text-white/70 text-[11px] break-all">{credentials?.rtmpUrl || 'rtmps://live.fastpix.io:443/live'}</p>
+	                          </div>
                           <div className="bg-black/50 border border-white/[0.06] rounded-lg p-2 font-mono">
                             <p className="text-white/25 text-[9px] uppercase tracking-widest mb-0.5">Stream Key</p>
                             <p className="text-white/70 text-[11px]">{credentials?.streamKey ? '••••••••••••' : '(generate above)'}</p>

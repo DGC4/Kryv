@@ -25,7 +25,7 @@ import {
   toChannelDetail,
   uniqueChannelSlug,
 } from "../lib/channelSerializer";
-import { createMuxLiveStream, MuxNotConfiguredError } from "../lib/mux";
+import { createFastPixLiveStream, FastPixNotConfiguredError } from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
 
 const router: IRouter = Router();
@@ -216,44 +216,44 @@ router.post(
 
     // ── Robust Stream Key Logic ──────────────────────────────────────────
     
-    // 1. If we already have a REAL Mux key, return it.
-    if (channel.muxStreamKey) {
+    // 1. If we already have a REAL FastPix key, return it.
+    if (channel.fastpixStreamKey) {
       return res.json(CreateChannelStreamResponse.parse({
-        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-        streamKey: channel.muxStreamKey,
-        playbackId: channel.muxPlaybackId || "",
+        rtmpUrl: "rtmps://live.fastpix.io:443/live",
+        streamKey: channel.fastpixStreamKey,
+        playbackId: channel.fastpixPlaybackId || "",
       }));
     }
 
-    // 2. Try to provision a new Mux live stream
+    // 2. Try to provision a new FastPix live stream
     try {
-      const { muxLiveStreamId, muxStreamKey, muxPlaybackId } = await createMuxLiveStream();
+      const { fastpixLiveStreamId, fastpixStreamKey, fastpixPlaybackId } = await createFastPixLiveStream();
       
       await db.update(channelsTable).set({
-        streamKey: muxStreamKey,
+        streamKey: fastpixStreamKey,
         streamKeyGeneratedAt: new Date(),
-        muxLiveStreamId,
-        muxStreamKey,
-        muxPlaybackId,
+        fastpixLiveStreamId,
+        fastpixStreamKey,
+        fastpixPlaybackId,
       }).where(eq(channelsTable.id, channel.id));
 
       return res.json(CreateChannelStreamResponse.parse({
-        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-        streamKey: muxStreamKey,
-        playbackId: muxPlaybackId ?? "",
+        rtmpUrl: "rtmps://live.fastpix.io:443/live",
+        streamKey: fastpixStreamKey,
+        playbackId: fastpixPlaybackId ?? "",
       }));
     } catch (err) {
-      // 3. Fallback ONLY if Mux is not configured at all AND we don't have any key yet
-      if (err instanceof MuxNotConfiguredError) {
+      // 3. Fallback ONLY if FastPix is not configured at all AND we don't have any key yet
+      if (err instanceof FastPixNotConfiguredError) {
         if (channel.streamKey) {
           return res.json(CreateChannelStreamResponse.parse({
-            rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+            rtmpUrl: "rtmps://live.fastpix.io:443/live",
             streamKey: channel.streamKey,
             playbackId: "",
           }));
         }
 
-        console.warn("Mux is not configured, using placeholder stream key.");
+        console.warn("FastPix is not configured, using placeholder stream key.");
         const { randomBytes } = await import("crypto");
         const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
         
@@ -263,17 +263,17 @@ router.post(
         }).where(eq(channelsTable.id, channel.id));
 
         return res.json(CreateChannelStreamResponse.parse({
-          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+          rtmpUrl: "rtmps://live.fastpix.io:443/live",
           streamKey: selfHostedKey,
           playbackId: "",
         }));
       }
 
-      // 4. If Mux IS configured but failing (e.g. invalid tokens), we MUST report the error
-      console.error("Mux API Error:", err);
-      const errorMessage = err instanceof Error ? err.message : "Unknown Mux error";
+      // 4. If FastPix IS configured but failing (e.g. invalid tokens), we MUST report the error
+      console.error("FastPix API Error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown FastPix error";
       return res.status(502).json({ 
-        error: `Mux Integration Error: ${errorMessage}. Please check your MUX_TOKEN_ID and MUX_TOKEN_SECRET in Render.` 
+        error: `FastPix Integration Error: ${errorMessage}. Please check your ACCESS_TOKEN and SECRET_KEY in Render.` 
       });
     }
   },
@@ -370,35 +370,35 @@ router.post(
       return;
     }
 
-    // Resetting MUST always try to get a fresh REAL Mux stream
+    // Resetting MUST always try to get a fresh REAL FastPix stream
     try {
-      const { muxLiveStreamId, muxStreamKey, muxPlaybackId } = await createMuxLiveStream();
+      const { fastpixLiveStreamId, fastpixStreamKey, fastpixPlaybackId } = await createFastPixLiveStream();
       
       await db.update(channelsTable).set({
-        streamKey: muxStreamKey,
+        streamKey: fastpixStreamKey,
         streamKeyGeneratedAt: new Date(),
-        muxLiveStreamId,
-        muxStreamKey,
-        muxPlaybackId,
+        fastpixLiveStreamId,
+        fastpixStreamKey,
+        fastpixPlaybackId,
       }).where(eq(channelsTable.id, channel.id));
 
       return res.json(CreateChannelStreamResponse.parse({
-        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-        streamKey: muxStreamKey,
-        playbackId: muxPlaybackId ?? "",
+        rtmpUrl: "rtmps://live.fastpix.io:443/live",
+        streamKey: fastpixStreamKey,
+        playbackId: fastpixPlaybackId ?? "",
       }));
     } catch (err) {
-      if (err instanceof MuxNotConfiguredError) {
-        // If they explicitly clicked "Rotate" but Mux isn't set up, we should tell them
+      if (err instanceof FastPixNotConfiguredError) {
+        // If they explicitly clicked "Rotate" but FastPix isn't set up, we should tell them
         return res.status(503).json({ 
-          error: "Mux is not configured. Please set MUX_TOKEN_ID and MUX_TOKEN_SECRET in Render to generate a real stream key." 
+          error: "FastPix is not configured. Please set ACCESS_TOKEN and SECRET_KEY in Render to generate a real stream key." 
         });
       }
 
-      console.error("Mux API Error (Reset):", err);
-      const errorMessage = err instanceof Error ? err.message : "Unknown Mux error";
+      console.error("FastPix API Error (Reset):", err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown FastPix error";
       return res.status(502).json({ 
-        error: `Mux Integration Error: ${errorMessage}. Please check your MUX_TOKEN_ID and MUX_TOKEN_SECRET in Render.` 
+        error: `FastPix Integration Error: ${errorMessage}. Please check your ACCESS_TOKEN and SECRET_KEY in Render.` 
       });
     }
   },

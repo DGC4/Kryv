@@ -15,7 +15,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, attachUserId } from "../lib/auth";
 import { toVideoSummary, toVideoDetail } from "../lib/videoSerializer";
-import { createMuxDirectUpload, MuxNotConfiguredError } from "../lib/mux";
+import { createFastPixDirectUpload, FastPixNotConfiguredError } from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
 import { watchHistoryTable } from "@workspace/db";
 
@@ -84,7 +84,7 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
 
   try {
     const origin = req.get("origin") || "*";
-    const { muxUploadId, uploadUrl } = await createMuxDirectUpload(origin);
+    const { fastpixUploadId, uploadUrl } = await createFastPixDirectUpload(origin);
 
     const [video] = await db
       .insert(videosTable)
@@ -95,14 +95,14 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
         categoryId: parsed.data.categoryId ?? null,
         contentType: parsed.data.contentType ?? "upload",
         uploadStatus: "waiting",
-        muxUploadId,
+        fastpixUploadId,
       })
       .returning();
 
     const detail = await toVideoDetail(video, userId);
     res.status(201).json(CreateVideoResponse.parse({ ...detail, uploadUrl }));
   } catch (err) {
-    if (err instanceof MuxNotConfiguredError) {
+    if (err instanceof FastPixNotConfiguredError) {
       res.status(503).json({ error: err.message });
       return;
     }

@@ -31,8 +31,11 @@ export const videosTable = pgTable("videos", {
   durationSeconds: integer("duration_seconds"),
   viewCount: integer("view_count").notNull().default(0),
   muxUploadId: text("mux_upload_id"),
+  fastpixUploadId: text("fastpix_upload_id"),
   muxAssetId: text("mux_asset_id"),
   muxPlaybackId: text("mux_playback_id"),
+  fastpixAssetId: text("fastpix_asset_id"),
+  fastpixPlaybackId: text("fastpix_playback_id"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

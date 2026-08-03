@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'wouter';
 import { useGetChannelBySlug, useListChannelMessages, useCreateChannelMessage, useFollowChannel, useUnfollowChannel } from '@workspace/api-client-react';
 import { useAuthStore } from '@/lib/auth-store';
-import MuxPlayer from '@mux/mux-player-react';
+import HlsPlayer from '@/components/video/HlsPlayer';
 import { Loader2, Users, Heart, Share2, Send } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
@@ -81,9 +81,11 @@ export default function LiveChannel() {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         <div className="w-full bg-black aspect-video relative">
           {channel.isLive && channel.playbackId ? (
-            <MuxPlayer
-              playbackId={channel.playbackId}
-              streamType="live"
+            <HlsPlayer
+              src={channel.fastpixPlaybackId 
+                ? `https://stream.fastpix.com/${channel.playbackId}/playlist.m3u8`
+                : `https://stream.mux.com/${channel.playbackId}.m3u8`
+              }
               autoPlay
               muted
               className="w-full h-full object-contain"
