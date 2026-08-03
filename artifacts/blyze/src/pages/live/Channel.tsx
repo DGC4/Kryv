@@ -9,6 +9,7 @@ import {
   useChannelHeartbeat,
 } from '@workspace/api-client-react';
 import { useAuthStore } from '@/lib/auth-store';
+import { useToast } from '@/hooks/use-toast';
 import HlsPlayer from '@/components/video/HlsPlayer';
 import { Loader2, Users, Heart, Share2, Send } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
@@ -29,6 +30,7 @@ export default function LiveChannel() {
     query: { enabled: !!channelId, refetchInterval: 3000 },
   });
 
+  const { toast } = useToast();
   const createMessage = useCreateChannelMessage();
   const follow = useFollowChannel();
   const unfollow = useUnfollowChannel();

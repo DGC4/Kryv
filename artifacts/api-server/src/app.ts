@@ -1,4 +1,4 @@
-﻿import express from "express";
+import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -22,6 +22,10 @@ if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
 }
 
 const app = express();
+
+// Trust the first proxy hop (Replit's ingress / Render's load balancer).
+// Required for express-rate-limit to read X-Forwarded-For correctly.
+app.set("trust proxy", 1);
 
 // ── Security headers (Helmet) ─────────────────────────────────────────────────
 // Helmet sets a suite of HTTP headers that protect against common web vulnerabilities

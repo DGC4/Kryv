@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { ChannelSummary } from '@workspace/api-client-react/src/generated/api.schemas';
+import type { ChannelSummary } from '@workspace/api-client-react';
 import { Users } from 'lucide-react';
 
 export function ChannelCard({ channel }: { channel: ChannelSummary }) {
