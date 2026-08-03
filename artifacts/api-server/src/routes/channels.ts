@@ -252,22 +252,30 @@ router.post(
         playbackId: muxPlaybackId ?? "",
       }));
     } catch (err) {
-      // 4. Fallback for ANY error (Mux unconfigured, invalid tokens, network error, etc.)
-      console.error("Mux stream creation failed, falling back to self-hosted key:", err);
-      
-      const { randomBytes } = await import("crypto");
-      const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
-      
-      await db.update(channelsTable).set({ 
-        streamKey: selfHostedKey, 
-        streamKeyGeneratedAt: new Date() 
-      }).where(eq(channelsTable.id, channel.id));
+      // 4. Fallback ONLY if Mux is not configured at all
+      if (err instanceof MuxNotConfiguredError) {
+        console.warn("Mux is not configured, using placeholder stream key.");
+        const { randomBytes } = await import("crypto");
+        const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
+        
+        await db.update(channelsTable).set({ 
+          streamKey: selfHostedKey, 
+          streamKeyGeneratedAt: new Date() 
+        }).where(eq(channelsTable.id, channel.id));
 
-      return res.json(CreateChannelStreamResponse.parse({
-        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-        streamKey: selfHostedKey,
-        playbackId: "",
-      }));
+        return res.json(CreateChannelStreamResponse.parse({
+          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+          streamKey: selfHostedKey,
+          playbackId: "",
+        }));
+      }
+
+      // 5. If Mux IS configured but failing (e.g. invalid tokens), we MUST report the error
+      console.error("Mux API Error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown Mux error";
+      return res.status(502).json({ 
+        error: `Mux Integration Error: ${errorMessage}. Please check your MUX_TOKEN_ID and MUX_TOKEN_SECRET in Render.` 
+      });
     }
   },
 );
@@ -381,21 +389,28 @@ router.post(
         playbackId: muxPlaybackId ?? "",
       }));
     } catch (err) {
-      console.error("Mux stream reset failed, falling back to self-hosted key:", err);
-      
-      const { randomBytes } = await import("crypto");
-      const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
+      if (err instanceof MuxNotConfiguredError) {
+        console.warn("Mux is not configured, using placeholder stream key.");
+        const { randomBytes } = await import("crypto");
+        const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
 
-      await db.update(channelsTable).set({ 
-        streamKey: selfHostedKey, 
-        streamKeyGeneratedAt: new Date() 
-      }).where(eq(channelsTable.id, channel.id));
+        await db.update(channelsTable).set({ 
+          streamKey: selfHostedKey, 
+          streamKeyGeneratedAt: new Date() 
+        }).where(eq(channelsTable.id, channel.id));
 
-      return res.json(CreateChannelStreamResponse.parse({
-        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-        streamKey: selfHostedKey,
-        playbackId: "",
-      }));
+        return res.json(CreateChannelStreamResponse.parse({
+          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+          streamKey: selfHostedKey,
+          playbackId: "",
+        }));
+      }
+
+      console.error("Mux API Error (Reset):", err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown Mux error";
+      return res.status(502).json({ 
+        error: `Mux Integration Error: ${errorMessage}. Please check your MUX_TOKEN_ID and MUX_TOKEN_SECRET in Render.` 
+      });
     }
   },
 );
