@@ -1,6 +1,6 @@
 import { pgTable, serial, text, timestamp, integer, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { usersTable } from "./users";
 import { videosTable } from "./videos";
 

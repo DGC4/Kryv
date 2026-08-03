@@ -16,6 +16,8 @@ import {
 import { requireAuth, attachUserId } from "../lib/auth";
 import { toVideoSummary, toVideoDetail } from "../lib/videoSerializer";
 import { createMuxDirectUpload, MuxNotConfiguredError } from "../lib/mux";
+import { logActivity } from "../lib/tracking";
+import { watchHistoryTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -131,6 +133,22 @@ router.get("/videos/:id", attachUserId, async (req, res): Promise<void> => {
   video.viewCount += 1;
 
   const viewerUserId = req.user?.userId;
+
+  if (viewerUserId) {
+    // Record watch history (fire-and-forget)
+    db.insert(watchHistoryTable)
+      .values({ userId: viewerUserId, videoId: video.id })
+      .onConflictDoUpdate({
+        target: [watchHistoryTable.userId, watchHistoryTable.videoId],
+        set: { watchedAt: new Date() },
+      })
+      .catch((err) => console.error("watchHistory update failed:", err));
+
+    logActivity(req, "watch_video", { videoId: video.id }).catch((err) =>
+      console.error("logActivity error:", err),
+    );
+  }
+
   res.json(GetVideoResponse.parse(await toVideoDetail(video, viewerUserId)));
 });
 

@@ -26,6 +26,7 @@ import {
   uniqueChannelSlug,
 } from "../lib/channelSerializer";
 import { createMuxLiveStream, MuxNotConfiguredError } from "../lib/mux";
+import { logActivity } from "../lib/tracking";
 
 const router: IRouter = Router();
 
@@ -232,6 +233,8 @@ router.post(
         .update(channelsTable)
         .set({ muxLiveStreamId, muxStreamKey, muxPlaybackId })
         .where(eq(channelsTable.id, channel.id));
+
+      logActivity(req, "create_stream", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
 
       res.json(
         CreateChannelStreamResponse.parse({

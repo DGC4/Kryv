@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { eq, or } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { signToken, OWNER_USERNAME } from "../lib/auth";
+import { logActivity, trackDevice } from "../lib/tracking";
 import { z } from "zod";
 
 const router = Router();
@@ -59,6 +60,10 @@ router.post("/signup", async (req, res) => {
       role: user.role,
     });
 
+    // Track activity and device (non-blocking)
+    trackDevice(req, user.id).catch(err => console.error("trackDevice error:", err));
+    logActivity(req, "signup", { userId: user.id }).catch(err => console.error("logActivity error:", err));
+
     res.status(201).json({
       token,
       user: {
@@ -110,6 +115,10 @@ router.post("/login", async (req, res) => {
       username: user.username,
       role: user.role,
     });
+
+    // Track activity and device (non-blocking)
+    trackDevice(req, user.id).catch(err => console.error("trackDevice error:", err));
+    logActivity(req, "login", { userId: user.id }).catch(err => console.error("logActivity error:", err));
 
     res.json({
       token,

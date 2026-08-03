@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import routes from "./routes";
 import webhooksRouter from "./routes/webhooks";
 import { attachUserId } from "./lib/auth";
+import { trackVisitor } from "./middleware/visitor";
 
 const app = express();
 
@@ -19,6 +20,10 @@ app.use("/api/webhooks/mux", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(attachUserId);
+app.use((req, res, next) => {
+  trackVisitor(req, res, () => {}).catch(err => console.error("trackVisitor error:", err));
+  next();
+});
 
 // Webhook routes (no auth middleware needed — verified by Mux signature)
 app.use("/api", webhooksRouter);
