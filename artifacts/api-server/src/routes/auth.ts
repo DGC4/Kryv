@@ -1,6 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { eq, or } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { signToken, OWNER_USERNAME } from "../lib/auth";
 import { logActivity, trackDevice } from "../lib/tracking";
@@ -28,11 +28,16 @@ router.post("/signup", async (req, res) => {
 
     const { email, username, password } = parsed.data;
 
-    // Check if user already exists
+    // Check if user already exists (case-insensitive)
     const [existing] = await db
       .select()
       .from(usersTable)
-      .where(or(eq(usersTable.email, email), eq(usersTable.username, username)));
+      .where(
+        or(
+          sql`lower(${usersTable.email}) = lower(${email})`,
+          sql`lower(${usersTable.username}) = lower(${username})`,
+        ),
+      );
 
     if (existing) {
       return res.status(409).json({ error: "Email or username already taken" });
@@ -74,9 +79,13 @@ router.post("/signup", async (req, res) => {
         avatarUrl: user.avatarUrl,
       },
     });
-  } catch (err) {
-    console.error("Signup error:", err);
-    res.status(500).json({ error: "Internal server error" });
+  } catch (err: any) {
+    console.error("Signup error details:", {
+      message: err.message,
+      stack: err.stack,
+      code: err.code,
+    });
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
 });
 
@@ -92,7 +101,12 @@ router.post("/login", async (req, res) => {
     const [user] = await db
       .select()
       .from(usersTable)
-      .where(or(eq(usersTable.email, identifier), eq(usersTable.username, identifier)));
+      .where(
+        or(
+          sql`lower(${usersTable.email}) = lower(${identifier})`,
+          sql`lower(${usersTable.username}) = lower(${identifier})`,
+        ),
+      );
 
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
@@ -130,9 +144,13 @@ router.post("/login", async (req, res) => {
         avatarUrl: user.avatarUrl,
       },
     });
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ error: "Internal server error" });
+  } catch (err: any) {
+    console.error("Login error details:", {
+      message: err.message,
+      stack: err.stack,
+      code: err.code,
+    });
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
 });
 

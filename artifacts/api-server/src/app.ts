@@ -21,7 +21,10 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(attachUserId);
 app.use((req, res, next) => {
-  trackVisitor(req, res, () => {}).catch(err => console.error("trackVisitor error:", err));
+  // Fire-and-forget visitor tracking.
+  trackVisitor(req, res).catch((err) =>
+    console.error("trackVisitor error:", err),
+  );
   next();
 });
 

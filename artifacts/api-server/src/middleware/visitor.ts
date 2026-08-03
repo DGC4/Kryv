@@ -2,11 +2,16 @@ import type { Request, Response, NextFunction } from "express";
 import { db, visitorsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 
-export async function trackVisitor(req: Request, _res: Response, next: NextFunction) {
+export async function trackVisitor(req: Request, _res: Response) {
   // Skip for non-GET requests or static assets if needed, but for now we track all
-  if (req.path.startsWith("/api/webhooks")) return next();
+  if (req.path.startsWith("/api/webhooks")) return;
 
-  const ip = req.ip || req.header("x-forwarded-for") || req.socket.remoteAddress || "";
+  const forwarded = req.header("x-forwarded-for");
+  const ip =
+    req.ip ||
+    (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0]) ||
+    req.socket.remoteAddress ||
+    "";
   const userAgent = req.header("user-agent") || "";
   const fingerprint = req.header("x-fingerprint");
 
@@ -46,5 +51,4 @@ export async function trackVisitor(req: Request, _res: Response, next: NextFunct
     console.error("Visitor tracking failed:", err);
   }
 
-  next();
 }

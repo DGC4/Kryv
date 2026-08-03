@@ -4,7 +4,12 @@ import type { Request } from "express";
 
 export async function logActivity(req: Request, action: string, metadata: any = {}) {
   const userId = req.user?.userId;
-  const ip = req.ip || req.header("x-forwarded-for") || req.socket.remoteAddress;
+  const forwarded = req.header("x-forwarded-for");
+  const ip =
+    req.ip ||
+    (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0]) ||
+    req.socket.remoteAddress ||
+    "";
   const userAgent = req.header("user-agent");
 
   try {
@@ -21,7 +26,12 @@ export async function logActivity(req: Request, action: string, metadata: any = 
 }
 
 export async function trackDevice(req: Request, userId: number) {
-  const ip = req.ip || req.header("x-forwarded-for") || req.socket.remoteAddress;
+  const forwarded = req.header("x-forwarded-for");
+  const ip =
+    req.ip ||
+    (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0]) ||
+    req.socket.remoteAddress ||
+    "";
   const userAgent = req.header("user-agent");
   const fingerprint = req.header("x-fingerprint"); // Optional header
 
