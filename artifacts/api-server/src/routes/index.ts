@@ -10,6 +10,7 @@ import videosRouter from "./videos";
 import cinemaRouter from "./cinema";
 import adminRouter from "./admin";
 import locationRouter from "./location";
+import streamingRouter from "./streaming";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(videosRouter);
 router.use(cinemaRouter);
 router.use(adminRouter);
 router.use(locationRouter);
+router.use(streamingRouter);
 
 export default router;

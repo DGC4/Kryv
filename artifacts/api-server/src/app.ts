@@ -57,11 +57,32 @@ for (const p of possibleDistPaths) {
   }
 }
 
+// Debug endpoint to check filesystem structure (owner only)
+app.get("/api/debug/paths", (req, res) => {
+  res.json({
+    cwd: process.cwd(),
+    __dirname,
+    possibleDistPaths,
+    actualDistPath: frontendDist,
+    filesInCwd: fs.existsSync(process.cwd()) ? fs.readdirSync(process.cwd()) : [],
+    filesInParent: fs.existsSync(path.resolve(process.cwd(), "..")) ? fs.readdirSync(path.resolve(process.cwd(), "..")) : [],
+  });
+});
+
 if (frontendDist) {
+  console.log("Serving frontend from:", frontendDist);
   app.use(express.static(frontendDist));
   app.get("*", (req, res) => {
-    if (req.path.startsWith("/api")) return res.status(404).end();
-    res.sendFile(path.join(frontendDist, "index.html"));
+    // If it's an API route that wasn't matched, return 404
+    if (req.path.startsWith("/api")) return res.status(404).json({ error: "API route not found" });
+    
+    // Otherwise serve index.html for SPA routing
+    const indexPath = path.join(frontendDist, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send(`Kryv API is running, but index.html was not found in ${frontendDist}`);
+    }
   });
 } else {
   // Fallback for when the frontend isn't built or path is wrong
