@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import Mux from "@mux/mux-node";
 import { db, channelsTable, videosTable } from "@workspace/db";
 import { logger } from "../lib/logger";
@@ -10,9 +10,7 @@ const router: IRouter = Router();
 /**
  * Mux delivers live-stream state changes and on-demand asset processing
  * events here. Configure this URL (`https://<your-domain>/api/webhooks/mux`)
- * in the Mux dashboard, with MUX_WEBHOOK_SECRET set to the signing secret
- * shown there, so isLive / playback state stay in sync with real broadcasts
- * and uploads instead of being toggled by the client.
+ * in the Mux dashboard, with MUX_WEBHOOK_SECRET set to the signing secret.
  */
 router.post("/webhooks/mux", async (req, res): Promise<void> => {
   const rawBody = req.body as Buffer;
@@ -112,18 +110,44 @@ router.post("/webhooks/mux", async (req, res): Promise<void> => {
 
 /**
  * FastPix delivers live-stream state changes and on-demand asset processing
- * events here. Configure this URL (`https://<your-domain>/api/webhooks/fastpix`)
- * in the FastPix dashboard.
+ * events here.
+ *
+ * Configure this URL in the FastPix dashboard:
+ *   https://kryv-backend.onrender.com/api/webhooks/fastpix
+ *
+ * Set FASTPIX_WEBHOOK_SECRET in Render environment variables to the signing
+ * secret shown in the FastPix dashboard so every event is verified.
+ *
+ * FastPix event types handled:
+ *   video.live_stream.connected    — broadcaster connected, mark channel live
+ *   video.live_stream.active       — stream is active/live
+ *   video.live_stream.disconnected — broadcaster disconnected
+ *   video.live_stream.idle         — stream went idle
+ *   video.live_stream.updated      — generic status update
+ *   video.live_stream.deleted      — stream deleted
+ *   video.media.created            — upload started processing
+ *   video.media.ready              — upload finished, playback available
+ *   video.media.failed             — upload failed
  */
 router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
   const rawBody = req.body as Buffer;
-  
+  const webhookSecret = process.env.FASTPIX_WEBHOOK_SECRET;
+
   let event: any;
   try {
-    event = fastpix.webhooks.unwrap(
-      rawBody.toString("utf8"),
-      req.headers as Record<string, string>
-    );
+    const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : String(rawBody);
+
+    if (webhookSecret) {
+      // Use FastPix SDK signature verification
+      event = fastpix.webhooks.unwrap(
+        bodyStr,
+        req.headers as Record<string, string>
+      );
+    } else {
+      // No secret configured — accept unverified (log a warning)
+      logger.warn("FASTPIX_WEBHOOK_SECRET not set — accepting FastPix webhook unverified");
+      event = JSON.parse(bodyStr);
+    }
   } catch (err) {
     logger.warn({ err }, "Rejected FastPix webhook — signature verification failed");
     res.status(400).json({ error: "Invalid signature" });
@@ -133,15 +157,49 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
   logger.info({ type: event.type }, "Received FastPix webhook");
 
   switch (event.type) {
-    case "video.live_stream.updated": {
+    // ── Live stream went active (broadcaster connected and streaming) ──────
+    case "video.live_stream.connected":
+    case "video.live_stream.active": {
       const liveStream = event.data;
-      const isLive = liveStream.status === "active";
+      const playbackId = liveStream.playbackIds?.[0]?.id ?? null;
       await db
         .update(channelsTable)
-        .set({ isLive })
+        .set({
+          isLive: true,
+          ...(playbackId ? { fastpixPlaybackId: playbackId } : {}),
+        })
         .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
       break;
     }
+
+    // ── Live stream went offline ───────────────────────────────────────────
+    case "video.live_stream.disconnected":
+    case "video.live_stream.idle": {
+      const liveStream = event.data;
+      await db
+        .update(channelsTable)
+        .set({ isLive: false, viewerCount: 0 })
+        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
+      break;
+    }
+
+    // ── Generic status update (check status field) ─────────────────────────
+    case "video.live_stream.updated": {
+      const liveStream = event.data;
+      const isLive = liveStream.status === "active" || liveStream.status === "connected";
+      const playbackId = liveStream.playbackIds?.[0]?.id ?? null;
+      await db
+        .update(channelsTable)
+        .set({
+          isLive,
+          viewerCount: isLive ? (liveStream.viewerCount ?? 0) : 0,
+          ...(playbackId ? { fastpixPlaybackId: playbackId } : {}),
+        })
+        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
+      break;
+    }
+
+    // ── Stream deleted ─────────────────────────────────────────────────────
     case "video.live_stream.deleted": {
       const liveStream = event.data;
       await db
@@ -150,12 +208,12 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
         .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
       break;
     }
+
+    // ── VOD / upload processing ────────────────────────────────────────────
     case "video.media.ready": {
       const media = event.data;
       const playbackId = media.playbackIds?.[0]?.id ?? null;
-      
-      // Try to find by uploadId or by assetId
-      const uploadId = (media as any).uploadId;
+      const uploadId = media.uploadId ?? (media as any).upload_id;
       if (uploadId) {
         await db
           .update(videosTable)
@@ -169,9 +227,10 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
       }
       break;
     }
+
     case "video.media.failed": {
       const media = event.data;
-      const uploadId = (media as any).uploadId;
+      const uploadId = media.uploadId ?? (media as any).upload_id;
       if (uploadId) {
         await db
           .update(videosTable)
@@ -180,9 +239,10 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
       }
       break;
     }
+
     case "video.media.created": {
       const media = event.data;
-      const uploadId = (media as any).uploadId;
+      const uploadId = media.uploadId ?? (media as any).upload_id;
       if (uploadId) {
         await db
           .update(videosTable)
@@ -191,7 +251,9 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
       }
       break;
     }
+
     default:
+      logger.info({ type: event.type }, "Unhandled FastPix webhook event — ignored");
       break;
   }
 

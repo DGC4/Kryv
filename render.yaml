@@ -12,6 +12,18 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      # ── FastPix Live Streaming ─────────────────────────────────────────────
+      # ACCESS_TOKEN  = FastPix Access Token ID (username for Basic Auth)
+      # SECRET_KEY    = FastPix Secret Key (password for Basic Auth)
+      - key: ACCESS_TOKEN
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      # FASTPIX_WEBHOOK_SECRET: signing secret from FastPix dashboard
+      # Used to verify inbound webhooks at /api/webhooks/fastpix
+      - key: FASTPIX_WEBHOOK_SECRET
+        sync: false
+      # ── Legacy MUX (kept for backward compat) ─────────────────────────────
       - key: MUX_TOKEN_ID
         sync: false
       - key: MUX_TOKEN_SECRET

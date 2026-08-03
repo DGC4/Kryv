@@ -17,9 +17,11 @@ const app = express();
 // Middleware
 app.use(cors());
 
-// Mux webhooks MUST receive the raw body for signature verification —
-// mount this path-specific raw parser BEFORE the global express.json().
+// Webhook routes MUST receive the raw body for signature verification —
+// mount these path-specific raw parsers BEFORE the global express.json().
 app.use("/api/webhooks/mux", express.raw({ type: "application/json" }));
+// FastPix sends application/json but we need the raw buffer for HMAC verification
+app.use("/api/webhooks/fastpix", express.raw({ type: "*/*" }));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -32,7 +34,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Webhook routes (no auth middleware needed — verified by Mux signature)
+// Webhook routes (no auth middleware needed — verified by signature)
 app.use("/api", webhooksRouter);
 
 // API Routes
@@ -45,7 +47,6 @@ app.get("/health", (_req, res) => res.json({ status: "ok" }));
 // On Render, the build command puts the frontend dist in artifacts/blyze/dist
 // Our current file is in artifacts/api-server/dist/index.mjs (after esbuild)
 // So __dirname is artifacts/api-server/dist
-// Serve frontend in production
 const possibleDistPaths = [
   path.resolve(__dirname, "../../blyze/dist"),
   path.resolve(__dirname, "../../../artifacts/blyze/dist"),
@@ -62,15 +63,16 @@ for (const p of possibleDistPaths) {
   }
 }
 
-// Debug endpoint to check filesystem structure (owner only)
+// Debug endpoint to check filesystem structure and env config (owner only)
 app.get("/api/debug/paths", (req, res) => {
-  const muxEnv = {};
+  const fastpixEnv: Record<string, object> = {};
   Object.keys(process.env).forEach(k => {
-    if (k.includes("MUX")) {
-      muxEnv[k] = {
+    if (k.includes("FASTPIX") || k.includes("ACCESS_TOKEN") || k.includes("SECRET_KEY")) {
+      fastpixEnv[k] = {
         length: process.env[k]?.length || 0,
         hasLeadingSpace: process.env[k]?.startsWith(" ") || false,
         hasTrailingSpace: process.env[k]?.endsWith(" ") || false,
+        set: !!process.env[k],
       };
     }
   });
@@ -80,10 +82,9 @@ app.get("/api/debug/paths", (req, res) => {
     __dirname,
     possibleDistPaths,
     actualDistPath: frontendDist,
-    envKeys: Object.keys(process.env).filter(k => k.includes("MUX")),
-    muxEnv,
+    fastpixEnv,
+    nodeEnv: process.env.NODE_ENV,
     filesInCwd: fs.existsSync(process.cwd()) ? fs.readdirSync(process.cwd()) : [],
-    filesInParent: fs.existsSync(path.resolve(process.cwd(), "..")) ? fs.readdirSync(path.resolve(process.cwd(), "..")) : [],
   });
 });
 

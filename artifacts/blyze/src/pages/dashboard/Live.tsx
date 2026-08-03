@@ -167,14 +167,16 @@ export default function DashboardLive() {
     createChannel.mutate(
       { data: { displayName: displayName.trim() } },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           toast({ title: 'Channel created!', description: 'Your channel is ready. Set your stream info and get your key.' });
-          refetchMe();
+          // Force a fresh fetch from the server (bypasses stale cache)
+          await refetchMe();
         },
         onError: (err: any) => {
-          const msg = err?.body?.error || err.message || 'Failed to create channel';
-          if (msg.includes('already have')) {
-            // Channel already exists — just refresh
+          const msg = err?.body?.error || err?.message || 'Failed to create channel';
+          // If channel already exists (200 response treated as error by some clients),
+          // just refresh to show the dashboard
+          if (msg.toLowerCase().includes('already') || (err as any)?.status === 200) {
             refetchMe();
           } else {
             toast({ title: 'Error', description: msg, variant: 'destructive' });
