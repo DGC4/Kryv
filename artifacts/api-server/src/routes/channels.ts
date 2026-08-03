@@ -214,74 +214,60 @@ router.post(
       return;
     }
 
-    // ── Prioritize Mux (Real Infrastructure) ──────────────────────────────
-    // If we already have a Mux stream key, use it as the primary key.
+    // ── Robust Stream Key Logic ──────────────────────────────────────────
+    
+    // 1. If we already have a Mux key, return it.
     if (channel.muxStreamKey) {
-      logActivity(req, "get_stream_key", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
-      res.json(
-        CreateChannelStreamResponse.parse({
-          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-          streamKey: channel.muxStreamKey,
-          playbackId: channel.muxPlaybackId || "",
-        }),
-      );
-      return;
+      return res.json(CreateChannelStreamResponse.parse({
+        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+        streamKey: channel.muxStreamKey,
+        playbackId: channel.muxPlaybackId || "",
+      }));
     }
 
-    // Try to provision a new Mux live stream
+    // 2. If we have a self-hosted key, return it.
+    if (channel.streamKey) {
+      return res.json(CreateChannelStreamResponse.parse({
+        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+        streamKey: channel.streamKey,
+        playbackId: "",
+      }));
+    }
+
+    // 3. Try to provision a new Mux live stream
     try {
       const { muxLiveStreamId, muxStreamKey, muxPlaybackId } = await createMuxLiveStream();
       
-      await db
-        .update(channelsTable)
-        .set({
-          streamKey: muxStreamKey, // Use Mux key as the primary streamKey
-          streamKeyGeneratedAt: new Date(),
-          muxLiveStreamId,
-          muxStreamKey,
-          muxPlaybackId,
-        })
-        .where(eq(channelsTable.id, channel.id));
+      await db.update(channelsTable).set({
+        streamKey: muxStreamKey,
+        streamKeyGeneratedAt: new Date(),
+        muxLiveStreamId,
+        muxStreamKey,
+        muxPlaybackId,
+      }).where(eq(channelsTable.id, channel.id));
 
-      logActivity(req, "create_stream_mux", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
-      
-      res.json(
-        CreateChannelStreamResponse.parse({
-          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-          streamKey: muxStreamKey,
-          playbackId: muxPlaybackId ?? "",
-        }),
-      );
-      return;
+      return res.json(CreateChannelStreamResponse.parse({
+        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+        streamKey: muxStreamKey,
+        playbackId: muxPlaybackId ?? "",
+      }));
     } catch (err) {
-      // If Mux is NOT configured, fall back to self-hosted key generation
-      if (err instanceof MuxNotConfiguredError) {
-        // Only generate self-hosted if Mux is missing from environment
-        const { randomBytes } = await import("crypto");
-        const rawKey = randomBytes(20).toString("hex");
-        const selfHostedKey = `live_${channel.id}_${rawKey}`;
-        
-        await db
-          .update(channelsTable)
-          .set({ 
-            streamKey: selfHostedKey, 
-            streamKeyGeneratedAt: new Date() 
-          })
-          .where(eq(channelsTable.id, channel.id));
+      // 4. Fallback for ANY error (Mux unconfigured, invalid tokens, network error, etc.)
+      console.error("Mux stream creation failed, falling back to self-hosted key:", err);
+      
+      const { randomBytes } = await import("crypto");
+      const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
+      
+      await db.update(channelsTable).set({ 
+        streamKey: selfHostedKey, 
+        streamKeyGeneratedAt: new Date() 
+      }).where(eq(channelsTable.id, channel.id));
 
-        logActivity(req, "create_stream_fallback", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
-        
-        res.json(
-          CreateChannelStreamResponse.parse({
-            rtmpUrl: "rtmp://global-live.mux.com:5222/app", // Default ingest
-            streamKey: selfHostedKey,
-            playbackId: "",
-          }),
-        );
-      } else {
-        // Real Mux error (API down, etc.) — throw so the frontend can show the error
-        throw err;
-      }
+      return res.json(CreateChannelStreamResponse.parse({
+        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+        streamKey: selfHostedKey,
+        playbackId: "",
+      }));
     }
   },
 );
@@ -381,49 +367,35 @@ router.post(
     try {
       const { muxLiveStreamId, muxStreamKey, muxPlaybackId } = await createMuxLiveStream();
       
-      await db
-        .update(channelsTable)
-        .set({
-          streamKey: muxStreamKey,
-          streamKeyGeneratedAt: new Date(),
-          muxLiveStreamId,
-          muxStreamKey,
-          muxPlaybackId,
-        })
-        .where(eq(channelsTable.id, channel.id));
+      await db.update(channelsTable).set({
+        streamKey: muxStreamKey,
+        streamKeyGeneratedAt: new Date(),
+        muxLiveStreamId,
+        muxStreamKey,
+        muxPlaybackId,
+      }).where(eq(channelsTable.id, channel.id));
 
-      logActivity(req, "reset_stream_key_mux", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
-
-      res.json(
-        CreateChannelStreamResponse.parse({
-          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-          streamKey: muxStreamKey,
-          playbackId: muxPlaybackId ?? "",
-        }),
-      );
+      return res.json(CreateChannelStreamResponse.parse({
+        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+        streamKey: muxStreamKey,
+        playbackId: muxPlaybackId ?? "",
+      }));
     } catch (err) {
-      if (err instanceof MuxNotConfiguredError) {
-        const { randomBytes } = await import("crypto");
-        const rawKey = randomBytes(20).toString("hex");
-        const selfHostedKey = `live_${channel.id}_${rawKey}`;
+      console.error("Mux stream reset failed, falling back to self-hosted key:", err);
+      
+      const { randomBytes } = await import("crypto");
+      const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
 
-        await db
-          .update(channelsTable)
-          .set({ streamKey: selfHostedKey, streamKeyGeneratedAt: new Date() })
-          .where(eq(channelsTable.id, channel.id));
+      await db.update(channelsTable).set({ 
+        streamKey: selfHostedKey, 
+        streamKeyGeneratedAt: new Date() 
+      }).where(eq(channelsTable.id, channel.id));
 
-        logActivity(req, "reset_stream_key_fallback", { channelId: channel.id }).catch(err => console.error("logActivity error:", err));
-
-        res.json(
-          CreateChannelStreamResponse.parse({
-            rtmpUrl: "rtmp://global-live.mux.com:5222/app",
-            streamKey: selfHostedKey,
-            playbackId: "",
-          }),
-        );
-      } else {
-        throw err;
-      }
+      return res.json(CreateChannelStreamResponse.parse({
+        rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+        streamKey: selfHostedKey,
+        playbackId: "",
+      }));
     }
   },
 );

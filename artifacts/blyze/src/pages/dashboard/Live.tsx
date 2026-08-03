@@ -139,11 +139,20 @@ export default function DashboardLive() {
   const [displayName, setDisplayName] = useState('');
   const [streamTitle, setStreamTitle] = useState('');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
-  const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
+    const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
   const [activeTab, setActiveTab] = useState<DashTab>('stream');
   const [locationEnforced, setLocationEnforced] = useState(false);
-
   const { location } = useIpLocation();
+
+  // Auto-fetch credentials on mount if channel exists
+  useEffect(() => {
+    if (me?.channel && !credentials && !createStream.isPending) {
+      createStream.mutate({ id: me.channel.id }, {
+        onSuccess: (data) => setCredentials(data),
+        onError: (err) => console.error('Auto-fetch stream key failed:', err)
+      });
+    }
+  }, [me?.channel?.id]);
 
   useEffect(() => {
     if (me?.channel) {
