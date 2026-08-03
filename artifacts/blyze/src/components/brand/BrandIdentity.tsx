@@ -10,7 +10,7 @@ import { Crown, ShieldCheck, Star, Clock, Zap } from 'lucide-react';
 /**
  * KRYV Logo - Code-based SVG logo with neon glow
  */
-export function KryvLogo({ className = "h-9" }: { className?: string }) {
+export function KryvLogo({ className = "h-9", subscriptionTier = "free" }: { className?: string; subscriptionTier?: "free" | "plus" | "pro" | "ultra" }) {
   return (
     <div className={`flex items-center gap-3 group shrink-0 cursor-pointer ${className}`}>
       <div className="relative w-10 h-10 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
@@ -65,7 +65,9 @@ export function KryvLogo({ className = "h-9" }: { className?: string }) {
         </span>
         <div className="flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
           <div className="h-[1px] w-8 bg-primary/50" />
-          <span className="text-[8px] font-black text-primary uppercase tracking-[0.3em]">Premium</span>
+          <span className="text-[8px] font-black text-primary uppercase tracking-[0.3em]">
+            {subscriptionTier === "free" ? "Free" : subscriptionTier === "plus" ? "Plus" : subscriptionTier === "pro" ? "Pro" : "Ultra"}
+          </span>
         </div>
       </div>
     </div>

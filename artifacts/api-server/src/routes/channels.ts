@@ -249,7 +249,7 @@ router.post(
         CreateChannelStreamResponse.parse({
           rtmpUrl: "rtmp://global-live.mux.com:5222/app",
           streamKey: muxStreamKey,
-          playbackId,
+          playbackId: muxPlaybackId ?? "",
         }),
       );
       return;
@@ -398,7 +398,7 @@ router.post(
         CreateChannelStreamResponse.parse({
           rtmpUrl: "rtmp://global-live.mux.com:5222/app",
           streamKey: muxStreamKey,
-          playbackId,
+          playbackId: muxPlaybackId ?? "",
         }),
       );
     } catch (err) {

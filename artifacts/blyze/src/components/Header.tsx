@@ -30,7 +30,7 @@ export function Header() {
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-6">
           <Link href="/">
-            <KryvLogo />
+            <KryvLogo subscriptionTier={me?.role === 'owner' ? 'ultra' : 'free'} />
           </Link>
 
           <nav className="flex items-center gap-0.5">
@@ -40,6 +40,7 @@ export function Header() {
                 <Link
                   key={item.path}
                   href={item.path}
+                  onClick={cycleTheme}
                   className={`relative flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-semibold transition-colors ${
                     active
                       ? 'text-primary'
@@ -82,7 +83,7 @@ export function Header() {
           {isSignedIn ? (
             <>
               {/* Go Live shortcut */}
-              <Link href="/dashboard/live">
+              <Link href="/dashboard/live" onClick={cycleTheme}>
                 <Button
                   size="sm"
                   className="hidden sm:flex h-8 items-center gap-1.5 bg-destructive hover:bg-destructive/90 text-white font-bold text-xs px-3 rounded-full shadow-[0_0_12px_hsl(0_84%_60%/0.4)]"
@@ -95,7 +96,7 @@ export function Header() {
               {/* User menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="w-8 h-8 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
+                  <button onClick={cycleTheme} className="w-8 h-8 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
                     {user?.avatarUrl
                       ? <img src={user.avatarUrl} alt={user.username || ''} className="w-full h-full object-cover" />
                       : <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">{user?.username?.[0]?.toUpperCase()}</div>
@@ -112,19 +113,19 @@ export function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-white/[0.07]" />
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/live" className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/dashboard/live" onClick={cycleTheme} className="flex items-center gap-2 cursor-pointer">
                       <Radio className="w-4 h-4 text-destructive" />
                       <span>Go Live</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/watch" className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/dashboard/watch" onClick={cycleTheme} className="flex items-center gap-2 cursor-pointer">
                       <Video className="w-4 h-4 text-primary" />
                       <span>Upload Video</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/watch" className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/dashboard/watch" onClick={cycleTheme} className="flex items-center gap-2 cursor-pointer">
                       <LayoutDashboard className="w-4 h-4 text-white/50" />
                       <span>Creator Dashboard</span>
                     </Link>
@@ -133,7 +134,7 @@ export function Header() {
                     <>
                       <DropdownMenuSeparator className="bg-white/[0.07]" />
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard/admin" className="flex items-center gap-2 cursor-pointer text-primary">
+                        <Link href="/dashboard/admin" onClick={cycleTheme} className="flex items-center gap-2 cursor-pointer text-primary">
                           <ShieldAlert className="w-4 h-4" />
                           <span>Owner Console</span>
                         </Link>

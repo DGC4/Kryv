@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import Mux from "@mux/mux-node";
 import { db, channelsTable, videosTable } from "@workspace/db";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -14,7 +15,6 @@ const router: IRouter = Router();
  */
 router.post("/webhooks/mux", async (req, res): Promise<void> => {
   const rawBody = req.body as Buffer;
-  const signature = req.header("mux-signature") ?? "";
   const webhookSecret = process.env.MUX_WEBHOOK_SECRET;
 
   let event: { type: string; data: Record<string, unknown> };
@@ -30,18 +30,18 @@ router.post("/webhooks/mux", async (req, res): Promise<void> => {
         webhookSecret,
       )) as unknown as typeof event;
     } else {
-      req.log.warn(
+      logger.warn(
         "MUX_WEBHOOK_SECRET not set — accepting webhook payload unverified",
       );
       event = JSON.parse(rawBody.toString("utf8"));
     }
   } catch (err) {
-    req.log.warn({ err }, "Rejected Mux webhook — signature verification failed");
+    logger.warn({ err }, "Rejected Mux webhook — signature verification failed");
     res.status(400).json({ error: "Invalid signature" });
     return;
   }
 
-  req.log.info({ type: event.type }, "Received Mux webhook");
+  logger.info({ type: event.type }, "Received Mux webhook");
 
   switch (event.type) {
     case "video.live_stream.active": {
