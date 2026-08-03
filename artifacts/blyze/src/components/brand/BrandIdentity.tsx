@@ -10,17 +10,64 @@ import { Crown, ShieldCheck, Star, Clock, Zap } from 'lucide-react';
 /**
  * KRYV Logo - Code-based SVG logo with neon glow
  */
-export function KryvLogo({ className = "h-8" }: { className?: string }) {
+export function KryvLogo({ className = "h-9" }: { className?: string }) {
   return (
-    <div className={`flex items-center gap-2.5 group shrink-0 ${className}`}>
-      <div className="relative w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_16px_hsl(var(--primary)/0.5)] group-hover:shadow-[0_0_24px_hsl(var(--primary)/0.7)] transition-all duration-500 overflow-hidden">
-        {/* Animated background shine */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-        <span className="relative font-black text-primary-foreground text-sm tracking-tight select-none">K</span>
+    <div className={`flex items-center gap-3 group shrink-0 cursor-pointer ${className}`}>
+      <div className="relative w-10 h-10 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
+        {/* Billion-Dollar Mark: Custom SVG K-Play-Signal Fusion */}
+        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)] group-hover:drop-shadow-[0_0_20px_hsl(var(--primary)/0.8)] transition-all duration-500">
+          <defs>
+            <linearGradient id="kryvGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="hsl(var(--primary))" />
+              <stop offset="100%" stopColor="#00E5FF" />
+            </linearGradient>
+            <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+          
+          {/* Background Shard 1 (Left Pillar) */}
+          <path 
+            d="M25 20 L40 20 L40 80 L25 80 Z" 
+            fill="url(#kryvGradient)" 
+            className="animate-pulse-subtle"
+          />
+          
+          {/* Background Shard 2 (Top Arm / Signal) */}
+          <path 
+            d="M45 45 L75 20 L85 20 L55 50 Z" 
+            fill="url(#kryvGradient)" 
+            opacity="0.9"
+          />
+          
+          {/* Background Shard 3 (Bottom Arm / Play Button) */}
+          <path 
+            d="M45 55 L55 50 L85 80 L75 80 Z" 
+            fill="url(#kryvGradient)" 
+          />
+          
+          {/* Central Highlight (The 'K' spine) */}
+          <rect x="30" y="25" width="4" height="50" fill="white" opacity="0.2" rx="2" />
+          
+          {/* Animated Play-Indicator Pulse */}
+          <circle cx="55" cy="50" r="4" fill="white" className="animate-ping" style={{ animationDuration: '3s' }} />
+        </svg>
+        
+        {/* Glassmorphism ring around the mark */}
+        <div className="absolute inset-0 rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-[2px] -z-10 group-hover:border-primary/30 transition-colors duration-500" />
       </div>
-      <span className="font-black text-lg tracking-tighter text-white hidden sm:block select-none group-hover:text-primary transition-colors duration-300">
-        KRYV
-      </span>
+      
+      {/* Brand Text: Ultra-premium Typography */}
+      <div className="flex flex-col -gap-1">
+        <span className="font-black text-xl tracking-[0.2em] text-white select-none group-hover:text-primary transition-colors duration-500 leading-none">
+          KRYV
+        </span>
+        <div className="flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+          <div className="h-[1px] w-8 bg-primary/50" />
+          <span className="text-[8px] font-black text-primary uppercase tracking-[0.3em]">Premium</span>
+        </div>
+      </div>
     </div>
   );
 }
