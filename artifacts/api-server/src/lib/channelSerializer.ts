@@ -49,7 +49,7 @@ export async function toChannelSummary(channel: Channel) {
 
 export async function toChannelDetail(
   channel: Channel,
-  viewerUserId: string | undefined,
+  viewerUserId: number | undefined,
 ) {
   const summary = await toChannelSummary(channel);
   let isFollowing = false;

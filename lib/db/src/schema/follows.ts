@@ -6,7 +6,7 @@ import { usersTable } from "./users";
 
 export const followsTable = pgTable("follows", {
   id: serial("id").primaryKey(),
-  followerUserId: text("follower_user_id")
+  followerUserId: integer("follower_user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   channelId: integer("channel_id")

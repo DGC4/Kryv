@@ -21,7 +21,7 @@ export const HealthCheckResponse = zod.object({
  * @summary Get current user profile, own channel, and followed channels
  */
 export const GetMeResponse = zod.object({
-  "id": zod.string(),
+  "id": zod.number(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),
@@ -165,7 +165,7 @@ export const CreateChannelResponse = zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -175,6 +175,14 @@ export const CreateChannelResponse = zod.object({
  */
 export const GetChannelParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Get a single channel's detail by its unique URL slug
+ */
+export const GetChannelBySlugParams = zod.object({
+  "slug": zod.string()
 })
 
 export const GetChannelResponse = zod.object({
@@ -194,7 +202,7 @@ export const GetChannelResponse = zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -240,7 +248,7 @@ export const UpdateChannelResponse = zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -283,7 +291,7 @@ export const FollowChannelResponse = zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -312,7 +320,7 @@ export const UnfollowChannelResponse = zod.object({
   "description": zod.string().nullable(),
   "isFollowing": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -579,7 +587,7 @@ export const GetAdminStatsResponse = zod.object({
  * @summary Owner-only user list
  */
 export const ListAdminUsersResponseItem = zod.object({
-  "id": zod.string(),
+  "id": zod.number(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),
@@ -593,7 +601,7 @@ export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem)
  * @summary Owner-only — ban or unban a user
  */
 export const UpdateAdminUserParams = zod.object({
-  "id": zod.coerce.string()
+  "id": zod.coerce.number()
 })
 
 export const UpdateAdminUserBody = zod.object({
@@ -601,7 +609,7 @@ export const UpdateAdminUserBody = zod.object({
 })
 
 export const UpdateAdminUserResponse = zod.object({
-  "id": zod.string(),
+  "id": zod.number(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),

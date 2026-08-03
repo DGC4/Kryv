@@ -1,15 +1,20 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, channelsTable, followsTable } from "@workspace/db";
+import { db, channelsTable, followsTable, usersTable } from "@workspace/db";
 import { GetMeResponse } from "@workspace/api-zod";
-import { requireAuth, getOrCreateUser } from "../lib/auth";
+import { requireAuth } from "../lib/auth";
 import { toChannelSummary } from "../lib/channelSerializer";
 
 const router: IRouter = Router();
 
 router.get("/me", requireAuth, async (req, res): Promise<void> => {
-  const userId = (req as typeof req & { userId: string }).userId;
-  const user = await getOrCreateUser(userId);
+  const userId = req.user!.userId;
+  
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, userId));
+
   if (!user) {
     res.status(401).json({ error: "Unauthorized" });
     return;
@@ -35,7 +40,7 @@ router.get("/me", requireAuth, async (req, res): Promise<void> => {
       id: user.id,
       username: user.username,
       avatarUrl: user.avatarUrl,
-      role: user.role,
+      role: user.role as "user" | "owner",
       channel: ownChannel ? await toChannelSummary(ownChannel) : null,
       followedChannels,
     }),

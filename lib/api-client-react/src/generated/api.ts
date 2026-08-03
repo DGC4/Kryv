@@ -592,7 +592,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChannel>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChannel>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetChannelQueryResult = NonNullable<Awaited<ReturnType<typeof getChannel>>>
@@ -609,6 +609,78 @@ export function useGetChannel<TData = Awaited<ReturnType<typeof getChannel>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetChannelQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+export const getGetChannelBySlugUrl = (slug: string,) => {
+
+
+
+
+  return `/api/channels/slug/${slug}`
+}
+
+/**
+ * @summary Get a single channel's detail by its unique URL slug
+ */
+export const getChannelBySlug = async (slug: string, options?: RequestInit): Promise<ChannelDetail> => {
+
+  return customFetch<ChannelDetail>(getGetChannelBySlugUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChannelBySlugQueryKey = (slug: string,) => {
+    return [
+    `/api/channels/slug/${slug}`
+    ] as const;
+    }
+
+
+export const getGetChannelBySlugQueryOptions = <TData = Awaited<ReturnType<typeof getChannelBySlug>>, TError = ErrorType<Error>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChannelBySlugQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChannelBySlug>>> = ({ signal }) => getChannelBySlug(slug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChannelBySlug>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChannelBySlugQueryResult = NonNullable<Awaited<ReturnType<typeof getChannelBySlug>>>
+export type GetChannelBySlugQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get a single channel's detail by its unique URL slug
+ */
+
+export function useGetChannelBySlug<TData = Awaited<ReturnType<typeof getChannelBySlug>>, TError = ErrorType<Error>>(
+ slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChannelBySlugQueryOptions(slug,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

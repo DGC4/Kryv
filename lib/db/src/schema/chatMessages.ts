@@ -9,7 +9,7 @@ export const chatMessagesTable = pgTable("chat_messages", {
   channelId: integer("channel_id")
     .notNull()
     .references(() => channelsTable.id, { onDelete: "cascade" }),
-  userId: text("user_id")
+  userId: integer("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   message: text("message").notNull(),

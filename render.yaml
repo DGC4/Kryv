@@ -8,21 +8,13 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # DATABASE_URL points to the Neon serverless Postgres instance.
-      # Set this in the Render dashboard to your Neon connection string:
-      # postgresql://neondb_owner:<password>@ep-rapid-lab-a602x70b-pooler.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - key: DATABASE_URL
         sync: false
-      - key: CLERK_SECRET_KEY
-        sync: false
-      - key: VITE_CLERK_PUBLISHABLE_KEY
-        sync: false
+      - key: JWT_SECRET
+        generateValue: true
       - key: MUX_TOKEN_ID
         sync: false
       - key: MUX_TOKEN_SECRET
         sync: false
       - key: MUX_WEBHOOK_SECRET
         sync: false
-      - key: SESSION_SECRET
-        generateValue: true
-

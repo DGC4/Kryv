@@ -1,37 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'wouter';
-import { useGetChannel, useListChannelMessages, useCreateChannelMessage, useFollowChannel, useUnfollowChannel } from '@workspace/api-client-react';
-import { useAuth } from '@clerk/react';
+import { useGetChannelBySlug, useListChannelMessages, useCreateChannelMessage, useFollowChannel, useUnfollowChannel } from '@workspace/api-client-react';
+import { useAuthStore } from '@/lib/auth-store';
 import MuxPlayer from '@mux/mux-player-react';
-import { Loader2, Users, Heart, Share2, Send, Crown } from 'lucide-react';
-import { GoldenDBadge, UserBadge } from '@/components/brand/BrandIdentity';
+import { Loader2, Users, Heart, Share2, Send } from 'lucide-react';
+import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
-import { formatDistanceToNow } from 'date-fns';
 
 export default function LiveChannel() {
   const { channelSlugOrId } = useParams<{ channelSlugOrId: string }>();
-  const isId = /^\d+$/.test(channelSlugOrId || '');
+  const { user } = useAuthStore();
+  const isSignedIn = !!user;
   
-  // Note: API expects ID, but we might have a slug from the URL. 
-  // We should ideally resolve slug to ID, but the current API only has `useGetChannel(id)`.
-  // To handle this properly given the generated client, let's assume we can fetch channels
-  // and find the ID if it's a slug, but for simplicity let's assume channelSlugOrId is the ID for now
-  // or we can use useListChannels with a search or something. 
-  // Wait, let's just fetch it as ID. 
-  const channelId = parseInt(channelSlugOrId || '0', 10);
-  
-  const { data: channel, isLoading } = useGetChannel(channelId, {
-    query: { enabled: !!channelId, refetchInterval: 10000 }
+  const { data: channel, isLoading } = useGetChannelBySlug(channelSlugOrId || '', {
+    query: { enabled: !!channelSlugOrId, refetchInterval: 10000 }
   });
   
-  const { data: messages, refetch: refetchMessages } = useListChannelMessages(channelId, {
+  const channelId = channel?.id;
+  
+  const { data: messages, refetch: refetchMessages } = useListChannelMessages(channelId!, {
     query: { enabled: !!channelId, refetchInterval: 3000 }
   });
   
   const createMessage = useCreateChannelMessage();
   const follow = useFollowChannel();
   const unfollow = useUnfollowChannel();
-  const { isSignedIn } = useAuth();
   
   const [chatInput, setChatInput] = useState('');
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -148,7 +141,7 @@ export default function LiveChannel() {
                 <div className="flex items-center gap-2 mb-2 text-primary font-medium">
                   <div className="flex items-center gap-2">
                     <span className="text-white font-bold">{channel.displayName}</span>
-                    {channel.ownerUserId === 'user_3HM7RPKoUzqjn7dGwNjtZsZg89z' && <GoldenDBadge />}
+                    {channel.ownerUserId === '1' && <GoldenDBadge />}
                   </div>
                   {channel.categoryName && (
                     <>

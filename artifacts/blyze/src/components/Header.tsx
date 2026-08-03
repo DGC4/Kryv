@@ -1,8 +1,8 @@
 import { useLocation, Link } from 'wouter';
-import { useAuth, useUser, useClerk } from '@clerk/react';
+import { useAuthStore } from '../lib/auth-store';
 import { useGetMe } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
-import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Crown } from 'lucide-react';
+import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard } from 'lucide-react';
 import { KryvLogo, GoldenDBadge, UserBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,10 +18,9 @@ const NAV = [
 
 export function Header() {
   const [location] = useLocation();
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
-  const { signOut } = useClerk();
-  const { data: me } = useGetMe({ query: { enabled: !!isSignedIn } });
+  const { user, logout } = useAuthStore();
+  const isSignedIn = !!user;
+  const { data: me } = useGetMe({ query: { enabled: isSignedIn } });
   const cycleTheme = useThemeStore((s) => s.cycleTheme);
 
   return (
@@ -97,8 +96,8 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="w-8 h-8 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
-                    {user?.imageUrl
-                      ? <img src={user.imageUrl} alt={user.username || ''} className="w-full h-full object-cover" />
+                    {user?.avatarUrl
+                      ? <img src={user.avatarUrl} alt={user.username || ''} className="w-full h-full object-cover" />
                       : <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">{user?.username?.[0]?.toUpperCase()}</div>
                     }
                   </button>
@@ -109,7 +108,7 @@ export function Header() {
                       <p className="text-sm font-bold text-white truncate">{user?.username}</p>
                       {me?.role === 'owner' ? <GoldenDBadge /> : (me?.role === 'admin' && <UserBadge type="admin" size="sm" />)}
                     </div>
-                    <p className="text-xs text-white/40 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+                    <p className="text-xs text-white/40 truncate">{user?.email}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-white/[0.07]" />
                   <DropdownMenuItem asChild>
@@ -143,7 +142,7 @@ export function Header() {
                   )}
                   <DropdownMenuSeparator className="bg-white/[0.07]" />
                   <DropdownMenuItem
-                    onClick={() => signOut()}
+                    onClick={() => logout()}
                     className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2"
                   >
                     <LogOut className="w-4 h-4" />

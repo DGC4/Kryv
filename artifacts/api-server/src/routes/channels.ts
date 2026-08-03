@@ -17,8 +17,9 @@ import {
   FollowChannelResponse,
   UnfollowChannelParams,
   UnfollowChannelResponse,
+  GetChannelBySlugParams,
 } from "@workspace/api-zod";
-import { requireAuth, attachUserId, getOrCreateUser } from "../lib/auth";
+import { requireAuth, attachUserId } from "../lib/auth";
 import {
   toChannelSummary,
   toChannelDetail,
@@ -62,22 +63,18 @@ router.get("/channels", attachUserId, async (req, res): Promise<void> => {
 });
 
 router.post("/channels", requireAuth, async (req, res): Promise<void> => {
-  const userId = (req as typeof req & { userId: string }).userId;
+  const userId = req.user!.userId;
   const parsed = CreateChannelBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
 
-  await getOrCreateUser(userId);
-
   const [existing] = await db
     .select()
     .from(channelsTable)
     .where(eq(channelsTable.ownerUserId, userId));
   if (existing) {
-    // Channel already exists — return it instead of erroring, so the
-    // frontend "already have a channel" race is handled gracefully.
     res
       .status(200)
       .json(CreateChannelResponse.parse(await toChannelDetail(existing, userId)));
@@ -120,7 +117,33 @@ router.get(
       return;
     }
 
-    const viewerUserId = (req as typeof req & { userId?: string }).userId;
+    const viewerUserId = req.user?.userId;
+    res.json(
+      GetChannelResponse.parse(await toChannelDetail(channel, viewerUserId)),
+    );
+  },
+);
+
+router.get(
+  "/channels/slug/:slug",
+  attachUserId,
+  async (req, res): Promise<void> => {
+    const params = GetChannelBySlugParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    const [channel] = await db
+      .select()
+      .from(channelsTable)
+      .where(eq(channelsTable.slug, params.data.slug));
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+
+    const viewerUserId = req.user?.userId;
     res.json(
       GetChannelResponse.parse(await toChannelDetail(channel, viewerUserId)),
     );
@@ -131,7 +154,7 @@ router.patch(
   "/channels/:id",
   requireAuth,
   async (req, res): Promise<void> => {
-    const userId = (req as typeof req & { userId: string }).userId;
+    const userId = req.user!.userId;
     const params = UpdateChannelParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
@@ -170,7 +193,7 @@ router.post(
   "/channels/:id/stream",
   requireAuth,
   async (req, res): Promise<void> => {
-    const userId = (req as typeof req & { userId: string }).userId;
+    const userId = req.user!.userId;
     const params = CreateChannelStreamParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
@@ -190,9 +213,6 @@ router.post(
       return;
     }
 
-    // If this channel already has a Mux live stream provisioned, return the
-    // existing credentials instead of creating a new stream every time the
-    // user clicks "Generate Stream Key".
     if (channel.muxLiveStreamId && channel.muxStreamKey && channel.muxPlaybackId) {
       res.json(
         CreateChannelStreamResponse.parse({
@@ -222,7 +242,6 @@ router.post(
       );
     } catch (err) {
       if (err instanceof MuxNotConfiguredError) {
-        req.log.warn("Mux not configured — cannot create live stream");
         res.status(503).json({ error: err.message });
         return;
       }
@@ -235,7 +254,7 @@ router.post(
   "/channels/:id/follow",
   requireAuth,
   async (req, res): Promise<void> => {
-    const userId = (req as typeof req & { userId: string }).userId;
+    const userId = req.user!.userId;
     const params = FollowChannelParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
@@ -250,8 +269,6 @@ router.post(
       res.status(404).json({ error: "Channel not found" });
       return;
     }
-
-    await getOrCreateUser(userId);
 
     await db
       .insert(followsTable)
@@ -268,7 +285,7 @@ router.delete(
   "/channels/:id/follow",
   requireAuth,
   async (req, res): Promise<void> => {
-    const userId = (req as typeof req & { userId: string }).userId;
+    const userId = req.user!.userId;
     const params = UnfollowChannelParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });

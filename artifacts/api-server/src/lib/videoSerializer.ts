@@ -43,7 +43,7 @@ export async function toVideoSummary(video: Video) {
 
 export async function toVideoDetail(
   video: Video,
-  viewerUserId: string | undefined,
+  viewerUserId: number | undefined,
 ) {
   const summary = await toVideoSummary(video);
   const [channel] = await db

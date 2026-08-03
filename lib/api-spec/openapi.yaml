@@ -185,6 +185,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /channels/slug/{slug}:
+    get:
+      operationId: getChannelBySlug
+      tags: [channels]
+      summary: Get a single channel's detail by its unique URL slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Channel detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelDetail"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     patch:
       operationId: updateChannel
       tags: [channels]

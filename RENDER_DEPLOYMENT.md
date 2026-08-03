@@ -5,11 +5,9 @@ once you're ready to run it outside the Replit environment. It assumes you alrea
 have (or will provision):
 
 - A Neon.tech Postgres project (gives you a `DATABASE_URL`)
-- Your Clerk keys (`CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY`, and the matching
-  publishable key for the backend if your Clerk setup needs it)
 - Your Mux keys (`MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`), plus a Mux webhook signing
   secret you'll create in the next step
-- A `SESSION_SECRET` (any long random string)
+- A `JWT_SECRET` (any long random string for authentication)
 
 Kryv can be deployed as two separate services (recommended for scale) or as a single unified service (easier to manage).
 
@@ -57,11 +55,10 @@ DATABASE_URL="<your neon url>" pnpm --filter @workspace/db run push
   | Key | Value |
   |---|---|
   | `DATABASE_URL` | your Neon connection string |
-  | `CLERK_SECRET_KEY` | your Clerk secret key |
+  | `JWT_SECRET` | a long random string for auth |
   | `MUX_TOKEN_ID` | your Mux token id |
   | `MUX_TOKEN_SECRET` | your Mux token secret |
   | `MUX_WEBHOOK_SECRET` | signing secret from the Mux webhook you create below |
-  | `SESSION_SECRET` | a long random string |
   | `NODE_ENV` | `production` |
   | `CORS_ORIGIN` | the URL of your deployed frontend, e.g. `https://kryv.onrender.com` |
   | `PORT` | leave unset — Render injects this automatically and the server already reads `process.env.PORT` |
@@ -82,18 +79,11 @@ DATABASE_URL="<your neon url>" pnpm --filter @workspace/db run push
 - **Environment variables** (build-time, since Vite inlines them):
   | Key | Value |
   |---|---|
-  | `VITE_CLERK_PUBLISHABLE_KEY` | your Clerk publishable key |
-  | `VITE_API_URL` | your backend's public URL, e.g. `https://kryv-api.onrender.com` (only add this if the frontend doesn't already infer the API origin — check `artifacts/blyze/src/lib/queryClient.ts` for how the API base is resolved before hardcoding this) |
+  | `VITE_API_URL` | your backend's public URL, e.g. `https://kryv-api.onrender.com` |
 - **Rewrite rule**: add a catch-all rewrite so client-side routing works —
   source `/*` → destination `/index.html` (rewrite, not redirect).
 
-## 4. Clerk configuration
-
-In your Clerk dashboard, add your Render frontend domain (and backend domain, if
-Clerk validates it) to the allowed origins/redirect URLs for your Clerk instance,
-the same way you would for any Clerk deployment outside Replit's managed proxy.
-
-## 5. Verify
+## 4. Verify
 
 1. Open the frontend URL, sign up, confirm `/api/me` resolves (check browser network
    tab) against your backend URL, not `localhost`.
@@ -102,7 +92,7 @@ the same way you would for any Clerk deployment outside Replit's managed proxy.
 3. Sign in as **FanoDGC** and confirm the Owner Console (`/dashboard/admin`) loads —
    that account is automatically promoted to the `owner` role on sign-in by username match.
 
-## 6. Local Windows build fix
+## 5. Local Windows build fix
 
 If you see `Cannot find module @rollup/rollup-win32-x64-msvc` or
 `The package "@esbuild/win32-x64" could not be found` when building locally on Windows,

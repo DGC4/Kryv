@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
-import { db, categoriesTable, channelsTable, videosTable } from "@workspace/db";
+import { db, categoriesTable, channelsTable, videosTable, usersTable } from "@workspace/db";
 import {
   ListVideosQueryParams,
   ListVideosResponse,
@@ -13,7 +13,7 @@ import {
   UpdateVideoResponse,
   DeleteVideoParams,
 } from "@workspace/api-zod";
-import { requireAuth, attachUserId, getOrCreateUser } from "../lib/auth";
+import { requireAuth, attachUserId } from "../lib/auth";
 import { toVideoSummary, toVideoDetail } from "../lib/videoSerializer";
 import { createMuxDirectUpload, MuxNotConfiguredError } from "../lib/mux";
 
@@ -46,7 +46,6 @@ router.get("/videos", async (req, res): Promise<void> => {
     rows = category ? rows.filter((v) => v.categoryId === category.id) : [];
   }
 
-  // Only surface videos that finished processing, or are still owned uploads in progress.
   rows = rows.filter((v) => v.uploadStatus !== "errored");
 
   const results = await Promise.all(rows.map(toVideoSummary));
@@ -54,14 +53,18 @@ router.get("/videos", async (req, res): Promise<void> => {
 });
 
 router.post("/videos", requireAuth, async (req, res): Promise<void> => {
-  const userId = (req as typeof req & { userId: string }).userId;
+  const userId = req.user!.userId;
   const parsed = CreateVideoBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
 
-  const user = await getOrCreateUser(userId);
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, userId));
+
   const [channel] = await db
     .select()
     .from(channelsTable)
@@ -72,8 +75,7 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // Lock 'original' content type to owner only.
-  if (parsed.data.contentType === "original" && user.role !== "owner") {
+  if (parsed.data.contentType === "original" && user?.role !== "owner") {
     res.status(403).json({ error: "Only cinema staff can post original content." });
     return;
   }
@@ -99,7 +101,6 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
     res.status(201).json(CreateVideoResponse.parse({ ...detail, uploadUrl }));
   } catch (err) {
     if (err instanceof MuxNotConfiguredError) {
-      req.log.warn("Mux not configured — cannot start video upload");
       res.status(503).json({ error: err.message });
       return;
     }
@@ -129,12 +130,12 @@ router.get("/videos/:id", attachUserId, async (req, res): Promise<void> => {
     .where(eq(videosTable.id, video.id));
   video.viewCount += 1;
 
-  const viewerUserId = (req as typeof req & { userId?: string }).userId;
+  const viewerUserId = req.user?.userId;
   res.json(GetVideoResponse.parse(await toVideoDetail(video, viewerUserId)));
 });
 
 router.patch("/videos/:id", requireAuth, async (req, res): Promise<void> => {
-  const userId = (req as typeof req & { userId: string }).userId;
+  const userId = req.user!.userId;
   const params = UpdateVideoParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -174,7 +175,7 @@ router.patch("/videos/:id", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.delete("/videos/:id", requireAuth, async (req, res): Promise<void> => {
-  const userId = (req as typeof req & { userId: string }).userId;
+  const userId = req.user!.userId;
   const params = DeleteVideoParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

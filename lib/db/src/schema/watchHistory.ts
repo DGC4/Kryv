@@ -5,7 +5,7 @@ import { usersTable } from "./users";
 import { videosTable } from "./videos";
 
 export const watchHistoryTable = pgTable("watch_history", {
-  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   videoId: integer("video_id").notNull().references(() => videosTable.id, { onDelete: "cascade" }),
   watchedAt: timestamp("watched_at", { withTimezone: true }).notNull().defaultNow(),
   progressSeconds: integer("progress_seconds").notNull().default(0),

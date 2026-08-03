@@ -5,14 +5,11 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import routes from "./routes";
 import webhooksRouter from "./routes/webhooks";
-import { clerkMiddleware } from "@clerk/express";
-import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
 import { attachUserId } from "./lib/auth";
 
 const app = express();
 
 // Middleware
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(cors());
 
 // Mux webhooks MUST receive the raw body for signature verification —
@@ -21,7 +18,6 @@ app.use("/api/webhooks/mux", express.raw({ type: "application/json" }));
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(clerkMiddleware());
 app.use(attachUserId);
 
 // Webhook routes (no auth middleware needed — verified by Mux signature)

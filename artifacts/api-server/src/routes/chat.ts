@@ -8,7 +8,7 @@ import {
   CreateChannelMessageBody,
   CreateChannelMessageResponse,
 } from "@workspace/api-zod";
-import { requireAuth, getOrCreateUser } from "../lib/auth";
+import { requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -43,7 +43,7 @@ router.get(
         rows.map((r) => ({
           id: r.message.id,
           channelId: r.message.channelId,
-          userId: r.message.userId,
+          userId: r.message.userId.toString(),
           username: r.user.username,
           avatarUrl: r.user.avatarUrl,
           message: r.message.message,
@@ -58,7 +58,7 @@ router.post(
   "/channels/:id/messages",
   requireAuth,
   async (req, res): Promise<void> => {
-    const userId = (req as typeof req & { userId: string }).userId;
+    const userId = req.user!.userId;
     const params = CreateChannelMessageParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
@@ -79,7 +79,11 @@ router.post(
       return;
     }
 
-    const user = await getOrCreateUser(userId);
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+
     const [message] = await db
       .insert(chatMessagesTable)
       .values({
@@ -93,7 +97,7 @@ router.post(
       CreateChannelMessageResponse.parse({
         id: message.id,
         channelId: message.channelId,
-        userId: message.userId,
+        userId: message.userId.toString(),
         username: user?.username ?? "viewer",
         avatarUrl: user?.avatarUrl ?? null,
         message: message.message,

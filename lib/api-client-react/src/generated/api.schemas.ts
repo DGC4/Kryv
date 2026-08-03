@@ -65,7 +65,7 @@ export type ChannelDetail = ChannelSummary & ({
   description: string | null;
   isFollowing: boolean;
   isOwner: boolean;
-  ownerUserId: string;
+  ownerUserId: number;
   createdAt: string;
 });
 
@@ -216,7 +216,7 @@ export interface CinemaHome {
 export interface ChatMessage {
   id: number;
   channelId: number;
-  userId: string;
+  userId: string | number;
   username: string;
   /** @nullable */
   avatarUrl: string | null;
@@ -241,7 +241,7 @@ export const MeRole = {
 } as const;
 
 export interface Me {
-  id: string;
+  id: number;
   username: string;
   /** @nullable */
   avatarUrl: string | null;
@@ -268,7 +268,7 @@ export const AdminUserRole = {
 } as const;
 
 export interface AdminUser {
-  id: string;
+  id: number;
   username: string;
   /** @nullable */
   avatarUrl: string | null;

@@ -13,7 +13,7 @@ import { categoriesTable } from "./categories";
 
 export const channelsTable = pgTable("channels", {
   id: serial("id").primaryKey(),
-  ownerUserId: text("owner_user_id")
+  ownerUserId: integer("owner_user_id")
     .notNull()
     .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),
