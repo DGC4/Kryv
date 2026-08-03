@@ -6,6 +6,7 @@ import { Layout } from "./components/Layout";
 import { ThemeProvider } from "./lib/themeProvider";
 import { setBaseUrl } from "@workspace/api-client-react";
 import { useAuthStore } from "./lib/auth-store";
+import { useThemeStore } from "./store/theme";
 import "./styles/theme.css";
 
 // Configure API base URL if provided, otherwise use relative paths
@@ -107,6 +108,14 @@ function AppRoutes() {
 }
 
 function App() {
+  const cycleTheme = useThemeStore((s) => s.cycleTheme);
+
+  useEffect(() => {
+    const handleClick = () => cycleTheme();
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, [cycleTheme]);
+
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
