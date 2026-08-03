@@ -76,7 +76,11 @@ router.post("/channels", requireAuth, async (req, res): Promise<void> => {
     .from(channelsTable)
     .where(eq(channelsTable.ownerUserId, userId));
   if (existing) {
-    res.status(409).json({ error: "You already have a channel" });
+    // Channel already exists — return it instead of erroring, so the
+    // frontend "already have a channel" race is handled gracefully.
+    res
+      .status(200)
+      .json(CreateChannelResponse.parse(await toChannelDetail(existing, userId)));
     return;
   }
 
@@ -183,6 +187,20 @@ router.post(
     }
     if (channel.ownerUserId !== userId) {
       res.status(403).json({ error: "Not the channel owner" });
+      return;
+    }
+
+    // If this channel already has a Mux live stream provisioned, return the
+    // existing credentials instead of creating a new stream every time the
+    // user clicks "Generate Stream Key".
+    if (channel.muxLiveStreamId && channel.muxStreamKey && channel.muxPlaybackId) {
+      res.json(
+        CreateChannelStreamResponse.parse({
+          rtmpUrl: "rtmp://global-live.mux.com:5222/app",
+          streamKey: channel.muxStreamKey,
+          playbackId: channel.muxPlaybackId,
+        }),
+      );
       return;
     }
 

@@ -27,15 +27,19 @@ Deploy the backend as a Web Service and the frontend as a Static Site.
 
 ## 1. Database (Neon)
 
-1. Create a Neon project and copy its connection string — that's your `DATABASE_URL`.
-   It's already Postgres-compatible with the Drizzle setup used here, no code changes
-   needed.
-2. Before your first deploy, run the schema push against that database from your
-   local machine or a one-off Render shell:
-   ```
-   DATABASE_URL="<your neon url>" pnpm --filter @workspace/db run push
-   ```
-   Re-run this any time the schema changes (e.g. after pulling future updates).
+The project uses a Neon serverless Postgres database. The Neon project is named **kryv**
+(`bold-cake-75596541`) in the `us-west-2` region.
+
+Your `DATABASE_URL` is:
+```
+postgresql://neondb_owner:<password>@ep-rapid-lab-a602x70b-pooler.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+```
+
+The schema is already applied. If you ever need to re-apply it (e.g. after pulling
+schema changes), run from your local machine or a one-off Render shell:
+```
+DATABASE_URL="<your neon url>" pnpm --filter @workspace/db run push
+```
 
 ## 2. Backend — Render Web Service
 
@@ -95,6 +99,18 @@ the same way you would for any Clerk deployment outside Replit's managed proxy.
    tab) against your backend URL, not `localhost`.
 2. Go live or upload a test video and confirm Mux ingest/webhook events land
    (check backend logs for `/api/webhooks/mux` requests).
-3. Sign in as the account named exactly "Fano DGC" and confirm the Owner Console
-   (`/dashboard/admin`) loads — that account is auto-promoted to the owner role on
-   sign-in by username match.
+3. Sign in as **FanoDGC** and confirm the Owner Console (`/dashboard/admin`) loads —
+   that account is automatically promoted to the `owner` role on sign-in by username match.
+
+## 6. Local Windows build fix
+
+If you see `Cannot find module @rollup/rollup-win32-x64-msvc` or
+`The package "@esbuild/win32-x64" could not be found` when building locally on Windows,
+delete `node_modules` at the repo root and reinstall:
+
+```powershell
+Remove-Item -Recurse -Force node_modules
+npx -y pnpm@latest install
+```
+
+This forces pnpm to download the correct Windows-native optional binaries.
