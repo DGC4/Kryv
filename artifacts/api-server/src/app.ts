@@ -64,12 +64,24 @@ for (const p of possibleDistPaths) {
 
 // Debug endpoint to check filesystem structure (owner only)
 app.get("/api/debug/paths", (req, res) => {
+  const muxEnv = {};
+  Object.keys(process.env).forEach(k => {
+    if (k.includes("MUX")) {
+      muxEnv[k] = {
+        length: process.env[k]?.length || 0,
+        hasLeadingSpace: process.env[k]?.startsWith(" ") || false,
+        hasTrailingSpace: process.env[k]?.endsWith(" ") || false,
+      };
+    }
+  });
+
   res.json({
     cwd: process.cwd(),
     __dirname,
     possibleDistPaths,
     actualDistPath: frontendDist,
     envKeys: Object.keys(process.env).filter(k => k.includes("MUX")),
+    muxEnv,
     filesInCwd: fs.existsSync(process.cwd()) ? fs.readdirSync(process.cwd()) : [],
     filesInParent: fs.existsSync(path.resolve(process.cwd(), "..")) ? fs.readdirSync(path.resolve(process.cwd(), "..")) : [],
   });

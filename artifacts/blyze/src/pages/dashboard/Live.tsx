@@ -207,23 +207,17 @@ export default function DashboardLive() {
   };
 
   const handleGetKey = useCallback(() => {
-    if (!me?.channel) {
-      console.warn('handleGetKey: No channel found for user');
-      return;
-    }
+    if (!me?.channel) return;
     
-    console.log('handleGetKey: Requesting stream key for channel', me.channel.id);
     createStream.mutate(
       { id: me.channel.id },
       {
         onSuccess: data => {
-          console.log('handleGetKey: Success', data);
           setCredentials(data);
           toast({ title: 'Stream key generated!', description: 'Keep this key private.' });
         },
         onError: (err: any) => {
-          console.error('handleGetKey: Error', err);
-          const msg = err?.body?.error || err.message || 'Unknown error';
+          const msg = err?.data?.error || err.message || 'Unknown error';
           toast({
             title: 'Stream key failed',
             description: msg,
@@ -244,7 +238,7 @@ export default function DashboardLive() {
           toast({ title: 'Stream key rotated!', description: 'Your old key is now invalid. Update OBS with the new key.' });
         },
         onError: (err: any) => {
-          const msg = err?.body?.error || err.message || 'Unknown error';
+          const msg = err?.data?.error || err.message || 'Unknown error';
           toast({ title: 'Failed to rotate key', description: msg, variant: 'destructive' });
         },
       },
@@ -492,18 +486,31 @@ export default function DashboardLive() {
                   </div>
                   <h2 className="font-black text-white">Stream Credentials</h2>
                   {credentials && (
-                    <Button
-                      onClick={handleRotateKey}
-                      disabled={resetStream.isPending}
-                      size="sm"
-                      variant="ghost"
-                      className="ml-auto text-white/30 hover:text-white text-xs"
-                    >
-                      {resetStream.isPending
-                        ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Rotating…</>
-                        : <><RefreshCcw className="w-3 h-3 mr-1" /> Rotate Key</>
-                      }
-                    </Button>
+                    <div className="ml-auto flex items-center gap-3">
+                      {debugInfo?.envKeys?.includes('MUX_TOKEN_ID') ? (
+                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[9px] font-bold text-green-400 uppercase tracking-widest">
+                          <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
+                          Mux Linked
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] font-bold text-red-400 uppercase tracking-widest">
+                          <span className="w-1 h-1 rounded-full bg-red-400" />
+                          Mux Disconnected
+                        </span>
+                      )}
+                      <Button
+                        onClick={handleRotateKey}
+                        disabled={resetStream.isPending}
+                        size="sm"
+                        variant="ghost"
+                        className="text-white/30 hover:text-white text-xs h-7 px-2"
+                      >
+                        {resetStream.isPending
+                          ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Rotating…</>
+                          : <><RefreshCcw className="w-3 h-3 mr-1" /> Rotate Key</>
+                        }
+                      </Button>
+                    </div>
                   )}
                 </div>
 
