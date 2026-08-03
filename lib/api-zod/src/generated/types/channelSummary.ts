@@ -29,4 +29,9 @@ export interface ChannelSummary {
      * @nullable
      */
   playbackId: string | null;
+  /**
+     * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+     * @nullable
+     */
+  fastpixPlaybackId?: string | null;
 }

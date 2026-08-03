@@ -3,56 +3,157 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import routes from "./routes";
 import webhooksRouter from "./routes/webhooks";
-import { attachUserId } from "./lib/auth";
+import { attachUserId, verifyToken } from "./lib/auth";
 import { trackVisitor } from "./middleware/visitor";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ── Enforce JWT_SECRET in production ──────────────────────────────────────────
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  throw new Error(
+    "JWT_SECRET environment variable is required in production. Set it in Render environment variables."
+  );
+}
+
 const app = express();
 
-// Middleware
-app.use(cors());
+// ── Security headers (Helmet) ─────────────────────────────────────────────────
+// Helmet sets a suite of HTTP headers that protect against common web vulnerabilities
+// (XSS, clickjacking, MIME sniffing, etc.)
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        // Allow HLS media from FastPix and Mux CDNs
+        mediaSrc: [
+          "'self'",
+          "https://stream.fastpix.io",
+          "https://stream.mux.com",
+          "blob:",
+        ],
+        connectSrc: [
+          "'self'",
+          "https://stream.fastpix.io",
+          "https://stream.mux.com",
+          "https://api.fastpix.io",
+        ],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+      },
+    },
+    // Required for HLS.js to work (uses SharedArrayBuffer / cross-origin isolation)
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
-// Webhook routes MUST receive the raw body for signature verification —
+// ── CORS ──────────────────────────────────────────────────────────────────────
+// In production, only allow the Render-hosted origin.
+// Set ALLOWED_ORIGINS in Render env vars (comma-separated) to add custom domains.
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  : ["http://localhost:5173", "http://localhost:3000"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, Render health checks)
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        process.env.NODE_ENV !== "production"
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+  })
+);
+
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+// Auth endpoints: strict limit to prevent brute-force / credential stuffing
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+});
+
+// Stream key endpoints: prevent key enumeration / abuse
+const streamKeyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many stream key requests, please try again later." },
+});
+
+// General API limiter — prevents DDoS / scraping
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+  // Webhooks are exempt — FastPix sends bursts during stream events
+  skip: (req) => req.path.startsWith("/api/webhooks"),
+});
+
+// Apply rate limiters before routes
+app.use("/api/signup", authLimiter);
+app.use("/api/login", authLimiter);
+app.use("/api/channels", (req, res, next) => {
+  if (req.path.includes("/stream")) return streamKeyLimiter(req, res, next);
+  next();
+});
+app.use("/api", apiLimiter);
+
+// ── Body parsers ──────────────────────────────────────────────────────────────
+// Webhook routes MUST receive the raw body for HMAC signature verification —
 // mount these path-specific raw parsers BEFORE the global express.json().
 app.use("/api/webhooks/mux", express.raw({ type: "application/json" }));
 // FastPix sends application/json but we need the raw buffer for HMAC verification
 app.use("/api/webhooks/fastpix", express.raw({ type: "*/*" }));
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(attachUserId);
+
 app.use((req, res, next) => {
   // Fire-and-forget visitor tracking.
   trackVisitor(req, res).catch((err) =>
-    console.error("trackVisitor error:", err),
+    console.error("trackVisitor error:", err)
   );
   next();
 });
 
-// Webhook routes (no auth middleware needed — verified by signature)
+// ── Webhook routes (verified by FastPix/Mux signature) ────────────────────────
 app.use("/api", webhooksRouter);
 
-// API Routes
+// ── API Routes ────────────────────────────────────────────────────────────────
 app.use("/api", routes);
 
-// Health check
+// ── Health check ──────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
-// Serve frontend in production
-// On Render, the build command puts the frontend dist in artifacts/blyze/dist
-// Our current file is in artifacts/api-server/dist/index.mjs (after esbuild)
-// So __dirname is artifacts/api-server/dist
+// ── Serve frontend in production ──────────────────────────────────────────────
 const possibleDistPaths = [
   path.resolve(__dirname, "../../blyze/dist"),
   path.resolve(__dirname, "../../../artifacts/blyze/dist"),
   path.resolve(process.cwd(), "artifacts/blyze/dist"),
   path.resolve(process.cwd(), "blyze/dist"),
-  "/opt/render/project/src/artifacts/blyze/dist"
+  "/opt/render/project/src/artifacts/blyze/dist",
 ];
 
 let frontendDist = "";
@@ -63,11 +164,28 @@ for (const p of possibleDistPaths) {
   }
 }
 
-// Debug endpoint to check filesystem structure and env config (owner only)
+// ── Debug endpoint — OWNER-ONLY ───────────────────────────────────────────────
+// Protected: requires a valid JWT with role=owner in production.
+// This endpoint is intentionally kept for operational debugging but locked down.
 app.get("/api/debug/paths", (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const payload = verifyToken(authHeader.slice(7));
+    if (!payload || payload.role !== "owner") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+  }
+
   const fastpixEnv: Record<string, object> = {};
-  Object.keys(process.env).forEach(k => {
-    if (k.includes("FASTPIX") || k.includes("ACCESS_TOKEN") || k.includes("SECRET_KEY")) {
+  Object.keys(process.env).forEach((k) => {
+    if (
+      k.includes("FASTPIX") ||
+      k.includes("ACCESS_TOKEN") ||
+      k.includes("SECRET_KEY")
+    ) {
       fastpixEnv[k] = {
         length: process.env[k]?.length || 0,
         hasLeadingSpace: process.env[k]?.startsWith(" ") || false,
@@ -84,7 +202,9 @@ app.get("/api/debug/paths", (req, res) => {
     actualDistPath: frontendDist,
     fastpixEnv,
     nodeEnv: process.env.NODE_ENV,
-    filesInCwd: fs.existsSync(process.cwd()) ? fs.readdirSync(process.cwd()) : [],
+    filesInCwd: fs.existsSync(process.cwd())
+      ? fs.readdirSync(process.cwd())
+      : [],
   });
 });
 
@@ -93,20 +213,27 @@ if (frontendDist) {
   app.use(express.static(frontendDist));
   app.get("*", (req, res) => {
     // If it's an API route that wasn't matched, return 404
-    if (req.path.startsWith("/api")) return res.status(404).json({ error: "API route not found" });
-    
+    if (req.path.startsWith("/api"))
+      return res.status(404).json({ error: "API route not found" });
+
     // Otherwise serve index.html for SPA routing
     const indexPath = path.join(frontendDist, "index.html");
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      res.status(404).send(`Kryv API is running, but index.html was not found in ${frontendDist}`);
+      res
+        .status(404)
+        .send(
+          `Kryv API is running, but index.html was not found in ${frontendDist}`
+        );
     }
   });
 } else {
   // Fallback for when the frontend isn't built or path is wrong
-  app.get("/", (req, res) => {
-    res.send(`Kryv API is running. Frontend not found. Checked paths: ${possibleDistPaths.join(", ")}`);
+  app.get("/", (_req, res) => {
+    res.send(
+      `Kryv API is running. Frontend not found. Checked paths: ${possibleDistPaths.join(", ")}`
+    );
   });
 }
 

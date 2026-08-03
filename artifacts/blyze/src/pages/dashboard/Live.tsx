@@ -7,6 +7,7 @@ import {
   useResetChannelStream,
   useListCategories,
 } from '@workspace/api-client-react';
+import HlsPlayer from '@/components/video/HlsPlayer';
 import { Button } from '@/components/ui/button';
 import {
   Loader2, Copy, RefreshCcw, Save, Radio, CheckCircle2,
@@ -556,15 +557,37 @@ export default function DashboardLive() {
             {/* Right: preview + OBS guide */}
             <div className="space-y-4">
 
-              {/* Stream preview */}
-              <div className="aspect-video rounded-2xl border border-white/[0.07] bg-black/40 flex flex-col items-center justify-center gap-3 overflow-hidden relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent pointer-events-none" />
-                <Monitor className="w-10 h-10 text-white/20 relative" />
-                <div className="relative text-center">
-                  <p className="text-sm font-bold text-white/30">{channel.displayName}</p>
-                  <p className="text-xs text-white/20 mt-0.5">{isLive ? 'Live now' : 'Offline'}</p>
-                </div>
-                <StatusBadge live={isLive} />
+              {/* Stream preview — shows live HLS feed when active, placeholder when offline */}
+              <div className="aspect-video rounded-2xl border border-white/[0.07] bg-black overflow-hidden relative">
+                {isLive && channel.fastpixPlaybackId ? (
+                  <>
+                    <HlsPlayer
+                      src={`https://stream.fastpix.io/${channel.fastpixPlaybackId}/index.m3u8`}
+                      autoPlay
+                      muted
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute top-3 left-3 flex items-center gap-2">
+                      <StatusBadge live={true} />
+                      {(channel.viewerCount ?? 0) > 0 && (
+                        <span className="bg-black/70 backdrop-blur text-white text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1">
+                          <Users className="w-2.5 h-2.5" />
+                          {(channel.viewerCount ?? 0).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-black/40">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent pointer-events-none" />
+                    <Monitor className="w-10 h-10 text-white/20 relative" />
+                    <div className="relative text-center">
+                      <p className="text-sm font-bold text-white/30">{channel.displayName}</p>
+                      <p className="text-xs text-white/20 mt-0.5">Start streaming in OBS to see your preview here</p>
+                    </div>
+                    <StatusBadge live={false} />
+                  </div>
+                )}
               </div>
 
               {/* OBS Setup guide */}
@@ -696,9 +719,9 @@ export default function DashboardLive() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               {[
                 { label: 'Total Followers', value: String(channel.followerCount ?? 0), icon: Users },
-                { label: 'Peak Viewers',    value: '—', icon: Eye },
-                { label: 'Total Streams',   value: '—', icon: Radio },
-                { label: 'Chat Messages',   value: '—', icon: MessageSquare },
+                { label: 'Subscribers',     value: String(channel.subscriberCount ?? 0), icon: Eye },
+                { label: 'Viewer Count',    value: isLive ? String(channel.viewerCount ?? 0) : '—', icon: Radio },
+                { label: 'Status',          value: isLive ? 'LIVE' : 'OFFLINE', icon: MessageSquare },
               ].map(({ label, value, icon: Icon }) => (
                 <div key={label} className="p-4 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
                   <div className="flex items-center gap-2 mb-2">

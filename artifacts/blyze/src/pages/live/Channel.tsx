@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'wouter';
-import { useGetChannelBySlug, useListChannelMessages, useCreateChannelMessage, useFollowChannel, useUnfollowChannel } from '@workspace/api-client-react';
+import {
+  useGetChannelBySlug,
+  useListChannelMessages,
+  useCreateChannelMessage,
+  useFollowChannel,
+  useUnfollowChannel,
+  useChannelHeartbeat,
+} from '@workspace/api-client-react';
 import { useAuthStore } from '@/lib/auth-store';
 import HlsPlayer from '@/components/video/HlsPlayer';
 import { Loader2, Users, Heart, Share2, Send } from 'lucide-react';
@@ -11,46 +18,81 @@ export default function LiveChannel() {
   const { channelSlugOrId } = useParams<{ channelSlugOrId: string }>();
   const { user } = useAuthStore();
   const isSignedIn = !!user;
-  
+
   const { data: channel, isLoading } = useGetChannelBySlug(channelSlugOrId || '', {
-    query: { enabled: !!channelSlugOrId, refetchInterval: 10000 }
+    query: { enabled: !!channelSlugOrId, refetchInterval: 10000 },
   });
-  
+
   const channelId = channel?.id;
-  
+
   const { data: messages, refetch: refetchMessages } = useListChannelMessages(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: 3000 }
+    query: { enabled: !!channelId, refetchInterval: 3000 },
   });
-  
+
   const createMessage = useCreateChannelMessage();
   const follow = useFollowChannel();
   const unfollow = useUnfollowChannel();
-  
+  const heartbeat = useChannelHeartbeat();
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [chatInput, setChatInput] = useState('');
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll chat to bottom on new messages
   useEffect(() => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [messages]);
 
+  // Viewer heartbeat — send every 30s while the channel is live
+  // This is how Kick/Twitch track concurrent viewers in real time
+  useEffect(() => {
+    if (!channelId || !channel?.isLive) {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      return;
+    }
+    // Fire immediately on mount, then every 30s
+    heartbeat.mutate({ id: channelId });
+    heartbeatRef.current = setInterval(() => {
+      heartbeat.mutate({ id: channelId });
+    }, 30000);
+    return () => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId, channel?.isLive]);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || !channelId) return;
-    
-    createMessage.mutate({
-      id: channelId,
-      data: { message: chatInput }
-    }, {
-      onSuccess: () => {
-        setChatInput('');
-        refetchMessages();
-      }
-    });
+    if (!isSignedIn) {
+      toast({
+        title: "Sign in to chat",
+        description: "You need to be signed in to send messages.",
+      });
+      return;
+    }
+    createMessage.mutate(
+      { id: channelId, data: { message: chatInput } },
+      {
+        onSuccess: () => {
+          setChatInput('');
+          refetchMessages();
+        },
+      },
+    );
   };
 
   const handleFollowToggle = () => {
+    if (!isSignedIn) {
+      // Prompt user to sign in
+      toast({
+        title: "Sign in to follow",
+        description: "You need to be signed in to follow channels.",
+      });
+      return;
+    }
     if (!channelId) return;
     if (channel?.isFollowing) {
       unfollow.mutate({ id: channelId });
@@ -75,17 +117,23 @@ export default function LiveChannel() {
     );
   }
 
+  // Build the correct HLS playback URL
+  // FastPix format: https://stream.fastpix.io/{playbackId}/index.m3u8
+  // Mux format (legacy): https://stream.mux.com/{playbackId}.m3u8
+  const hlsSrc = channel.fastpixPlaybackId
+    ? `https://stream.fastpix.io/${channel.fastpixPlaybackId}/index.m3u8`
+    : channel.playbackId
+    ? `https://stream.mux.com/${channel.playbackId}.m3u8`
+    : null;
+
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100dvh-4rem)] overflow-hidden bg-background relative z-10">
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         <div className="w-full bg-black aspect-video relative">
-          {channel.isLive && channel.playbackId ? (
+          {channel.isLive && hlsSrc ? (
             <HlsPlayer
-              src={channel.fastpixPlaybackId 
-                ? `https://stream.fastpix.com/${channel.playbackId}/playlist.m3u8`
-                : `https://stream.mux.com/${channel.playbackId}.m3u8`
-              }
+              src={hlsSrc}
               autoPlay
               muted
               className="w-full h-full object-contain"
@@ -93,7 +141,11 @@ export default function LiveChannel() {
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center">
               {channel.bannerUrl && (
-                <img src={channel.bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 blur-md" />
+                <img
+                  src={channel.bannerUrl}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover opacity-20 blur-md"
+                />
               )}
               <div className="relative z-10 text-center">
                 <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4 overflow-hidden border-2 border-white/10">
@@ -105,12 +157,14 @@ export default function LiveChannel() {
                     </div>
                   )}
                 </div>
-                <h2 className="text-2xl font-display font-bold text-white mb-2">{channel.displayName} is offline</h2>
+                <h2 className="text-2xl font-display font-bold text-white mb-2">
+                  {channel.displayName} is offline
+                </h2>
                 <p className="text-muted-foreground">Check back later when they go live.</p>
               </div>
             </div>
           )}
-          
+
           {channel.isLive && (
             <div className="absolute top-4 left-4 flex gap-2">
               <span className="bg-destructive text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wider animate-pulse">
@@ -129,7 +183,11 @@ export default function LiveChannel() {
             <div className="flex gap-4">
               <div className="w-16 h-16 rounded-full bg-white/10 overflow-hidden shrink-0 border border-white/10">
                 {channel.avatarUrl ? (
-                  <img src={channel.avatarUrl} alt={channel.displayName} className="w-full h-full object-cover" />
+                  <img
+                    src={channel.avatarUrl}
+                    alt={channel.displayName}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-primary/20 text-primary text-2xl font-bold">
                     {channel.displayName[0]}
@@ -156,8 +214,8 @@ export default function LiveChannel() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <Button 
-                variant={channel.isFollowing ? "secondary" : "default"}
+              <Button
+                variant={channel.isFollowing ? 'secondary' : 'default'}
                 onClick={handleFollowToggle}
                 disabled={!isSignedIn || follow.isPending || unfollow.isPending}
                 className="font-bold"
@@ -191,7 +249,9 @@ export default function LiveChannel() {
           {messages?.map((msg) => (
             <div key={msg.id} className="text-sm flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5">
-                {msg.username.toLowerCase().includes('fano') && <GoldenDBadge className="w-3.5 h-3.5" />}
+                {msg.username.toLowerCase().includes('fano') && (
+                  <GoldenDBadge className="w-3.5 h-3.5" />
+                )}
                 <span className="font-bold text-primary">{msg.username}</span>
               </div>
               <span className="text-white/90 break-words">{msg.message}</span>
@@ -215,13 +275,18 @@ export default function LiveChannel() {
                 maxLength={500}
                 className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
               />
-              <Button type="submit" size="icon" disabled={!chatInput.trim() || createMessage.isPending}>
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!chatInput.trim() || createMessage.isPending}
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </form>
           ) : (
-            <div className="text-center p-3 bg-white/5 rounded-lg border border-white/5">
-              <p className="text-sm text-muted-foreground mb-2">Sign in to chat</p>
+            <div className="text-center p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
+              <p className="text-sm text-muted-foreground">Sign in to chat</p>
+              <p className="text-xs text-white/40">You can still watch the stream as a guest</p>
             </div>
           )}
         </div>

@@ -49,6 +49,7 @@ export interface ChannelSummary {
   isLive: boolean;
   viewerCount: number;
   followerCount: number;
+  subscriberCount: number;
   /** @nullable */
   categoryId: number | null;
   /** @nullable */
@@ -58,14 +59,20 @@ export interface ChannelSummary {
      * @nullable
      */
   playbackId: string | null;
+  /**
+     * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+     * @nullable
+     */
+  fastpixPlaybackId?: string | null;
 }
 
 export type ChannelDetail = ChannelSummary & ({
   /** @nullable */
   description: string | null;
   isFollowing: boolean;
+  isSubscribed: boolean;
   isOwner: boolean;
-  ownerUserId: number;
+  ownerUserId: string;
   createdAt: string;
 });
 
@@ -100,8 +107,13 @@ export interface StreamCredentials {
   rtmpUrl: string;
   /** Secret stream key — combined with rtmpUrl to start broadcasting. Never shown to anyone but the owner. */
   streamKey: string;
-  /** Public Mux playback id for this channel's live stream */
+  /** FastPix playback id for this channel's live stream */
   playbackId: string;
+  /**
+     * FastPix playback id for this channel's live stream
+     * @nullable
+     */
+  fastpixPlaybackId?: string | null;
 }
 
 export type VideoSummaryContentType = typeof VideoSummaryContentType[keyof typeof VideoSummaryContentType];
@@ -216,7 +228,7 @@ export interface CinemaHome {
 export interface ChatMessage {
   id: number;
   channelId: number;
-  userId: string | number;
+  userId: string;
   username: string;
   /** @nullable */
   avatarUrl: string | null;
@@ -241,7 +253,7 @@ export const MeRole = {
 } as const;
 
 export interface Me {
-  id: number;
+  id: string;
   username: string;
   /** @nullable */
   avatarUrl: string | null;
@@ -268,7 +280,7 @@ export const AdminUserRole = {
 } as const;
 
 export interface AdminUser {
-  id: number;
+  id: string;
   username: string;
   /** @nullable */
   avatarUrl: string | null;
@@ -304,6 +316,10 @@ export type ListChannelsParams = {
 categorySlug?: string;
 live?: boolean;
 search?: string;
+};
+
+export type ChannelHeartbeat200 = {
+  viewerCount: number;
 };
 
 export type ListVideosParams = {

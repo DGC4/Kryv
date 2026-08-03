@@ -30,3 +30,9 @@ services:
         sync: false
       - key: MUX_WEBHOOK_SECRET
         sync: false
+      # ── CORS ─────────────────────────────────────────────────────────────────────────────────────────
+      # ALLOWED_ORIGINS: comma-separated list of allowed frontend origins
+      # Set this to your production domain(s), e.g. https://kryv.tv,https://www.kryv.tv
+      # In development (NODE_ENV != production), all origins are allowed.
+      - key: ALLOWED_ORIGINS
+        sync: false

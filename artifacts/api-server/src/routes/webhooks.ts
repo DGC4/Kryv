@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import Mux from "@mux/mux-node";
-import { db, channelsTable, videosTable } from "@workspace/db";
+import { db, channelsTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fastpix } from "../lib/fastpix";
 
@@ -162,13 +162,29 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
     case "video.live_stream.active": {
       const liveStream = event.data;
       const playbackId = liveStream.playbackIds?.[0]?.id ?? null;
-      await db
+
+      // Find the channel and update it to live
+      const [updatedChannel] = await db
         .update(channelsTable)
         .set({
           isLive: true,
+          lastStreamAt: new Date(),
+          totalStreamCount: sql`${channelsTable.totalStreamCount} + 1`,
           ...(playbackId ? { fastpixPlaybackId: playbackId } : {}),
         })
-        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
+        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id))
+        .returning();
+
+      // Create a stream session record for analytics (Kick/Twitch-style stream history)
+      if (updatedChannel) {
+        await db.insert(streamSessionsTable).values({
+          channelId: updatedChannel.id,
+          startedAt: new Date(),
+          title: updatedChannel.streamTitle ?? null,
+          categoryId: updatedChannel.categoryId ?? null,
+          streamKey: updatedChannel.fastpixStreamKey ?? null,
+        }).onConflictDoNothing();
+      }
       break;
     }
 
@@ -176,10 +192,30 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
     case "video.live_stream.disconnected":
     case "video.live_stream.idle": {
       const liveStream = event.data;
-      await db
+
+      // Find the channel to get its ID for session closure
+      const [offlineChannel] = await db
         .update(channelsTable)
         .set({ isLive: false, viewerCount: 0 })
-        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
+        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id))
+        .returning();
+
+      // Close the most recent open stream session
+      if (offlineChannel) {
+        const now = new Date();
+        await db
+          .update(streamSessionsTable)
+          .set({
+            endedAt: now,
+            durationSeconds: sql`EXTRACT(EPOCH FROM (${now.toISOString()} - started_at))::integer`,
+          })
+          .where(
+            and(
+              eq(streamSessionsTable.channelId, offlineChannel.id),
+              sql`${streamSessionsTable.endedAt} IS NULL`,
+            )
+          );
+      }
       break;
     }
 

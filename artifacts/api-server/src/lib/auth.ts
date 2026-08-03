@@ -3,7 +3,9 @@ import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 
-const JWT_SECRET = process.env.JWT_SECRET || "kryv-fallback-secret-for-dev-only-change-in-production";
+// JWT_SECRET MUST be set in production (enforced in app.ts at startup).
+// The fallback is only used in local development (NODE_ENV !== 'production').
+const JWT_SECRET = process.env.JWT_SECRET || "kryv-dev-only-secret-do-not-use-in-production";
 
 export interface AuthPayload {
   userId: number;

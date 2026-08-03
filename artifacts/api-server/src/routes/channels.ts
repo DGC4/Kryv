@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike, or, sql } from "drizzle-orm";
 import { db, channelsTable, followsTable } from "@workspace/db";
 import {
   ListChannelsQueryParams,
@@ -401,6 +401,36 @@ router.post(
         error: `FastPix Integration Error: ${errorMessage}. Please check your ACCESS_TOKEN and SECRET_KEY in Render.` 
       });
     }
+  },
+);
+
+// POST /channels/:id/heartbeat — Viewer presence heartbeat (call every 30s while watching)
+// This increments the viewer count for the channel while the viewer is active.
+// On disconnect (no heartbeat for 60s), the count naturally decays via a scheduled cleanup.
+router.post(
+  "/channels/:id/heartbeat",
+  async (req, res): Promise<void> => {
+    const channelId = parseInt(req.params.id);
+    if (isNaN(channelId)) {
+      res.status(400).json({ error: "Invalid channel ID" });
+      return;
+    }
+    const [channel] = await db
+      .select({ id: channelsTable.id, isLive: channelsTable.isLive, viewerCount: channelsTable.viewerCount })
+      .from(channelsTable)
+      .where(eq(channelsTable.id, channelId));
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+    // Only count viewers when the channel is actually live
+    if (channel.isLive) {
+      await db
+        .update(channelsTable)
+        .set({ viewerCount: sql`${channelsTable.viewerCount} + 1` })
+        .where(eq(channelsTable.id, channelId));
+    }
+    res.json({ viewerCount: channel.isLive ? channel.viewerCount + 1 : 0 });
   },
 );
 

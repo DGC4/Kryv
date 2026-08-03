@@ -13,6 +13,7 @@ export * from './adminUserUpdate';
 export * from './category';
 export * from './categoryKind';
 export * from './channelDetail';
+export * from './channelHeartbeat200';
 export * from './channelInput';
 export * from './channelSummary';
 export * from './channelUpdate';

@@ -11,6 +11,11 @@ export interface StreamCredentials {
   rtmpUrl: string;
   /** Secret stream key — combined with rtmpUrl to start broadcasting. Never shown to anyone but the owner. */
   streamKey: string;
-  /** Public Mux playback id for this channel's live stream */
+  /** FastPix playback id for this channel's live stream */
   playbackId: string;
+  /**
+     * FastPix playback id for this channel's live stream
+     * @nullable
+     */
+  fastpixPlaybackId?: string | null;
 }

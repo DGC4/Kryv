@@ -185,31 +185,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
-  /channels/slug/{slug}:
-    get:
-      operationId: getChannelBySlug
-      tags: [channels]
-      summary: Get a single channel's detail by its unique URL slug
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Channel detail
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ChannelDetail"
-        "404":
-          description: Channel not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
     patch:
       operationId: updateChannel
       tags: [channels]
@@ -252,6 +227,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /channels/slug/{slug}:
+    get:
+      operationId: getChannelBySlug
+      tags: [channels]
+      summary: Get a single channel's detail by its unique URL slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Channel detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelDetail"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /channels/{id}/stream:
     post:
       operationId: createChannelStream
@@ -282,6 +282,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}/heartbeat:
+    post:
+      operationId: channelHeartbeat
+      tags: [channels]
+      summary: Viewer heartbeat — increments viewer count while watching a live stream. Call every 30 seconds.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Heartbeat acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [viewerCount]
+                properties:
+                  viewerCount: { type: integer }
         "404":
           description: Channel not found
           content:
@@ -852,6 +880,7 @@ components:
           isLive,
           viewerCount,
           followerCount,
+          subscriberCount,
           categoryId,
           categoryName,
           playbackId,
@@ -866,20 +895,25 @@ components:
         isLive: { type: boolean }
         viewerCount: { type: integer }
         followerCount: { type: integer }
+        subscriberCount: { type: integer }
         categoryId: { type: ["integer", "null"] }
         categoryName: { type: ["string", "null"] }
         playbackId:
           description: Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+          type: ["string", "null"]
+        fastpixPlaybackId:
+          description: FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
           type: ["string", "null"]
 
     ChannelDetail:
       allOf:
         - $ref: "#/components/schemas/ChannelSummary"
         - type: object
-          required: [description, isFollowing, isOwner, ownerUserId, createdAt]
+          required: [description, isFollowing, isSubscribed, isOwner, ownerUserId, createdAt]
           properties:
             description: { type: ["string", "null"] }
             isFollowing: { type: boolean }
+            isSubscribed: { type: boolean }
             isOwner: { type: boolean }
             ownerUserId: { type: string }
             createdAt: { type: string, format: date-time }
@@ -913,8 +947,11 @@ components:
           description: Secret stream key — combined with rtmpUrl to start broadcasting. Never shown to anyone but the owner.
           type: string
         playbackId:
-          description: Public Mux playback id for this channel's live stream
+          description: FastPix playback id for this channel's live stream
           type: string
+        fastpixPlaybackId:
+          description: FastPix playback id for this channel's live stream
+          type: ["string", "null"]
 
     VideoSummary:
       type: object
