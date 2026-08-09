@@ -55,7 +55,7 @@ export interface ChannelSummary {
   /** @nullable */
   categoryName: string | null;
   /**
-     * Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+     * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
      * @nullable
      */
   playbackId: string | null;
@@ -165,7 +165,7 @@ export interface VideoSummary {
   categoryName: string | null;
   contentType: VideoSummaryContentType;
   /**
-     * Mux playback id for HLS playback. Null until Mux finishes processing the upload.
+     * FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.
      * @nullable
      */
   playbackId: string | null;
@@ -200,7 +200,7 @@ export interface VideoInput {
 }
 
 export type VideoCreateResponse = VideoDetail & {
-  /** Mux direct-upload URL — PUT the raw video file here from the browser */
+  /** FastPix direct-upload URL — PUT the raw video file here from the browser */
   uploadUrl: string;
 };
 

@@ -38,7 +38,7 @@ export const GetMeResponse = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }),zod.null()]),
   "followedChannels": zod.array(zod.object({
@@ -54,7 +54,7 @@ export const GetMeResponse = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }))
 })
@@ -96,7 +96,7 @@ export const GetDiscoverSummaryResponse = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 })),
   "topCategories": zod.array(zod.object({
@@ -135,7 +135,7 @@ export const ListChannelsResponseItem = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 })
 export const ListChannelsResponse = zod.array(ListChannelsResponseItem)
@@ -169,7 +169,7 @@ export const CreateChannelResponse = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
@@ -201,7 +201,7 @@ export const GetChannelResponse = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
@@ -250,7 +250,7 @@ export const UpdateChannelResponse = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
@@ -282,7 +282,7 @@ export const GetChannelBySlugResponse = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
@@ -356,7 +356,7 @@ export const FollowChannelResponse = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
@@ -388,7 +388,7 @@ export const UnfollowChannelResponse = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
@@ -469,7 +469,7 @@ export const ListVideosResponseItem = zod.object({
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
-  "playbackId": zod.string().nullable().describe('Mux playback id for HLS playback. Null until Mux finishes processing the upload.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 })
@@ -506,14 +506,14 @@ export const CreateVideoResponse = zod.object({
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
-  "playbackId": zod.string().nullable().describe('Mux playback id for HLS playback. Null until Mux finishes processing the upload.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 }).and(zod.object({
   "description": zod.string().nullable(),
   "isOwner": zod.boolean()
 })).and(zod.object({
-  "uploadUrl": zod.string().describe('Mux direct-upload URL — PUT the raw video file here from the browser')
+  "uploadUrl": zod.string().describe('FastPix direct-upload URL — PUT the raw video file here from the browser')
 }))
 
 
@@ -538,7 +538,7 @@ export const GetVideoResponse = zod.object({
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
-  "playbackId": zod.string().nullable().describe('Mux playback id for HLS playback. Null until Mux finishes processing the upload.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 }).and(zod.object({
@@ -580,7 +580,7 @@ export const UpdateVideoResponse = zod.object({
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
-  "playbackId": zod.string().nullable().describe('Mux playback id for HLS playback. Null until Mux finishes processing the upload.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 }).and(zod.object({
@@ -617,7 +617,7 @@ export const GetCinemaHomeResponse = zod.object({
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
-  "playbackId": zod.string().nullable().describe('Mux playback id for HLS playback. Null until Mux finishes processing the upload.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 }),zod.null()]),
@@ -637,7 +637,7 @@ export const GetCinemaHomeResponse = zod.object({
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
-  "playbackId": zod.string().nullable().describe('Mux playback id for HLS playback. Null until Mux finishes processing the upload.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 }))
@@ -709,7 +709,7 @@ export const ListAdminChannelsResponseItem = zod.object({
   "subscriberCount": zod.number(),
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
-  "playbackId": zod.string().nullable().describe('Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 })
 export const ListAdminChannelsResponse = zod.array(ListAdminChannelsResponseItem)
@@ -742,7 +742,7 @@ export const ListAdminVideosResponseItem = zod.object({
   "categoryId": zod.number().nullable(),
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
-  "playbackId": zod.string().nullable().describe('Mux playback id for HLS playback. Null until Mux finishes processing the upload.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 })

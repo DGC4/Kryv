@@ -39,7 +39,7 @@ export interface VideoSummary {
   categoryName: string | null;
   contentType: VideoSummaryContentType;
   /**
-     * Mux playback id for HLS playback. Null until Mux finishes processing the upload.
+     * FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.
      * @nullable
      */
   playbackId: string | null;

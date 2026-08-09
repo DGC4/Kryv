@@ -31,7 +31,7 @@ router.get("/emotes", async (_req, res) => {
 
 // GET /channels/:id/emotes - List channel emotes
 router.get("/channels/:id/emotes", async (req, res) => {
-  const channelId = parseInt(req.params.id);
+  const channelId = parseInt(req.params.id as string);
   if (isNaN(channelId)) return res.status(400).json({ error: "Invalid channel ID" });
 
   const emotes = await db
@@ -45,7 +45,7 @@ router.get("/channels/:id/emotes", async (req, res) => {
 // POST /channels/:id/subscribe - Subscribe to a channel
 router.post("/channels/:id/subscribe", requireAuth, async (req, res) => {
   const userId = req.user!.userId;
-  const channelId = parseInt(req.params.id);
+  const channelId = parseInt(req.params.id as string);
   if (isNaN(channelId)) return res.status(400).json({ error: "Invalid channel ID" });
 
   const parsed = SubscribeBody.safeParse(req.body);
@@ -91,7 +91,7 @@ router.post("/channels/:id/subscribe", requireAuth, async (req, res) => {
 // POST /channels/:id/tip - Send a tip to a channel
 router.post("/channels/:id/tip", requireAuth, async (req, res) => {
   const userId = req.user!.userId;
-  const channelId = parseInt(req.params.id);
+  const channelId = parseInt(req.params.id as string);
   if (isNaN(channelId)) return res.status(400).json({ error: "Invalid channel ID" });
 
   const parsed = TipBody.safeParse(req.body);

@@ -31,9 +31,8 @@ export async function toVideoSummary(video: Video) {
     categoryId: video.categoryId,
     categoryName,
     contentType: video.contentType as "upload" | "original",
-    playbackId: video.fastpixPlaybackId || video.muxPlaybackId,
+    playbackId: video.fastpixPlaybackId,
     fastpixPlaybackId: video.fastpixPlaybackId,
-    muxPlaybackId: video.muxPlaybackId,
     uploadStatus: video.uploadStatus as
       | "waiting"
       | "processing"

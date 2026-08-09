@@ -899,7 +899,7 @@ components:
         categoryId: { type: ["integer", "null"] }
         categoryName: { type: ["string", "null"] }
         playbackId:
-          description: Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+          description: FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
           type: ["string", "null"]
         fastpixPlaybackId:
           description: FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
@@ -997,7 +997,7 @@ components:
           type: string
           enum: [upload, original]
         playbackId:
-          description: Mux playback id for HLS playback. Null until Mux finishes processing the upload.
+          description: FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.
           type: ["string", "null"]
         uploadStatus:
           type: string
@@ -1031,7 +1031,7 @@ components:
           required: [uploadUrl]
           properties:
             uploadUrl:
-              description: Mux direct-upload URL — PUT the raw video file here from the browser
+              description: FastPix direct-upload URL — PUT the raw video file here from the browser
               type: string
 
     VideoUpdate:

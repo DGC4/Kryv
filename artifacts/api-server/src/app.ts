@@ -126,7 +126,7 @@ app.use("/api", apiLimiter);
 // ── Body parsers ──────────────────────────────────────────────────────────────
 // Webhook routes MUST receive the raw body for HMAC signature verification —
 // mount these path-specific raw parsers BEFORE the global express.json().
-app.use("/api/webhooks/mux", express.raw({ type: "application/json" }));
+
 // FastPix sends application/json but we need the raw buffer for HMAC verification
 app.use("/api/webhooks/fastpix", express.raw({ type: "*/*" }));
 
