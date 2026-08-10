@@ -3,7 +3,6 @@ import { useGetMe, useListVideos, useCreateVideo, useDeleteVideo, useListCategor
 import { Button } from '@/components/ui/button';
 import { Loader2, UploadCloud, Trash2, Film, Tv } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import * as UpChunk from '@mux/upchunk';
 
 export default function DashboardWatch() {
   const { data: me } = useGetMe();
@@ -42,29 +41,30 @@ export default function DashboardWatch() {
         data: { title, categoryId, contentType }
       });
 
-      const upload = UpChunk.createUpload({
-        endpoint: videoRecord.uploadUrl,
-        file: file,
-        chunkSize: 5120, // 5MB chunks
-      });
-
-      upload.on('progress', progress => {
-        setUploadProgress(progress.detail);
-      });
-
-      upload.on('success', () => {
-        toast({ title: 'Upload complete!', description: 'Your video is now processing.' });
-        setIsUploading(false);
-        setUploadProgress(0);
-        setTitle('');
-        setCategoryId(undefined);
-        refetchVideos();
-      });
-
-      upload.on('error', err => {
-        console.error('Upload error', err);
-        toast({ title: 'Upload failed', description: err.detail?.message || 'Unknown error', variant: 'destructive' });
-        setIsUploading(false);
+      // Native XHR upload — works with FastPix direct upload URLs
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', videoRecord.uploadUrl);
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            setUploadProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            toast({ title: 'Upload complete!', description: 'Your video is now processing.' });
+            setIsUploading(false);
+            setUploadProgress(0);
+            setTitle('');
+            setCategoryId(undefined);
+            refetchVideos();
+            resolve();
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.send(file);
       });
 
     } catch (err: any) {

@@ -14,14 +14,16 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/pg": "^8.20.0",
     "bcryptjs": "^3.0.3",
-    "drizzle-orm": "catalog:",
-    "pg": "^8.22.0"
+    "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.7.1",
+    "pg": "^8.22.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@esbuild/win32-x64": "^0.27.3",
     "@rollup/rollup-win32-x64-msvc": "^4.62.4",
     "prettier": "^3.9.4",
     "tsx": "catalog:",
-    "typescript": "~5.9.3"
+    "typescript": "~5.4.5"
   }
 }

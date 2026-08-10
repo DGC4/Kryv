@@ -38,18 +38,16 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
-        // Allow HLS media from FastPix and Mux CDNs
+        // Allow HLS media from FastPix CDN
         mediaSrc: [
           "'self'",
-          "https://stream.fastpix.io",
-          "https://stream.mux.com",
+          "https://stream.fastpix.com",
           "blob:",
         ],
         connectSrc: [
           "'self'",
-          "https://stream.fastpix.io",
-          "https://stream.mux.com",
-          "https://api.fastpix.io",
+          "https://stream.fastpix.com",
+          "https://api.fastpix.com",
         ],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
@@ -126,7 +124,7 @@ app.use("/api", apiLimiter);
 // ── Body parsers ──────────────────────────────────────────────────────────────
 // Webhook routes MUST receive the raw body for HMAC signature verification —
 // mount these path-specific raw parsers BEFORE the global express.json().
-app.use("/api/webhooks/mux", express.raw({ type: "application/json" }));
+
 // FastPix sends application/json but we need the raw buffer for HMAC verification
 app.use("/api/webhooks/fastpix", express.raw({ type: "*/*" }));
 
@@ -142,7 +140,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── Webhook routes (verified by FastPix/Mux signature) ────────────────────────
+// ── Webhook routes (verified by FastPix signature) ──────────────────────────────
 app.use("/api", webhooksRouter);
 
 // ── API Routes ────────────────────────────────────────────────────────────────

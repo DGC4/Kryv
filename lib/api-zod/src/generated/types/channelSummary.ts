@@ -25,7 +25,7 @@ export interface ChannelSummary {
   /** @nullable */
   categoryName: string | null;
   /**
-     * Mux playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+     * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
      * @nullable
      */
   playbackId: string | null;

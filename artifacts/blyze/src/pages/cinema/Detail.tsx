@@ -39,10 +39,7 @@ export default function CinemaDetail() {
       <div className="w-full h-screen relative">
         {video.playbackId ? (
           <HlsPlayer
-            src={video.fastpixPlaybackId 
-              ? `https://stream.fastpix.com/${video.playbackId}/playlist.m3u8`
-              : `https://stream.mux.com/${video.playbackId}.m3u8`
-            }
+            src={`https://stream.fastpix.com/${video.playbackId}.m3u8`}
             poster={video.backdropUrl || undefined}
             className="w-full h-full object-contain bg-black"
             autoPlay

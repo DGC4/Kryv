@@ -8,6 +8,6 @@
 import type { VideoDetail } from './videoDetail';
 
 export type VideoCreateResponse = VideoDetail & {
-  /** Mux direct-upload URL — PUT the raw video file here from the browser */
+  /** FastPix direct-upload URL — PUT the raw video file here from the browser */
   uploadUrl: string;
 };
