@@ -72,7 +72,7 @@ export type ChannelDetail = ChannelSummary & ({
   isFollowing: boolean;
   isSubscribed: boolean;
   isOwner: boolean;
-  ownerUserId: string;
+  ownerUserId: number;
   createdAt: string;
 });
 

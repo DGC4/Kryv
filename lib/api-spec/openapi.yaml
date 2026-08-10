@@ -915,7 +915,7 @@ components:
             isFollowing: { type: boolean }
             isSubscribed: { type: boolean }
             isOwner: { type: boolean }
-            ownerUserId: { type: string }
+            ownerUserId: { type: integer }
             createdAt: { type: string, format: date-time }
 
     ChannelInput:

@@ -176,7 +176,7 @@ export const CreateChannelResponse = zod.object({
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -208,7 +208,7 @@ export const GetChannelResponse = zod.object({
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -257,7 +257,7 @@ export const UpdateChannelResponse = zod.object({
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -289,7 +289,7 @@ export const GetChannelBySlugResponse = zod.object({
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -363,7 +363,7 @@ export const FollowChannelResponse = zod.object({
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
@@ -395,7 +395,7 @@ export const UnfollowChannelResponse = zod.object({
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
-  "ownerUserId": zod.string(),
+  "ownerUserId": zod.number(),
   "createdAt": zod.coerce.date()
 }))
 
