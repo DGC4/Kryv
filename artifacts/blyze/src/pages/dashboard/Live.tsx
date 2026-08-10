@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'wouter';
 import {
   useGetMe,
   useCreateChannel,
@@ -129,6 +130,7 @@ function useIpLocation() {
 type DashTab = 'stream' | 'settings' | 'analytics';
 
 export default function DashboardLive() {
+  const [, navigate] = useLocation();
   const { data: me, isLoading: meLoading, refetch: refetchMe } = useGetMe();
   const createChannel = useCreateChannel();
   const updateChannel = useUpdateChannel();
@@ -143,6 +145,7 @@ export default function DashboardLive() {
   const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
   const [activeTab, setActiveTab] = useState<DashTab>('stream');
   const [locationEnforced, setLocationEnforced] = useState(false);
+  const [channelCreated, setChannelCreated] = useState(false);
   const { location } = useIpLocation();
 
   // Auto-fetch credentials on mount if channel exists
@@ -168,10 +171,13 @@ export default function DashboardLive() {
     createChannel.mutate(
       { data: { displayName: displayName.trim() } },
       {
-        onSuccess: async () => {
+        onSuccess: async (data) => {
           toast({ title: 'Channel created!', description: 'Your channel is ready. Set your stream info and get your key.' });
+          setChannelCreated(true);
           // Force a fresh fetch from the server (bypasses stale cache)
           await refetchMe();
+          // Navigate to dashboard to show the stream tab immediately
+          navigate('/dashboard/live');
         },
         onError: (err: any) => {
           const msg = err?.body?.error || err?.message || 'Failed to create channel';
@@ -266,10 +272,11 @@ export default function DashboardLive() {
     });
   };
 
-  if (meLoading) {
+  if (meLoading || (channelCreated && !me?.channel)) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
+      <div className="flex items-center justify-center h-[60vh] flex-col gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        {channelCreated && <p className="text-white/40 text-sm">Setting up your channel…</p>}
       </div>
     );
   }
@@ -562,7 +569,7 @@ export default function DashboardLive() {
                 {isLive && channel.fastpixPlaybackId ? (
                   <>
                     <HlsPlayer
-                      src={`https://stream.fastpix.io/${channel.fastpixPlaybackId}/index.m3u8`}
+                      src={`https://stream.fastpix.com/${channel.fastpixPlaybackId}.m3u8`}
                       autoPlay
                       muted
                       className="w-full h-full object-contain"

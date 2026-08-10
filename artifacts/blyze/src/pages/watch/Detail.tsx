@@ -34,10 +34,7 @@ export default function WatchDetail() {
       <div className="bg-black aspect-video rounded-xl overflow-hidden border border-white/10 mb-6 shadow-2xl relative">
         {video.playbackId ? (
           <HlsPlayer
-            src={video.fastpixPlaybackId 
-              ? `https://stream.fastpix.com/${video.playbackId}/playlist.m3u8`
-              : `https://stream.mux.com/${video.playbackId}.m3u8`
-            }
+            src={`https://stream.fastpix.com/${video.playbackId}.m3u8`}
             poster={video.thumbnailUrl || undefined}
             className="w-full h-full"
           />

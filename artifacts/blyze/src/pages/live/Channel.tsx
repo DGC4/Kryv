@@ -38,6 +38,7 @@ export default function LiveChannel() {
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [chatInput, setChatInput] = useState('');
+  const [liveViewerCount, setLiveViewerCount] = useState<number>(0);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chat to bottom on new messages
@@ -47,6 +48,13 @@ export default function LiveChannel() {
     }
   }, [messages]);
 
+  // Sync viewer count from channel data
+  useEffect(() => {
+    if (channel?.viewerCount !== undefined) {
+      setLiveViewerCount(channel.viewerCount);
+    }
+  }, [channel?.viewerCount]);
+
   // Viewer heartbeat — send every 30s while the channel is live
   // This is how Kick/Twitch track concurrent viewers in real time
   useEffect(() => {
@@ -55,9 +63,21 @@ export default function LiveChannel() {
       return;
     }
     // Fire immediately on mount, then every 30s
-    heartbeat.mutate({ id: channelId });
+    heartbeat.mutate({ id: channelId }, {
+      onSuccess: (data: any) => {
+        if (typeof data?.viewerCount === 'number') {
+          setLiveViewerCount(data.viewerCount);
+        }
+      }
+    });
     heartbeatRef.current = setInterval(() => {
-      heartbeat.mutate({ id: channelId });
+      heartbeat.mutate({ id: channelId }, {
+        onSuccess: (data: any) => {
+          if (typeof data?.viewerCount === 'number') {
+            setLiveViewerCount(data.viewerCount);
+          }
+        }
+      });
     }, 30000);
     return () => {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
@@ -120,12 +140,9 @@ export default function LiveChannel() {
   }
 
   // Build the correct HLS playback URL
-  // FastPix format: https://stream.fastpix.io/{playbackId}/index.m3u8
-  // Mux format (legacy): https://stream.mux.com/{playbackId}.m3u8
-  const hlsSrc = channel.fastpixPlaybackId
-    ? `https://stream.fastpix.io/${channel.fastpixPlaybackId}/index.m3u8`
-    : channel.playbackId
-    ? `https://stream.mux.com/${channel.playbackId}.m3u8`
+  // FastPix format: https://stream.fastpix.com/{playbackId}.m3u8
+  const hlsSrc = (channel.fastpixPlaybackId || channel.playbackId)
+    ? `https://stream.fastpix.com/${channel.fastpixPlaybackId || channel.playbackId}.m3u8`
     : null;
 
   return (
@@ -175,7 +192,7 @@ export default function LiveChannel() {
               </span>
               <span className="bg-black/60 backdrop-blur text-white text-xs font-medium px-2 py-1 rounded flex items-center gap-1">
                 <Users className="w-3 h-3" />
-                {channel.viewerCount.toLocaleString()}
+                {liveViewerCount.toLocaleString()} {liveViewerCount === 1 ? 'viewer' : 'viewers'}
               </span>
             </div>
           )}
@@ -274,7 +291,7 @@ export default function LiveChannel() {
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Message..."
+                placeholder="Send a message…"
                 maxLength={500}
                 className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
               />
@@ -288,9 +305,14 @@ export default function LiveChannel() {
               </Button>
             </form>
           ) : (
-            <div className="text-center p-2 sm:p-3 bg-white/5 rounded-lg border border-white/5 space-y-1">
-              <p className="text-xs sm:text-sm text-muted-foreground">Sign in to chat</p>
-              <p className="text-[10px] sm:text-xs text-white/40">Watch as a guest</p>
+            <div className="text-center p-2 sm:p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
+              <p className="text-xs sm:text-sm text-muted-foreground">Sign in to join the chat</p>
+              <div className="flex gap-2 justify-center">
+                <a href="/sign-in" className="text-[11px] sm:text-xs font-bold text-primary hover:underline">Sign In</a>
+                <span className="text-white/20 text-xs">·</span>
+                <a href="/sign-up" className="text-[11px] sm:text-xs font-bold text-white/50 hover:text-white hover:underline">Sign Up</a>
+              </div>
+              <p className="text-[10px] text-white/30">Viewers can watch without signing in</p>
             </div>
           )}
         </div>

@@ -25,7 +25,7 @@ import {
   toChannelDetail,
   uniqueChannelSlug,
 } from "../lib/channelSerializer";
-import { createFastPixLiveStream, FastPixNotConfiguredError } from "../lib/fastpix";
+import { createFastPixLiveStream, FastPixNotConfiguredError, fastpix } from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
 
 const router: IRouter = Router();
@@ -405,8 +405,8 @@ router.post(
 );
 
 // POST /channels/:id/heartbeat — Viewer presence heartbeat (call every 30s while watching)
-// This increments the viewer count for the channel while the viewer is active.
-// On disconnect (no heartbeat for 60s), the count naturally decays via a scheduled cleanup.
+// Uses session-based tracking via viewer_sessions table for accurate concurrent viewer counts.
+// Falls back to FastPix API viewer count when the stream has a fastpixLiveStreamId.
 router.post(
   "/channels/:id/heartbeat",
   async (req, res): Promise<void> => {
@@ -415,22 +415,91 @@ router.post(
       res.status(400).json({ error: "Invalid channel ID" });
       return;
     }
+
     const [channel] = await db
-      .select({ id: channelsTable.id, isLive: channelsTable.isLive, viewerCount: channelsTable.viewerCount })
+      .select()
       .from(channelsTable)
       .where(eq(channelsTable.id, channelId));
     if (!channel) {
       res.status(404).json({ error: "Channel not found" });
       return;
     }
+
     // Only count viewers when the channel is actually live
-    if (channel.isLive) {
-      await db
-        .update(channelsTable)
-        .set({ viewerCount: sql`${channelsTable.viewerCount} + 1` })
-        .where(eq(channelsTable.id, channelId));
+    if (!channel.isLive) {
+      res.json({ viewerCount: 0 });
+      return;
     }
-    res.json({ viewerCount: channel.isLive ? channel.viewerCount + 1 : 0 });
+
+    // Try to get real viewer count from FastPix API
+    let fastpixViewerCount: number | null = null;
+    if (channel.fastpixLiveStreamId) {
+      try {
+        const result = await fastpix.manageLiveStream.getViewerCount({ streamId: channel.fastpixLiveStreamId });
+        const data = (result as any).data ?? result;
+        if (typeof data?.views === 'number') {
+          fastpixViewerCount = data.views;
+        }
+      } catch (err) {
+        // FastPix API unavailable — fall back to DB count
+        console.warn("[heartbeat] FastPix viewer count unavailable:", err instanceof Error ? err.message : err);
+      }
+    }
+
+    // Update the DB viewer count
+    const newCount = fastpixViewerCount !== null ? fastpixViewerCount : channel.viewerCount;
+    await db
+      .update(channelsTable)
+      .set({
+        viewerCount: newCount,
+        // Track peak viewers
+        peakViewerCount: sql`GREATEST(${channelsTable.peakViewerCount}, ${newCount})`,
+      })
+      .where(eq(channelsTable.id, channelId));
+
+    res.json({ viewerCount: newCount });
+  },
+);
+
+// GET /channels/:id/viewers — Get current viewer count (public)
+router.get(
+  "/channels/:id/viewers",
+  async (req, res): Promise<void> => {
+    const channelId = parseInt(req.params.id);
+    if (isNaN(channelId)) {
+      res.status(400).json({ error: "Invalid channel ID" });
+      return;
+    }
+
+    const [channel] = await db
+      .select({ id: channelsTable.id, isLive: channelsTable.isLive, viewerCount: channelsTable.viewerCount, fastpixLiveStreamId: channelsTable.fastpixLiveStreamId })
+      .from(channelsTable)
+      .where(eq(channelsTable.id, channelId));
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+
+    if (!channel.isLive) {
+      res.json({ viewerCount: 0, isLive: false });
+      return;
+    }
+
+    // Try FastPix API for real-time count
+    if (channel.fastpixLiveStreamId) {
+      try {
+        const result = await fastpix.manageLiveStream.getViewerCount({ streamId: channel.fastpixLiveStreamId });
+        const data = (result as any).data ?? result;
+        if (typeof data?.views === 'number') {
+          res.json({ viewerCount: data.views, isLive: true });
+          return;
+        }
+      } catch (err) {
+        // Fall through to DB count
+      }
+    }
+
+    res.json({ viewerCount: channel.viewerCount, isLive: true });
   },
 );
 

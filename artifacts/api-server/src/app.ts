@@ -38,18 +38,16 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
-        // Allow HLS media from FastPix and Mux CDNs
+        // Allow HLS media from FastPix CDN
         mediaSrc: [
           "'self'",
-          "https://stream.fastpix.io",
-          "https://stream.mux.com",
+          "https://stream.fastpix.com",
           "blob:",
         ],
         connectSrc: [
           "'self'",
-          "https://stream.fastpix.io",
-          "https://stream.mux.com",
-          "https://api.fastpix.io",
+          "https://stream.fastpix.com",
+          "https://api.fastpix.com",
         ],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
@@ -142,7 +140,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── Webhook routes (verified by FastPix/Mux signature) ────────────────────────
+// ── Webhook routes (verified by FastPix signature) ──────────────────────────────
 app.use("/api", webhooksRouter);
 
 // ── API Routes ────────────────────────────────────────────────────────────────
