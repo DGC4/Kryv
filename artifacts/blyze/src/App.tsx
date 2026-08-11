@@ -122,11 +122,22 @@ function AppRoutes() {
   );
 }
 
+import { useEffect } from 'react';
+
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location]);
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <WouterRouter base={basePath}>
+          <ScrollToTop />
           <AppRoutes />
         </WouterRouter>
       </QueryClientProvider>

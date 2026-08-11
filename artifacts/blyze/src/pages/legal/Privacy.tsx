@@ -1,185 +1,118 @@
 export default function Privacy() {
   return (
-      <div className="relative z-10 min-h-screen bg-gradient-to-b from-black via-black to-primary/5 px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-12 text-center">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-4">Privacy Policy</h1>
-            <p className="text-xs sm:text-sm text-white/60">Last updated: August 11, 2026</p>
+    <div className="relative z-10 min-h-screen bg-black px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-14 border-b border-white/[0.08] pb-10">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4">
+            Legal &amp; Privacy
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-4">Privacy Policy</h1>
+          <p className="text-sm font-medium text-white/50">Effective Date: August 11, 2026 · Kryv Platform Governance</p>
+        </div>
+
+        {/* Content */}
+        <div className="space-y-12 text-white/80 leading-relaxed font-sans text-base sm:text-lg">
+          
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8">
+            <p className="text-white/90 font-medium leading-relaxed">
+              Kryv ("we," "our," or "the Platform") operates a multi-modal live-entertainment, video-on-demand, and cinematic streaming ecosystem (incorporating Kryv Live, Kryv Watch, Kryv Clips, and Kryv Cinema). We respect your privacy and are committed to safeguarding personal information through rigorous technical and organizational controls. This Privacy Policy details how we collect, process, secure, and share information when you access or interact with our services.
+            </p>
           </div>
 
-          {/* Content */}
-          <div className="space-y-8 text-white/80 leading-relaxed">
-
-          <p className="text-base sm:text-lg text-white/90 font-medium">
-            This Privacy Policy explains how Kryv ("we," "us," "our") collects, uses, stores, and shares your information when you use the Kryv platform, including Kryv Live (live streaming), Kryv Watch (on-demand videos), and Kryv Cinema (curated library) (collectively, the "Service").
-          </p>
-
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">1. Information We Collect</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <div>
-                <h3 className="text-white font-bold mb-2">Account Information</h3>
-                <p>When you create an account, we collect your username, email address, and a securely hashed password; we do not store passwords in plain text. We may also store an avatar URL, account role, account-status information, your last-login time, and timestamps recording acceptance of our Terms, Privacy Policy, or a data-deletion request.</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">1. Information Architecture &amp; Collection Scope</h2>
+            <div className="space-y-6 text-white/70">
+              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
+                <h3 className="text-white font-bold text-lg mb-2">Account &amp; Authentication Data</h3>
+                <p className="text-sm sm:text-base leading-relaxed">
+                  When you register an account, we record your chosen username, email address, and a cryptographically salted and hashed password (never stored in plain text). We also record account creation timestamps, avatar URLs, role assignments (user, creator, or platform owner), and audit metadata regarding your acceptance of our terms.
+                </p>
               </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Content You Create</h3>
-                <p>We collect and store the content and settings you create on Kryv, including channel profiles, stream titles, descriptions, uploaded videos, live-session records, chat messages, channel tags, goals, polls, predictions, and metadata you provide. We store application records in Neon PostgreSQL and use FastPix to ingest, process, and deliver video.</p>
+
+              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
+                <h3 className="text-white font-bold text-lg mb-2">Creator Infrastructure &amp; Streaming Records</h3>
+                <p className="text-sm sm:text-base leading-relaxed">
+                  For creators broadcasting on Kryv Live, we store channel metadata, stream titles, category assignments, peak and average concurrent viewer counts, and private stream keys used exclusively for RTMPS ingest via FastPix. Operational stream lifecycle events and session metrics are stored in our secure Neon PostgreSQL database.
+                </p>
               </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Viewing &amp; Interaction Data</h3>
-                <p>For signed-in users, we may store video watch history and progress, channel follows, subscriptions, blocks, chat activity, and participation in platform features such as polls, predictions, channel points, tips, and clip reactions. For live streams, we may record viewer-session information, including whether a session is anonymous or associated with an account. This data supports discovery, creator analytics, service operation, and safety controls.</p>
+
+              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
+                <h3 className="text-white font-bold text-lg mb-2">Monetization &amp; Financial Compliance</h3>
+                <p className="text-sm sm:text-base leading-relaxed">
+                  Kryv utilizes Stripe Connect for secure creator monetization, subscriptions, and tips. We never collect, process, or store raw credit card numbers or identity verification documents on Kryv servers. Stripe handles all PCI-DSS compliant payment processing and identity verification. Kryv records only opaque provider identifiers, subscription status, payout eligibility flags, and transaction ledgers.
+                </p>
               </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Live Stream &amp; Upload Data</h3>
-                <p>When you go live or upload a video, media is sent to FastPix, our video infrastructure provider, for secure ingest, processing, playback, and delivery. Kryv stores stream metadata and operational records such as start and end times, stream titles, categories, peak and average viewer counts, and creator stream credentials. Public FastPix playback identifiers are used to deliver public live broadcasts to guests; a stream key is kept private and must never be shared.</p>
-              </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Technical &amp; Device Data</h3>
-                <p>We automatically collect technical information such as IP address, user agent, browser, operating system, device type, optional browser fingerprint, approximate country and city inferred from IP, last visited page, visit count, and timestamps. For signed-in use, we may also maintain device-history records such as device name, browser, operating system, IP address, login count, and last-seen time.</p>
-              </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Stream Keys &amp; Authentication</h3>
-                <p>If you are a creator, we generate and store a unique stream key for your channel. This key is used to authenticate your OBS/streaming software with our FastPix RTMP ingest server. Stream keys are sensitive and should never be shared. We also store information about when your stream key was generated.</p>
-              </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Activity Logs</h3>
-                <p>We log platform activities including signups, logins, channel creation, stream starts/stops, video uploads, follows, and subscriptions. These logs are used for security, fraud detection, and platform analytics.</p>
+
+              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
+                <h3 className="text-white font-bold text-lg mb-2">Engagement, Moderation &amp; Telemetry</h3>
+                <p className="text-sm sm:text-base leading-relaxed">
+                  We process chat messages, moderation actions (timeouts, bans, message deletions), channel point balances, poll votes, prediction entries, raid/host logs, follow relationships, and notification preferences. Technical telemetry includes IP-derived geographic data, device user agents, view history, and anonymous visitor sessions.
+                </p>
               </div>
             </div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">2. How We Use Your Information</h2>
-            <ul className="space-y-3 text-base sm:text-lg">
-              <li className="flex gap-3">
-                <span className="text-primary font-bold shrink-0">•</span>
-                <span><span className="text-white font-bold">Operating the Service:</span> To authenticate your account, deliver live streams and on-demand video, process uploads, and maintain platform infrastructure.</span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">2. Operational Use of Information</h2>
+            <p className="text-white/70">We process collected data strictly to deliver, secure, and enhance the Platform experience:</p>
+            <ul className="space-y-3 text-white/75">
+              <li className="flex items-start gap-3">
+                <span className="text-primary font-bold mt-1">▪</span>
+                <span><strong className="text-white">Service Delivery:</strong> Powering low-latency HLS video playback via FastPix, real-time chat dispatch, and channel discovery ranking.</span>
               </li>
-              <li className="flex gap-3">
-                <span className="text-primary font-bold shrink-0">•</span>
-                <span><span className="text-white font-bold">Personalization:</span> To power the Discover page, show recommendations, track your watch history, and customize your experience.</span>
+              <li className="flex items-start gap-3">
+                <span className="text-primary font-bold mt-1">▪</span>
+                <span><strong className="text-white">Trust &amp; Safety:</strong> Enforcing rate limits, chat moderation rules, spam filters, and channel ban lists.</span>
               </li>
-              <li className="flex gap-3">
-                <span className="text-primary font-bold shrink-0">•</span>
-                <span><span className="text-white font-bold">Analytics:</span> To understand how creators and viewers use Kryv, measure engagement, and improve features.</span>
+              <li className="flex items-start gap-3">
+                <span className="text-primary font-bold mt-1">▪</span>
+                <span><strong className="text-white">Monetization &amp; Payouts:</strong> Administering creator revenue shares, subscription tiers, and payout compliance through Stripe Connect.</span>
               </li>
-              <li className="flex gap-3">
-                <span className="text-primary font-bold shrink-0">•</span>
-                <span><span className="text-white font-bold">Safety &amp; Security:</span> To detect fraud, prevent abuse, enforce our Terms of Service and Community Guidelines, and protect the rights and safety of our users.</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="text-primary font-bold shrink-0">•</span>
-                <span><span className="text-white font-bold">Communication:</span> To send you important updates about your account, the Service, or changes to our policies.</span>
+              <li className="flex items-start gap-3">
+                <span className="text-primary font-bold mt-1">▪</span>
+                <span><strong className="text-white">Platform Analytics:</strong> Providing creators with actionable stream analytics, viewer engagement metrics, and session summaries.</span>
               </li>
             </ul>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">3. How We Share Your Information</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>
-                We do not sell your personal information. We share information only in the following circumstances:
-              </p>
-              <div>
-                <h3 className="text-white font-bold mb-2">Service Providers</h3>
-                <p>We share information with third-party service providers who help us operate Kryv, including FastPix (video infrastructure), Neon (database hosting), and Render (application hosting). These providers process data on our behalf under strict confidentiality agreements.</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">3. Data Disclosure &amp; Infrastructure Partners</h2>
+            <p className="text-white/70 leading-relaxed">
+              We do not sell, rent, or monetize personal user data. Information is disclosed only to essential enterprise infrastructure partners bound by strict data protection agreements:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
+                <p className="font-black text-white">FastPix</p>
+                <p className="text-xs text-white/40 mt-1">Video ingest, transcoding, HLS delivery &amp; clipping</p>
               </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Public Content</h3>
-                <p>Your channel profile, live streams, uploaded videos, and chat messages are public by default and visible to anyone visiting Kryv. Do not share sensitive information in public content.</p>
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
+                <p className="font-black text-white">Neon PostgreSQL</p>
+                <p className="text-xs text-white/40 mt-1">Encrypted relational database storage</p>
               </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Legal Requirements</h3>
-                <p>We may disclose information if required by law, court order, or government request. We will notify you of such requests when legally permissible.</p>
-              </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Safety &amp; Enforcement</h3>
-                <p>We may disclose information to protect the rights, privacy, safety, or property of Kryv, our users, or the public; to enforce our Terms of Service; or to prevent or investigate possible wrongdoing.</p>
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
+                <p className="font-black text-white">Stripe Connect</p>
+                <p className="text-xs text-white/40 mt-1">Secure payment processing &amp; creator payouts</p>
               </div>
             </div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">4. Data Retention</h2>
-            <p className="text-base sm:text-lg">
-              We retain account information, content, and operational logs for as long as reasonably necessary to operate the Service, meet legal obligations, resolve disputes, enforce agreements, and maintain security. You may request deletion of your account and associated data. We will assess and handle verified requests in accordance with applicable law; limited records may be retained where legally required or reasonably necessary for safety, fraud prevention, or dispute resolution, and backup systems may retain information for a limited period.
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">4. Security &amp; Data Retention</h2>
+            <p className="text-white/70 leading-relaxed">
+              Kryv employs industry-standard cryptographic protocols, HTTPS-enforced transit, parameterized query protection against SQL injection, and structured JWT authentication. Account data and logs are retained as long as your account remains active or as required by financial and legal compliance standards. Users may request account deletion at any time.
             </p>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">5. Your Privacy Rights</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>Depending on your location, you may have the following rights:</p>
-              <ul className="space-y-3">
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span><span className="text-white font-bold">Access:</span> Request a copy of the personal information we hold about you.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span><span className="text-white font-bold">Correction:</span> Request that we correct inaccurate information.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span><span className="text-white font-bold">Deletion:</span> Request that we delete your account and associated data.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span><span className="text-white font-bold">Portability:</span> Request your data in a portable format.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span><span className="text-white font-bold">Opt-Out:</span> Opt out of certain data processing activities.</span>
-                </li>
-              </ul>
-              <p>To exercise these rights, contact us through the channels listed in Section 9.</p>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">6. Children's Privacy</h2>
-            <p className="text-base sm:text-lg">
-              Kryv is not directed to children under 13. We do not knowingly collect personal information from children under 13. If we learn that we have collected information from a child under 13, we will delete it promptly. If you believe a child has provided us information, please contact us immediately.
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">5. User Rights &amp; Contact</h2>
+            <p className="text-white/70 leading-relaxed">
+              You possess statutory rights to access, correct, export, or delete your personal data. For privacy inquiries, data export requests, or account termination, contact the Kryv Platform Governance team through your account settings or official platform support channels.
             </p>
           </section>
 
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">7. Security</h2>
-            <p className="text-base sm:text-lg">
-              We implement industry-standard security measures to protect your information, including encryption, secure authentication, and rate limiting. However, no security system is impenetrable. We cannot guarantee absolute security of your data. You are responsible for maintaining the confidentiality of your account credentials and stream keys.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">8. Third-Party Links</h2>
-            <p className="text-base sm:text-lg">
-              Kryv may contain links to third-party websites and services. This Privacy Policy does not apply to third-party sites. We are not responsible for their privacy practices. Please review their privacy policies before providing your information.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">9. Changes to This Policy</h2>
-            <p className="text-base sm:text-lg">
-              We may update this Privacy Policy from time to time. Material changes will be reflected by an updated "Last updated" date above. Your continued use of the Service after changes take effect constitutes acceptance of the revised Privacy Policy.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">10. Contact Us</h2>
-            <p className="text-base sm:text-lg">
-              If you have questions about this Privacy Policy or our privacy practices, please contact the Kryv platform owner through the contact channels listed on the Service. We will respond to your inquiry within 30 days.
-            </p>
-          </section>
-
-          {/* Footer Notice */}
-          <div className="mt-12 pt-8 border-t border-white/10">
-            <p className="text-xs sm:text-sm text-white/50">
-              This Privacy Policy is a working template modeled on common practices at live-streaming and video platforms. It is not legal advice. You should have it reviewed by a qualified privacy attorney before relying on it for a live product.
-            </p>
-          </div>
-          </div>
         </div>
       </div>
+    </div>
   );
 }

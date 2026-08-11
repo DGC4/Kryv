@@ -1,193 +1,90 @@
 export default function Terms() {
   return (
-      <div className="relative z-10 min-h-screen bg-gradient-to-b from-black via-black to-primary/5 px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-12 text-center">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-4">Terms of Service</h1>
-            <p className="text-xs sm:text-sm text-white/60">Last updated: August 11, 2026</p>
+    <div className="relative z-10 min-h-screen bg-black px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-14 border-b border-white/[0.08] pb-10">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4">
+            Legal &amp; Terms
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-4">Terms of Service</h1>
+          <p className="text-sm font-medium text-white/50">Effective Date: August 11, 2026 · Kryv Platform Agreement</p>
+        </div>
+
+        {/* Content */}
+        <div className="space-y-12 text-white/80 leading-relaxed font-sans text-base sm:text-lg">
+
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8">
+            <p className="text-white/90 font-medium leading-relaxed">
+              Welcome to Kryv. These Terms of Service ("Terms") constitute a legally binding agreement between you and Kryv governing your access to and use of Kryv Live, Kryv Watch, Kryv Clips, Kryv Cinema, and associated creator monetization tools (collectively, the "Service"). By registering an account, streaming, uploading, or browsing, you unconditionally agree to be bound by these Terms.
+            </p>
           </div>
 
-          {/* Content */}
-          <div className="space-y-8 text-white/80 leading-relaxed">
-          <p className="text-base sm:text-lg text-white/90 font-medium">
-            These Terms of Service ("Terms") govern your access to and use of Kryv Live (live streaming), Kryv Watch (on-demand videos), and Kryv Cinema (curated library) (together, "Kryv" or the "Service"). By creating an account or using the Service, you agree to these Terms. If you do not agree, please do not use Kryv.
-          </p>
-
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">1. Eligibility &amp; Account Registration</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>You must be at least 13 years old to use Kryv. If you are under the age of majority in your jurisdiction, you may only use the Service with the involvement of a parent or guardian. By registering an account, you represent that you are at least 13 years old and have the legal authority to enter into this agreement.</p>
-              <p>You agree to provide accurate, complete, and current information during registration. You are responsible for all activity that occurs under your account and for maintaining the confidentiality of your password and stream key.</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">1. Account Registration &amp; Eligibility</h2>
+            <div className="space-y-4 text-white/70">
+              <p>
+                You must be at least 13 years of age to register an account or use the Service. Users under the age of majority in their jurisdiction must have parental or legal guardian supervision. You agree to provide accurate registration information and keep your credentials secure.
+              </p>
+              <p>
+                Your stream key and account password grant direct administrative and broadcasting authority over your channel. You are solely responsible for all activity occurring under your account. Stream keys must remain strictly confidential and never shared.
+              </p>
             </div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">2. Account Security &amp; Responsibilities</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>You are solely responsible for maintaining the confidentiality of your account credentials, including your password and stream key. Your stream key grants direct broadcasting access to your channel and must never be shared with anyone. Kryv is not responsible for unauthorized access to your account resulting from your failure to protect your credentials.</p>
-              <p>You agree to notify Kryv immediately of any unauthorized use of your account or any other breach of security. You are responsible for all activity that occurs under your account, whether or not authorized by you.</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">2. User Content &amp; Intellectual Property Rights</h2>
+            <div className="space-y-4 text-white/70">
+              <p>
+                Creators retain full ownership of all live broadcasts, VOD uploads, and native clips ("User Content") they create on Kryv. By submitting User Content, you grant Kryv a worldwide, non-exclusive, royalty-free license to host, transcode via FastPix, distribute, display, and create technical clips or derivatives necessary to operate and promote the Platform.
+              </p>
+              <p>
+                You represent that you own or have secured all necessary rights to your User Content and that your broadcasts and uploads do not infringe upon third-party intellectual property or violate applicable laws.
+              </p>
             </div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">3. User Content &amp; Intellectual Property</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>You retain your ownership rights in the content you broadcast, upload, or post ("User Content"). By submitting User Content to Kryv, you grant Kryv a worldwide, non-exclusive, royalty-free license to host, store, reproduce, transcode, transmit, display, distribute, and make reasonable technical copies of that User Content as needed to operate, secure, improve, and promote the Service, subject to your applicable rights and these Terms.</p>
-              <p>You represent and warrant that you own or have the necessary rights to all User Content you submit, and that your User Content does not infringe on the intellectual property rights of any third party. You are solely responsible for your User Content and any consequences arising from it.</p>
-              <p>Kryv may remove any User Content that violates these Terms or applicable law at any time without notice.</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">3. Creator Monetization &amp; Stripe Connect</h2>
+            <div className="space-y-4 text-white/70">
+              <p>
+                Kryv provides creator monetization features including channel subscriptions, tips, polls, and engagement mechanics. Payouts and creator financial onboarding are managed securely via Stripe Connect. Creators must complete Stripe’s verification requirements to receive payouts. Kryv deducts applicable platform service fees as configured in creator dashboards prior to settlement.
+              </p>
             </div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">4. Community Guidelines &amp; Prohibited Content</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>You agree not to use Kryv to:</p>
-              <ul className="space-y-2">
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Broadcast or upload content that is illegal, infringes intellectual property rights, or violates the rights of others;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Harass, threaten, bully, or incite violence against any person or group;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Stream or upload sexually explicit content involving minors, or any content exploiting, abusing, or endangering minors;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Distribute malware, viruses, or any code designed to harm or disrupt the Service;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Engage in fraud, deception, or manipulation, including fake viewership, engagement, or followers;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Circumvent moderation tools, age restrictions, or platform security measures;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Spam, flood, or send unsolicited messages to other users;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Scrape, crawl, or automate access to the Service without permission.</span>
-                </li>
-              </ul>
-              <p className="pt-2">Violations may result in content removal, channel suspension, temporary ban, or permanent account termination at Kryv's sole discretion. Repeat or severe violations may result in legal action.</p>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">5. Copyright &amp; Intellectual Property</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>Kryv respects intellectual property rights and complies with the Digital Millennium Copyright Act (DMCA) and equivalent local laws. If you believe your copyrighted work has been infringed, submit a DMCA notice through the contact channels listed on the Service, including:</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">4. Prohibited Conduct &amp; Content Moderation</h2>
+            <div className="space-y-4 text-white/70">
+              <p>To maintain a safe, high-quality entertainment ecosystem, users are strictly prohibited from transmitting or uploading:</p>
               <ul className="space-y-2 pl-4">
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>A description of the copyrighted work;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>The location of the infringing content on Kryv;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Your contact information and a statement under penalty of perjury that you own the work;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Your physical or electronic signature.</span>
-                </li>
+                <li className="list-disc">Illegal content, copyright infringement, or unauthorized pirated media (including unauthorized Cinema playback);</li>
+                <li className="list-disc">Harassment, hate speech, malicious doxxing, or incitement of violence;</li>
+                <li className="list-disc">Sexually explicit material or content endangering minors;</li>
+                <li className="list-disc">Spam, automated bot traffic, or exploits designed to manipulate viewer counts, channel points, or predictions.</li>
               </ul>
-              <p>Repeat copyright infringers are subject to account termination. Kryv reserves the right to remove content and suspend or terminate accounts for copyright violations.</p>
+              <p>
+                Channel owners and appointed moderators possess administrative authority to timeout, ban, or delete abusive chat messages. Kryv reserves the right to suspend or terminate accounts violating these standards without notice.
+              </p>
             </div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">6. Viewing Access, Live Streaming &amp; Video Infrastructure</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>Public live streams may be viewed without an account. An account is required to send chat messages, follow a channel, use creator controls, and access Kryv Cinema. We may change the availability of features or access rules when needed for safety, legal compliance, or service operation.</p>
-              <p>Live broadcasts and video uploads are processed and delivered through Kryv's video infrastructure provider, FastPix. Your stream key is unique to your channel and grants broadcasting access. You must never share your stream key with anyone. If you believe a key has been compromised, use the dashboard's key-rotation control or contact Kryv immediately.</p>
-              <p>Live viewer counts are near-real-time estimates provided by our video infrastructure and may vary from final audience analytics. Kryv is not responsible for interruptions, latency, quality issues, or failures caused by your hardware, encoder software, network connection, internet service provider, FastPix, or another third-party infrastructure provider.</p>
-              <p>We reserve the right to limit stream quality, bitrate, resolution, or access based on network conditions, platform load, safety requirements, or violations of these Terms. We may use moderation, banning, timeout, and account-restriction tools to enforce the Service rules.</p>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">7. Account Termination &amp; Suspension</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>Kryv may suspend or terminate your access to the Service at any time, with or without notice, for any reason including but not limited to:</p>
-              <ul className="space-y-2 pl-4">
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Violation of these Terms or Community Guidelines;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Illegal activity or content;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Fraud, abuse, or harassment;</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-primary font-bold shrink-0">•</span>
-                  <span>Inactivity or non-use of the Service.</span>
-                </li>
-              </ul>
-              <p>You may request deletion of your account and associated personal data through the Service or a Kryv contact channel. We will process verified requests in accordance with applicable law, subject to limited retention needed for legal obligations, security, fraud prevention, or dispute resolution.</p>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">8. Disclaimers &amp; Limitation of Liability</h2>
-            <div className="space-y-4 text-base sm:text-lg">
-              <p>The Service is provided "as is" and "as available" without any warranties, express or implied, including warranties of merchantability, fitness for a particular purpose, or non-infringement. Kryv does not warrant that the Service will be uninterrupted, error-free, or secure.</p>
-              <p>To the maximum extent permitted by law, Kryv shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including lost profits, data loss, or business interruption, arising from your use of or inability to use the Service, even if Kryv has been advised of the possibility of such damages.</p>
-              <p>Some jurisdictions do not allow the limitation of liability, so this limitation may not apply to you.</p>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">9. Modifications to Terms</h2>
-            <p className="text-base sm:text-lg">
-              Kryv may update these Terms at any time. We will notify you of material changes by updating the "Last updated" date above. Your continued use of the Service after changes take effect constitutes acceptance of the revised Terms. If you do not agree to the changes, you must stop using the Service and delete your account.
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">5. Limitation of Liability &amp; Disclaimers</h2>
+            <p className="text-white/70 leading-relaxed">
+              The Service is provided on an "as is" and "as available" basis without warranties of any kind. Kryv, its officers, infrastructure partners (FastPix, Neon, Render), and affiliates disclaim all warranties, express or implied. Kryv shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your use of or inability to use the Platform.
             </p>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">10. Governing Law &amp; Dispute Resolution</h2>
-            <p className="text-base sm:text-lg">
-              These Terms are governed by and construed in accordance with the laws of the jurisdiction in which Kryv operates, without regard to its conflict of law provisions. Any dispute arising out of or relating to these Terms shall be resolved through binding arbitration or in the courts of that jurisdiction, as permitted by law.
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">6. Modifications &amp; Governing Law</h2>
+            <p className="text-white/70 leading-relaxed">
+              We reserve the right to modify these Terms at any time. Continued use of Kryv following any modification constitutes your binding acceptance of the revised Terms. These Terms are governed by applicable commercial laws without regard to conflict of law principles.
             </p>
           </section>
 
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">11. Severability</h2>
-            <p className="text-base sm:text-lg">
-              If any provision of these Terms is found to be invalid or unenforceable, that provision shall be modified to the minimum extent necessary to make it valid, or if not possible, severed. The remaining provisions shall continue in full force and effect.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">12. Contact Us</h2>
-            <p className="text-base sm:text-lg">
-              If you have questions about these Terms or need to report a violation, please contact the Kryv platform owner through the contact channels listed on the Service. We will respond to your inquiry within 30 days.
-            </p>
-          </section>
-
-          {/* Footer Notice */}
-          <div className="mt-12 pt-8 border-t border-white/10">
-            <p className="text-xs sm:text-sm text-white/50">
-              These Terms of Service are a working template modeled on common practices at live-streaming and video platforms. They are not legal advice. You should have them reviewed by a qualified attorney before relying on them for a live product.
-            </p>
-          </div>
-          </div>
         </div>
       </div>
+    </div>
   );
 }
