@@ -237,8 +237,11 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
     const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : String(rawBody);
 
     if (!webhookSecret) {
-      logger.error("FASTPIX_WEBHOOK_SECRET is not configured; refusing unverifiable live-state event");
-      res.status(503).json({ error: "Live event verification is not configured" });
+      // FastPix validates a new endpoint before it reveals its signing secret.
+      // Acknowledge this bootstrap probe but deliberately persist no event and
+      // execute no state change; normal delivery remains signature-mandatory.
+      logger.warn("FASTPIX_WEBHOOK_SECRET is not configured; ignoring unsigned live-event bootstrap probe");
+      res.status(202).json({ received: true, configured: false });
       return;
     }
 

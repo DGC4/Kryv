@@ -32,7 +32,9 @@ export class FastPixNotConfiguredError extends Error {
 }
 
 const viewerCountCache = new Map<string, { value: number; expiresAt: number }>();
+const liveStreamStatusCache = new Map<string, { value: any; expiresAt: number }>();
 const VIEWER_COUNT_CACHE_TTL_MS = 10_000;
+const LIVE_STREAM_STATUS_CACHE_TTL_MS = 4_000;
 
 /**
  * Fetch the FastPix near-real-time viewer count with a short server-side cache.
@@ -126,8 +128,18 @@ export async function getFastPixLiveStream(streamId: string) {
     throw new FastPixNotConfiguredError();
   }
 
+  const cached = liveStreamStatusCache.get(streamId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
   const response = await fastpix.manageLiveStream.get({ streamId });
-  return (response as any).data ?? response;
+  const liveStream = (response as any).data ?? response;
+  liveStreamStatusCache.set(streamId, {
+    value: liveStream,
+    expiresAt: Date.now() + LIVE_STREAM_STATUS_CACHE_TTL_MS,
+  });
+  return liveStream;
 }
 
 /**

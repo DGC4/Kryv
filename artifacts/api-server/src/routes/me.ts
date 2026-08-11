@@ -21,6 +21,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
 import { toChannelSummary } from "../lib/channelSerializer";
+import { FastPixNotConfiguredError, getFastPixLiveStream } from "../lib/fastpix";
 
 const router: IRouter = Router();
 const MAX_VIEWER_PROFILES = 5;
@@ -250,7 +251,40 @@ router.get("/me", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const [ownChannel] = await db.select().from(channelsTable).where(eq(channelsTable.ownerUserId, userId));
+  let [ownChannel] = await db.select().from(channelsTable).where(eq(channelsTable.ownerUserId, userId));
+
+  // Webhooks remain the primary real-time state source. This short-lived provider
+  // reconciliation lets an open Creator Studio recover safely from a delayed or
+  // missed delivery without exposing the provider to public viewers.
+  if (ownChannel?.fastpixLiveStreamId) {
+    try {
+      const liveStream = await getFastPixLiveStream(ownChannel.fastpixLiveStreamId);
+      const providerStatus = typeof liveStream?.status === "string" ? liveStream.status : null;
+      const playbackId = liveStream?.playbackIds?.[0]?.id;
+      const expectedIsLive = providerStatus === "active" ? true : ["idle", "disabled"].includes(providerStatus ?? "") ? false : ownChannel.isLive;
+
+      if (expectedIsLive !== ownChannel.isLive || (typeof playbackId === "string" && playbackId !== ownChannel.fastpixPlaybackId)) {
+        const [reconciledChannel] = await db
+          .update(channelsTable)
+          .set({
+            isLive: expectedIsLive,
+            ...(expectedIsLive && !ownChannel.isLive ? { lastStreamAt: new Date() } : {}),
+            ...(typeof playbackId === "string" ? { fastpixPlaybackId: playbackId } : {}),
+            ...(!expectedIsLive ? { viewerCount: 0 } : {}),
+          })
+          .where(eq(channelsTable.id, ownChannel.id))
+          .returning();
+        ownChannel = reconciledChannel ?? ownChannel;
+      }
+    } catch (error) {
+      // Do not make the authenticated dashboard unavailable when the provider is
+      // temporarily unreachable or has not been configured in an environment.
+      if (!(error instanceof FastPixNotConfiguredError)) {
+        console.warn("Live-state reconciliation was unavailable", error instanceof Error ? error.message : error);
+      }
+    }
+  }
+
   const followedRows = await db
     .select({ channel: channelsTable })
     .from(followsTable)

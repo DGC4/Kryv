@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   useGetMe,
@@ -172,7 +172,6 @@ export default function DashboardLive() {
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
   const [activeTab, setActiveTab] = useState<DashTab>('stream');
-  const [locationEnforced, setLocationEnforced] = useState(false);
   const [channelCreated, setChannelCreated] = useState(false);
   const [pollTitle, setPollTitle] = useState('');
   const [pollChoices, setPollChoices] = useState('');
@@ -184,7 +183,8 @@ export default function DashboardLive() {
   const [selectedDestination, setSelectedDestination] = useState<{ id: number; displayName: string; isLive: boolean; categoryName: string | null } | null>(null);
   const [notificationPrefs, setNotificationPrefs] = useState({ notifyOnLive: true, notifyOnUpload: true, notifyOnClip: false, emailNotifications: false });
   const [studioChatMessage, setStudioChatMessage] = useState('');
-  const { location } = useIpLocation();
+  // Location is intentionally not collected or required for broadcast setup.
+  const location: LocationData | null = null;
   const { data: chatSettings } = useGetChannelChatSettings(me?.channel?.id ?? 0, {
     query: { enabled: Boolean(me?.channel) },
   });
@@ -441,21 +441,9 @@ export default function DashboardLive() {
       });
       return;
     }
-    // Enforce location confirmation on go live
-    if (!locationEnforced) {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          () => setLocationEnforced(true),
-          () => setLocationEnforced(true), // IP fallback is fine
-          { timeout: 5000 },
-        );
-      } else {
-        setLocationEnforced(true);
-      }
-    }
     toast({
-      title: 'Ready to go live!',
-      description: 'Start streaming in OBS using your RTMP URL and stream key.',
+      title: 'Broadcast setup is ready',
+      description: 'Start streaming in OBS with your RTMP URL and stream key. Kryv will publish your channel automatically when the live signal is active.',
     });
   };
 
@@ -561,7 +549,7 @@ export default function DashboardLive() {
             <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
               <div className="flex items-center gap-1.5">
                 <Globe className="w-3 h-3 text-white/30" />
-                <span className="text-[10px] text-white/30">Detecting…</span>
+                <span className="text-[10px] text-white/30">Location sharing is optional</span>
               </div>
             </div>
           )}
@@ -593,7 +581,7 @@ export default function DashboardLive() {
               }`}
             >
               <Radio className="w-3.5 h-3.5 mr-1.5" />
-              {isLive ? 'View live channel' : 'Go Live Now'}
+              {isLive ? 'View live channel' : 'Open broadcast setup'}
             </Button>
           </div>
         </div>
@@ -755,21 +743,6 @@ export default function DashboardLive() {
                 )}
               </div>
 
-              {/* Location enforcement notice */}
-              {!locationEnforced && credentials && (
-                <div className="flex items-start gap-3 p-4 bg-primary/[0.06] border border-primary/20 rounded-xl">
-                  <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-white mb-0.5">Location confirmation required to go live</p>
-                    <p className="text-xs text-white/40">
-                      Click "Go Live Now" to confirm your location.
-                      {location?.resolved && (
-                        <> Detected: <span className="text-white/60">{[location.city, location.region].filter(Boolean).join(', ')}</span></>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Right: preview + OBS guide */}
@@ -857,7 +830,7 @@ export default function DashboardLive() {
                         </div>
                       ),
                     },
-                    { n: '✓', title: 'Hit "Start Streaming"', body: <span>Your channel goes live within seconds.</span>, green: true },
+                    { n: '✓', title: 'Hit "Start Streaming"', body: <span>Kryv automatically detects the live signal, refreshes this preview, and publishes your channel when the broadcast is active.</span>, green: true },
                   ] as Array<{ n: string; title: string; body: React.ReactNode; green?: boolean }>).map(({ n, title, body, green }) => (
                     <div key={n} className="flex gap-3">
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 ${green ? 'bg-green-500/15 text-green-400 border border-green-500/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
