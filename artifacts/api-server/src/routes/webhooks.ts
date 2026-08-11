@@ -228,6 +228,12 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
  *   video.media.ready              — upload finished, playback available
  *   video.media.failed             — upload failed
  */
+// State-free reachability probe for provider dashboard validation. It never receives
+// or processes events; all state-changing delivery remains POST-only and signed.
+router.get("/webhooks/fastpix", (_req, res): void => {
+  res.status(200).type("text/plain").send("Kryv live event receiver ready");
+});
+
 router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
   const rawBody = req.body as Buffer;
   const webhookSecret = process.env.FASTPIX_WEBHOOK_SECRET;
@@ -241,7 +247,7 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
       // Acknowledge this bootstrap probe but deliberately persist no event and
       // execute no state change; normal delivery remains signature-mandatory.
       logger.warn("FASTPIX_WEBHOOK_SECRET is not configured; ignoring unsigned live-event bootstrap probe");
-      res.status(202).json({ received: true, configured: false });
+      res.status(200).json({ received: true, configured: false });
       return;
     }
 
