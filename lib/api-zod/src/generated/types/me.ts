@@ -9,7 +9,7 @@ import type { ChannelSummary } from './channelSummary';
 import type { MeRole } from './meRole';
 
 export interface Me {
-  id: string;
+  id: number;
   username: string;
   /** @nullable */
   avatarUrl: string | null;

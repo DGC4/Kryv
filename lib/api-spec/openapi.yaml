@@ -1788,7 +1788,7 @@ components:
       type: object
       required: [id, username, avatarUrl, role, channel, followedChannels]
       properties:
-        id: { type: string }
+        id: { type: integer }
         username: { type: string }
         avatarUrl: { type: ["string", "null"] }
         role: { type: string, enum: [user, owner] }

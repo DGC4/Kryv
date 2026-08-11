@@ -529,7 +529,7 @@ export const MeRole = {
 } as const;
 
 export interface Me {
-  id: string;
+  id: number;
   username: string;
   /** @nullable */
   avatarUrl: string | null;
