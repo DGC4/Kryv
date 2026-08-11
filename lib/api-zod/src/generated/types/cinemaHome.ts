@@ -6,9 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CinemaRow } from './cinemaRow';
-import type { VideoSummary } from './videoSummary';
+import type { CinemaTitle } from './cinemaTitle';
 
 export interface CinemaHome {
-  hero: VideoSummary | null;
+  hero: CinemaTitle | null;
   rows: CinemaRow[];
 }

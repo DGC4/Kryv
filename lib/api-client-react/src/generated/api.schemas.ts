@@ -426,13 +426,54 @@ export interface VideoUpdate {
   categoryId?: number;
 }
 
+export type CinemaTitleMaturityLevel = typeof CinemaTitleMaturityLevel[keyof typeof CinemaTitleMaturityLevel];
+
+
+export const CinemaTitleMaturityLevel = {
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
+} as const;
+
+export type CinemaTitleEntitlementType = typeof CinemaTitleEntitlementType[keyof typeof CinemaTitleEntitlementType];
+
+
+export const CinemaTitleEntitlementType = {
+  free: 'free',
+  subscription: 'subscription',
+  rental: 'rental',
+  purchase: 'purchase',
+} as const;
+
+export interface CinemaTitle {
+  id: number;
+  slug: string;
+  title: string;
+  /** @nullable */
+  synopsis: string | null;
+  maturityLevel: CinemaTitleMaturityLevel;
+  genres: string[];
+  /** @nullable */
+  posterUrl: string | null;
+  /** @nullable */
+  backdropUrl: string | null;
+  /** @nullable */
+  runtimeSeconds: number | null;
+  featurePlaybackId: string;
+  /** @nullable */
+  trailerPlaybackId: string | null;
+  entitlementType: CinemaTitleEntitlementType;
+  /** @nullable */
+  publishedAt: string | null;
+}
+
 export interface CinemaRow {
   title: string;
-  items: VideoSummary[];
+  items: CinemaTitle[];
 }
 
 export interface CinemaHome {
-  hero: VideoSummary | null;
+  hero: CinemaTitle | null;
   rows: CinemaRow[];
 }
 
@@ -647,6 +688,177 @@ export interface AdminCinemaAssetInput {
   sourceProvenance: string;
   /** @minimum 0 */
   durationSeconds?: number;
+}
+
+export type AdminCinemaAssetDetail = AdminCinemaAsset & ({
+  /** @nullable */
+  sourceProvenance: string | null;
+  language: string;
+  /** @nullable */
+  durationSeconds: number | null;
+  /** @nullable */
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+});
+
+export type AdminCinemaRightsWindowEntitlementType = typeof AdminCinemaRightsWindowEntitlementType[keyof typeof AdminCinemaRightsWindowEntitlementType];
+
+
+export const AdminCinemaRightsWindowEntitlementType = {
+  unconfigured: 'unconfigured',
+  free: 'free',
+  subscription: 'subscription',
+  rental: 'rental',
+  purchase: 'purchase',
+} as const;
+
+export interface AdminCinemaRightsWindow {
+  id: number;
+  cinemaTitleId: number;
+  territoryCodes: string[];
+  entitlementType: AdminCinemaRightsWindowEntitlementType;
+  rightsReference: string;
+  startsAt: string;
+  /** @nullable */
+  endsAt: string | null;
+  createdAt: string;
+}
+
+export interface AdminCinemaReadiness {
+  hasReadyFeature: boolean;
+  hasActiveRightsWindow: boolean;
+  isPublishEligible: boolean;
+  blockingReasons: string[];
+}
+
+export interface AdminCinemaActivity {
+  id: number;
+  action: string;
+  targetType: string;
+  /** @nullable */
+  targetId: string | null;
+  /** @nullable */
+  reason: string | null;
+  createdAt: string;
+}
+
+export type AdminCinemaTitleDetail = AdminCinemaTitle & ({
+  /** @nullable */
+  releaseYear: number | null;
+  /** @nullable */
+  runtimeSeconds: number | null;
+  /** @nullable */
+  contentRating: string | null;
+  genres: string[];
+  castMembers: string[];
+  crew: string[];
+  /** @nullable */
+  logoUrl: string | null;
+  /** @nullable */
+  publishedAt: string | null;
+  assets: AdminCinemaAssetDetail[];
+  rightsWindows: AdminCinemaRightsWindow[];
+  readiness: AdminCinemaReadiness;
+  activity: AdminCinemaActivity[];
+});
+
+export type AdminCinemaTitleUpdateMaturityLevel = typeof AdminCinemaTitleUpdateMaturityLevel[keyof typeof AdminCinemaTitleUpdateMaturityLevel];
+
+
+export const AdminCinemaTitleUpdateMaturityLevel = {
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
+} as const;
+
+export type AdminCinemaTitleUpdatePublishState = typeof AdminCinemaTitleUpdatePublishState[keyof typeof AdminCinemaTitleUpdatePublishState];
+
+
+export const AdminCinemaTitleUpdatePublishState = {
+  draft: 'draft',
+  review: 'review',
+  published: 'published',
+  archived: 'archived',
+} as const;
+
+export interface AdminCinemaTitleUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  title?: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  synopsis?: string | null;
+  /**
+     * @maxLength 2048
+     * @nullable
+     */
+  posterUrl?: string | null;
+  /**
+     * @maxLength 2048
+     * @nullable
+     */
+  backdropUrl?: string | null;
+  /**
+     * @maxLength 2048
+     * @nullable
+     */
+  logoUrl?: string | null;
+  maturityLevel?: AdminCinemaTitleUpdateMaturityLevel;
+  /**
+     * @maxLength 32
+     * @nullable
+     */
+  contentRating?: string | null;
+  /**
+     * @minimum 1888
+     * @maximum 2200
+     * @nullable
+     */
+  releaseYear?: number | null;
+  /**
+     * @minimum -100000
+     * @maximum 100000
+     */
+  editorialRank?: number;
+  adEligible?: boolean;
+  publishState?: AdminCinemaTitleUpdatePublishState;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  reason?: string;
+}
+
+export type AdminCinemaRightsWindowInputEntitlementType = typeof AdminCinemaRightsWindowInputEntitlementType[keyof typeof AdminCinemaRightsWindowInputEntitlementType];
+
+
+export const AdminCinemaRightsWindowInputEntitlementType = {
+  free: 'free',
+  subscription: 'subscription',
+  rental: 'rental',
+  purchase: 'purchase',
+} as const;
+
+export interface AdminCinemaRightsWindowInput {
+  /**
+     * @items.minLength 2
+     * @items.maxLength 3
+     */
+  territoryCodes?: string[];
+  entitlementType: AdminCinemaRightsWindowInputEntitlementType;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  rightsReference: string;
+  startsAt: string;
+  /** @nullable */
+  endsAt?: string | null;
 }
 
 export interface AdCreativeSummary {

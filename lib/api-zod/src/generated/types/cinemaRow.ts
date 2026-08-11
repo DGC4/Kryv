@@ -5,9 +5,9 @@
  * Kryv live streaming platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { VideoSummary } from './videoSummary';
+import type { CinemaTitle } from './cinemaTitle';
 
 export interface CinemaRow {
   title: string;
-  items: VideoSummary[];
+  items: CinemaTitle[];
 }

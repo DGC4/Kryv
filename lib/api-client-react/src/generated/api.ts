@@ -25,8 +25,12 @@ import type {
   AdDecision,
   AdminCinemaAsset,
   AdminCinemaAssetInput,
+  AdminCinemaRightsWindow,
+  AdminCinemaRightsWindowInput,
   AdminCinemaTitle,
+  AdminCinemaTitleDetail,
   AdminCinemaTitleInput,
+  AdminCinemaTitleUpdate,
   AdminStats,
   AdminUser,
   AdminUserUpdate,
@@ -49,6 +53,7 @@ import type {
   ChatMessage,
   ChatMessageInput,
   CinemaHome,
+  CinemaTitle,
   ClipInput,
   ClipSummary,
   DiscoverSummary,
@@ -922,6 +927,227 @@ export const useCreateAdminCinemaAsset = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateAdminCinemaAssetMutationOptions(options));
+    }
+
+export const getGetAdminCinemaTitleUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/cinema/titles/${id}`
+}
+
+/**
+ * @summary Retrieve the complete owner publishing record for a Cinema title
+ */
+export const getAdminCinemaTitle = async (id: number, options?: RequestInit): Promise<AdminCinemaTitleDetail> => {
+
+  return customFetch<AdminCinemaTitleDetail>(getGetAdminCinemaTitleUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminCinemaTitleQueryKey = (id: number,) => {
+    return [
+    `/api/admin/cinema/titles/${id}`
+    ] as const;
+    }
+
+
+export const getGetAdminCinemaTitleQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminCinemaTitleQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminCinemaTitle>>> = ({ signal }) => getAdminCinemaTitle(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminCinemaTitleQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminCinemaTitle>>>
+export type GetAdminCinemaTitleQueryError = ErrorType<void>
+
+
+/**
+ * @summary Retrieve the complete owner publishing record for a Cinema title
+ */
+
+export function useGetAdminCinemaTitle<TData = Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminCinemaTitleQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminCinemaTitleUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/cinema/titles/${id}`
+}
+
+/**
+ * @summary Update title metadata or move a Cinema title through the governed publication workflow
+ */
+export const updateAdminCinemaTitle = async (id: number,
+    adminCinemaTitleUpdate: AdminCinemaTitleUpdate, options?: RequestInit): Promise<AdminCinemaTitleDetail> => {
+
+  return customFetch<AdminCinemaTitleDetail>(getUpdateAdminCinemaTitleUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminCinemaTitleUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminCinemaTitleMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminCinemaTitle>>, TError,{id: number;data: BodyType<AdminCinemaTitleUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminCinemaTitle>>, TError,{id: number;data: BodyType<AdminCinemaTitleUpdate>}, TContext> => {
+
+const mutationKey = ['updateAdminCinemaTitle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminCinemaTitle>>, {id: number;data: BodyType<AdminCinemaTitleUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminCinemaTitle(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminCinemaTitleMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminCinemaTitle>>>
+    export type UpdateAdminCinemaTitleMutationBody = BodyType<AdminCinemaTitleUpdate>
+    export type UpdateAdminCinemaTitleMutationError = ErrorType<void>
+
+    /**
+ * @summary Update title metadata or move a Cinema title through the governed publication workflow
+ */
+export const useUpdateAdminCinemaTitle = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminCinemaTitle>>, TError,{id: number;data: BodyType<AdminCinemaTitleUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminCinemaTitle>>,
+        TError,
+        {id: number;data: BodyType<AdminCinemaTitleUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminCinemaTitleMutationOptions(options));
+    }
+
+export const getCreateAdminCinemaRightsWindowUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/cinema/titles/${id}/rights-windows`
+}
+
+/**
+ * @summary Add a rights and entitlement window to a Cinema title
+ */
+export const createAdminCinemaRightsWindow = async (id: number,
+    adminCinemaRightsWindowInput: AdminCinemaRightsWindowInput, options?: RequestInit): Promise<AdminCinemaRightsWindow> => {
+
+  return customFetch<AdminCinemaRightsWindow>(getCreateAdminCinemaRightsWindowUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminCinemaRightsWindowInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminCinemaRightsWindowMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaRightsWindow>>, TError,{id: number;data: BodyType<AdminCinemaRightsWindowInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaRightsWindow>>, TError,{id: number;data: BodyType<AdminCinemaRightsWindowInput>}, TContext> => {
+
+const mutationKey = ['createAdminCinemaRightsWindow'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminCinemaRightsWindow>>, {id: number;data: BodyType<AdminCinemaRightsWindowInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createAdminCinemaRightsWindow(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminCinemaRightsWindowMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminCinemaRightsWindow>>>
+    export type CreateAdminCinemaRightsWindowMutationBody = BodyType<AdminCinemaRightsWindowInput>
+    export type CreateAdminCinemaRightsWindowMutationError = ErrorType<void>
+
+    /**
+ * @summary Add a rights and entitlement window to a Cinema title
+ */
+export const useCreateAdminCinemaRightsWindow = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaRightsWindow>>, TError,{id: number;data: BodyType<AdminCinemaRightsWindowInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminCinemaRightsWindow>>,
+        TError,
+        {id: number;data: BodyType<AdminCinemaRightsWindowInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminCinemaRightsWindowMutationOptions(options));
     }
 
 export const getListCategoriesUrl = (params?: ListCategoriesParams,) => {
@@ -3480,6 +3706,83 @@ export const useDeleteVideo = <TError = ErrorType<Error>,
       > => {
       return useMutation(getDeleteVideoMutationOptions(options));
     }
+
+export const getGetCinemaTitleUrl = (id: number,) => {
+
+
+
+
+  return `/api/cinema/titles/${id}`
+}
+
+/**
+ * @summary Retrieve a published and rights-cleared Cinema title for viewer playback
+ */
+export const getCinemaTitle = async (id: number, options?: RequestInit): Promise<CinemaTitle> => {
+
+  return customFetch<CinemaTitle>(getGetCinemaTitleUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCinemaTitleQueryKey = (id: number,) => {
+    return [
+    `/api/cinema/titles/${id}`
+    ] as const;
+    }
+
+
+export const getGetCinemaTitleQueryOptions = <TData = Awaited<ReturnType<typeof getCinemaTitle>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCinemaTitle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCinemaTitleQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCinemaTitle>>> = ({ signal }) => getCinemaTitle(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCinemaTitle>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCinemaTitleQueryResult = NonNullable<Awaited<ReturnType<typeof getCinemaTitle>>>
+export type GetCinemaTitleQueryError = ErrorType<void>
+
+
+/**
+ * @summary Retrieve a published and rights-cleared Cinema title for viewer playback
+ */
+
+export function useGetCinemaTitle<TData = Awaited<ReturnType<typeof getCinemaTitle>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCinemaTitle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCinemaTitleQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetCinemaHomeUrl = () => {
 

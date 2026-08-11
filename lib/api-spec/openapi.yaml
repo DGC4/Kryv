@@ -323,6 +323,82 @@ paths:
         "403": { description: Owner access required }
         "404": { description: Cinema title not found }
 
+  /admin/cinema/titles/{id}:
+    get:
+      operationId: getAdminCinemaTitle
+      tags: [admin]
+      summary: Retrieve the complete owner publishing record for a Cinema title
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Owner Cinema title detail, asset manifest, rights windows, readiness, and activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCinemaTitleDetail"
+        "401": { description: Not authenticated }
+        "403": { description: Owner access required }
+        "404": { description: Cinema title not found }
+    patch:
+      operationId: updateAdminCinemaTitle
+      tags: [admin]
+      summary: Update title metadata or move a Cinema title through the governed publication workflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCinemaTitleUpdate"
+      responses:
+        "200":
+          description: Updated owner Cinema title detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCinemaTitleDetail"
+        "400": { description: Invalid title update }
+        "401": { description: Not authenticated }
+        "403": { description: Owner access required }
+        "404": { description: Cinema title not found }
+        "409": { description: The requested publication state is not eligible }
+
+  /admin/cinema/titles/{id}/rights-windows:
+    post:
+      operationId: createAdminCinemaRightsWindow
+      tags: [admin]
+      summary: Add a rights and entitlement window to a Cinema title
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCinemaRightsWindowInput"
+      responses:
+        "201":
+          description: Rights window added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCinemaRightsWindow"
+        "400": { description: Invalid rights window }
+        "401": { description: Not authenticated }
+        "403": { description: Owner access required }
+        "404": { description: Cinema title not found }
+
   /categories:
     get:
       operationId: listCategories
@@ -1367,6 +1443,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /cinema/titles/{id}:
+    get:
+      operationId: getCinemaTitle
+      tags: [cinema]
+      summary: Retrieve a published and rights-cleared Cinema title for viewer playback
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Published Cinema title
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CinemaTitle"
+        "404": { description: Cinema title is unavailable }
+
   /cinema/home:
     get:
       operationId: getCinemaHome
@@ -1966,6 +2061,26 @@ components:
         description: { type: string, maxLength: 5000 }
         categoryId: { type: integer }
 
+    CinemaTitle:
+      type: object
+      required: [id, slug, title, synopsis, maturityLevel, genres, posterUrl, backdropUrl, runtimeSeconds, featurePlaybackId, trailerPlaybackId, entitlementType, publishedAt]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        synopsis: { type: ["string", "null"] }
+        maturityLevel: { type: string, enum: [kids, standard, mature] }
+        genres:
+          type: array
+          items: { type: string }
+        posterUrl: { type: ["string", "null"] }
+        backdropUrl: { type: ["string", "null"] }
+        runtimeSeconds: { type: ["integer", "null"] }
+        featurePlaybackId: { type: string }
+        trailerPlaybackId: { type: ["string", "null"] }
+        entitlementType: { type: string, enum: [free, subscription, rental, purchase] }
+        publishedAt: { type: ["string", "null"], format: date-time }
+
     CinemaRow:
       type: object
       required: [title, items]
@@ -1974,7 +2089,7 @@ components:
         items:
           type: array
           items:
-            $ref: "#/components/schemas/VideoSummary"
+            $ref: "#/components/schemas/CinemaTitle"
 
     CinemaHome:
       type: object
@@ -1982,7 +2097,7 @@ components:
       properties:
         hero:
           oneOf:
-            - $ref: "#/components/schemas/VideoSummary"
+            - $ref: "#/components/schemas/CinemaTitle"
             - type: "null"
         rows:
           type: array
@@ -2094,6 +2209,116 @@ components:
         fastpixPlaybackId: { type: string, minLength: 1, maxLength: 200 }
         sourceProvenance: { type: string, minLength: 1, maxLength: 500 }
         durationSeconds: { type: integer, minimum: 0 }
+
+    AdminCinemaAssetDetail:
+      allOf:
+        - $ref: "#/components/schemas/AdminCinemaAsset"
+        - type: object
+          required: [sourceProvenance, language, durationSeconds, approvedAt, createdAt, updatedAt]
+          properties:
+            sourceProvenance: { type: ["string", "null"] }
+            language: { type: string }
+            durationSeconds: { type: ["integer", "null"] }
+            approvedAt: { type: ["string", "null"], format: date-time }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    AdminCinemaRightsWindow:
+      type: object
+      required: [id, cinemaTitleId, territoryCodes, entitlementType, rightsReference, startsAt, endsAt, createdAt]
+      properties:
+        id: { type: integer }
+        cinemaTitleId: { type: integer }
+        territoryCodes:
+          type: array
+          items: { type: string }
+        entitlementType: { type: string, enum: [unconfigured, free, subscription, rental, purchase] }
+        rightsReference: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    AdminCinemaReadiness:
+      type: object
+      required: [hasReadyFeature, hasActiveRightsWindow, isPublishEligible, blockingReasons]
+      properties:
+        hasReadyFeature: { type: boolean }
+        hasActiveRightsWindow: { type: boolean }
+        isPublishEligible: { type: boolean }
+        blockingReasons:
+          type: array
+          items: { type: string }
+
+    AdminCinemaActivity:
+      type: object
+      required: [id, action, targetType, targetId, reason, createdAt]
+      properties:
+        id: { type: integer }
+        action: { type: string }
+        targetType: { type: string }
+        targetId: { type: ["string", "null"] }
+        reason: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    AdminCinemaTitleDetail:
+      allOf:
+        - $ref: "#/components/schemas/AdminCinemaTitle"
+        - type: object
+          required: [releaseYear, runtimeSeconds, contentRating, genres, castMembers, crew, logoUrl, publishedAt, assets, rightsWindows, readiness, activity]
+          properties:
+            releaseYear: { type: ["integer", "null"] }
+            runtimeSeconds: { type: ["integer", "null"] }
+            contentRating: { type: ["string", "null"] }
+            genres:
+              type: array
+              items: { type: string }
+            castMembers:
+              type: array
+              items: { type: string }
+            crew:
+              type: array
+              items: { type: string }
+            logoUrl: { type: ["string", "null"] }
+            publishedAt: { type: ["string", "null"], format: date-time }
+            assets:
+              type: array
+              items: { $ref: "#/components/schemas/AdminCinemaAssetDetail" }
+            rightsWindows:
+              type: array
+              items: { $ref: "#/components/schemas/AdminCinemaRightsWindow" }
+            readiness: { $ref: "#/components/schemas/AdminCinemaReadiness" }
+            activity:
+              type: array
+              items: { $ref: "#/components/schemas/AdminCinemaActivity" }
+
+    AdminCinemaTitleUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        synopsis: { type: ["string", "null"], maxLength: 5000 }
+        posterUrl: { type: ["string", "null"], maxLength: 2048 }
+        backdropUrl: { type: ["string", "null"], maxLength: 2048 }
+        logoUrl: { type: ["string", "null"], maxLength: 2048 }
+        maturityLevel: { type: string, enum: [kids, standard, mature] }
+        contentRating: { type: ["string", "null"], maxLength: 32 }
+        releaseYear: { type: ["integer", "null"], minimum: 1888, maximum: 2200 }
+        editorialRank: { type: integer, minimum: -100000, maximum: 100000 }
+        adEligible: { type: boolean }
+        publishState: { type: string, enum: [draft, review, published, archived] }
+        reason: { type: string, minLength: 1, maxLength: 500 }
+
+    AdminCinemaRightsWindowInput:
+      type: object
+      required: [rightsReference, entitlementType, startsAt]
+      properties:
+        territoryCodes:
+          type: array
+          items: { type: string, minLength: 2, maxLength: 3 }
+        entitlementType: { type: string, enum: [free, subscription, rental, purchase] }
+        rightsReference: { type: string, minLength: 1, maxLength: 500 }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: ["string", "null"], format: date-time }
 
     AdCreativeSummary:
       type: object

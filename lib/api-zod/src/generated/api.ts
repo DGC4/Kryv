@@ -297,6 +297,219 @@ export const CreateAdminCinemaAssetResponse = zod.object({
 
 
 /**
+ * @summary Retrieve the complete owner publishing record for a Cinema title
+ */
+export const GetAdminCinemaTitleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminCinemaTitleResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "editorialRank": zod.number(),
+  "adEligible": zod.boolean(),
+  "posterUrl": zod.string().nullish(),
+  "backdropUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "releaseYear": zod.number().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "contentRating": zod.string().nullable(),
+  "genres": zod.array(zod.string()),
+  "castMembers": zod.array(zod.string()),
+  "crew": zod.array(zod.string()),
+  "logoUrl": zod.string().nullable(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "assets": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "assetKind": zod.enum(['feature', 'trailer', 'preview', 'captions']),
+  "processingStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "fastpixMediaId": zod.string().nullish(),
+  "fastpixPlaybackId": zod.string().nullable()
+}).and(zod.object({
+  "sourceProvenance": zod.string().nullable(),
+  "language": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))),
+  "rightsWindows": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "territoryCodes": zod.array(zod.string()),
+  "entitlementType": zod.enum(['unconfigured', 'free', 'subscription', 'rental', 'purchase']),
+  "rightsReference": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})),
+  "readiness": zod.object({
+  "hasReadyFeature": zod.boolean(),
+  "hasActiveRightsWindow": zod.boolean(),
+  "isPublishEligible": zod.boolean(),
+  "blockingReasons": zod.array(zod.string())
+}),
+  "activity": zod.array(zod.object({
+  "id": zod.number(),
+  "action": zod.string(),
+  "targetType": zod.string(),
+  "targetId": zod.string().nullable(),
+  "reason": zod.string().nullable(),
+  "createdAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Update title metadata or move a Cinema title through the governed publication workflow
+ */
+export const UpdateAdminCinemaTitleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateAdminCinemaTitleBodyTitleMax = 160;
+
+export const updateAdminCinemaTitleBodySynopsisMax = 5000;
+
+export const updateAdminCinemaTitleBodyPosterUrlMax = 2048;
+
+export const updateAdminCinemaTitleBodyBackdropUrlMax = 2048;
+
+export const updateAdminCinemaTitleBodyLogoUrlMax = 2048;
+
+export const updateAdminCinemaTitleBodyContentRatingMax = 32;
+
+export const updateAdminCinemaTitleBodyReleaseYearMin = 1888;
+export const updateAdminCinemaTitleBodyReleaseYearMax = 2200;
+
+export const updateAdminCinemaTitleBodyEditorialRankMin = -100000;
+export const updateAdminCinemaTitleBodyEditorialRankMax = 100000;
+
+export const updateAdminCinemaTitleBodyReasonMax = 500;
+
+
+
+export const UpdateAdminCinemaTitleBody = zod.object({
+  "title": zod.string().min(1).max(updateAdminCinemaTitleBodyTitleMax).optional(),
+  "synopsis": zod.string().max(updateAdminCinemaTitleBodySynopsisMax).nullish(),
+  "posterUrl": zod.string().max(updateAdminCinemaTitleBodyPosterUrlMax).nullish(),
+  "backdropUrl": zod.string().max(updateAdminCinemaTitleBodyBackdropUrlMax).nullish(),
+  "logoUrl": zod.string().max(updateAdminCinemaTitleBodyLogoUrlMax).nullish(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']).optional(),
+  "contentRating": zod.string().max(updateAdminCinemaTitleBodyContentRatingMax).nullish(),
+  "releaseYear": zod.number().min(updateAdminCinemaTitleBodyReleaseYearMin).max(updateAdminCinemaTitleBodyReleaseYearMax).nullish(),
+  "editorialRank": zod.number().min(updateAdminCinemaTitleBodyEditorialRankMin).max(updateAdminCinemaTitleBodyEditorialRankMax).optional(),
+  "adEligible": zod.boolean().optional(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']).optional(),
+  "reason": zod.string().min(1).max(updateAdminCinemaTitleBodyReasonMax).optional()
+})
+
+export const UpdateAdminCinemaTitleResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "editorialRank": zod.number(),
+  "adEligible": zod.boolean(),
+  "posterUrl": zod.string().nullish(),
+  "backdropUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "releaseYear": zod.number().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "contentRating": zod.string().nullable(),
+  "genres": zod.array(zod.string()),
+  "castMembers": zod.array(zod.string()),
+  "crew": zod.array(zod.string()),
+  "logoUrl": zod.string().nullable(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "assets": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "assetKind": zod.enum(['feature', 'trailer', 'preview', 'captions']),
+  "processingStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "fastpixMediaId": zod.string().nullish(),
+  "fastpixPlaybackId": zod.string().nullable()
+}).and(zod.object({
+  "sourceProvenance": zod.string().nullable(),
+  "language": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))),
+  "rightsWindows": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "territoryCodes": zod.array(zod.string()),
+  "entitlementType": zod.enum(['unconfigured', 'free', 'subscription', 'rental', 'purchase']),
+  "rightsReference": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})),
+  "readiness": zod.object({
+  "hasReadyFeature": zod.boolean(),
+  "hasActiveRightsWindow": zod.boolean(),
+  "isPublishEligible": zod.boolean(),
+  "blockingReasons": zod.array(zod.string())
+}),
+  "activity": zod.array(zod.object({
+  "id": zod.number(),
+  "action": zod.string(),
+  "targetType": zod.string(),
+  "targetId": zod.string().nullable(),
+  "reason": zod.string().nullable(),
+  "createdAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Add a rights and entitlement window to a Cinema title
+ */
+export const CreateAdminCinemaRightsWindowParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createAdminCinemaRightsWindowBodyTerritoryCodesItemMin = 2;
+export const createAdminCinemaRightsWindowBodyTerritoryCodesItemMax = 3;
+
+export const createAdminCinemaRightsWindowBodyRightsReferenceMax = 500;
+
+
+
+export const CreateAdminCinemaRightsWindowBody = zod.object({
+  "territoryCodes": zod.array(zod.string().min(createAdminCinemaRightsWindowBodyTerritoryCodesItemMin).max(createAdminCinemaRightsWindowBodyTerritoryCodesItemMax)).optional(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "rightsReference": zod.string().min(1).max(createAdminCinemaRightsWindowBodyRightsReferenceMax),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullish()
+})
+
+export const CreateAdminCinemaRightsWindowResponse = zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "territoryCodes": zod.array(zod.string()),
+  "entitlementType": zod.enum(['unconfigured', 'free', 'subscription', 'rental', 'purchase']),
+  "rightsReference": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List browse categories with live counts. Filter by kind — live_game categories for Kryv Live, genre categories for Kryv Watch/Cinema.
  */
 export const ListCategoriesQueryParams = zod.object({
@@ -1259,46 +1472,64 @@ export const DeleteVideoResponse = zod.void()
 
 
 /**
+ * @summary Retrieve a published and rights-cleared Cinema title for viewer playback
+ */
+export const GetCinemaTitleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetCinemaTitleResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string(),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
+})
+
+
+/**
  * @summary Kryv Cinema home page — hero title plus genre rows of curated originals
  */
 export const GetCinemaHomeResponse = zod.object({
   "hero": zod.union([zod.object({
   "id": zod.number(),
+  "slug": zod.string(),
   "title": zod.string(),
-  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
-  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
-  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
-  "durationSeconds": zod.number().nullable(),
-  "viewCount": zod.number(),
-  "channelId": zod.number(),
-  "channelName": zod.string(),
-  "channelAvatarUrl": zod.string().nullable(),
-  "categoryId": zod.number().nullable(),
-  "categoryName": zod.string().nullable(),
-  "contentType": zod.enum(['upload', 'original']),
-  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
-  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
-  "createdAt": zod.coerce.date()
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string(),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
 }),zod.null()]),
   "rows": zod.array(zod.object({
   "title": zod.string(),
   "items": zod.array(zod.object({
   "id": zod.number(),
+  "slug": zod.string(),
   "title": zod.string(),
-  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
-  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
-  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
-  "durationSeconds": zod.number().nullable(),
-  "viewCount": zod.number(),
-  "channelId": zod.number(),
-  "channelName": zod.string(),
-  "channelAvatarUrl": zod.string().nullable(),
-  "categoryId": zod.number().nullable(),
-  "categoryName": zod.string().nullable(),
-  "contentType": zod.enum(['upload', 'original']),
-  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
-  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
-  "createdAt": zod.coerce.date()
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string(),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
 }))
 }))
 })
