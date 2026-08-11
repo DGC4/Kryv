@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import {
   channelsTable,

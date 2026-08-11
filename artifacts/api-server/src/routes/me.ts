@@ -1,3 +1,4 @@
+import { Router, type IRouter } from "express";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import {
   channelsTable,

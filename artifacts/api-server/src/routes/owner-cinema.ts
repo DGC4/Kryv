@@ -1,3 +1,4 @@
+import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import {
   cinemaRightsWindowsTable,
