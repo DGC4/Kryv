@@ -25,7 +25,11 @@ import {
   toChannelDetail,
   uniqueChannelSlug,
 } from "../lib/channelSerializer";
-import { createFastPixLiveStream, FastPixNotConfiguredError, fastpix } from "../lib/fastpix";
+import {
+  createFastPixLiveStream,
+  FastPixNotConfiguredError,
+  getFastPixViewerCount,
+} from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
 
 const router: IRouter = Router();
@@ -58,6 +62,29 @@ router.get("/channels", attachUserId, async (req, res): Promise<void> => {
       .where(eq(categoriesTable.slug, query.data.categorySlug));
     rows = category ? rows.filter((c) => c.categoryId === category.id) : [];
   }
+
+  if (query.data.live === true) {
+    // Keep direct category links current even when the viewer did not visit the home directory first.
+    rows = await Promise.all(
+      rows.map(async (channel) => {
+        if (!channel.fastpixLiveStreamId) return channel;
+        const viewerCount = await getFastPixViewerCount(channel.fastpixLiveStreamId);
+        if (viewerCount === null || viewerCount === channel.viewerCount) return channel;
+
+        await db
+          .update(channelsTable)
+          .set({
+            viewerCount,
+            peakViewerCount: sql`GREATEST(${channelsTable.peakViewerCount}, ${viewerCount})`,
+          })
+          .where(eq(channelsTable.id, channel.id));
+        return { ...channel, viewerCount, peakViewerCount: Math.max(channel.peakViewerCount, viewerCount) };
+      }),
+    );
+  }
+
+  // Most-viewed broadcasts lead every live list, including category pages.
+  rows.sort((a, b) => b.viewerCount - a.viewerCount);
 
   const results = await Promise.all(rows.map(toChannelSummary));
   res.json(ListChannelsResponse.parse(results));
@@ -227,7 +254,7 @@ router.post(
 
     // 2. Try to provision a new FastPix live stream
     try {
-      const { fastpixLiveStreamId, fastpixStreamKey, fastpixPlaybackId } = await createFastPixLiveStream();
+      const { fastpixLiveStreamId, fastpixStreamKey, fastpixPlaybackId } = await createFastPixLiveStream(channel.id);
       
       await db.update(channelsTable).set({
         streamKey: fastpixStreamKey,
@@ -372,7 +399,7 @@ router.post(
 
     // Resetting MUST always try to get a fresh REAL FastPix stream
     try {
-      const { fastpixLiveStreamId, fastpixStreamKey, fastpixPlaybackId } = await createFastPixLiveStream();
+      const { fastpixLiveStreamId, fastpixStreamKey, fastpixPlaybackId } = await createFastPixLiveStream(channel.id);
       
       await db.update(channelsTable).set({
         streamKey: fastpixStreamKey,
@@ -405,8 +432,8 @@ router.post(
 );
 
 // POST /channels/:id/heartbeat — Viewer presence heartbeat (call every 30s while watching)
-// Uses session-based tracking via viewer_sessions table for accurate concurrent viewer counts.
-// Falls back to FastPix API viewer count when the stream has a fastpixLiveStreamId.
+// It refreshes the near-real-time, approximate concurrent-viewer count from FastPix
+// and persists it for live-directory and category ranking.
 router.post(
   "/channels/:id/heartbeat",
   async (req, res): Promise<void> => {
@@ -431,20 +458,10 @@ router.post(
       return;
     }
 
-    // Try to get real viewer count from FastPix API
-    let fastpixViewerCount: number | null = null;
-    if (channel.fastpixLiveStreamId) {
-      try {
-        const result = await fastpix.manageLiveStream.getViewerCount({ streamId: channel.fastpixLiveStreamId });
-        const data = (result as any).data ?? result;
-        if (typeof data?.views === 'number') {
-          fastpixViewerCount = data.views;
-        }
-      } catch (err) {
-        // FastPix API unavailable — fall back to DB count
-        console.warn("[heartbeat] FastPix viewer count unavailable:", err instanceof Error ? err.message : err);
-      }
-    }
+    // Try to get FastPix's near-real-time concurrent viewer count.
+    const fastpixViewerCount = channel.fastpixLiveStreamId
+      ? await getFastPixViewerCount(channel.fastpixLiveStreamId)
+      : null;
 
     // Update the DB viewer count
     const newCount = fastpixViewerCount !== null ? fastpixViewerCount : channel.viewerCount;
@@ -485,18 +502,21 @@ router.get(
       return;
     }
 
-    // Try FastPix API for real-time count
-    if (channel.fastpixLiveStreamId) {
-      try {
-        const result = await fastpix.manageLiveStream.getViewerCount({ streamId: channel.fastpixLiveStreamId });
-        const data = (result as any).data ?? result;
-        if (typeof data?.views === 'number') {
-          res.json({ viewerCount: data.views, isLive: true });
-          return;
-        }
-      } catch (err) {
-        // Fall through to DB count
-      }
+    // Try FastPix API for a near-real-time count.
+    const fastpixViewerCount = channel.fastpixLiveStreamId
+      ? await getFastPixViewerCount(channel.fastpixLiveStreamId)
+      : null;
+    if (fastpixViewerCount !== null) {
+      // Persist the FastPix value so discovery and category pages can rank live channels.
+      await db
+        .update(channelsTable)
+        .set({
+          viewerCount: fastpixViewerCount,
+          peakViewerCount: sql`GREATEST(${channelsTable.peakViewerCount}, ${fastpixViewerCount})`,
+        })
+        .where(eq(channelsTable.id, channelId));
+      res.json({ viewerCount: fastpixViewerCount, isLive: true });
+      return;
     }
 
     res.json({ viewerCount: channel.viewerCount, isLive: true });

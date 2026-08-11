@@ -28,15 +28,11 @@ export const channelsTable = pgTable("channels", {
   streamTitle: text("stream_title"),
   isLive: boolean("is_live").notNull().default(false),
   viewerCount: integer("viewer_count").notNull().default(0),
-  // Mux live streaming infrastructure — real RTMP ingest + HLS playback.
-  muxLiveStreamId: text("mux_live_stream_id"),
-  muxStreamKey: text("mux_stream_key"),
-  muxPlaybackId: text("mux_playback_id"),
   // FastPix live streaming infrastructure
   fastpixLiveStreamId: text("fastpix_live_stream_id"),
   fastpixStreamKey: text("fastpix_stream_key"),
   fastpixPlaybackId: text("fastpix_playback_id"),
-  // Self-hosted stream key (always available, no Mux required)
+  // Creator stream credentials
   streamKey: text("stream_key"),
   rtmpUrl: text("rtmp_url").default("rtmps://live.fastpix.io:443/live"),
   streamKeyGeneratedAt: timestamp("stream_key_generated_at", { withTimezone: true }),

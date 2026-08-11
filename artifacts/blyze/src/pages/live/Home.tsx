@@ -4,8 +4,14 @@ import { Link } from 'wouter';
 import { Loader2, Users, ChevronRight } from 'lucide-react';
 
 export default function LiveHome() {
-  const { data: discover, isLoading: discoverLoading } = useGetDiscoverSummary();
-  const { data: categories, isLoading: categoriesLoading } = useListCategories({ kind: 'live_game' });
+  // Polling keeps the public live-directory ranking current as FastPix viewer counts change.
+  const { data: discover, isLoading: discoverLoading } = useGetDiscoverSummary({
+    query: { refetchInterval: 10000 },
+  });
+  const { data: categories, isLoading: categoriesLoading } = useListCategories(
+    { kind: 'live_game' },
+    { query: { refetchInterval: 10000 } },
+  );
 
   const totalViewers = discover?.featuredChannels?.reduce((sum, c) => sum + (c.viewerCount ?? 0), 0) ?? 0;
 

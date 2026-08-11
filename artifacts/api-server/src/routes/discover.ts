@@ -3,15 +3,36 @@ import { desc, eq, sql } from "drizzle-orm";
 import { db, categoriesTable, channelsTable } from "@workspace/db";
 import { GetDiscoverSummaryResponse } from "@workspace/api-zod";
 import { toChannelSummary } from "../lib/channelSerializer";
+import { getFastPixViewerCount } from "../lib/fastpix";
 
 const router: IRouter = Router();
 
 router.get("/discover/summary", async (_req, res): Promise<void> => {
-  const liveChannels = await db
+  const persistedLiveChannels = await db
     .select()
     .from(channelsTable)
     .where(eq(channelsTable.isLive, true))
     .orderBy(desc(channelsTable.viewerCount));
+
+  // FastPix owns concurrent-viewer measurement. Refresh the small live set here
+  // before ranking the public directory, using the helper's 10-second cache.
+  const liveChannels = await Promise.all(
+    persistedLiveChannels.map(async (channel) => {
+      if (!channel.fastpixLiveStreamId) return channel;
+      const viewerCount = await getFastPixViewerCount(channel.fastpixLiveStreamId);
+      if (viewerCount === null || viewerCount === channel.viewerCount) return channel;
+
+      await db
+        .update(channelsTable)
+        .set({
+          viewerCount,
+          peakViewerCount: sql`GREATEST(${channelsTable.peakViewerCount}, ${viewerCount})`,
+        })
+        .where(eq(channelsTable.id, channel.id));
+      return { ...channel, viewerCount, peakViewerCount: Math.max(channel.peakViewerCount, viewerCount) };
+    }),
+  );
+  liveChannels.sort((a, b) => b.viewerCount - a.viewerCount);
 
   const featuredChannels = await Promise.all(
     liveChannels.slice(0, 8).map(toChannelSummary),

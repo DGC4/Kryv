@@ -58,33 +58,66 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
   logger.info({ type: event.type }, "Received FastPix webhook");
 
   switch (event.type) {
-    // ── Live stream went active (broadcaster connected and streaming) ──────
-    case "video.live_stream.connected":
-    case "video.live_stream.active": {
-      const liveStream = event.data;
+    // ── Encoder connected: save the playback ID, but do not publish yet ─────
+    case "video.live_stream.connected": {
+      const liveStream = event.data ?? {};
+      const streamId = liveStream.streamId ?? liveStream.id;
       const playbackId = liveStream.playbackIds?.[0]?.id ?? null;
+      if (!streamId) {
+        logger.warn({ type: event.type }, "FastPix connected event did not include a stream ID");
+        break;
+      }
+      await db
+        .update(channelsTable)
+        .set({ ...(playbackId ? { fastpixPlaybackId: playbackId } : {}) })
+        .where(eq(channelsTable.fastpixLiveStreamId, streamId));
+      break;
+    }
 
-      // Find the channel and update it to live
+    // ── Live stream is publicly active ─────────────────────────────────────
+    case "video.live_stream.active": {
+      const liveStream = event.data ?? {};
+      const streamId = liveStream.streamId ?? liveStream.id;
+      const playbackId = liveStream.playbackIds?.[0]?.id ?? null;
+      if (!streamId) {
+        logger.warn({ type: event.type }, "FastPix active event did not include a stream ID");
+        break;
+      }
+
       const [updatedChannel] = await db
         .update(channelsTable)
         .set({
           isLive: true,
           lastStreamAt: new Date(),
-          totalStreamCount: sql`${channelsTable.totalStreamCount} + 1`,
           ...(playbackId ? { fastpixPlaybackId: playbackId } : {}),
         })
-        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id))
+        .where(eq(channelsTable.fastpixLiveStreamId, streamId))
         .returning();
 
-      // Create a stream session record for analytics (Kick/Twitch-style stream history)
+      // A FastPix event can be retried; only create one open session per channel.
       if (updatedChannel) {
-        await db.insert(streamSessionsTable).values({
-          channelId: updatedChannel.id,
-          startedAt: new Date(),
-          title: updatedChannel.streamTitle ?? null,
-          categoryId: updatedChannel.categoryId ?? null,
-          streamKey: updatedChannel.fastpixStreamKey ?? null,
-        }).onConflictDoNothing();
+        const [openSession] = await db
+          .select({ id: streamSessionsTable.id })
+          .from(streamSessionsTable)
+          .where(
+            and(
+              eq(streamSessionsTable.channelId, updatedChannel.id),
+              sql`${streamSessionsTable.endedAt} IS NULL`,
+            ),
+          );
+        if (!openSession) {
+          await db.insert(streamSessionsTable).values({
+            channelId: updatedChannel.id,
+            startedAt: new Date(),
+            title: updatedChannel.streamTitle ?? null,
+            categoryId: updatedChannel.categoryId ?? null,
+            streamKey: updatedChannel.fastpixStreamKey ?? null,
+          });
+          await db
+            .update(channelsTable)
+            .set({ totalStreamCount: sql`${channelsTable.totalStreamCount} + 1` })
+            .where(eq(channelsTable.id, updatedChannel.id));
+        }
       }
       break;
     }
@@ -92,13 +125,18 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
     // ── Live stream went offline ───────────────────────────────────────────
     case "video.live_stream.disconnected":
     case "video.live_stream.idle": {
-      const liveStream = event.data;
+      const liveStream = event.data ?? {};
+      const streamId = liveStream.streamId ?? liveStream.id;
+      if (!streamId) {
+        logger.warn({ type: event.type }, "FastPix offline event did not include a stream ID");
+        break;
+      }
 
       // Find the channel to get its ID for session closure
       const [offlineChannel] = await db
         .update(channelsTable)
         .set({ isLive: false, viewerCount: 0 })
-        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id))
+        .where(eq(channelsTable.fastpixLiveStreamId, streamId))
         .returning();
 
       // Close the most recent open stream session
@@ -122,9 +160,14 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
 
     // ── Generic status update (check status field) ─────────────────────────
     case "video.live_stream.updated": {
-      const liveStream = event.data;
-      const isLive = liveStream.status === "active" || liveStream.status === "connected";
+      const liveStream = event.data ?? {};
+      const streamId = liveStream.streamId ?? liveStream.id;
       const playbackId = liveStream.playbackIds?.[0]?.id ?? null;
+      if (!streamId) {
+        logger.warn({ type: event.type }, "FastPix update event did not include a stream ID");
+        break;
+      }
+      const isLive = liveStream.status === "active";
       await db
         .update(channelsTable)
         .set({
@@ -132,17 +175,22 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
           viewerCount: isLive ? (liveStream.viewerCount ?? 0) : 0,
           ...(playbackId ? { fastpixPlaybackId: playbackId } : {}),
         })
-        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
+        .where(eq(channelsTable.fastpixLiveStreamId, streamId));
       break;
     }
 
     // ── Stream deleted ─────────────────────────────────────────────────────
     case "video.live_stream.deleted": {
-      const liveStream = event.data;
+      const liveStream = event.data ?? {};
+      const streamId = liveStream.streamId ?? liveStream.id;
+      if (!streamId) {
+        logger.warn({ type: event.type }, "FastPix deleted event did not include a stream ID");
+        break;
+      }
       await db
         .update(channelsTable)
         .set({ isLive: false, viewerCount: 0 })
-        .where(eq(channelsTable.fastpixLiveStreamId, liveStream.id));
+        .where(eq(channelsTable.fastpixLiveStreamId, streamId));
       break;
     }
 

@@ -33,8 +33,6 @@ export const clipsTable = pgTable("clips", {
   videoId: integer("video_id").references(() => videosTable.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   thumbnailUrl: text("thumbnail_url"),
-  muxAssetId: text("mux_asset_id"),
-  muxPlaybackId: text("mux_playback_id"),
   viewCount: integer("view_count").notNull().default(0),
   durationSeconds: integer("duration_seconds"),
   startOffsetSeconds: integer("start_offset_seconds"),

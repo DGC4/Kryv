@@ -69,10 +69,14 @@ function AppRoutes() {
       </Route>
 
       <Route path="/cinema">
-        <Layout><CinemaHome /></Layout>
+        <ProtectedRoute>
+          <Layout><CinemaHome /></Layout>
+        </ProtectedRoute>
       </Route>
       <Route path="/cinema/:id">
-        <Layout><CinemaDetail /></Layout>
+        <ProtectedRoute>
+          <Layout><CinemaDetail /></Layout>
+        </ProtectedRoute>
       </Route>
 
       <Route path="/dashboard/live">

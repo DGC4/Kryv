@@ -3,7 +3,7 @@ import { categoriesTable } from "../src/schema/categories";
 
 // Seeds only structural taxonomy (browse categories/genres) — no fake
 // channels, streams, or videos. Live/VOD content is only ever created
-// through real user actions (real Mux live streams and uploads), never
+// through real user actions (real FastPix live streams and uploads), never
 // mocked, per project convention.
 const liveCategories = [
   { name: "Just Chatting", slug: "just-chatting" },

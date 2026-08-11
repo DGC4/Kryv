@@ -6,8 +6,14 @@ import { Loader2 } from 'lucide-react';
 export default function LiveCategory() {
   const { slug } = useParams<{ slug: string }>();
   
-  const { data: channels, isLoading: channelsLoading } = useListChannels({ categorySlug: slug, live: true });
-  const { data: categories } = useListCategories({ kind: 'live_game' });
+  const { data: channels, isLoading: channelsLoading } = useListChannels(
+    { categorySlug: slug, live: true },
+    { query: { refetchInterval: 10000 } },
+  );
+  const { data: categories } = useListCategories(
+    { kind: 'live_game' },
+    { query: { refetchInterval: 10000 } },
+  );
   
   const category = categories?.find(c => c.slug === slug);
 

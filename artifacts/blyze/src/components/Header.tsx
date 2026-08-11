@@ -25,15 +25,15 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/[0.06] bg-black/60 backdrop-blur-xl">
-      <div className="mx-auto px-4 lg:px-6 h-14 flex items-center justify-between gap-4 max-w-[1600px]">
+      <div className="mx-auto px-3 sm:px-4 lg:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4 max-w-[1600px]">
 
         {/* Left: Logo + Nav */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-1 sm:gap-6 min-w-0">
           <Link href="/">
             <KryvLogo subscriptionTier={me?.role === 'owner' ? 'ultra' : 'free'} />
           </Link>
 
-          <nav className="flex items-center gap-0.5">
+          <nav className="flex items-center gap-0 sm:gap-0.5 shrink-0">
             {NAV.map(item => {
               const active = item.match.some(m => location === m || location.startsWith(`${m}/`));
               return (
@@ -41,7 +41,7 @@ export function Header() {
                   key={item.path}
                   href={item.path}
                   onClick={cycleTheme}
-                  className={`relative flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-semibold transition-colors ${
+                  className={`relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-2 rounded-md text-sm font-semibold transition-colors ${
                     active
                       ? 'text-primary'
                       : 'text-white/55 hover:text-white hover:bg-white/[0.06]'
@@ -153,14 +153,14 @@ export function Header() {
               </DropdownMenu>
             </>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/sign-in">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Link href="/sign-in" className="hidden sm:block">
                 <Button variant="ghost" size="sm" className="h-8 text-white/60 hover:text-white text-sm font-medium">
                   Log in
                 </Button>
               </Link>
               <Link href="/sign-up">
-                <Button size="sm" className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-sm px-4 rounded-full shadow-[0_0_12px_hsl(var(--primary)/0.35)]">
+                <Button size="sm" className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs sm:text-sm px-3 sm:px-4 rounded-full shadow-[0_0_12px_hsl(var(--primary)/0.35)]">
                   Sign Up
                 </Button>
               </Link>

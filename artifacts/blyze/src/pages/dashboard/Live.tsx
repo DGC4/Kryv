@@ -131,7 +131,11 @@ type DashTab = 'stream' | 'settings' | 'analytics';
 
 export default function DashboardLive() {
   const [, navigate] = useLocation();
-  const { data: me, isLoading: meLoading, refetch: refetchMe } = useGetMe();
+  // FastPix sends stream state by webhook; refresh the persisted state so the OBS preview
+  // changes to live without the creator reloading the dashboard.
+  const { data: me, isLoading: meLoading, refetch: refetchMe } = useGetMe({
+    query: { refetchInterval: 5000 },
+  });
   const createChannel = useCreateChannel();
   const updateChannel = useUpdateChannel();
   const createStream = useCreateChannelStream();

@@ -75,8 +75,6 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@mux/mux-player-react": "^3.13.0",
-    "@mux/upchunk": "^3.5.0",
     "hls.js": "^1.6.16",
     "zustand": "^5.0.14"
   }

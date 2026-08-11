@@ -5,7 +5,7 @@ export default function Privacy() {
           {/* Header */}
           <div className="mb-12 text-center">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-4">Privacy Policy</h1>
-            <p className="text-xs sm:text-sm text-white/60">Last updated: August 3, 2026</p>
+            <p className="text-xs sm:text-sm text-white/60">Last updated: August 11, 2026</p>
           </div>
 
           {/* Content */}
@@ -20,23 +20,23 @@ export default function Privacy() {
             <div className="space-y-4 text-base sm:text-lg">
               <div>
                 <h3 className="text-white font-bold mb-2">Account Information</h3>
-                <p>When you create an account, we collect your username, email address (optional), and a hashed password. We do not store passwords in plain text. If you provide an avatar URL, we store that as well. Your account role (user or owner) is also stored.</p>
+                <p>When you create an account, we collect your username, email address, and a securely hashed password; we do not store passwords in plain text. We may also store an avatar URL, account role, account-status information, your last-login time, and timestamps recording acceptance of our Terms, Privacy Policy, or a data-deletion request.</p>
               </div>
               <div>
                 <h3 className="text-white font-bold mb-2">Content You Create</h3>
-                <p>We collect and store all content you create on Kryv, including channel profiles, stream titles, descriptions, uploaded videos, chat messages, and any metadata you provide. This content is stored in our Neon PostgreSQL database and delivered via FastPix.</p>
+                <p>We collect and store the content and settings you create on Kryv, including channel profiles, stream titles, descriptions, uploaded videos, live-session records, chat messages, channel tags, goals, polls, predictions, and metadata you provide. We store application records in Neon PostgreSQL and use FastPix to ingest, process, and deliver video.</p>
               </div>
               <div>
                 <h3 className="text-white font-bold mb-2">Viewing &amp; Interaction Data</h3>
-                <p>We track your viewing history (which videos you watch), watch progress (how far you've watched), follows (which channels you follow), and interactions (likes, comments, subscriptions). This data powers personalization features like the Discover page and recommendations.</p>
+                <p>For signed-in users, we may store video watch history and progress, channel follows, subscriptions, blocks, chat activity, and participation in platform features such as polls, predictions, channel points, tips, and clip reactions. For live streams, we may record viewer-session information, including whether a session is anonymous or associated with an account. This data supports discovery, creator analytics, service operation, and safety controls.</p>
               </div>
               <div>
                 <h3 className="text-white font-bold mb-2">Live Stream &amp; Upload Data</h3>
-                <p>When you go live or upload a video, the media file is sent to FastPix (our video infrastructure provider) for ingest, transcoding, and delivery. Stream metadata (title, category, duration) is stored in our database. Stream sessions are tracked, including start time, end time, peak viewer count, and average viewers.</p>
+                <p>When you go live or upload a video, media is sent to FastPix, our video infrastructure provider, for secure ingest, processing, playback, and delivery. Kryv stores stream metadata and operational records such as start and end times, stream titles, categories, peak and average viewer counts, and creator stream credentials. Public FastPix playback identifiers are used to deliver public live broadcasts to guests; a stream key is kept private and must never be shared.</p>
               </div>
               <div>
                 <h3 className="text-white font-bold mb-2">Technical &amp; Device Data</h3>
-                <p>We automatically collect your IP address, browser type, operating system, device type, and user agent. We use browser fingerprinting to identify unique visitors. We also collect your approximate location (country, city) based on IP geolocation. This data is stored in our visitors table.</p>
+                <p>We automatically collect technical information such as IP address, user agent, browser, operating system, device type, optional browser fingerprint, approximate country and city inferred from IP, last visited page, visit count, and timestamps. For signed-in use, we may also maintain device-history records such as device name, browser, operating system, IP address, login count, and last-seen time.</p>
               </div>
               <div>
                 <h3 className="text-white font-bold mb-2">Stream Keys &amp; Authentication</h3>
@@ -103,7 +103,7 @@ export default function Privacy() {
           <section className="space-y-4">
             <h2 className="text-2xl sm:text-3xl font-black text-white">4. Data Retention</h2>
             <p className="text-base sm:text-lg">
-              We retain your account information, content, and activity logs for as long as your account is active. If you delete your account, we will delete associated personal data within 30 days, except where we are required to retain it by law or for legitimate business purposes (such as resolving disputes or enforcing agreements). Deleted content may remain in backups for up to 90 days.
+              We retain account information, content, and operational logs for as long as reasonably necessary to operate the Service, meet legal obligations, resolve disputes, enforce agreements, and maintain security. You may request deletion of your account and associated data. We will assess and handle verified requests in accordance with applicable law; limited records may be retained where legally required or reasonably necessary for safety, fraud prevention, or dispute resolution, and backup systems may retain information for a limited period.
             </p>
           </section>
 

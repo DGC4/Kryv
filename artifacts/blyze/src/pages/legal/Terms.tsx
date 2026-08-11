@@ -5,7 +5,7 @@ export default function Terms() {
           {/* Header */}
           <div className="mb-12 text-center">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-4">Terms of Service</h1>
-            <p className="text-xs sm:text-sm text-white/60">Last updated: August 3, 2026</p>
+            <p className="text-xs sm:text-sm text-white/60">Last updated: August 11, 2026</p>
           </div>
 
           {/* Content */}
@@ -33,7 +33,7 @@ export default function Terms() {
           <section className="space-y-4">
             <h2 className="text-2xl sm:text-3xl font-black text-white">3. User Content &amp; Intellectual Property</h2>
             <div className="space-y-4 text-base sm:text-lg">
-              <p>You retain all ownership rights to the content you broadcast, upload, or post ("User Content"). By submitting User Content to Kryv, you grant Kryv a worldwide, non-exclusive, royalty-free, perpetual license to host, store, reproduce, transmit, display, and distribute your User Content for the purpose of operating and promoting the Service.</p>
+              <p>You retain your ownership rights in the content you broadcast, upload, or post ("User Content"). By submitting User Content to Kryv, you grant Kryv a worldwide, non-exclusive, royalty-free license to host, store, reproduce, transcode, transmit, display, distribute, and make reasonable technical copies of that User Content as needed to operate, secure, improve, and promote the Service, subject to your applicable rights and these Terms.</p>
               <p>You represent and warrant that you own or have the necessary rights to all User Content you submit, and that your User Content does not infringe on the intellectual property rights of any third party. You are solely responsible for your User Content and any consequences arising from it.</p>
               <p>Kryv may remove any User Content that violates these Terms or applicable law at any time without notice.</p>
             </div>
@@ -108,11 +108,12 @@ export default function Terms() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white">6. Live Streaming &amp; Video Infrastructure</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">6. Viewing Access, Live Streaming &amp; Video Infrastructure</h2>
             <div className="space-y-4 text-base sm:text-lg">
-              <p>Live broadcasts and video uploads are processed and delivered through Kryv's video infrastructure provider (FastPix). Your stream key is unique to your channel and grants broadcasting access. You must never share your stream key with anyone. If you believe your stream key has been compromised, contact us immediately to rotate it.</p>
-              <p>Kryv is not responsible for interruptions, latency, quality issues, or failures caused by your broadcasting hardware, software, network connection, or internet service provider. Kryv is also not responsible for interruptions caused by FastPix or other third-party infrastructure providers.</p>
-              <p>We reserve the right to limit stream quality, bitrate, or resolution based on network conditions or platform load. We also reserve the right to disable streaming for accounts that violate these Terms.</p>
+              <p>Public live streams may be viewed without an account. An account is required to send chat messages, follow a channel, use creator controls, and access Kryv Cinema. We may change the availability of features or access rules when needed for safety, legal compliance, or service operation.</p>
+              <p>Live broadcasts and video uploads are processed and delivered through Kryv's video infrastructure provider, FastPix. Your stream key is unique to your channel and grants broadcasting access. You must never share your stream key with anyone. If you believe a key has been compromised, use the dashboard's key-rotation control or contact Kryv immediately.</p>
+              <p>Live viewer counts are near-real-time estimates provided by our video infrastructure and may vary from final audience analytics. Kryv is not responsible for interruptions, latency, quality issues, or failures caused by your hardware, encoder software, network connection, internet service provider, FastPix, or another third-party infrastructure provider.</p>
+              <p>We reserve the right to limit stream quality, bitrate, resolution, or access based on network conditions, platform load, safety requirements, or violations of these Terms. We may use moderation, banning, timeout, and account-restriction tools to enforce the Service rules.</p>
             </div>
           </section>
 
@@ -138,7 +139,7 @@ export default function Terms() {
                   <span>Inactivity or non-use of the Service.</span>
                 </li>
               </ul>
-              <p>You may delete your account at any time from your dashboard. Upon deletion, your account data will be removed within 30 days, except where retention is required by law.</p>
+              <p>You may request deletion of your account and associated personal data through the Service or a Kryv contact channel. We will process verified requests in accordance with applicable law, subject to limited retention needed for legal obligations, security, fraud prevention, or dispute resolution.</p>
             </div>
           </section>
 

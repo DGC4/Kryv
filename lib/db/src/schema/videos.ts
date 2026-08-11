@@ -12,7 +12,7 @@ import { categoriesTable } from "./categories";
 
 // Powers both Kryv Watch (creator uploads, contentType "upload") and
 // Kryv Cinema (curated library, contentType "original") — same on-demand
-// playback pipeline (Mux Assets), differentiated by contentType + artwork.
+// playback pipeline (FastPix), differentiated by contentType + artwork.
 export const videosTable = pgTable("videos", {
   id: serial("id").primaryKey(),
   channelId: integer("channel_id")
@@ -30,10 +30,7 @@ export const videosTable = pgTable("videos", {
   uploadStatus: text("upload_status").notNull().default("waiting"),
   durationSeconds: integer("duration_seconds"),
   viewCount: integer("view_count").notNull().default(0),
-  muxUploadId: text("mux_upload_id"),
   fastpixUploadId: text("fastpix_upload_id"),
-  muxAssetId: text("mux_asset_id"),
-  muxPlaybackId: text("mux_playback_id"),
   fastpixAssetId: text("fastpix_asset_id"),
   fastpixPlaybackId: text("fastpix_playback_id"),
   createdAt: timestamp("created_at", { withTimezone: true })

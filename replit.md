@@ -1,32 +1,30 @@
 # Kryv
 
-Kryv is a live-entertainment platform combining three connected experiences under one account:
+Kryv is a live-entertainment platform with three connected experiences under one account:
 
-- **Kryv Live** — real-time broadcasting (Twitch/Kick-style): browse live channels by category, watch with live chat, go live yourself with real RTMP ingest.
-- **Kryv Watch** — creator on-demand video (YouTube-style): upload, browse, and watch videos.
-- **Kryv Cinema** — curated originals library (Netflix-style): hero banner + genre rows of featured titles.
+- **Kryv Live** — category-based real-time broadcasting with public viewing, live chat, and RTMP ingest.
+- **Kryv Watch** — creator on-demand video upload, discovery, and playback.
+- **Kryv Cinema** — a curated, account-gated originals library.
 
-All three share one identity system, one login, and a signature rotating neon color-theme + animated canvas background.
+The products share one identity system, a rotating neon theme, and an animated background.
 
 ## Architecture
 
-- **Monorepo**: pnpm workspace. See `.local/skills/pnpm-workspace/SKILL.md` for conventions.
-- **Frontend** (`artifacts/blyze`, artifact title "Kryv"): React + Vite, wouter routing, TanStack Query, Tailwind, Clerk auth.
-- **Backend** (`artifacts/api-server`): Express 5, contract-first via `lib/api-spec/openapi.yaml` → codegen (`lib/api-zod`, `lib/api-client-react`).
-- **Database** (`lib/db`): Drizzle ORM / Postgres. Tables: `users`, `categories` (kind: live_game | genre), `channels`, `videos` (contentType: upload | original), `chat_messages`, `follows`.
-- **Real video infrastructure**: Mux Video powers both real RTMP live streaming (Kryv Live) and real on-demand upload/transcoding (Kryv Watch/Cinema) — no simulated/mocked video anywhere. A Mux webhook (`/api/webhooks/mux`, raw body) keeps `isLive` and video `uploadStatus`/`playbackId` in sync with real broadcasts and uploads.
-- **Auth**: Clerk (proxy middleware + `clerkMiddleware`), JIT-provisions a local `users` row on first authenticated request.
+- **Monorepo:** pnpm workspace.
+- **Frontend:** `artifacts/blyze` uses React, Vite, wouter, TanStack Query, and Tailwind CSS.
+- **Backend:** `artifacts/api-server` uses Express and a contract-first API generated from `lib/api-spec/openapi.yaml` into `lib/api-zod` and `lib/api-client-react`.
+- **Authentication:** Kryv uses its own JWT-backed account system with local user records; it does not use Clerk.
+- **Database:** `lib/db` uses Drizzle ORM with Neon Postgres. Core tables cover users, categories, channels, videos, chat, follows, viewer sessions, stream sessions, visitor analytics, moderation, and creator engagement.
+- **Video infrastructure:** FastPix powers RTMP ingest, live HLS playback, on-demand processing, viewer-count measurement, and live lifecycle webhooks. The FastPix webhook route is `/api/webhooks/fastpix`.
 
-## Notable decisions
+## Operating Model
 
-- The artifact's internal directory/slug remains `blyze` (renaming is a heavy operation); only the artifact `title` and all UI copy are branded "Kryv".
-- `categories.kind` distinguishes Kryv Live's game/IRL categories from Kryv Watch/Cinema's genres, sharing one table instead of two parallel ones.
-- `videos` table powers both Kryv Watch (`contentType: "upload"`) and Kryv Cinema (`contentType: "original"`) — same on-demand playback pipeline, differentiated by content type and artwork fields (thumbnail vs. poster/backdrop).
-- No demo/placeholder channels, streams, or videos are seeded — only the category taxonomy. Live and on-demand content only ever appears once real users create it for real, keeping the "no mocked functional data" principle intact.
+- `categories.kind` separates Live categories from Watch and Cinema genres while sharing one taxonomy table.
+- The `videos` table supports both Watch uploads and Cinema originals through `contentType` and related presentation fields.
+- Live broadcasts are public to watch, while authenticated accounts are required for chat, following, creator tools, and Cinema access.
+- Live discovery and category pages order active broadcasts by FastPix-backed viewer count.
+- No demo channels, streams, or videos are seeded; real content appears only after creator action.
 
-## User preferences
+## Repository Safety
 
-- Wants real infrastructure, not simulated/demo video — Mux was chosen deliberately for real RTMP + real on-demand playback since Replit has no first-party live-streaming integration.
-- Rejected several platform name candidates before "Kryv" was chosen autonomously per their "figure it out" instruction.
-- Prefers the agent to make naming/creative decisions independently rather than asking repeatedly.
-- GitHub connector is not available on their plan — connecting to GitHub for this project goes through a user-provided Personal Access Token instead of the connector flow.
+Do not commit credentials, stream keys, access tokens, webhook secrets, or other private configuration values. Use the deployed environment’s secret manager for all production credentials.

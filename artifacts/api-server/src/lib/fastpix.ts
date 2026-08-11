@@ -31,6 +31,41 @@ export class FastPixNotConfiguredError extends Error {
   }
 }
 
+const viewerCountCache = new Map<string, { value: number; expiresAt: number }>();
+const VIEWER_COUNT_CACHE_TTL_MS = 10_000;
+
+/**
+ * Fetch the FastPix near-real-time viewer count with a short server-side cache.
+ * This lets public listings refresh frequently without multiplying FastPix API calls
+ * for every visitor to Kryv.
+ */
+export async function getFastPixViewerCount(streamId: string): Promise<number | null> {
+  if (!username || !password) return null;
+
+  const cached = viewerCountCache.get(streamId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
+  try {
+    const response = await fastpix.manageLiveStream.getViewerCount({ streamId });
+    const data = (response as any).data ?? response;
+    if (typeof data?.views !== "number") return null;
+
+    viewerCountCache.set(streamId, {
+      value: data.views,
+      expiresAt: Date.now() + VIEWER_COUNT_CACHE_TTL_MS,
+    });
+    return data.views;
+  } catch (error) {
+    console.warn(
+      "[FastPix] Unable to refresh viewer count:",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
+}
+
 /**
  * Create a new live stream on FastPix.
  * Returns the streamId, streamKey, and playbackId needed for OBS/broadcasting.
@@ -39,7 +74,7 @@ export class FastPixNotConfiguredError extends Error {
  *   fastpix.liveStreams.create({ playbackSettings, inputMediaSettings })
  *   Response: { success, data: { streamId, streamKey, playbackIds, ... } }
  */
-export async function createFastPixLiveStream() {
+export async function createFastPixLiveStream(channelId: number) {
   if (!username || !password) {
     throw new FastPixNotConfiguredError();
   }
@@ -52,6 +87,12 @@ export async function createFastPixLiveStream() {
       maxResolution: "1080p",
       reconnectWindow: 60,
       mediaPolicy: "public",
+      // Preserve a small live rewind window and tag the stream for webhook recovery.
+      enableDvrMode: true,
+      metadata: {
+        source: "kryv",
+        kryvChannelId: channelId.toString(),
+      },
     },
   });
 
