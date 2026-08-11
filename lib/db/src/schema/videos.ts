@@ -1,10 +1,12 @@
 import {
+  index,
   integer,
   pgTable,
   serial,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { channelsTable } from "./channels";
@@ -36,7 +38,11 @@ export const videosTable = pgTable("videos", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => ({
+  cinemaCatalogIdx: index("videos_cinema_catalog_idx")
+    .on(table.contentType, table.createdAt.desc())
+    .where(sql`${table.contentType} = 'original'`),
+}));
 
 export const insertVideoSchema = createInsertSchema(videosTable).omit({
   id: true,

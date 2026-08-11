@@ -1,11 +1,13 @@
 import {
   boolean,
+  index,
   integer,
   pgTable,
   serial,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { usersTable } from "./users";
@@ -49,7 +51,14 @@ export const channelsTable = pgTable("channels", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => ({
+  liveViewerCountIdx: index("channels_live_viewers_idx")
+    .on(table.viewerCount.desc())
+    .where(sql`${table.isLive} = true`),
+  liveCategoryViewerCountIdx: index("channels_live_category_viewers_idx")
+    .on(table.categoryId, table.viewerCount.desc())
+    .where(sql`${table.isLive} = true`),
+}));
 
 export const insertChannelSchema = createInsertSchema(channelsTable).omit({
   id: true,
