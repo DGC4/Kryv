@@ -1,6 +1,7 @@
-import { Link } from 'wouter';
+import { useListCategories, useListVideos } from '@workspace/api-client-react';
 import { ArrowUpRight, Clock3, Film, Flame, Loader2, Play, Search, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { type FormEvent, useMemo, useState } from 'react';
+import { Link } from 'wouter';
 import { VideoCard } from '@/components/VideoCard';
 
 function RailHeading({ eyebrow, title, detail, icon: Icon }: { eyebrow: string; title: string; detail?: string; icon: typeof Sparkles }) {
@@ -16,7 +17,7 @@ export default function WatchHome() {
   const activeCategory = useMemo(() => categories.find(category => category.id === activeCategoryId), [activeCategoryId, categories]);
   const { data: videos = [], isLoading } = useListVideos({ contentType: 'upload', search: search || undefined, categorySlug: activeCategory?.slug });
 
-  const submitSearch = (event: React.FormEvent) => { event.preventDefault(); setSearch(inputValue.trim()); };
+  const submitSearch = (event: FormEvent) => { event.preventDefault(); setSearch(inputValue.trim()); };
   const clearFilters = () => { setSearch(''); setInputValue(''); setActiveCategoryId(undefined); };
   const isFiltered = Boolean(search || activeCategoryId !== undefined);
   const featuredVideo = videos[0];
