@@ -79,3 +79,15 @@ Stripe webhook handlers must verify the signature against the raw request body, 
 
 [6]: https://docs.stripe.com/connect/express-accounts "Stripe — Using Express connected accounts"
 [7]: https://docs.stripe.com/webhooks "Stripe — Receive Stripe events in your webhook endpoint"
+
+## Rendered mobile/desktop audit — August 11, 2026
+
+- The API-connected local Watch route renders successfully after the initial load delay. Its empty state is centered and touch-safe, but the standard desktop header shows all primary navigation and both global/local search surfaces at wide dimensions.
+- The Watch page requires a refined mobile-specific discovery layout: a more intentional hero/search hierarchy, stronger empty-state call to action, and a dedicated compact-header/mobile-search pattern rather than relying on desktop controls being hidden.
+- Route restoration must be verified in the browser against `/privacy` and `/terms` after the scroll helper is corrected and compiled.
+
+The rebuilt Watch route was rendered and visually validated in the API-connected preview. It now has a distinct library hero, deliberate search hierarchy, horizontal touch-safe category controls, responsive video grid geometry, and an editorial empty state that gives the product a launch-ready VOD identity rather than a generic template appearance. The route has no visible overlap, dead whitespace within the content hierarchy, or cramped calls to action at the inspected viewport.
+
+Both `/privacy` and `/terms` were rendered directly after route navigation. Each route opened at the true top of the document (`Pixels above viewport: 0`) and presented a consistent, high-contrast legal hierarchy without template disclaimers or mid-page entry behavior. The privacy notice visibly reflects FastPix, Neon, Stripe Connect, moderation, engagement, notification, and analytics handling; the terms reflect VOD, clips, creator verification, monetization, moderation, and guest access mechanics.
+
+A true 390×844 browser screenshot of `/watch` confirms the mobile hierarchy holds: the compact header remains within the viewport, primary navigation converts to touch-friendly icons without collision, the Kryv Watch hero stacks correctly, the search affordance remains full-width and readable, and the category filter stays accessible. The screenshot shows no clipping, horizontal overflow, or overlapping controls at phone width.

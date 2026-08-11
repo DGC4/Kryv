@@ -52,8 +52,8 @@ export default function WatchDetail() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl relative z-10">
-      <div className="bg-black aspect-video rounded-xl overflow-hidden border border-white/10 mb-6 shadow-2xl relative">
+    <div className="container mx-auto max-w-6xl px-4 py-5 sm:py-8 relative z-10">
+      <div className="relative mb-4 aspect-video overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl sm:mb-6 sm:rounded-2xl">
         {video.playbackId ? (
           <HlsPlayer
             src={`https://stream.fastpix.com/${video.playbackId}.m3u8`}
@@ -73,7 +73,7 @@ export default function WatchDetail() {
 
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-white mb-2 leading-tight">
+          <h1 className="mb-2 text-xl font-black leading-tight text-white sm:text-2xl">
             {video.title}
           </h1>
           
@@ -95,19 +95,19 @@ export default function WatchDetail() {
               </div>
             </Link>
 
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" className="gap-2 rounded-full">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <Button variant="secondary" aria-label="Like this video" className="h-10 gap-2 rounded-full px-3 sm:px-4">
                 <ThumbsUp className="w-4 h-4" />
-                <span>Like</span>
+                <span className="hidden sm:inline">Like</span>
               </Button>
-              <Button variant="secondary" className="gap-2 rounded-full">
+              <Button variant="secondary" aria-label="Share this video" className="h-10 gap-2 rounded-full px-3 sm:px-4">
                 <Share2 className="w-4 h-4" />
-                <span>Share</span>
+                <span className="hidden sm:inline">Share</span>
               </Button>
               {video.isOwner && video.playbackId && (
-                <Button variant="secondary" className="gap-2 rounded-full border border-primary/30 text-primary hover:text-primary" onClick={() => { setClipTitle(`${video.title} · Clip`); setClipStart(0); setClipEnd(Math.min(video.durationSeconds || 30, 30)); }}>
+                <Button variant="secondary" aria-label="Create a native clip" className="h-10 gap-2 rounded-full border border-primary/30 px-3 text-primary hover:text-primary sm:px-4" onClick={() => { setClipTitle(`${video.title} · Clip`); setClipStart(0); setClipEnd(Math.min(video.durationSeconds || 30, 30)); }}>
                   <Clapperboard className="w-4 h-4" />
-                  <span>Make Clip</span>
+                  <span className="hidden sm:inline">Make Clip</span>
                 </Button>
               )}
             </div>
