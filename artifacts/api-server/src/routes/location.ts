@@ -1,26 +1,29 @@
-import { Router, type IRouter } from "express";
-import type { Request, Response } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 
 const router: IRouter = Router();
 
 /**
- * GET /location
- * Returns the caller's IP address and resolves it to city/region/country
- * using the ip-api.com free tier (no key required, 45 req/min limit).
- * Used on the login page and enforced before going live.
+ * GET /location?resolve=true
+ *
+ * Location is entirely optional. By default this endpoint returns no location
+ * data and never sends a visitor address to a third party. A client must make
+ * an explicit opt-in request with resolve=true before a coarse city, region,
+ * and country lookup is attempted. IP addresses are never returned to the
+ * browser and are not persisted by this endpoint.
  */
 router.get("/location", async (req: Request, res: Response): Promise<void> => {
-  // Resolve real IP — Render/Cloudflare forward via X-Forwarded-For.
+  const shouldResolve = req.query.resolve === "true";
+  if (!shouldResolve) {
+    res.json({ city: null, region: null, country: null, lat: null, lon: null, resolved: false, optional: true });
+    return;
+  }
+
   const forwarded = req.headers["x-forwarded-for"];
   const rawIp =
     (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0]?.trim()) ??
     req.socket.remoteAddress ??
     "";
-
-  // Strip IPv6 loopback prefix so localhost dev works.
   const ip = rawIp.replace(/^::ffff:/, "");
-
-  // For local/private IPs return a placeholder rather than calling the API.
   const isPrivate =
     !ip ||
     ip === "127.0.0.1" ||
@@ -30,7 +33,7 @@ router.get("/location", async (req: Request, res: Response): Promise<void> => {
     /^172\.(1[6-9]|2\d|3[01])\./.test(ip);
 
   if (isPrivate) {
-    res.json({ ip, city: null, region: null, country: null, lat: null, lon: null, resolved: false });
+    res.json({ city: null, region: null, country: null, lat: null, lon: null, resolved: false, optional: true });
     return;
   }
 
@@ -39,7 +42,7 @@ router.get("/location", async (req: Request, res: Response): Promise<void> => {
       `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,city,regionName,country,lat,lon`,
       { signal: AbortSignal.timeout(4000) },
     );
-    if (!apiRes.ok) throw new Error(`ip-api HTTP ${apiRes.status}`);
+    if (!apiRes.ok) throw new Error(`location lookup HTTP ${apiRes.status}`);
     const data = (await apiRes.json()) as {
       status: string;
       city?: string;
@@ -50,20 +53,21 @@ router.get("/location", async (req: Request, res: Response): Promise<void> => {
     };
     if (data.status === "success") {
       res.json({
-        ip,
         city: data.city ?? null,
         region: data.regionName ?? null,
         country: data.country ?? null,
         lat: data.lat ?? null,
         lon: data.lon ?? null,
         resolved: true,
+        optional: true,
       });
-    } else {
-      res.json({ ip, city: null, region: null, country: null, lat: null, lon: null, resolved: false });
+      return;
     }
   } catch {
-    res.json({ ip, city: null, region: null, country: null, lat: null, lon: null, resolved: false });
+    // Optional enrichment should never block sign-in, browsing, or streaming.
   }
+
+  res.json({ city: null, region: null, country: null, lat: null, lon: null, resolved: false, optional: true });
 });
 
 export default router;

@@ -109,13 +109,13 @@ export default function LiveHome() {
         )}
 
         <section aria-labelledby="live-now">
-          <RailHeading eyebrow="Happening now" title="Top live channels" detail={liveChannels.length ? 'Ranked by viewers with active broadcasts first.' : 'Your first broadcast will appear here the moment FastPix reports it live.'} icon={Flame} action={<Link href="/live/categories"><span className="hidden items-center gap-1 text-sm font-black text-primary hover:text-white sm:inline-flex">See all <ArrowUpRight className="h-4 w-4" /></span></Link>} />
+          <RailHeading eyebrow="Happening now" title="Top live channels" detail={liveChannels.length ? 'Ranked by viewers with active broadcasts first.' : 'Your first broadcast will appear here the moment it is live on Kryv.'} icon={Flame} action={<Link href="/live/categories"><span className="hidden items-center gap-1 text-sm font-black text-primary hover:text-white sm:inline-flex">See all <ArrowUpRight className="h-4 w-4" /></span></Link>} />
           {liveChannels.length > 0 ? (
             <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-x-5 sm:gap-y-7 sm:overflow-visible sm:px-0 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {(moreLiveChannels.length ? moreLiveChannels : liveChannels).map(channel => <div key={channel.id} className="w-[78vw] shrink-0 snap-start sm:w-auto sm:shrink"><ChannelCard channel={channel} /></div>)}
             </div>
           ) : (
-            <div className="flex flex-col items-start justify-between gap-5 rounded-2xl border border-white/[0.08] bg-gradient-to-r from-white/[0.04] to-primary/[0.06] p-5 sm:flex-row sm:items-center sm:p-7"><div><h3 className="text-lg font-black text-white">The room is ready for its first stream.</h3><p className="mt-1 text-sm text-white/50">Connect OBS with your FastPix credentials and your channel will appear here as soon as the broadcast is active.</p></div><Link href="/dashboard/live" className="shrink-0"><span className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-black text-primary transition-colors hover:bg-primary hover:text-primary-foreground">Set up your stream <ChevronRight className="h-4 w-4" /></span></Link></div>
+            <div className="flex flex-col items-start justify-between gap-5 rounded-2xl border border-white/[0.08] bg-gradient-to-r from-white/[0.04] to-primary/[0.06] p-5 sm:flex-row sm:items-center sm:p-7"><div><h3 className="text-lg font-black text-white">The room is ready for its first stream.</h3><p className="mt-1 text-sm text-white/50">Use your preferred broadcast software and your channel will appear here as soon as your broadcast is active.</p></div><Link href="/dashboard/live" className="shrink-0"><span className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-black text-primary transition-colors hover:bg-primary hover:text-primary-foreground">Set up your stream <ChevronRight className="h-4 w-4" /></span></Link></div>
           )}
         </section>
 

@@ -33,21 +33,21 @@ export default function Privacy() {
               <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
                 <h3 className="text-white font-bold text-lg mb-2">Creator Infrastructure &amp; Streaming Records</h3>
                 <p className="text-sm sm:text-base leading-relaxed">
-                  For creators broadcasting on Kryv Live, we store channel metadata, stream titles, category assignments, peak and average concurrent viewer counts, and private stream keys used exclusively for RTMPS ingest via FastPix. Operational stream lifecycle events and session metrics are stored in our secure Neon PostgreSQL database.
+                  For creators broadcasting on Kryv Live, we store channel metadata, stream titles, category assignments, peak and average concurrent viewer counts, and private stream credentials used exclusively to operate the creator’s broadcast. Operational stream lifecycle events and session metrics are stored in Kryv’s secure platform records.
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
                 <h3 className="text-white font-bold text-lg mb-2">Monetization &amp; Financial Compliance</h3>
                 <p className="text-sm sm:text-base leading-relaxed">
-                  Kryv utilizes Stripe Connect for secure creator monetization, subscriptions, and tips. We never collect, process, or store raw credit card numbers or identity verification documents on Kryv servers. Stripe handles all PCI-DSS compliant payment processing and identity verification. Kryv records only opaque provider identifiers, subscription status, payout eligibility flags, and transaction ledgers.
+                  Kryv uses vetted payment and payout service providers to support creator monetization, subscriptions, tips, and settlement. We do not collect, process, or store raw payment-card numbers or identity-verification documents on Kryv servers. These providers process payment and verification information under their own security and compliance programs; Kryv records only opaque provider identifiers, subscription status, payout eligibility flags, and transaction ledgers.
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
                 <h3 className="text-white font-bold text-lg mb-2">Engagement, Moderation &amp; Telemetry</h3>
                 <p className="text-sm sm:text-base leading-relaxed">
-                  We process chat messages, moderation actions (timeouts, bans, message deletions), channel point balances, poll votes, prediction entries, raid/host logs, follow relationships, and notification preferences. Technical telemetry includes IP-derived geographic data, device user agents, view history, and anonymous visitor sessions.
+                  We process chat messages, moderation actions (timeouts, bans, message deletions), channel point balances, poll votes, prediction entries, raid/host logs, follow relationships, and notification preferences. Technical telemetry includes device user agents, view history, and anonymous visitor sessions. Coarse location enrichment is optional, is never required to use Kryv or go live, and is performed only after an explicit request.
                 </p>
               </div>
             </div>
@@ -59,7 +59,7 @@ export default function Privacy() {
             <ul className="space-y-3 text-white/75">
               <li className="flex items-start gap-3">
                 <span className="text-primary font-bold mt-1">▪</span>
-                <span><strong className="text-white">Service Delivery:</strong> Powering low-latency HLS video playback via FastPix, real-time chat dispatch, and channel discovery ranking.</span>
+                <span><strong className="text-white">Service Delivery:</strong> Powering low-latency video playback, real-time chat dispatch, and channel discovery ranking.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-primary font-bold mt-1">▪</span>
@@ -67,7 +67,7 @@ export default function Privacy() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-primary font-bold mt-1">▪</span>
-                <span><strong className="text-white">Monetization &amp; Payouts:</strong> Administering creator revenue shares, subscription tiers, and payout compliance through Stripe Connect.</span>
+                <span><strong className="text-white">Monetization &amp; Payouts:</strong> Administering creator revenue shares, subscription tiers, and payout compliance through vetted payment service providers.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-primary font-bold mt-1">▪</span>
@@ -77,22 +77,22 @@ export default function Privacy() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">3. Data Disclosure &amp; Infrastructure Partners</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">3. Data Disclosure &amp; Service Providers</h2>
             <p className="text-white/70 leading-relaxed">
               We do not sell, rent, or monetize personal user data. Information is disclosed only to essential enterprise infrastructure partners bound by strict data protection agreements:
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
-                <p className="font-black text-white">FastPix</p>
-                <p className="text-xs text-white/40 mt-1">Video ingest, transcoding, HLS delivery &amp; clipping</p>
+                <p className="font-black text-white">Video delivery services</p>
+                <p className="text-xs text-white/40 mt-1">Broadcast ingest, transcoding, playback delivery &amp; clipping</p>
               </div>
               <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
-                <p className="font-black text-white">Neon PostgreSQL</p>
-                <p className="text-xs text-white/40 mt-1">Encrypted relational database storage</p>
+                <p className="font-black text-white">Data infrastructure services</p>
+                <p className="text-xs text-white/40 mt-1">Encrypted relational data storage</p>
               </div>
               <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
-                <p className="font-black text-white">Stripe Connect</p>
-                <p className="text-xs text-white/40 mt-1">Secure payment processing &amp; creator payouts</p>
+                <p className="font-black text-white">Payment service providers</p>
+                <p className="text-xs text-white/40 mt-1">Secure payment processing and settlement support</p>
               </div>
             </div>
           </section>

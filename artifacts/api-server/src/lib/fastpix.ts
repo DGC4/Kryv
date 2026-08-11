@@ -87,6 +87,8 @@ export async function createFastPixLiveStream(channelId: number) {
       maxResolution: "1080p",
       reconnectWindow: 60,
       mediaPolicy: "public",
+      // Persist concluded broadcasts for the existing VOD and clipping workflow.
+      enableRecording: true,
       // Preserve a small live rewind window and tag the stream for webhook recovery.
       enableDvrMode: true,
       metadata: {

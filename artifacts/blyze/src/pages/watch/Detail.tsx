@@ -28,7 +28,7 @@ export default function WatchDetail() {
       {
         onSuccess: () => {
           setClipTitle('');
-          toast({ title: 'Clip is processing', description: 'FastPix is preparing your clip. It will appear in Clips when ready.' });
+          toast({ title: 'Clip is processing', description: 'Kryv is preparing your clip. It will appear in Clips when ready.' });
         },
         onError: (err: any) => toast({ title: 'Unable to create clip', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
       },
@@ -116,7 +116,7 @@ export default function WatchDetail() {
           {video.isOwner && clipTitle && (
             <form onSubmit={requestClip} className="mt-6 p-4 sm:p-5 rounded-xl bg-primary/[0.06] border border-primary/20 space-y-4">
               <div className="flex items-center gap-2"><Clapperboard className="w-4 h-4 text-primary" /><h3 className="font-black text-white text-sm">Create a native clip</h3></div>
-              <p className="text-xs text-white/45 leading-relaxed">Select a segment up to three minutes. FastPix processes it as a new playable asset before Kryv publishes it.</p>
+              <p className="text-xs text-white/45 leading-relaxed">Select a segment up to three minutes. Kryv prepares it as a new playable asset before publishing it.</p>
               <input value={clipTitle} onChange={e => setClipTitle(e.target.value)} maxLength={100} placeholder="Clip title" className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" />
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs font-bold text-white/55">Start (seconds)<input type="number" min={0} max={Math.max(0, (video.durationSeconds || 0) - 1)} value={clipStart} onChange={e => setClipStart(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /></label>

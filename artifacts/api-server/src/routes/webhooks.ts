@@ -218,10 +218,10 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
  * secret shown in the FastPix dashboard so every event is verified.
  *
  * FastPix event types handled:
- *   video.live_stream.connected    — broadcaster connected, mark channel live
- *   video.live_stream.active       — stream is active/live
- *   video.live_stream.disconnected — broadcaster disconnected
- *   video.live_stream.idle         — stream went idle
+ *   video.live_stream.created/preparing/connected — cache playback readiness privately
+ *   video.live_stream.active       — publish the stream to Kryv viewers
+ *   video.live_stream.disconnected — retain state during the provider reconnect window
+ *   video.live_stream.idle         — conclusively end the public session
  *   video.live_stream.updated      — generic status update
  *   video.live_stream.deleted      — stream deleted
  *   video.media.created            — upload started processing
@@ -236,17 +236,17 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
   try {
     const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : String(rawBody);
 
-    if (webhookSecret) {
-      // Use FastPix SDK signature verification
-      event = fastpix.webhooks.unwrap(
-        bodyStr,
-        req.headers as Record<string, string>
-      );
-    } else {
-      // No secret configured — accept unverified (log a warning)
-      logger.warn("FASTPIX_WEBHOOK_SECRET not set — accepting FastPix webhook unverified");
-      event = JSON.parse(bodyStr);
+    if (!webhookSecret) {
+      logger.error("FASTPIX_WEBHOOK_SECRET is not configured; refusing unverifiable live-state event");
+      res.status(503).json({ error: "Live event verification is not configured" });
+      return;
     }
+
+    // Verify the unmodified raw payload before accepting a provider event.
+    event = fastpix.webhooks.unwrap(
+      bodyStr,
+      req.headers as Record<string, string>,
+    );
   } catch (err) {
     logger.warn({ err }, "Rejected FastPix webhook — signature verification failed");
     res.status(400).json({ error: "Invalid signature" });
@@ -256,7 +256,9 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
   logger.info({ type: event.type }, "Received FastPix webhook");
 
   switch (event.type) {
-    // ── Encoder connected: save the playback ID, but do not publish yet ─────
+    // ── Provisioning and encoder readiness: cache playback privately ────────
+    case "video.live_stream.created":
+    case "video.live_stream.preparing":
     case "video.live_stream.connected": {
       const liveStream = event.data ?? {};
       const streamId = liveStream.streamId ?? liveStream.id;
@@ -320,8 +322,15 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
       break;
     }
 
-    // ── Live stream went offline ───────────────────────────────────────────
-    case "video.live_stream.disconnected":
+    // ── A transient disconnect starts the provider reconnect window. Keep the
+    // current public state intact; only idle conclusively ends the broadcast. ─
+    case "video.live_stream.disconnected": {
+      const streamId = event.data?.streamId ?? event.data?.id;
+      logger.info({ streamId }, "Live encoder disconnected; retaining state during reconnect window");
+      break;
+    }
+
+    // ── The reconnect window elapsed and the live stream is conclusively off ─
     case "video.live_stream.idle": {
       const liveStream = event.data ?? {};
       const streamId = liveStream.streamId ?? liveStream.id;
@@ -365,16 +374,27 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
         logger.warn({ type: event.type }, "FastPix update event did not include a stream ID");
         break;
       }
-      const isLive = liveStream.status === "active";
+      const providerStatus = typeof liveStream.status === "string" ? liveStream.status : null;
+      const nextLiveState = providerStatus === "active" ? true : ["idle", "disabled"].includes(providerStatus ?? "") ? false : undefined;
       const [updatedChannel] = await db
         .update(channelsTable)
         .set({
-          isLive,
-          viewerCount: isLive ? (liveStream.viewerCount ?? 0) : 0,
+          ...(nextLiveState !== undefined ? { isLive: nextLiveState, viewerCount: nextLiveState ? (liveStream.viewerCount ?? 0) : 0 } : {}),
           ...(playbackId ? { fastpixPlaybackId: playbackId } : {}),
         })
         .where(eq(channelsTable.fastpixLiveStreamId, streamId))
         .returning();
+
+      if (updatedChannel && nextLiveState === false) {
+        const now = new Date();
+        await db
+          .update(streamSessionsTable)
+          .set({
+            endedAt: now,
+            durationSeconds: sql`EXTRACT(EPOCH FROM (${now.toISOString()} - started_at))::integer`,
+          })
+          .where(and(eq(streamSessionsTable.channelId, updatedChannel.id), sql`${streamSessionsTable.endedAt} IS NULL`));
+      }
 
       // FastPix reports mediaIds once a recording has been created from the live stream.
       // Create a normal Kryv VOD record so later clip requests can reference the same asset.

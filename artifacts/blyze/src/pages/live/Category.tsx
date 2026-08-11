@@ -48,7 +48,7 @@ export default function LiveCategory() {
             {channels.map(channel => <ChannelCard key={channel.id} channel={channel} />)}
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.04] to-primary/[0.06] p-6 sm:p-8"><h3 className="text-xl font-black text-white">No channels are live in {category?.name || slug} yet.</h3><p className="mt-2 max-w-xl text-sm leading-relaxed text-white/50">When a creator selects this category and FastPix reports an active broadcast, their stream will appear here automatically.</p></div>
+          <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.04] to-primary/[0.06] p-6 sm:p-8"><h3 className="text-xl font-black text-white">No channels are live in {category?.name || slug} yet.</h3><p className="mt-2 max-w-xl text-sm leading-relaxed text-white/50">When a creator selects this category and starts an active broadcast, their stream will appear here automatically.</p></div>
         )}
       </main>
     </div>

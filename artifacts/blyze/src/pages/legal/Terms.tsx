@@ -36,7 +36,7 @@ export default function Terms() {
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">2. User Content &amp; Intellectual Property Rights</h2>
             <div className="space-y-4 text-white/70">
               <p>
-                Creators retain full ownership of all live broadcasts, VOD uploads, and native clips ("User Content") they create on Kryv. By submitting User Content, you grant Kryv a worldwide, non-exclusive, royalty-free license to host, transcode via FastPix, distribute, display, and create technical clips or derivatives necessary to operate and promote the Platform.
+                Creators retain full ownership of all live broadcasts, VOD uploads, and native clips ("User Content") they create on Kryv. By submitting User Content, you grant Kryv a worldwide, non-exclusive, royalty-free license to host, transcode, distribute, display, and create technical clips or derivatives necessary to operate and promote the Platform.
               </p>
               <p>
                 You represent that you own or have secured all necessary rights to your User Content and that your broadcasts and uploads do not infringe upon third-party intellectual property or violate applicable laws.
@@ -45,10 +45,10 @@ export default function Terms() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">3. Creator Monetization &amp; Stripe Connect</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">3. Creator Monetization</h2>
             <div className="space-y-4 text-white/70">
               <p>
-                Kryv provides creator monetization features including channel subscriptions, tips, polls, and engagement mechanics. Payouts and creator financial onboarding are managed securely via Stripe Connect. Creators must complete Stripe’s verification requirements to receive payouts. Kryv deducts applicable platform service fees as configured in creator dashboards prior to settlement.
+                Kryv provides creator monetization features including channel subscriptions, tips, polls, and engagement mechanics. Payments, settlement, and any creator verification are handled through approved payment service providers when those features are enabled. Creators must complete any required verification before payouts can be requested. Kryv deducts applicable platform service fees as configured in creator dashboards prior to settlement.
               </p>
             </div>
           </section>
@@ -72,7 +72,7 @@ export default function Terms() {
           <section className="space-y-4">
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">5. Limitation of Liability &amp; Disclaimers</h2>
             <p className="text-white/70 leading-relaxed">
-              The Service is provided on an "as is" and "as available" basis without warranties of any kind. Kryv, its officers, infrastructure partners (FastPix, Neon, Render), and affiliates disclaim all warranties, express or implied. Kryv shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your use of or inability to use the Platform.
+              The Service is provided on an "as is" and "as available" basis without warranties of any kind. Kryv, its officers, service providers, and affiliates disclaim all warranties, express or implied. Kryv shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your use of or inability to use the Platform.
             </p>
           </section>
 
