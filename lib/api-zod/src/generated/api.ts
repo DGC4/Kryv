@@ -21,7 +21,7 @@ export const HealthCheckResponse = zod.object({
  * @summary Get current user profile, own channel, and followed channels
  */
 export const GetMeResponse = zod.object({
-  "id": zod.string(),
+  "id": zod.number(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),
@@ -662,7 +662,7 @@ export const GetAdminStatsResponse = zod.object({
  * @summary Owner-only user list
  */
 export const ListAdminUsersResponseItem = zod.object({
-  "id": zod.string(),
+  "id": zod.number(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),
@@ -684,7 +684,7 @@ export const UpdateAdminUserBody = zod.object({
 })
 
 export const UpdateAdminUserResponse = zod.object({
-  "id": zod.string(),
+  "id": zod.number(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),
