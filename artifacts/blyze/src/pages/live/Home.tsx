@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/lib/auth-store';
+import { useGetDiscoverSummary, useListCategories, useListFollowedLiveChannels } from '@workspace/api-client-react';
 import { ChannelCard } from '@/components/ChannelCard';
 import { Link } from 'wouter';
 import {
