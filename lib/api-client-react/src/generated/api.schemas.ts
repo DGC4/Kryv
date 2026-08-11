@@ -520,6 +520,275 @@ export interface ChatMessageInput {
   message: string;
 }
 
+export type AdminCinemaTitlePublishState = typeof AdminCinemaTitlePublishState[keyof typeof AdminCinemaTitlePublishState];
+
+
+export const AdminCinemaTitlePublishState = {
+  draft: 'draft',
+  review: 'review',
+  published: 'published',
+  archived: 'archived',
+} as const;
+
+export type AdminCinemaTitleMaturityLevel = typeof AdminCinemaTitleMaturityLevel[keyof typeof AdminCinemaTitleMaturityLevel];
+
+
+export const AdminCinemaTitleMaturityLevel = {
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
+} as const;
+
+export interface AdminCinemaTitle {
+  id: number;
+  slug: string;
+  title: string;
+  /** @nullable */
+  synopsis: string | null;
+  publishState: AdminCinemaTitlePublishState;
+  maturityLevel: AdminCinemaTitleMaturityLevel;
+  editorialRank: number;
+  adEligible: boolean;
+  /** @nullable */
+  posterUrl?: string | null;
+  /** @nullable */
+  backdropUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AdminCinemaTitleInputMaturityLevel = typeof AdminCinemaTitleInputMaturityLevel[keyof typeof AdminCinemaTitleInputMaturityLevel];
+
+
+export const AdminCinemaTitleInputMaturityLevel = {
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
+} as const;
+
+export interface AdminCinemaTitleInput {
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  title: string;
+  /** @maxLength 5000 */
+  synopsis?: string;
+  /** @maxLength 2048 */
+  posterUrl?: string;
+  /** @maxLength 2048 */
+  backdropUrl?: string;
+  maturityLevel?: AdminCinemaTitleInputMaturityLevel;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  rightsReference: string;
+  /**
+     * @items.minLength 2
+     * @items.maxLength 3
+     */
+  territoryCodes?: string[];
+}
+
+export type AdminCinemaAssetAssetKind = typeof AdminCinemaAssetAssetKind[keyof typeof AdminCinemaAssetAssetKind];
+
+
+export const AdminCinemaAssetAssetKind = {
+  feature: 'feature',
+  trailer: 'trailer',
+  preview: 'preview',
+  captions: 'captions',
+} as const;
+
+export type AdminCinemaAssetProcessingStatus = typeof AdminCinemaAssetProcessingStatus[keyof typeof AdminCinemaAssetProcessingStatus];
+
+
+export const AdminCinemaAssetProcessingStatus = {
+  waiting: 'waiting',
+  processing: 'processing',
+  ready: 'ready',
+  errored: 'errored',
+} as const;
+
+export interface AdminCinemaAsset {
+  id: number;
+  cinemaTitleId: number;
+  assetKind: AdminCinemaAssetAssetKind;
+  processingStatus: AdminCinemaAssetProcessingStatus;
+  /** @nullable */
+  fastpixMediaId?: string | null;
+  /** @nullable */
+  fastpixPlaybackId: string | null;
+}
+
+export type AdminCinemaAssetInputAssetKind = typeof AdminCinemaAssetInputAssetKind[keyof typeof AdminCinemaAssetInputAssetKind];
+
+
+export const AdminCinemaAssetInputAssetKind = {
+  feature: 'feature',
+  trailer: 'trailer',
+  preview: 'preview',
+  captions: 'captions',
+} as const;
+
+export interface AdminCinemaAssetInput {
+  assetKind: AdminCinemaAssetInputAssetKind;
+  fastpixMediaId?: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  fastpixPlaybackId: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  sourceProvenance: string;
+  /** @minimum 0 */
+  durationSeconds?: number;
+}
+
+export interface AdCreativeSummary {
+  id: number;
+  label: string;
+  creativeType: string;
+  assetUrl: string;
+  /** @nullable */
+  durationSeconds: number | null;
+  /** @nullable */
+  landingUrl: string | null;
+}
+
+export type AdBreakSurface = typeof AdBreakSurface[keyof typeof AdBreakSurface];
+
+
+export const AdBreakSurface = {
+  live: 'live',
+  watch: 'watch',
+  cinema: 'cinema',
+  clip: 'clip',
+} as const;
+
+export type AdBreakTriggerType = typeof AdBreakTriggerType[keyof typeof AdBreakTriggerType];
+
+
+export const AdBreakTriggerType = {
+  scheduled: 'scheduled',
+  creator: 'creator',
+  system: 'system',
+} as const;
+
+export type AdBreakStatus = typeof AdBreakStatus[keyof typeof AdBreakStatus];
+
+
+export const AdBreakStatus = {
+  scheduled: 'scheduled',
+  serving: 'serving',
+  completed: 'completed',
+  deferred: 'deferred',
+  cancelled: 'cancelled',
+} as const;
+
+export interface AdBreak {
+  id: number;
+  surface: AdBreakSurface;
+  triggerType: AdBreakTriggerType;
+  status: AdBreakStatus;
+  /** @nullable */
+  scheduledAt: string | null;
+  /** @nullable */
+  maxPodDurationSeconds: number | null;
+}
+
+export interface AdDecision {
+  eligible: boolean;
+  reason: string;
+  adBreak: AdBreak | null;
+  creative: AdCreativeSummary | null;
+}
+
+export type AdBreakInputAction = typeof AdBreakInputAction[keyof typeof AdBreakInputAction];
+
+
+export const AdBreakInputAction = {
+  schedule: 'schedule',
+  trigger: 'trigger',
+  defer: 'defer',
+} as const;
+
+export interface AdBreakInput {
+  action: AdBreakInputAction;
+  scheduledAt?: string;
+}
+
+export type ViewerProfileMaturityLevel = typeof ViewerProfileMaturityLevel[keyof typeof ViewerProfileMaturityLevel];
+
+
+export const ViewerProfileMaturityLevel = {
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
+} as const;
+
+export interface ViewerProfile {
+  id: number;
+  name: string;
+  /** @nullable */
+  avatarUrl: string | null;
+  maturityLevel: ViewerProfileMaturityLevel;
+  isKidsProfile: boolean;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export type ViewerProfileInputMaturityLevel = typeof ViewerProfileInputMaturityLevel[keyof typeof ViewerProfileInputMaturityLevel];
+
+
+export const ViewerProfileInputMaturityLevel = {
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
+} as const;
+
+export interface ViewerProfileInput {
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  name: string;
+  /** @maxLength 2048 */
+  avatarUrl?: string;
+  maturityLevel?: ViewerProfileInputMaturityLevel;
+  isKidsProfile?: boolean;
+  isDefault?: boolean;
+}
+
+export type ViewerProfileUpdateMaturityLevel = typeof ViewerProfileUpdateMaturityLevel[keyof typeof ViewerProfileUpdateMaturityLevel];
+
+
+export const ViewerProfileUpdateMaturityLevel = {
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
+} as const;
+
+export interface ViewerProfileUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  name?: string;
+  /**
+     * @maxLength 2048
+     * @nullable
+     */
+  avatarUrl?: string | null;
+  maturityLevel?: ViewerProfileUpdateMaturityLevel;
+  isKidsProfile?: boolean;
+  isDefault?: boolean;
+}
+
 export type MeRole = typeof MeRole[keyof typeof MeRole];
 
 
@@ -556,7 +825,7 @@ export const AdminUserRole = {
 } as const;
 
 export interface AdminUser {
-  id: string;
+  id: number;
   username: string;
   /** @nullable */
   avatarUrl: string | null;
@@ -575,6 +844,23 @@ export interface DiscoverSummary {
   totalLiveChannels: number;
   totalViewers: number;
 }
+
+export type GetAdDecisionParams = {
+surface: GetAdDecisionSurface;
+channelId?: number;
+videoId?: number;
+profileId?: number;
+};
+
+export type GetAdDecisionSurface = typeof GetAdDecisionSurface[keyof typeof GetAdDecisionSurface];
+
+
+export const GetAdDecisionSurface = {
+  live: 'live',
+  watch: 'watch',
+  cinema: 'cinema',
+  clip: 'clip',
+} as const;
 
 export type ListCategoriesParams = {
 kind?: ListCategoriesKind;

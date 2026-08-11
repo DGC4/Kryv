@@ -6,6 +6,24 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './adBreak';
+export * from './adBreakInput';
+export * from './adBreakInputAction';
+export * from './adBreakStatus';
+export * from './adBreakSurface';
+export * from './adBreakTriggerType';
+export * from './adCreativeSummary';
+export * from './adDecision';
+export * from './adminCinemaAsset';
+export * from './adminCinemaAssetAssetKind';
+export * from './adminCinemaAssetInput';
+export * from './adminCinemaAssetInputAssetKind';
+export * from './adminCinemaAssetProcessingStatus';
+export * from './adminCinemaTitle';
+export * from './adminCinemaTitleInput';
+export * from './adminCinemaTitleInputMaturityLevel';
+export * from './adminCinemaTitleMaturityLevel';
+export * from './adminCinemaTitlePublishState';
 export * from './adminStats';
 export * from './adminUser';
 export * from './adminUserRole';
@@ -44,6 +62,8 @@ export * from './clipSummary';
 export * from './clipSummaryProcessingStatus';
 export * from './discoverSummary';
 export * from './error';
+export * from './getAdDecisionParams';
+export * from './getAdDecisionSurface';
 export * from './healthStatus';
 export * from './listCategoriesKind';
 export * from './listCategoriesParams';
@@ -66,3 +86,9 @@ export * from './videoSummary';
 export * from './videoSummaryContentType';
 export * from './videoSummaryUploadStatus';
 export * from './videoUpdate';
+export * from './viewerProfile';
+export * from './viewerProfileInput';
+export * from './viewerProfileInputMaturityLevel';
+export * from './viewerProfileMaturityLevel';
+export * from './viewerProfileUpdate';
+export * from './viewerProfileUpdateMaturityLevel';

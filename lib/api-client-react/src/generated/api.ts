@@ -20,6 +20,13 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdBreak,
+  AdBreakInput,
+  AdDecision,
+  AdminCinemaAsset,
+  AdminCinemaAssetInput,
+  AdminCinemaTitle,
+  AdminCinemaTitleInput,
   AdminStats,
   AdminUser,
   AdminUserUpdate,
@@ -46,6 +53,7 @@ import type {
   ClipSummary,
   DiscoverSummary,
   Error,
+  GetAdDecisionParams,
   HealthStatus,
   ListCategoriesParams,
   ListChannelsParams,
@@ -61,7 +69,10 @@ import type {
   VideoDetail,
   VideoInput,
   VideoSummary,
-  VideoUpdate
+  VideoUpdate,
+  ViewerProfile,
+  ViewerProfileInput,
+  ViewerProfileUpdate
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -245,6 +256,673 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Err
 
 
 
+
+export const getListViewerProfilesUrl = () => {
+
+
+
+
+  return `/api/me/profiles`
+}
+
+/**
+ * @summary List the signed-in user's viewer profiles for profile-aware Cinema and watch state
+ */
+export const listViewerProfiles = async ( options?: RequestInit): Promise<ViewerProfile[]> => {
+
+  return customFetch<ViewerProfile[]>(getListViewerProfilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListViewerProfilesQueryKey = () => {
+    return [
+    `/api/me/profiles`
+    ] as const;
+    }
+
+
+export const getListViewerProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listViewerProfiles>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listViewerProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListViewerProfilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listViewerProfiles>>> = ({ signal }) => listViewerProfiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listViewerProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListViewerProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof listViewerProfiles>>>
+export type ListViewerProfilesQueryError = ErrorType<Error>
+
+
+/**
+ * @summary List the signed-in user's viewer profiles for profile-aware Cinema and watch state
+ */
+
+export function useListViewerProfiles<TData = Awaited<ReturnType<typeof listViewerProfiles>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listViewerProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListViewerProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateViewerProfileUrl = () => {
+
+
+
+
+  return `/api/me/profiles`
+}
+
+/**
+ * @summary Create a viewer profile for the signed-in user
+ */
+export const createViewerProfile = async (viewerProfileInput: ViewerProfileInput, options?: RequestInit): Promise<ViewerProfile> => {
+
+  return customFetch<ViewerProfile>(getCreateViewerProfileUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(viewerProfileInput)
+  }
+);}
+
+
+
+
+
+export const getCreateViewerProfileMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createViewerProfile>>, TError,{data: BodyType<ViewerProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createViewerProfile>>, TError,{data: BodyType<ViewerProfileInput>}, TContext> => {
+
+const mutationKey = ['createViewerProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createViewerProfile>>, {data: BodyType<ViewerProfileInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createViewerProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateViewerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof createViewerProfile>>>
+    export type CreateViewerProfileMutationBody = BodyType<ViewerProfileInput>
+    export type CreateViewerProfileMutationError = ErrorType<Error>
+
+    /**
+ * @summary Create a viewer profile for the signed-in user
+ */
+export const useCreateViewerProfile = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createViewerProfile>>, TError,{data: BodyType<ViewerProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createViewerProfile>>,
+        TError,
+        {data: BodyType<ViewerProfileInput>},
+        TContext
+      > => {
+      return useMutation(getCreateViewerProfileMutationOptions(options));
+    }
+
+export const getUpdateViewerProfileUrl = (id: number,) => {
+
+
+
+
+  return `/api/me/profiles/${id}`
+}
+
+/**
+ * @summary Update a viewer profile owned by the signed-in user
+ */
+export const updateViewerProfile = async (id: number,
+    viewerProfileUpdate: ViewerProfileUpdate, options?: RequestInit): Promise<ViewerProfile> => {
+
+  return customFetch<ViewerProfile>(getUpdateViewerProfileUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(viewerProfileUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateViewerProfileMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateViewerProfile>>, TError,{id: number;data: BodyType<ViewerProfileUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateViewerProfile>>, TError,{id: number;data: BodyType<ViewerProfileUpdate>}, TContext> => {
+
+const mutationKey = ['updateViewerProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateViewerProfile>>, {id: number;data: BodyType<ViewerProfileUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateViewerProfile(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateViewerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateViewerProfile>>>
+    export type UpdateViewerProfileMutationBody = BodyType<ViewerProfileUpdate>
+    export type UpdateViewerProfileMutationError = ErrorType<Error>
+
+    /**
+ * @summary Update a viewer profile owned by the signed-in user
+ */
+export const useUpdateViewerProfile = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateViewerProfile>>, TError,{id: number;data: BodyType<ViewerProfileUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateViewerProfile>>,
+        TError,
+        {id: number;data: BodyType<ViewerProfileUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateViewerProfileMutationOptions(options));
+    }
+
+export const getDeleteViewerProfileUrl = (id: number,) => {
+
+
+
+
+  return `/api/me/profiles/${id}`
+}
+
+/**
+ * @summary Delete a non-default viewer profile owned by the signed-in user
+ */
+export const deleteViewerProfile = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteViewerProfileUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteViewerProfileMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteViewerProfile>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteViewerProfile>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteViewerProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteViewerProfile>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteViewerProfile(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteViewerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof deleteViewerProfile>>>
+
+    export type DeleteViewerProfileMutationError = ErrorType<Error>
+
+    /**
+ * @summary Delete a non-default viewer profile owned by the signed-in user
+ */
+export const useDeleteViewerProfile = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteViewerProfile>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteViewerProfile>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteViewerProfileMutationOptions(options));
+    }
+
+export const getGetAdDecisionUrl = (params: GetAdDecisionParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/ads/decision?${stringifiedParams}` : `/api/ads/decision`
+}
+
+/**
+ * @summary Evaluate whether a viewer session may receive a policy-eligible ad opportunity
+ */
+export const getAdDecision = async (params: GetAdDecisionParams, options?: RequestInit): Promise<AdDecision> => {
+
+  return customFetch<AdDecision>(getGetAdDecisionUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdDecisionQueryKey = (params?: GetAdDecisionParams,) => {
+    return [
+    `/api/ads/decision`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdDecisionQueryOptions = <TData = Awaited<ReturnType<typeof getAdDecision>>, TError = ErrorType<unknown>>(params: GetAdDecisionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdDecision>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdDecisionQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdDecision>>> = ({ signal }) => getAdDecision(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdDecision>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdDecisionQueryResult = NonNullable<Awaited<ReturnType<typeof getAdDecision>>>
+export type GetAdDecisionQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Evaluate whether a viewer session may receive a policy-eligible ad opportunity
+ */
+
+export function useGetAdDecision<TData = Awaited<ReturnType<typeof getAdDecision>>, TError = ErrorType<unknown>>(
+ params: GetAdDecisionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdDecision>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdDecisionQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateChannelAdBreakUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/ad-breaks`
+}
+
+/**
+ * @summary Schedule or trigger an eligible creator ad break after server-side policy checks
+ */
+export const createChannelAdBreak = async (id: number,
+    adBreakInput: AdBreakInput, options?: RequestInit): Promise<AdBreak> => {
+
+  return customFetch<AdBreak>(getCreateChannelAdBreakUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adBreakInput)
+  }
+);}
+
+
+
+
+
+export const getCreateChannelAdBreakMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelAdBreak>>, TError,{id: number;data: BodyType<AdBreakInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChannelAdBreak>>, TError,{id: number;data: BodyType<AdBreakInput>}, TContext> => {
+
+const mutationKey = ['createChannelAdBreak'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChannelAdBreak>>, {id: number;data: BodyType<AdBreakInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createChannelAdBreak(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChannelAdBreakMutationResult = NonNullable<Awaited<ReturnType<typeof createChannelAdBreak>>>
+    export type CreateChannelAdBreakMutationBody = BodyType<AdBreakInput>
+    export type CreateChannelAdBreakMutationError = ErrorType<Error>
+
+    /**
+ * @summary Schedule or trigger an eligible creator ad break after server-side policy checks
+ */
+export const useCreateChannelAdBreak = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelAdBreak>>, TError,{id: number;data: BodyType<AdBreakInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createChannelAdBreak>>,
+        TError,
+        {id: number;data: BodyType<AdBreakInput>},
+        TContext
+      > => {
+      return useMutation(getCreateChannelAdBreakMutationOptions(options));
+    }
+
+export const getListAdminCinemaTitlesUrl = () => {
+
+
+
+
+  return `/api/admin/cinema/titles`
+}
+
+/**
+ * @summary List owner-managed Cinema titles and their publishing state
+ */
+export const listAdminCinemaTitles = async ( options?: RequestInit): Promise<AdminCinemaTitle[]> => {
+
+  return customFetch<AdminCinemaTitle[]>(getListAdminCinemaTitlesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminCinemaTitlesQueryKey = () => {
+    return [
+    `/api/admin/cinema/titles`
+    ] as const;
+    }
+
+
+export const getListAdminCinemaTitlesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminCinemaTitlesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminCinemaTitles>>> = ({ signal }) => listAdminCinemaTitles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminCinemaTitlesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminCinemaTitles>>>
+export type ListAdminCinemaTitlesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List owner-managed Cinema titles and their publishing state
+ */
+
+export function useListAdminCinemaTitles<TData = Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminCinemaTitlesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminCinemaTitleUrl = () => {
+
+
+
+
+  return `/api/admin/cinema/titles`
+}
+
+/**
+ * @summary Create a lawful Cinema title draft before rights and assets are approved
+ */
+export const createAdminCinemaTitle = async (adminCinemaTitleInput: AdminCinemaTitleInput, options?: RequestInit): Promise<AdminCinemaTitle> => {
+
+  return customFetch<AdminCinemaTitle>(getCreateAdminCinemaTitleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminCinemaTitleInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminCinemaTitleMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaTitle>>, TError,{data: BodyType<AdminCinemaTitleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaTitle>>, TError,{data: BodyType<AdminCinemaTitleInput>}, TContext> => {
+
+const mutationKey = ['createAdminCinemaTitle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminCinemaTitle>>, {data: BodyType<AdminCinemaTitleInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminCinemaTitle(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminCinemaTitleMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminCinemaTitle>>>
+    export type CreateAdminCinemaTitleMutationBody = BodyType<AdminCinemaTitleInput>
+    export type CreateAdminCinemaTitleMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a lawful Cinema title draft before rights and assets are approved
+ */
+export const useCreateAdminCinemaTitle = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaTitle>>, TError,{data: BodyType<AdminCinemaTitleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminCinemaTitle>>,
+        TError,
+        {data: BodyType<AdminCinemaTitleInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminCinemaTitleMutationOptions(options));
+    }
+
+export const getCreateAdminCinemaAssetUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/cinema/titles/${id}/assets`
+}
+
+/**
+ * @summary Associate an approved FastPix feature, trailer, preview, or caption asset with a Cinema title
+ */
+export const createAdminCinemaAsset = async (id: number,
+    adminCinemaAssetInput: AdminCinemaAssetInput, options?: RequestInit): Promise<AdminCinemaAsset> => {
+
+  return customFetch<AdminCinemaAsset>(getCreateAdminCinemaAssetUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminCinemaAssetInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminCinemaAssetMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaAsset>>, TError,{id: number;data: BodyType<AdminCinemaAssetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaAsset>>, TError,{id: number;data: BodyType<AdminCinemaAssetInput>}, TContext> => {
+
+const mutationKey = ['createAdminCinemaAsset'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminCinemaAsset>>, {id: number;data: BodyType<AdminCinemaAssetInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createAdminCinemaAsset(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminCinemaAssetMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminCinemaAsset>>>
+    export type CreateAdminCinemaAssetMutationBody = BodyType<AdminCinemaAssetInput>
+    export type CreateAdminCinemaAssetMutationError = ErrorType<void>
+
+    /**
+ * @summary Associate an approved FastPix feature, trailer, preview, or caption asset with a Cinema title
+ */
+export const useCreateAdminCinemaAsset = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaAsset>>, TError,{id: number;data: BodyType<AdminCinemaAssetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminCinemaAsset>>,
+        TError,
+        {id: number;data: BodyType<AdminCinemaAssetInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminCinemaAssetMutationOptions(options));
+    }
 
 export const getListCategoriesUrl = (params?: ListCategoriesParams,) => {
   const normalizedParams = new URLSearchParams();

@@ -11,11 +11,14 @@ import {
   useUpdateChannelChatSettings,
   useGetChannelEngagement,
   useCreateChannelEngagementAction,
-  useGetChannelMonetizationStatus,
-  useCreateChannelMonetizationOnboardingLink,
   useGetNotificationPreferences,
   useUpdateNotificationPreferences,
   useListCategories,
+  useListVideos,
+  useSearchKryv,
+  useListChannelMessages,
+  useCreateChannelMessage,
+  useCreateChannelModerationAction,
 } from '@workspace/api-client-react';
 import HlsPlayer from '@/components/video/HlsPlayer';
 import { Button } from '@/components/ui/button';
@@ -25,6 +28,7 @@ import {
   Settings, BarChart2, Users, MessageSquare, Eye, EyeOff,
   ChevronRight, Lock, Unlock, Globe, Signal, CreditCard,
   Zap, Shield, Crown, Trophy, Vote, Sparkles, Swords, RadioTower, Bell,
+  Clapperboard, Library, Search, X, LayoutDashboard, Send, Trash2, Clock3, Ban,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -144,7 +148,7 @@ function useIpLocation() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type DashTab = 'stream' | 'settings' | 'engagement' | 'analytics';
+type DashTab = 'stream' | 'content' | 'settings' | 'engagement' | 'analytics';
 
 export default function DashboardLive() {
   const [, navigate] = useLocation();
@@ -176,8 +180,10 @@ export default function DashboardLive() {
   const [predictionOutcomes, setPredictionOutcomes] = useState('');
   const [rewardTitle, setRewardTitle] = useState('');
   const [rewardCost, setRewardCost] = useState(100);
-  const [targetChannelId, setTargetChannelId] = useState('');
+  const [destinationSearch, setDestinationSearch] = useState('');
+  const [selectedDestination, setSelectedDestination] = useState<{ id: number; displayName: string; isLive: boolean; categoryName: string | null } | null>(null);
   const [notificationPrefs, setNotificationPrefs] = useState({ notifyOnLive: true, notifyOnUpload: true, notifyOnClip: false, emailNotifications: false });
+  const [studioChatMessage, setStudioChatMessage] = useState('');
   const { location } = useIpLocation();
   const { data: chatSettings } = useGetChannelChatSettings(me?.channel?.id ?? 0, {
     query: { enabled: Boolean(me?.channel) },
@@ -187,10 +193,6 @@ export default function DashboardLive() {
     query: { enabled: Boolean(me?.channel && activeTab === 'engagement'), refetchInterval: activeTab === 'engagement' ? 10000 : false },
   });
   const engagementAction = useCreateChannelEngagementAction();
-  const { data: monetizationStatus, refetch: refetchMonetizationStatus } = useGetChannelMonetizationStatus(me?.channel?.id ?? 0, {
-    query: { enabled: Boolean(me?.channel && activeTab === 'settings') },
-  });
-  const createOnboardingLink = useCreateChannelMonetizationOnboardingLink();
   const { data: savedNotificationPrefs } = useGetNotificationPreferences({ query: { enabled: activeTab === 'settings' } });
   const updateNotificationPrefs = useUpdateNotificationPreferences();
   const { data: analytics, isLoading: analyticsLoading } = useGetChannelAnalytics(
@@ -201,6 +203,21 @@ export default function DashboardLive() {
         refetchInterval: activeTab === 'analytics' ? 15000 : false,
       },
     },
+  );
+  const { data: creatorVideos, isLoading: creatorVideosLoading } = useListVideos(
+    { channelId: me?.channel?.id },
+    { query: { enabled: Boolean(me?.channel && activeTab === 'content') } },
+  );
+  const { data: studioMessages, refetch: refetchStudioMessages } = useListChannelMessages(
+    me?.channel?.id ?? 0,
+    { query: { enabled: Boolean(me?.channel && activeTab === 'stream'), refetchInterval: activeTab === 'stream' ? 5000 : false } },
+  );
+  const createStudioMessage = useCreateChannelMessage();
+  const studioModerationAction = useCreateChannelModerationAction();
+  const normalizedDestinationSearch = destinationSearch.trim();
+  const { data: destinationSearchResults, isFetching: isDestinationSearching } = useSearchKryv(
+    { q: normalizedDestinationSearch },
+    { query: { enabled: activeTab === 'engagement' && normalizedDestinationSearch.length >= 2 } },
   );
 
   // Auto-fetch credentials on mount if channel exists
@@ -307,23 +324,6 @@ export default function DashboardLive() {
     );
   };
 
-  const handleStartStripeOnboarding = () => {
-    const channel = me?.channel;
-    if (!channel) return;
-    createOnboardingLink.mutate(
-      { id: channel.id },
-      {
-        onSuccess: (data) => {
-          refetchMonetizationStatus();
-          // Account Links are short-lived and contain access to the creator's Stripe profile.
-          // Navigate only after the owner deliberately initiated this action in Kryv.
-          window.location.assign(data.url);
-        },
-        onError: (err: any) => toast({ title: 'Payout onboarding is not ready', description: err?.body?.error || err?.message || 'Please try again after Stripe is configured.', variant: 'destructive' }),
-      },
-    );
-  };
-
   const handleSaveNotificationPreferences = () => {
     updateNotificationPrefs.mutate(
       { data: notificationPrefs },
@@ -347,6 +347,44 @@ export default function DashboardLive() {
       {
         onSuccess: () => toast({ title: 'Chat safety settings saved', description: 'Your chat participation rules are now active.' }),
         onError: (err: any) => toast({ title: 'Unable to update chat settings', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleStudioChatSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const channel = me?.channel;
+    const message = studioChatMessage.trim();
+    if (!channel || !message) return;
+    createStudioMessage.mutate(
+      { id: channel.id, data: { message } },
+      {
+        onSuccess: () => {
+          setStudioChatMessage('');
+          refetchStudioMessages();
+        },
+        onError: (err: any) => toast({ title: 'Unable to send message', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleStudioModeration = (action: 'delete_message' | 'timeout' | 'ban', message: { id: number; userId: string; username: string }) => {
+    const channel = me?.channel;
+    const targetUserId = Number(message.userId);
+    if (!channel || !Number.isSafeInteger(targetUserId) || targetUserId < 1) return;
+    studioModerationAction.mutate(
+      {
+        id: channel.id,
+        data: action === 'delete_message'
+          ? { action, messageId: message.id }
+          : { action, targetUserId, ...(action === 'timeout' ? { durationSeconds: 600 } : {}) },
+      },
+      {
+        onSuccess: () => {
+          refetchStudioMessages();
+          toast({ title: action === 'delete_message' ? 'Message removed' : action === 'timeout' ? `${message.username} timed out for 10 minutes` : `${message.username} banned from chat` });
+        },
+        onError: (err: any) => toast({ title: 'Moderation action failed', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
       },
     );
   };
@@ -391,6 +429,10 @@ export default function DashboardLive() {
   }, [me?.channel, resetStream, toast]);
 
   const handleGoLive = () => {
+    if (me?.channel?.isLive) {
+      navigate(`/live/${me.channel.slug}`);
+      return;
+    }
     if (!credentials) {
       toast({
         title: 'Generate your stream key first',
@@ -451,7 +493,7 @@ export default function DashboardLive() {
             </span>
             <span className="text-white/20 mx-1">·</span>
             <Globe className="w-3 h-3" />
-            <span className="font-mono text-xs">{location.ip}</span>
+            <span className="text-xs">Approximate region</span>
           </div>
         )}
 
@@ -496,10 +538,11 @@ export default function DashboardLive() {
       {/* ── Left sidebar ── */}
       <aside className="hidden lg:flex flex-col w-52 shrink-0 border-r border-white/[0.06] bg-black/20 px-3 py-5 gap-1">
         <p className="text-[10px] font-black text-white/25 uppercase tracking-widest px-3 mb-2">Creator</p>
-        <SidebarItem icon={Signal}    label="Stream"    active={activeTab === 'stream'}    onClick={() => setActiveTab('stream')} />
-        <SidebarItem icon={Settings}  label="Settings"  active={activeTab === 'settings'}  onClick={() => setActiveTab('settings')} />
-        <SidebarItem icon={Sparkles}  label="Engagement" active={activeTab === 'engagement'} onClick={() => setActiveTab('engagement')} />
+        <SidebarItem icon={LayoutDashboard} label="Stream Manager" active={activeTab === 'stream'} onClick={() => setActiveTab('stream')} />
+        <SidebarItem icon={Library} label="Content" active={activeTab === 'content'} onClick={() => setActiveTab('content')} />
+        <SidebarItem icon={Sparkles} label="Community" active={activeTab === 'engagement'} onClick={() => setActiveTab('engagement')} />
         <SidebarItem icon={BarChart2} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
+        <SidebarItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
 
         {/* Location pill at bottom of sidebar */}
         <div className="mt-auto pt-4 border-t border-white/[0.06]">
@@ -512,7 +555,7 @@ export default function DashboardLive() {
               <p className="text-xs text-white/70 font-medium">
                 {[location.city, location.region].filter(Boolean).join(', ') || location.country || 'Unknown'}
               </p>
-              <p className="text-[10px] text-white/30 font-mono mt-0.5">{location.ip}</p>
+              <p className="text-[10px] text-white/30 mt-0.5">Approximate region only</p>
             </div>
           ) : (
             <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
@@ -550,8 +593,30 @@ export default function DashboardLive() {
               }`}
             >
               <Radio className="w-3.5 h-3.5 mr-1.5" />
-              {isLive ? 'End Stream' : 'Go Live Now'}
+              {isLive ? 'View live channel' : 'Go Live Now'}
             </Button>
+          </div>
+        </div>
+
+        <div className="lg:hidden border-b border-white/[0.06] bg-black/15 px-3 py-2 overflow-x-auto">
+          <div className="flex min-w-max gap-1">
+            {([
+              { id: 'stream', label: 'Stream', icon: LayoutDashboard },
+              { id: 'content', label: 'Content', icon: Library },
+              { id: 'engagement', label: 'Community', icon: Sparkles },
+              { id: 'analytics', label: 'Analytics', icon: BarChart2 },
+              { id: 'settings', label: 'Settings', icon: Settings },
+            ] as Array<{ id: DashTab; label: string; icon: any }>).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveTab(id)}
+                className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors ${activeTab === id ? 'bg-primary/15 text-primary' : 'text-white/45 hover:bg-white/[0.05] hover:text-white'}`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -743,6 +808,26 @@ export default function DashboardLive() {
                 )}
               </div>
 
+              <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02]">
+                <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
+                  <div className="flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /><h2 className="text-sm font-black text-white">Live chat</h2></div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Refreshes live</span>
+                </div>
+                <div className="max-h-60 min-h-36 space-y-3 overflow-y-auto px-4 py-3">
+                  {studioMessages?.length ? studioMessages.map((message) => (
+                    <div key={message.id} className="group flex gap-2.5">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-black text-primary">{message.username.slice(0, 1).toUpperCase()}</div>
+                      <div className="min-w-0 flex-1"><div className="flex items-baseline gap-2"><span className="truncate text-xs font-bold text-white">{message.username}</span><span className="text-[10px] text-white/25">{new Date(message.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span></div><p className="mt-0.5 break-words text-xs leading-relaxed text-white/65">{message.message}</p></div>
+                      {String(message.userId) !== String(me?.id) && <div className="flex shrink-0 gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"><button type="button" title="Remove message" aria-label={`Remove ${message.username}'s message`} onClick={() => handleStudioModeration('delete_message', message)} disabled={studioModerationAction.isPending} className="rounded p-1 text-white/25 hover:bg-white/[0.07] hover:text-white"><Trash2 className="h-3 w-3" /></button><button type="button" title="Timeout for 10 minutes" aria-label={`Timeout ${message.username} for 10 minutes`} onClick={() => handleStudioModeration('timeout', message)} disabled={studioModerationAction.isPending} className="rounded p-1 text-white/25 hover:bg-amber-400/10 hover:text-amber-200"><Clock3 className="h-3 w-3" /></button><button type="button" title="Ban from channel" aria-label={`Ban ${message.username} from channel`} onClick={() => handleStudioModeration('ban', message)} disabled={studioModerationAction.isPending} className="rounded p-1 text-white/25 hover:bg-red-400/10 hover:text-red-300"><Ban className="h-3 w-3" /></button></div>}
+                    </div>
+                  )) : <div className="flex min-h-28 flex-col items-center justify-center text-center"><MessageSquare className="h-6 w-6 text-white/15" /><p className="mt-2 text-xs font-medium text-white/35">Your live chat will appear here.</p></div>}
+                </div>
+                <form onSubmit={handleStudioChatSubmit} className="flex gap-2 border-t border-white/[0.07] p-3">
+                  <input value={studioChatMessage} onChange={(event) => setStudioChatMessage(event.target.value)} maxLength={500} placeholder="Send a message as the channel owner" className="min-w-0 flex-1 rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2 text-xs text-white outline-none transition-colors placeholder:text-white/25 focus:border-primary/60" />
+                  <Button type="submit" size="icon" disabled={createStudioMessage.isPending || !studioChatMessage.trim()} className="h-9 w-9 shrink-0 rounded-xl"><Send className="h-3.5 w-3.5" /></Button>
+                </form>
+              </div>
+
               {/* OBS Setup guide */}
               <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
                 <div className="flex items-center gap-2 mb-4">
@@ -793,6 +878,56 @@ export default function DashboardLive() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── Content tab ── */}
+        {activeTab === 'content' && (
+          <div className="max-w-6xl p-5">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Creator library</p>
+                <h2 className="mt-1 text-xl font-black text-white">Your published and processing video</h2>
+                <p className="mt-1 text-xs text-white/40">This library reflects your channel’s real Kryv Watch assets and FastPix processing status.</p>
+              </div>
+              <Button type="button" variant="secondary" onClick={() => navigate('/watch')} className="w-full sm:w-auto">
+                <ExternalLink className="mr-2 h-4 w-4" /> View Watch
+              </Button>
+            </div>
+
+            {creatorVideosLoading ? (
+              <div className="flex min-h-48 items-center justify-center rounded-2xl border border-white/[0.07] bg-white/[0.02]">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : creatorVideos?.length ? (
+              <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02]">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-white/[0.07] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/35 sm:grid-cols-[minmax(0,1.5fr)_0.75fr_0.7fr_0.45fr]">
+                  <span>Title</span><span className="hidden sm:block">Status</span><span className="hidden sm:block">Published</span><span className="text-right">Views</span>
+                </div>
+                <div className="divide-y divide-white/[0.06]">
+                  {creatorVideos.map((video) => {
+                    const statusClass = video.uploadStatus === 'ready' ? 'bg-emerald-400/10 text-emerald-300 border-emerald-400/20' : video.uploadStatus === 'errored' ? 'bg-red-400/10 text-red-300 border-red-400/20' : 'bg-amber-300/10 text-amber-200 border-amber-300/20';
+                    return (
+                      <div key={video.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-4 sm:grid-cols-[minmax(0,1.5fr)_0.75fr_0.7fr_0.45fr] sm:items-center">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-black/30 text-primary"><Clapperboard className="h-4 w-4" /></div>
+                          <div className="min-w-0"><p className="truncate text-sm font-bold text-white">{video.title}</p><p className="mt-0.5 text-[11px] text-white/35">{video.contentType === 'original' ? 'Cinema original' : 'Kryv Watch'} · {video.durationSeconds ? formatDuration(video.durationSeconds) : 'Processing duration'}</p></div>
+                        </div>
+                        <div className="hidden sm:block"><span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wider ${statusClass}`}>{video.uploadStatus}</span></div>
+                        <span className="hidden text-xs text-white/40 sm:block">{new Date(video.createdAt).toLocaleDateString()}</span>
+                        <span className="text-right text-sm font-black text-white">{video.viewCount.toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.015] px-6 py-14 text-center">
+                <Clapperboard className="mx-auto h-9 w-9 text-white/20" />
+                <p className="mt-4 text-sm font-bold text-white/65">Your videos will appear here after they are created for this channel.</p>
+                <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-white/35">Kryv shows the authoritative processing state, so you know whether an asset is still waiting, processing, ready, or requires attention.</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -904,20 +1039,18 @@ export default function DashboardLive() {
               <div>
                 <h2 className="text-lg font-black text-white mb-5 flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-primary" />
-                  Creator Payouts
+                  Crypto creator payouts
                 </h2>
                 <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-white">Stripe Connect verification</p>
-                      <p className="mt-1 text-xs leading-relaxed text-white/40">Kryv never collects payout or identity documents. Stripe securely verifies creators and controls the requirements for receiving subscription and tip revenue.</p>
+                      <p className="text-sm font-bold text-white">Verified crypto settlement</p>
+                      <p className="mt-1 text-xs leading-relaxed text-white/40">Kryv creates a provider invoice first and only credits a creator balance after a signed payment callback confirms the transaction. Wallet withdrawal stays unavailable until the owner completes provider configuration, supported-coin policy, and payout controls.</p>
                     </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${monetizationStatus?.onboardingStatus === 'complete' ? 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20' : 'bg-white/[0.06] text-white/45 border border-white/[0.08]'}`}>{monetizationStatus?.onboardingStatus === 'complete' ? 'Ready' : monetizationStatus?.onboardingStatus === 'restricted' ? 'Action needed' : 'Not started'}</span>
+                    <span className="shrink-0 rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-200">Activation pending</span>
                   </div>
-                  {monetizationStatus?.requirementsDue?.length ? <p className="mt-3 text-xs text-amber-300/80">Stripe still requires: {monetizationStatus.requirementsDue.join(', ')}</p> : null}
-                  <Button type="button" onClick={handleStartStripeOnboarding} disabled={createOnboardingLink.isPending || monetizationStatus?.onboardingStatus === 'complete'} className="mt-4 font-bold rounded-xl">
-                    {createOnboardingLink.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening secure verification…</> : <><ExternalLink className="w-4 h-4 mr-2" /> {monetizationStatus?.onboardingStatus === 'pending' ? 'Continue Stripe verification' : monetizationStatus?.onboardingStatus === 'complete' ? 'Payouts ready' : 'Set up creator payouts'}</>}
-                  </Button>
+                  <div className="mt-4 flex flex-wrap gap-2">{['Bitcoin', 'Litecoin', 'Ethereum', 'Dogecoin'].map(coin => <span key={coin} className="rounded-full border border-white/[0.09] bg-black/20 px-2.5 py-1 text-[10px] font-bold text-white/60">{coin}</span>)}</div>
+                  <p className="mt-4 rounded-xl border border-white/[0.06] bg-black/20 p-3 text-xs leading-relaxed text-white/40">This is a real settlement boundary—not a demo balance. Do not share a wallet address or expect a payout until the owner has activated and verified the crypto provider connection.</p>
                 </div>
               </div>
 
@@ -994,17 +1127,29 @@ export default function DashboardLive() {
               </form>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
-                <div className="flex items-center gap-2"><Swords className="w-5 h-5 text-primary" /><h3 className="font-black text-white">Raid a live channel</h3></div>
-                <p className="mt-2 text-xs text-white/45">Use the destination channel ID for now; the channel must already be live. Kryv records the event and viewer snapshot without moving viewers invisibly.</p>
-                <div className="mt-4 flex flex-col sm:flex-row gap-2"><input value={targetChannelId} onChange={e => setTargetChannelId(e.target.value)} inputMode="numeric" placeholder="Live channel ID" className="flex-1 rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /><Button type="button" disabled={engagementAction.isPending || !Number(targetChannelId)} onClick={() => handleEngagementAction({ action: 'raid', targetChannelId: Number(targetChannelId) }, 'Raid recorded')} className="font-black"><Swords className="w-4 h-4 mr-2" /> Raid</Button></div>
+            <div className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2"><Search className="h-5 w-5 text-primary" /><h3 className="font-black text-white">Channel destination</h3></div>
+                  <p className="mt-1 text-xs text-white/45">Search Kryv to select a creator for a transparent raid or host action. Stream keys and account access are never shared.</p>
+                </div>
+                {selectedDestination && <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${selectedDestination.isLive ? 'border-red-400/20 bg-red-400/10 text-red-300' : 'border-white/[0.08] bg-white/[0.05] text-white/45'}`}>{selectedDestination.isLive ? 'Live destination' : 'Offline channel'}</span>}
               </div>
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
-                <div className="flex items-center gap-2"><RadioTower className="w-5 h-5 text-primary" /><h3 className="font-black text-white">Host another channel</h3></div>
-                <p className="mt-2 text-xs text-white/45">Set one creator-to-creator host relationship at a time. It never exposes stream keys or grants access to either channel.</p>
-                <div className="mt-4 flex flex-col sm:flex-row gap-2"><input value={targetChannelId} onChange={e => setTargetChannelId(e.target.value)} inputMode="numeric" placeholder="Channel ID" className="flex-1 rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /><Button type="button" variant="secondary" disabled={engagementAction.isPending || !Number(targetChannelId)} onClick={() => handleEngagementAction({ action: 'set_host', targetChannelId: Number(targetChannelId) }, 'Host channel saved')} className="font-black"><RadioTower className="w-4 h-4 mr-2" /> Host</Button></div>
-                <Button type="button" variant="ghost" disabled={engagementAction.isPending} onClick={() => handleEngagementAction({ action: 'clear_host' }, 'Host channel cleared')} className="mt-2 text-xs text-white/45 hover:text-white">Clear host</Button>
+              <div className="relative mt-4">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+                <input value={destinationSearch} onChange={e => { setDestinationSearch(e.target.value); setSelectedDestination(null); }} placeholder="Search channels by name…" className="w-full rounded-xl border border-white/[0.1] bg-black/25 py-2.5 pl-10 pr-10 text-sm text-white outline-none transition-colors focus:border-primary/60" />
+                {destinationSearch && <button type="button" aria-label="Clear channel search" onClick={() => { setDestinationSearch(''); setSelectedDestination(null); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 hover:text-white"><X className="h-4 w-4" /></button>}
+              </div>
+              {selectedDestination ? (
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/[0.06] p-3"><div className="min-w-0"><p className="truncate text-sm font-bold text-white">{selectedDestination.displayName}</p><p className="mt-0.5 text-[11px] text-white/40">{selectedDestination.categoryName || 'No category selected'} · Channel #{selectedDestination.id}</p></div><button type="button" onClick={() => setSelectedDestination(null)} className="text-xs font-bold text-primary hover:text-white">Change</button></div>
+              ) : normalizedDestinationSearch.length >= 2 ? (
+                <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-white/[0.08] bg-black/35 p-1">
+                  {isDestinationSearching ? <div className="flex items-center gap-2 px-3 py-3 text-xs text-white/45"><Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Searching channels…</div> : destinationSearchResults?.channels.filter(result => result.id !== channel.id).length ? destinationSearchResults.channels.filter(result => result.id !== channel.id).map(result => <button key={result.id} type="button" onClick={() => { setSelectedDestination({ id: result.id, displayName: result.displayName, isLive: result.isLive, categoryName: result.categoryName }); setDestinationSearch(result.displayName); }} className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-white/[0.06]"><span className="min-w-0"><span className="block truncate text-sm font-bold text-white">{result.displayName}</span><span className="block truncate text-[11px] text-white/40">{result.streamTitle || result.categoryName || 'Kryv channel'}</span></span><span className={`shrink-0 text-[10px] font-black uppercase tracking-wider ${result.isLive ? 'text-red-300' : 'text-white/30'}`}>{result.isLive ? '● Live' : 'Offline'}</span></button>) : <p className="px-3 py-3 text-xs text-white/40">No matching channels found.</p>}
+                </div>
+              ) : <p className="mt-2 text-[11px] text-white/30">Enter at least two characters to search public channels.</p>}
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Button type="button" disabled={engagementAction.isPending || !selectedDestination?.isLive} onClick={() => selectedDestination && handleEngagementAction({ action: 'raid', targetChannelId: selectedDestination.id }, `Raid sent to ${selectedDestination.displayName}`)} className="font-black"><Swords className="mr-2 h-4 w-4" /> Raid live channel</Button>
+                <div className="flex gap-2"><Button type="button" variant="secondary" disabled={engagementAction.isPending || !selectedDestination} onClick={() => selectedDestination && handleEngagementAction({ action: 'set_host', targetChannelId: selectedDestination.id }, `Hosting ${selectedDestination.displayName}`)} className="flex-1 font-black"><RadioTower className="mr-2 h-4 w-4" /> Host channel</Button><Button type="button" variant="ghost" disabled={engagementAction.isPending} onClick={() => handleEngagementAction({ action: 'clear_host' }, 'Host channel cleared')} className="text-xs text-white/45 hover:text-white">Clear</Button></div>
               </div>
             </div>
           </div>

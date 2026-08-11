@@ -11,3 +11,4 @@ export * from "./visitors";
 export * from "./activityLogs";
 export * from "./deviceHistory";
 export * from "./streaming";
+export * from "./platform";

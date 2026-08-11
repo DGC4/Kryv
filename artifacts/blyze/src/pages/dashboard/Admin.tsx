@@ -13,6 +13,9 @@ import {
   getListAdminUsersQueryKey,
   getListAdminChannelsQueryKey,
   getListAdminVideosQueryKey,
+  useListAdminCinemaTitles,
+  useCreateAdminCinemaTitle,
+  getListAdminCinemaTitlesQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -23,7 +26,7 @@ import {
 import { GoldenDBadge, UserBadge } from '@/components/brand/BrandIdentity';
 import { useToast } from '@/hooks/use-toast';
 
-type Tab = 'users' | 'channels' | 'videos';
+type Tab = 'users' | 'channels' | 'videos' | 'cinema';
 
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: boolean }) {
   return (
@@ -57,16 +60,23 @@ export default function DashboardAdmin() {
   const { data: videos, isLoading: videosLoading } = useListAdminVideos({
     query: { enabled: me?.role === 'owner' },
   });
+  const { data: cinemaTitles, isLoading: cinemaTitlesLoading } = useListAdminCinemaTitles({
+    query: { enabled: me?.role === 'owner' },
+  });
+  const [cinemaTitle, setCinemaTitle] = useState('');
+  const [rightsReference, setRightsReference] = useState('');
 
   const updateUser = useUpdateAdminUser();
   const deleteChannel = useDeleteAdminChannel();
   const deleteVideo = useDeleteAdminVideo();
+  const createCinemaTitle = useCreateAdminCinemaTitle();
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListAdminChannelsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListAdminVideosQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListAdminCinemaTitlesQueryKey() });
   };
 
   const toggleBan = (id: string, banned: boolean) => {
@@ -95,10 +105,19 @@ export default function DashboardAdmin() {
     });
   };
 
-  const handleAddOriginal = () => {
-    toast({
-      title: 'Production Mode',
-      description: 'The Cinema production pipeline is active. Select an asset to transcode for the Originals library.',
+  const handleAddOriginal = () => setTab('cinema');
+
+  const handleCreateCinemaTitle = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!cinemaTitle.trim() || !rightsReference.trim()) return;
+    createCinemaTitle.mutate({ data: { title: cinemaTitle.trim(), rightsReference: rightsReference.trim() } }, {
+      onSuccess: () => {
+        setCinemaTitle('');
+        setRightsReference('');
+        invalidateAll();
+        toast({ title: 'Cinema title draft created', description: 'Add an approved FastPix feature or trailer asset before publishing.' });
+      },
+      onError: (err: any) => toast({ title: 'Cinema draft could not be created', description: err?.body?.error || err?.message || 'Check the rights reference and try again.', variant: 'destructive' }),
     });
   };
 
@@ -156,7 +175,7 @@ export default function DashboardAdmin() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-white/[0.08] mb-5">
-        {(['users', 'channels', 'videos'] as Tab[]).map((t) => (
+        {(['users', 'channels', 'videos', 'cinema'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -287,6 +306,23 @@ export default function DashboardAdmin() {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {tab === 'cinema' && (
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-5">
+            <h2 className="text-base font-black text-white">Cinema publishing desk</h2>
+            <p className="mt-1 max-w-3xl text-xs leading-relaxed text-white/45">Create a rights-referenced draft first. Feature, trailer, preview, and caption assets must be associated through the approved FastPix workflow before a title is eligible for review or release.</p>
+            <form onSubmit={handleCreateCinemaTitle} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+              <input value={cinemaTitle} onChange={event => setCinemaTitle(event.target.value)} maxLength={160} placeholder="Title name" className="h-10 rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" />
+              <input value={rightsReference} onChange={event => setRightsReference(event.target.value)} maxLength={500} placeholder="Rights or license reference" className="h-10 rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" />
+              <Button type="submit" disabled={createCinemaTitle.isPending || !cinemaTitle.trim() || !rightsReference.trim()} className="h-10 rounded-xl font-bold">{createCinemaTitle.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="mr-1.5 h-4 w-4" /> Create draft</>}</Button>
+            </form>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-black/30">
+            {cinemaTitlesLoading ? <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div> : <table className="w-full text-sm"><thead><tr className="border-b border-white/[0.08] bg-white/[0.02] text-left text-[10px] font-black uppercase tracking-widest text-white/40"><th className="p-3">Title</th><th className="p-3">Readiness</th><th className="p-3">Audience</th><th className="p-3">Updated</th></tr></thead><tbody>{cinemaTitles?.map(title => <tr key={title.id} className="border-b border-white/[0.05] last:border-0"><td className="p-3 font-semibold text-white">{title.title}<span className="ml-2 font-mono text-[10px] text-white/25">/{title.slug}</span></td><td className="p-3"><span className="rounded-md border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-[10px] font-black uppercase text-amber-200">{title.publishState}</span></td><td className="p-3 text-xs text-white/50">{title.maturityLevel}</td><td className="p-3 text-xs text-white/40">{new Date(title.updatedAt).toLocaleDateString()}</td></tr>)}{cinemaTitles?.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-sm text-white/35">No Cinema drafts yet.</td></tr>}</tbody></table>}
+          </div>
         </div>
       )}
 

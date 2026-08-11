@@ -14,6 +14,8 @@ import cinemaRouter from "./cinema";
 import adminRouter from "./admin";
 import locationRouter from "./location";
 import streamingRouter from "./streaming";
+import adsRouter from "./ads";
+import ownerCinemaRouter from "./owner-cinema";
 
 const router: IRouter = Router();
 
@@ -32,5 +34,7 @@ router.use(cinemaRouter);
 router.use(adminRouter);
 router.use(locationRouter);
 router.use(streamingRouter);
+router.use(adsRouter);
+router.use(ownerCinemaRouter);
 
 export default router;

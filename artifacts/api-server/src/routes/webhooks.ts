@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 
-import { clipsTable, creatorPaymentAccountsTable, db, paymentEventsTable, channelsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { clipsTable, creatorBalancesTable, creatorPaymentAccountsTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fastpix } from "../lib/fastpix";
 import { constructStripeWebhookEvent, StripeNotConfiguredError } from "../lib/stripe";
+import { isPlisioConfigured, verifyPlisioJsonCallback } from "../lib/plisio";
 
 const router: IRouter = Router();
 
@@ -70,6 +71,139 @@ router.post("/webhooks/stripe", async (req, res): Promise<void> => {
       .set({ processingStatus: "failed", errorCode: error instanceof Error ? error.name : "unknown" })
       .where(eq(paymentEventsTable.id, recorded.id));
     res.status(500).json({ error: "Webhook processing failed" });
+  }
+});
+
+/**
+ * Plisio JSON callbacks are HMAC-verified before any persistence. A payment
+ * event is recorded first; payment intent state and product effects are then
+ * processed exactly once. The browser invoice-return route is never trusted.
+ */
+router.post("/webhooks/plisio", async (req, res): Promise<void> => {
+  const rawBody = req.body as Buffer;
+  if (!isPlisioConfigured()) {
+    res.status(503).json({ error: "Crypto callbacks are not configured" });
+    return;
+  }
+
+  let callback: Record<string, unknown>;
+  try {
+    callback = JSON.parse(Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : String(rawBody));
+  } catch {
+    res.status(400).json({ error: "Invalid crypto callback payload" });
+    return;
+  }
+
+  if (!verifyPlisioJsonCallback(callback)) {
+    logger.warn({ transactionId: callback.txn_id }, "Rejected Plisio callback with invalid signature");
+    res.status(400).json({ error: "Invalid crypto callback signature" });
+    return;
+  }
+
+  const transactionId = typeof callback.txn_id === "string" ? callback.txn_id : "";
+  const orderNumber = typeof callback.order_number === "string" ? callback.order_number : "";
+  const providerStatus = typeof callback.status === "string" ? callback.status.toLowerCase() : "unknown";
+  if (!transactionId || !orderNumber) {
+    res.status(400).json({ error: "Crypto callback is missing transaction identity" });
+    return;
+  }
+
+  const providerEventId = `plisio:${transactionId}:${providerStatus}:${String(callback.confirmations ?? "")}`;
+  const [event] = await db
+    .insert(paymentEventsTable)
+    .values({
+      provider: "plisio",
+      providerEventId,
+      eventType: `invoice.${providerStatus}`,
+      processingStatus: "received",
+      relatedProviderPaymentId: transactionId,
+    })
+    .onConflictDoNothing()
+    .returning({ id: paymentEventsTable.id });
+
+  if (!event) {
+    res.status(200).json({ received: true, duplicate: true });
+    return;
+  }
+
+  try {
+    const [intent] = await db
+      .select()
+      .from(paymentIntentsTable)
+      .where(and(eq(paymentIntentsTable.orderNumber, orderNumber), eq(paymentIntentsTable.provider, "plisio")))
+      .limit(1);
+
+    if (!intent) {
+      await db.update(paymentEventsTable).set({ processingStatus: "failed", errorCode: "unknown_order", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
+      res.status(200).json({ received: true, ignored: "unknown_order" });
+      return;
+    }
+
+    if (providerStatus !== "completed") {
+      const status = ["cancelled", "expired"].includes(providerStatus) ? "cancelled" : providerStatus === "error" ? "failed" : "pending";
+      await db
+        .update(paymentIntentsTable)
+        .set({ providerPaymentId: transactionId, status, updatedAt: new Date() })
+        .where(and(eq(paymentIntentsTable.id, intent.id), ne(paymentIntentsTable.status, "completed")));
+      await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
+      res.status(200).json({ received: true, status });
+      return;
+    }
+
+    const [settledIntent] = await db
+      .update(paymentIntentsTable)
+      .set({ providerPaymentId: transactionId, status: "completed", completedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(paymentIntentsTable.id, intent.id), ne(paymentIntentsTable.status, "completed")))
+      .returning();
+
+    if (!settledIntent) {
+      await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
+      res.status(200).json({ received: true, duplicate: true });
+      return;
+    }
+
+    if (settledIntent.paymentKind === "subscription" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
+      const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
+      const tier = typeof metadata.tier === "number" && Number.isInteger(metadata.tier) ? metadata.tier : 1;
+      const [active] = await db
+        .select()
+        .from(subscriptionsTable)
+        .where(and(eq(subscriptionsTable.userId, settledIntent.purchaserUserId), eq(subscriptionsTable.channelId, settledIntent.receiverChannelId), eq(subscriptionsTable.status, "active")))
+        .limit(1);
+      const base = active?.expiresAt && active.expiresAt > new Date() ? active.expiresAt : new Date();
+      const expiresAt = new Date(base);
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+      if (active) {
+        await db.update(subscriptionsTable).set({ tier, provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt }).where(eq(subscriptionsTable.id, active.id));
+      } else {
+        await db.insert(subscriptionsTable).values({ userId: settledIntent.purchaserUserId, channelId: settledIntent.receiverChannelId, tier, status: "active", provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt });
+      }
+    }
+
+    if (settledIntent.paymentKind === "tip" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
+      const paidAmount = typeof callback.amount === "string" && /^\d+(\.\d{1,8})?$/.test(callback.amount) ? callback.amount : null;
+      const paidCurrency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : null;
+      if (!paidAmount || !paidCurrency) throw new Error("Completed crypto tip callback has invalid amount or currency.");
+      const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
+      const [tip] = await db
+        .insert(tipsTable)
+        .values({ senderUserId: settledIntent.purchaserUserId, receiverChannelId: settledIntent.receiverChannelId, amount: paidAmount, currency: paidCurrency, provider: "plisio", providerPaymentIntentId: transactionId, status: "completed", message: typeof metadata.message === "string" ? metadata.message : null })
+        .onConflictDoNothing()
+        .returning({ id: tipsTable.id });
+      if (tip) {
+        await db
+          .insert(creatorBalancesTable)
+          .values({ channelId: settledIntent.receiverChannelId, currency: paidCurrency, availableAmount: paidAmount })
+          .onConflictDoUpdate({ target: [creatorBalancesTable.channelId, creatorBalancesTable.currency], set: { availableAmount: sql`${creatorBalancesTable.availableAmount} + ${paidAmount}`, updatedAt: new Date() } });
+      }
+    }
+
+    await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
+    res.status(200).json({ received: true });
+  } catch (error) {
+    logger.error({ error, transactionId, orderNumber }, "Plisio callback processing failed");
+    await db.update(paymentEventsTable).set({ processingStatus: "failed", errorCode: error instanceof Error ? error.name : "unknown" }).where(eq(paymentEventsTable.id, event.id));
+    res.status(500).json({ error: "Crypto callback processing failed" });
   }
 });
 

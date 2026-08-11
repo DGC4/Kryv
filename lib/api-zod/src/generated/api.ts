@@ -61,6 +61,242 @@ export const GetMeResponse = zod.object({
 
 
 /**
+ * @summary List the signed-in user's viewer profiles for profile-aware Cinema and watch state
+ */
+export const ListViewerProfilesResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "isKidsProfile": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+export const ListViewerProfilesResponse = zod.array(ListViewerProfilesResponseItem)
+
+
+/**
+ * @summary Create a viewer profile for the signed-in user
+ */
+export const createViewerProfileBodyNameMax = 40;
+
+export const createViewerProfileBodyAvatarUrlMax = 2048;
+
+
+
+export const CreateViewerProfileBody = zod.object({
+  "name": zod.string().min(1).max(createViewerProfileBodyNameMax),
+  "avatarUrl": zod.string().max(createViewerProfileBodyAvatarUrlMax).optional(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']).optional(),
+  "isKidsProfile": zod.boolean().optional(),
+  "isDefault": zod.boolean().optional()
+})
+
+export const CreateViewerProfileResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "isKidsProfile": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a viewer profile owned by the signed-in user
+ */
+export const UpdateViewerProfileParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateViewerProfileBodyNameMax = 40;
+
+export const updateViewerProfileBodyAvatarUrlMax = 2048;
+
+
+
+export const UpdateViewerProfileBody = zod.object({
+  "name": zod.string().min(1).max(updateViewerProfileBodyNameMax).optional(),
+  "avatarUrl": zod.string().max(updateViewerProfileBodyAvatarUrlMax).nullish(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']).optional(),
+  "isKidsProfile": zod.boolean().optional(),
+  "isDefault": zod.boolean().optional()
+})
+
+export const UpdateViewerProfileResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "isKidsProfile": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a non-default viewer profile owned by the signed-in user
+ */
+export const DeleteViewerProfileParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteViewerProfileResponse = zod.void()
+
+
+/**
+ * @summary Evaluate whether a viewer session may receive a policy-eligible ad opportunity
+ */
+export const GetAdDecisionQueryParams = zod.object({
+  "surface": zod.enum(['live', 'watch', 'cinema', 'clip']),
+  "channelId": zod.coerce.number().optional(),
+  "videoId": zod.coerce.number().optional(),
+  "profileId": zod.coerce.number().optional()
+})
+
+export const GetAdDecisionResponse = zod.object({
+  "eligible": zod.boolean(),
+  "reason": zod.string(),
+  "adBreak": zod.union([zod.object({
+  "id": zod.number(),
+  "surface": zod.enum(['live', 'watch', 'cinema', 'clip']),
+  "triggerType": zod.enum(['scheduled', 'creator', 'system']),
+  "status": zod.enum(['scheduled', 'serving', 'completed', 'deferred', 'cancelled']),
+  "scheduledAt": zod.coerce.date().nullable(),
+  "maxPodDurationSeconds": zod.number().nullable()
+}),zod.null()]),
+  "creative": zod.union([zod.object({
+  "id": zod.number(),
+  "label": zod.string(),
+  "creativeType": zod.string(),
+  "assetUrl": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "landingUrl": zod.string().nullable()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Schedule or trigger an eligible creator ad break after server-side policy checks
+ */
+export const CreateChannelAdBreakParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateChannelAdBreakBody = zod.object({
+  "action": zod.enum(['schedule', 'trigger', 'defer']),
+  "scheduledAt": zod.coerce.date().optional()
+})
+
+export const CreateChannelAdBreakResponse = zod.object({
+  "id": zod.number(),
+  "surface": zod.enum(['live', 'watch', 'cinema', 'clip']),
+  "triggerType": zod.enum(['scheduled', 'creator', 'system']),
+  "status": zod.enum(['scheduled', 'serving', 'completed', 'deferred', 'cancelled']),
+  "scheduledAt": zod.coerce.date().nullable(),
+  "maxPodDurationSeconds": zod.number().nullable()
+})
+
+
+/**
+ * @summary List owner-managed Cinema titles and their publishing state
+ */
+export const ListAdminCinemaTitlesResponseItem = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "editorialRank": zod.number(),
+  "adEligible": zod.boolean(),
+  "posterUrl": zod.string().nullish(),
+  "backdropUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminCinemaTitlesResponse = zod.array(ListAdminCinemaTitlesResponseItem)
+
+
+/**
+ * @summary Create a lawful Cinema title draft before rights and assets are approved
+ */
+export const createAdminCinemaTitleBodyTitleMax = 160;
+
+export const createAdminCinemaTitleBodySynopsisMax = 5000;
+
+export const createAdminCinemaTitleBodyPosterUrlMax = 2048;
+
+export const createAdminCinemaTitleBodyBackdropUrlMax = 2048;
+
+export const createAdminCinemaTitleBodyRightsReferenceMax = 500;
+
+export const createAdminCinemaTitleBodyTerritoryCodesItemMin = 2;
+export const createAdminCinemaTitleBodyTerritoryCodesItemMax = 3;
+
+
+
+export const CreateAdminCinemaTitleBody = zod.object({
+  "title": zod.string().min(1).max(createAdminCinemaTitleBodyTitleMax),
+  "synopsis": zod.string().max(createAdminCinemaTitleBodySynopsisMax).optional(),
+  "posterUrl": zod.string().max(createAdminCinemaTitleBodyPosterUrlMax).optional(),
+  "backdropUrl": zod.string().max(createAdminCinemaTitleBodyBackdropUrlMax).optional(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']).optional(),
+  "rightsReference": zod.string().min(1).max(createAdminCinemaTitleBodyRightsReferenceMax),
+  "territoryCodes": zod.array(zod.string().min(createAdminCinemaTitleBodyTerritoryCodesItemMin).max(createAdminCinemaTitleBodyTerritoryCodesItemMax)).optional()
+})
+
+export const CreateAdminCinemaTitleResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "editorialRank": zod.number(),
+  "adEligible": zod.boolean(),
+  "posterUrl": zod.string().nullish(),
+  "backdropUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Associate an approved FastPix feature, trailer, preview, or caption asset with a Cinema title
+ */
+export const CreateAdminCinemaAssetParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createAdminCinemaAssetBodyFastpixPlaybackIdMax = 200;
+
+export const createAdminCinemaAssetBodySourceProvenanceMax = 500;
+
+export const createAdminCinemaAssetBodyDurationSecondsMin = 0;
+
+
+
+export const CreateAdminCinemaAssetBody = zod.object({
+  "assetKind": zod.enum(['feature', 'trailer', 'preview', 'captions']),
+  "fastpixMediaId": zod.string().optional(),
+  "fastpixPlaybackId": zod.string().min(1).max(createAdminCinemaAssetBodyFastpixPlaybackIdMax),
+  "sourceProvenance": zod.string().min(1).max(createAdminCinemaAssetBodySourceProvenanceMax),
+  "durationSeconds": zod.number().min(createAdminCinemaAssetBodyDurationSecondsMin).optional()
+})
+
+export const CreateAdminCinemaAssetResponse = zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "assetKind": zod.enum(['feature', 'trailer', 'preview', 'captions']),
+  "processingStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "fastpixMediaId": zod.string().nullish(),
+  "fastpixPlaybackId": zod.string().nullable()
+})
+
+
+/**
  * @summary List browse categories with live counts. Filter by kind — live_game categories for Kryv Live, genre categories for Kryv Watch/Cinema.
  */
 export const ListCategoriesQueryParams = zod.object({
@@ -1085,7 +1321,7 @@ export const GetAdminStatsResponse = zod.object({
  * @summary Owner-only user list
  */
 export const ListAdminUsersResponseItem = zod.object({
-  "id": zod.string(),
+  "id": zod.number(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),
@@ -1107,7 +1343,7 @@ export const UpdateAdminUserBody = zod.object({
 })
 
 export const UpdateAdminUserResponse = zod.object({
-  "id": zod.string(),
+  "id": zod.number(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),

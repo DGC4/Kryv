@@ -49,7 +49,6 @@ export function Header() {
                 <Link
                   key={item.path}
                   href={item.path}
-                  onClick={cycleTheme}
                   className={`relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-2 rounded-md text-sm font-semibold transition-colors ${
                     active
                       ? 'text-primary'
@@ -83,6 +82,12 @@ export function Header() {
             />
           </form>
 
+          <Link href="/search" className="md:hidden">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/50 hover:bg-white/[0.06] hover:text-primary" title="Search Kryv">
+              <Search className="h-4 w-4" />
+            </Button>
+          </Link>
+
           {/* Theme cycle */}
           <Button
             variant="ghost" size="icon"
@@ -96,7 +101,7 @@ export function Header() {
           {isSignedIn ? (
             <>
               {/* Go Live shortcut */}
-              <Link href="/dashboard/live" onClick={cycleTheme}>
+              <Link href="/dashboard/live">
                 <Button
                   size="sm"
                   className="hidden sm:flex h-8 items-center gap-1.5 bg-destructive hover:bg-destructive/90 text-white font-bold text-xs px-3 rounded-full shadow-[0_0_12px_hsl(0_84%_60%/0.4)]"
@@ -126,19 +131,19 @@ export function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-white/[0.07]" />
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/live" onClick={cycleTheme} className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/dashboard/live" className="flex items-center gap-2 cursor-pointer">
                       <Radio className="w-4 h-4 text-destructive" />
                       <span>Go Live</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/watch" onClick={cycleTheme} className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/dashboard/watch" className="flex items-center gap-2 cursor-pointer">
                       <Video className="w-4 h-4 text-primary" />
                       <span>Upload Video</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/watch" onClick={cycleTheme} className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/dashboard/watch" className="flex items-center gap-2 cursor-pointer">
                       <LayoutDashboard className="w-4 h-4 text-white/50" />
                       <span>Creator Dashboard</span>
                     </Link>
@@ -147,7 +152,7 @@ export function Header() {
                     <>
                       <DropdownMenuSeparator className="bg-white/[0.07]" />
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard/admin" onClick={cycleTheme} className="flex items-center gap-2 cursor-pointer text-primary">
+                        <Link href="/dashboard/admin" className="flex items-center gap-2 cursor-pointer text-primary">
                           <ShieldAlert className="w-4 h-4" />
                           <span>Owner Console</span>
                         </Link>

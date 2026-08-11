@@ -64,6 +64,265 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /me/profiles:
+    get:
+      operationId: listViewerProfiles
+      tags: [me]
+      summary: List the signed-in user's viewer profiles for profile-aware Cinema and watch state
+      responses:
+        "200":
+          description: Viewer profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ViewerProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      operationId: createViewerProfile
+      tags: [me]
+      summary: Create a viewer profile for the signed-in user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ViewerProfileInput"
+      responses:
+        "201":
+          description: Created viewer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ViewerProfile"
+        "400":
+          description: Invalid viewer profile input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /me/profiles/{id}:
+    patch:
+      operationId: updateViewerProfile
+      tags: [me]
+      summary: Update a viewer profile owned by the signed-in user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ViewerProfileUpdate"
+      responses:
+        "200":
+          description: Updated viewer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ViewerProfile"
+        "400":
+          description: Invalid viewer profile input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Viewer profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: deleteViewerProfile
+      tags: [me]
+      summary: Delete a non-default viewer profile owned by the signed-in user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Viewer profile deleted
+        "400":
+          description: Default profile cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Viewer profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /ads/decision:
+    get:
+      operationId: getAdDecision
+      tags: [ads]
+      summary: Evaluate whether a viewer session may receive a policy-eligible ad opportunity
+      parameters:
+        - name: surface
+          in: query
+          required: true
+          schema: { type: string, enum: [live, watch, cinema, clip] }
+        - name: channelId
+          in: query
+          required: false
+          schema: { type: integer }
+        - name: videoId
+          in: query
+          required: false
+          schema: { type: integer }
+        - name: profileId
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        "200":
+          description: An explainable ad eligibility decision. A decision does not guarantee delivery.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdDecision"
+
+  /channels/{id}/ad-breaks:
+    post:
+      operationId: createChannelAdBreak
+      tags: [ads]
+      summary: Schedule or trigger an eligible creator ad break after server-side policy checks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdBreakInput"
+      responses:
+        "201":
+          description: Created ad opportunity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdBreak"
+        "400":
+          description: Invalid ad break request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: The creator or platform policy is not eligible to create an ad break
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/cinema/titles:
+    get:
+      operationId: listAdminCinemaTitles
+      tags: [admin]
+      summary: List owner-managed Cinema titles and their publishing state
+      responses:
+        "200":
+          description: Cinema title drafts and published records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminCinemaTitle"
+        "401": { description: Not authenticated }
+        "403": { description: Owner access required }
+    post:
+      operationId: createAdminCinemaTitle
+      tags: [admin]
+      summary: Create a lawful Cinema title draft before rights and assets are approved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCinemaTitleInput"
+      responses:
+        "201":
+          description: Cinema title draft created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCinemaTitle"
+        "400": { description: Invalid Cinema title input }
+        "401": { description: Not authenticated }
+        "403": { description: Owner access required }
+
+  /admin/cinema/titles/{id}/assets:
+    post:
+      operationId: createAdminCinemaAsset
+      tags: [admin]
+      summary: Associate an approved FastPix feature, trailer, preview, or caption asset with a Cinema title
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCinemaAssetInput"
+      responses:
+        "201":
+          description: Cinema asset associated with title
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCinemaAsset"
+        "400": { description: Invalid Cinema asset input }
+        "401": { description: Not authenticated }
+        "403": { description: Owner access required }
+        "404": { description: Cinema title not found }
+
   /categories:
     get:
       operationId: listCategories
@@ -1784,6 +2043,133 @@ components:
       properties:
         message: { type: string, minLength: 1, maxLength: 500 }
 
+    AdminCinemaTitle:
+      type: object
+      required: [id, slug, title, synopsis, publishState, maturityLevel, editorialRank, adEligible, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        synopsis: { type: ["string", "null"] }
+        publishState: { type: string, enum: [draft, review, published, archived] }
+        maturityLevel: { type: string, enum: [kids, standard, mature] }
+        editorialRank: { type: integer }
+        adEligible: { type: boolean }
+        posterUrl: { type: ["string", "null"] }
+        backdropUrl: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminCinemaTitleInput:
+      type: object
+      required: [title, rightsReference]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        synopsis: { type: string, maxLength: 5000 }
+        posterUrl: { type: string, maxLength: 2048 }
+        backdropUrl: { type: string, maxLength: 2048 }
+        maturityLevel: { type: string, enum: [kids, standard, mature] }
+        rightsReference: { type: string, minLength: 1, maxLength: 500 }
+        territoryCodes:
+          type: array
+          items: { type: string, minLength: 2, maxLength: 3 }
+
+    AdminCinemaAsset:
+      type: object
+      required: [id, cinemaTitleId, assetKind, processingStatus, fastpixPlaybackId]
+      properties:
+        id: { type: integer }
+        cinemaTitleId: { type: integer }
+        assetKind: { type: string, enum: [feature, trailer, preview, captions] }
+        processingStatus: { type: string, enum: [waiting, processing, ready, errored] }
+        fastpixMediaId: { type: ["string", "null"] }
+        fastpixPlaybackId: { type: ["string", "null"] }
+
+    AdminCinemaAssetInput:
+      type: object
+      required: [assetKind, fastpixPlaybackId, sourceProvenance]
+      properties:
+        assetKind: { type: string, enum: [feature, trailer, preview, captions] }
+        fastpixMediaId: { type: string }
+        fastpixPlaybackId: { type: string, minLength: 1, maxLength: 200 }
+        sourceProvenance: { type: string, minLength: 1, maxLength: 500 }
+        durationSeconds: { type: integer, minimum: 0 }
+
+    AdCreativeSummary:
+      type: object
+      required: [id, label, creativeType, assetUrl, durationSeconds, landingUrl]
+      properties:
+        id: { type: integer }
+        label: { type: string }
+        creativeType: { type: string }
+        assetUrl: { type: string }
+        durationSeconds: { type: ["integer", "null"] }
+        landingUrl: { type: ["string", "null"] }
+
+    AdDecision:
+      type: object
+      required: [eligible, reason, adBreak, creative]
+      properties:
+        eligible: { type: boolean }
+        reason: { type: string }
+        adBreak:
+          oneOf:
+            - $ref: "#/components/schemas/AdBreak"
+            - type: "null"
+        creative:
+          oneOf:
+            - $ref: "#/components/schemas/AdCreativeSummary"
+            - type: "null"
+
+    AdBreak:
+      type: object
+      required: [id, surface, triggerType, status, scheduledAt, maxPodDurationSeconds]
+      properties:
+        id: { type: integer }
+        surface: { type: string, enum: [live, watch, cinema, clip] }
+        triggerType: { type: string, enum: [scheduled, creator, system] }
+        status: { type: string, enum: [scheduled, serving, completed, deferred, cancelled] }
+        scheduledAt: { type: ["string", "null"], format: date-time }
+        maxPodDurationSeconds: { type: ["integer", "null"] }
+
+    AdBreakInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [schedule, trigger, defer] }
+        scheduledAt: { type: string, format: date-time }
+
+    ViewerProfile:
+      type: object
+      required: [id, name, avatarUrl, maturityLevel, isKidsProfile, isDefault, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        maturityLevel: { type: string, enum: [kids, standard, mature] }
+        isKidsProfile: { type: boolean }
+        isDefault: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    ViewerProfileInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+        avatarUrl: { type: string, maxLength: 2048 }
+        maturityLevel: { type: string, enum: [kids, standard, mature] }
+        isKidsProfile: { type: boolean }
+        isDefault: { type: boolean }
+
+    ViewerProfileUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+        avatarUrl: { type: ["string", "null"], maxLength: 2048 }
+        maturityLevel: { type: string, enum: [kids, standard, mature] }
+        isKidsProfile: { type: boolean }
+        isDefault: { type: boolean }
+
     Me:
       type: object
       required: [id, username, avatarUrl, role, channel, followedChannels]
@@ -1824,7 +2210,7 @@ components:
       type: object
       required: [id, username, avatarUrl, role, banned, createdAt]
       properties:
-        id: { type: string }
+        id: { type: integer }
         username: { type: string }
         avatarUrl: { type: ["string", "null"] }
         role: { type: string, enum: [user, owner] }

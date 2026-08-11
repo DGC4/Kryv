@@ -5,14 +5,15 @@
  * Kryv live streaming platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { AdminUserRole } from './adminUserRole';
+import type { ViewerProfileMaturityLevel } from './viewerProfileMaturityLevel';
 
-export interface AdminUser {
+export interface ViewerProfile {
   id: number;
-  username: string;
+  name: string;
   /** @nullable */
   avatarUrl: string | null;
-  role: AdminUserRole;
-  banned: boolean;
+  maturityLevel: ViewerProfileMaturityLevel;
+  isKidsProfile: boolean;
+  isDefault: boolean;
   createdAt: Date;
 }

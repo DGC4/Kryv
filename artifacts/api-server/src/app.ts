@@ -141,6 +141,8 @@ app.use("/api", apiLimiter);
 app.use("/api/webhooks/fastpix", express.raw({ type: "*/*" }));
 // Stripe signatures are calculated over the exact raw JSON bytes.
 app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }));
+// Plisio signs the JSON callback payload with a merchant-key HMAC.
+app.use("/api/webhooks/plisio", express.raw({ type: "application/json" }));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
