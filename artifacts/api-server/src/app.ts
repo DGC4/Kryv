@@ -101,6 +101,17 @@ const streamKeyLimiter = rateLimit({
   message: { error: "Too many stream key requests, please try again later." },
 });
 
+// Chat writes have a tighter per-origin ceiling in addition to channel slow mode.
+// This is intentionally scoped to POSTs; public message reads remain available to viewers.
+const chatMessageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method !== "POST",
+  message: { error: "You are sending chat messages too quickly. Please slow down." },
+});
+
 // General API limiter — prevents DDoS / scraping
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -117,6 +128,7 @@ app.use("/api/signup", authLimiter);
 app.use("/api/login", authLimiter);
 app.use("/api/channels", (req, res, next) => {
   if (req.path.includes("/stream")) return streamKeyLimiter(req, res, next);
+  if (/^\/\d+\/messages\/?$/.test(req.path)) return chatMessageLimiter(req, res, next);
   next();
 });
 app.use("/api", apiLimiter);
@@ -127,6 +139,8 @@ app.use("/api", apiLimiter);
 
 // FastPix sends application/json but we need the raw buffer for HMAC verification
 app.use("/api/webhooks/fastpix", express.raw({ type: "*/*" }));
+// Stripe signatures are calculated over the exact raw JSON bytes.
+app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());

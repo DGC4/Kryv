@@ -24,21 +24,38 @@ import type {
   AdminUser,
   AdminUserUpdate,
   Category,
+  ChannelAnalytics,
+  ChannelChatSettings,
+  ChannelChatSettingsUpdate,
   ChannelDetail,
+  ChannelEngagement,
+  ChannelEngagementActionInput,
+  ChannelEngagementActionResult,
   ChannelHeartbeat200,
   ChannelInput,
+  ChannelModerationActionInput,
+  ChannelModerationActionResult,
+  ChannelMonetizationOnboardingLink,
+  ChannelMonetizationStatus,
   ChannelSummary,
   ChannelUpdate,
   ChatMessage,
   ChatMessageInput,
   CinemaHome,
+  ClipInput,
+  ClipSummary,
   DiscoverSummary,
   Error,
   HealthStatus,
   ListCategoriesParams,
   ListChannelsParams,
+  ListClipsParams,
   ListVideosParams,
   Me,
+  NotificationPreferences,
+  NotificationPreferencesInput,
+  SearchKryvParams,
+  SearchResults,
   StreamCredentials,
   VideoCreateResponse,
   VideoDetail,
@@ -389,6 +406,315 @@ export function useGetDiscoverSummary<TData = Awaited<ReturnType<typeof getDisco
 
 
 
+
+export const getSearchKryvUrl = (params: SearchKryvParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/search?${stringifiedParams}` : `/api/search`
+}
+
+/**
+ * @summary Search public live channels, uploaded videos, and ready clips
+ */
+export const searchKryv = async (params: SearchKryvParams, options?: RequestInit): Promise<SearchResults> => {
+
+  return customFetch<SearchResults>(getSearchKryvUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchKryvQueryKey = (params?: SearchKryvParams,) => {
+    return [
+    `/api/search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchKryvQueryOptions = <TData = Awaited<ReturnType<typeof searchKryv>>, TError = ErrorType<Error>>(params: SearchKryvParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchKryv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchKryvQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchKryv>>> = ({ signal }) => searchKryv(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchKryv>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchKryvQueryResult = NonNullable<Awaited<ReturnType<typeof searchKryv>>>
+export type SearchKryvQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Search public live channels, uploaded videos, and ready clips
+ */
+
+export function useSearchKryv<TData = Awaited<ReturnType<typeof searchKryv>>, TError = ErrorType<Error>>(
+ params: SearchKryvParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchKryv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchKryvQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListFollowedLiveChannelsUrl = () => {
+
+
+
+
+  return `/api/me/followed/live`
+}
+
+/**
+ * @summary List the signed-in viewer's followed channels that are currently live
+ */
+export const listFollowedLiveChannels = async ( options?: RequestInit): Promise<ChannelSummary[]> => {
+
+  return customFetch<ChannelSummary[]>(getListFollowedLiveChannelsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListFollowedLiveChannelsQueryKey = () => {
+    return [
+    `/api/me/followed/live`
+    ] as const;
+    }
+
+
+export const getListFollowedLiveChannelsQueryOptions = <TData = Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFollowedLiveChannelsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFollowedLiveChannels>>> = ({ signal }) => listFollowedLiveChannels({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListFollowedLiveChannelsQueryResult = NonNullable<Awaited<ReturnType<typeof listFollowedLiveChannels>>>
+export type ListFollowedLiveChannelsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary List the signed-in viewer's followed channels that are currently live
+ */
+
+export function useListFollowedLiveChannels<TData = Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListFollowedLiveChannelsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetNotificationPreferencesUrl = () => {
+
+
+
+
+  return `/api/me/notification-preferences`
+}
+
+/**
+ * @summary Get the signed-in user's global notification preferences
+ */
+export const getNotificationPreferences = async ( options?: RequestInit): Promise<NotificationPreferences> => {
+
+  return customFetch<NotificationPreferences>(getGetNotificationPreferencesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNotificationPreferencesQueryKey = () => {
+    return [
+    `/api/me/notification-preferences`
+    ] as const;
+    }
+
+
+export const getGetNotificationPreferencesQueryOptions = <TData = Awaited<ReturnType<typeof getNotificationPreferences>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotificationPreferencesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotificationPreferences>>> = ({ signal }) => getNotificationPreferences({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotificationPreferences>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNotificationPreferencesQueryResult = NonNullable<Awaited<ReturnType<typeof getNotificationPreferences>>>
+export type GetNotificationPreferencesQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the signed-in user's global notification preferences
+ */
+
+export function useGetNotificationPreferences<TData = Awaited<ReturnType<typeof getNotificationPreferences>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNotificationPreferencesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateNotificationPreferencesUrl = () => {
+
+
+
+
+  return `/api/me/notification-preferences`
+}
+
+/**
+ * @summary Update the signed-in user's global notification preferences
+ */
+export const updateNotificationPreferences = async (notificationPreferencesInput: NotificationPreferencesInput, options?: RequestInit): Promise<NotificationPreferences> => {
+
+  return customFetch<NotificationPreferences>(getUpdateNotificationPreferencesUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(notificationPreferencesInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateNotificationPreferencesMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateNotificationPreferences>>, TError,{data: BodyType<NotificationPreferencesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateNotificationPreferences>>, TError,{data: BodyType<NotificationPreferencesInput>}, TContext> => {
+
+const mutationKey = ['updateNotificationPreferences'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateNotificationPreferences>>, {data: BodyType<NotificationPreferencesInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateNotificationPreferences(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateNotificationPreferencesMutationResult = NonNullable<Awaited<ReturnType<typeof updateNotificationPreferences>>>
+    export type UpdateNotificationPreferencesMutationBody = BodyType<NotificationPreferencesInput>
+    export type UpdateNotificationPreferencesMutationError = ErrorType<Error>
+
+    /**
+ * @summary Update the signed-in user's global notification preferences
+ */
+export const useUpdateNotificationPreferences = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateNotificationPreferences>>, TError,{data: BodyType<NotificationPreferencesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateNotificationPreferences>>,
+        TError,
+        {data: BodyType<NotificationPreferencesInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateNotificationPreferencesMutationOptions(options));
+    }
 
 export const getListChannelsUrl = (params?: ListChannelsParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -842,6 +1168,83 @@ export const useCreateChannelStream = <TError = ErrorType<Error>,
       return useMutation(getCreateChannelStreamMutationOptions(options));
     }
 
+export const getGetChannelAnalyticsUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/analytics`
+}
+
+/**
+ * @summary Get actionable live analytics for the current channel owner
+ */
+export const getChannelAnalytics = async (id: number, options?: RequestInit): Promise<ChannelAnalytics> => {
+
+  return customFetch<ChannelAnalytics>(getGetChannelAnalyticsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChannelAnalyticsQueryKey = (id: number,) => {
+    return [
+    `/api/channels/${id}/analytics`
+    ] as const;
+    }
+
+
+export const getGetChannelAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getChannelAnalytics>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChannelAnalyticsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChannelAnalytics>>> = ({ signal }) => getChannelAnalytics(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChannelAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChannelAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getChannelAnalytics>>>
+export type GetChannelAnalyticsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get actionable live analytics for the current channel owner
+ */
+
+export function useGetChannelAnalytics<TData = Awaited<ReturnType<typeof getChannelAnalytics>>, TError = ErrorType<Error>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChannelAnalyticsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getChannelHeartbeatUrl = (id: number,) => {
 
 
@@ -1126,6 +1529,524 @@ export const useUnfollowChannel = <TError = ErrorType<Error>,
       return useMutation(getUnfollowChannelMutationOptions(options));
     }
 
+export const getGetChannelChatSettingsUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/chat-settings`
+}
+
+/**
+ * @summary Get the public chat participation settings for a channel
+ */
+export const getChannelChatSettings = async (id: number, options?: RequestInit): Promise<ChannelChatSettings> => {
+
+  return customFetch<ChannelChatSettings>(getGetChannelChatSettingsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChannelChatSettingsQueryKey = (id: number,) => {
+    return [
+    `/api/channels/${id}/chat-settings`
+    ] as const;
+    }
+
+
+export const getGetChannelChatSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getChannelChatSettings>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelChatSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChannelChatSettingsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChannelChatSettings>>> = ({ signal }) => getChannelChatSettings(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChannelChatSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChannelChatSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getChannelChatSettings>>>
+export type GetChannelChatSettingsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the public chat participation settings for a channel
+ */
+
+export function useGetChannelChatSettings<TData = Awaited<ReturnType<typeof getChannelChatSettings>>, TError = ErrorType<Error>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelChatSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChannelChatSettingsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateChannelChatSettingsUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/chat-settings`
+}
+
+/**
+ * @summary Update chat slow mode and follower-only mode for the current channel owner
+ */
+export const updateChannelChatSettings = async (id: number,
+    channelChatSettingsUpdate: ChannelChatSettingsUpdate, options?: RequestInit): Promise<ChannelChatSettings> => {
+
+  return customFetch<ChannelChatSettings>(getUpdateChannelChatSettingsUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(channelChatSettingsUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateChannelChatSettingsMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateChannelChatSettings>>, TError,{id: number;data: BodyType<ChannelChatSettingsUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateChannelChatSettings>>, TError,{id: number;data: BodyType<ChannelChatSettingsUpdate>}, TContext> => {
+
+const mutationKey = ['updateChannelChatSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateChannelChatSettings>>, {id: number;data: BodyType<ChannelChatSettingsUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateChannelChatSettings(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateChannelChatSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateChannelChatSettings>>>
+    export type UpdateChannelChatSettingsMutationBody = BodyType<ChannelChatSettingsUpdate>
+    export type UpdateChannelChatSettingsMutationError = ErrorType<Error>
+
+    /**
+ * @summary Update chat slow mode and follower-only mode for the current channel owner
+ */
+export const useUpdateChannelChatSettings = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateChannelChatSettings>>, TError,{id: number;data: BodyType<ChannelChatSettingsUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateChannelChatSettings>>,
+        TError,
+        {id: number;data: BodyType<ChannelChatSettingsUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateChannelChatSettingsMutationOptions(options));
+    }
+
+export const getCreateChannelModerationActionUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/moderation/actions`
+}
+
+/**
+ * @summary Perform an owner or moderator action in a channel
+ */
+export const createChannelModerationAction = async (id: number,
+    channelModerationActionInput: ChannelModerationActionInput, options?: RequestInit): Promise<ChannelModerationActionResult> => {
+
+  return customFetch<ChannelModerationActionResult>(getCreateChannelModerationActionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(channelModerationActionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateChannelModerationActionMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelModerationAction>>, TError,{id: number;data: BodyType<ChannelModerationActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChannelModerationAction>>, TError,{id: number;data: BodyType<ChannelModerationActionInput>}, TContext> => {
+
+const mutationKey = ['createChannelModerationAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChannelModerationAction>>, {id: number;data: BodyType<ChannelModerationActionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createChannelModerationAction(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChannelModerationActionMutationResult = NonNullable<Awaited<ReturnType<typeof createChannelModerationAction>>>
+    export type CreateChannelModerationActionMutationBody = BodyType<ChannelModerationActionInput>
+    export type CreateChannelModerationActionMutationError = ErrorType<Error>
+
+    /**
+ * @summary Perform an owner or moderator action in a channel
+ */
+export const useCreateChannelModerationAction = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelModerationAction>>, TError,{id: number;data: BodyType<ChannelModerationActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createChannelModerationAction>>,
+        TError,
+        {id: number;data: BodyType<ChannelModerationActionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateChannelModerationActionMutationOptions(options));
+    }
+
+export const getGetChannelMonetizationStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/monetization/status`
+}
+
+/**
+ * @summary Get an owner’s Stripe Connect onboarding and capability status
+ */
+export const getChannelMonetizationStatus = async (id: number, options?: RequestInit): Promise<ChannelMonetizationStatus> => {
+
+  return customFetch<ChannelMonetizationStatus>(getGetChannelMonetizationStatusUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChannelMonetizationStatusQueryKey = (id: number,) => {
+    return [
+    `/api/channels/${id}/monetization/status`
+    ] as const;
+    }
+
+
+export const getGetChannelMonetizationStatusQueryOptions = <TData = Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChannelMonetizationStatusQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChannelMonetizationStatus>>> = ({ signal }) => getChannelMonetizationStatus(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChannelMonetizationStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getChannelMonetizationStatus>>>
+export type GetChannelMonetizationStatusQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get an owner’s Stripe Connect onboarding and capability status
+ */
+
+export function useGetChannelMonetizationStatus<TData = Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError = ErrorType<Error>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChannelMonetizationStatusQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateChannelMonetizationOnboardingLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/monetization/onboarding-link`
+}
+
+/**
+ * @summary Create a short-lived Stripe-hosted onboarding link for the channel owner
+ */
+export const createChannelMonetizationOnboardingLink = async (id: number, options?: RequestInit): Promise<ChannelMonetizationOnboardingLink> => {
+
+  return customFetch<ChannelMonetizationOnboardingLink>(getCreateChannelMonetizationOnboardingLinkUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCreateChannelMonetizationOnboardingLinkMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['createChannelMonetizationOnboardingLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  createChannelMonetizationOnboardingLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChannelMonetizationOnboardingLinkMutationResult = NonNullable<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>>
+
+    export type CreateChannelMonetizationOnboardingLinkMutationError = ErrorType<Error>
+
+    /**
+ * @summary Create a short-lived Stripe-hosted onboarding link for the channel owner
+ */
+export const useCreateChannelMonetizationOnboardingLink = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getCreateChannelMonetizationOnboardingLinkMutationOptions(options));
+    }
+
+export const getGetChannelEngagementUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/engagement`
+}
+
+/**
+ * @summary Get public channel-points, poll, and prediction state for a channel
+ */
+export const getChannelEngagement = async (id: number, options?: RequestInit): Promise<ChannelEngagement> => {
+
+  return customFetch<ChannelEngagement>(getGetChannelEngagementUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChannelEngagementQueryKey = (id: number,) => {
+    return [
+    `/api/channels/${id}/engagement`
+    ] as const;
+    }
+
+
+export const getGetChannelEngagementQueryOptions = <TData = Awaited<ReturnType<typeof getChannelEngagement>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelEngagement>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChannelEngagementQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChannelEngagement>>> = ({ signal }) => getChannelEngagement(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChannelEngagement>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChannelEngagementQueryResult = NonNullable<Awaited<ReturnType<typeof getChannelEngagement>>>
+export type GetChannelEngagementQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get public channel-points, poll, and prediction state for a channel
+ */
+
+export function useGetChannelEngagement<TData = Awaited<ReturnType<typeof getChannelEngagement>>, TError = ErrorType<Error>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelEngagement>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChannelEngagementQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateChannelEngagementActionUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/engagement/actions`
+}
+
+/**
+ * @summary Perform an authenticated viewer or channel-owner engagement action
+ */
+export const createChannelEngagementAction = async (id: number,
+    channelEngagementActionInput: ChannelEngagementActionInput, options?: RequestInit): Promise<ChannelEngagementActionResult> => {
+
+  return customFetch<ChannelEngagementActionResult>(getCreateChannelEngagementActionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(channelEngagementActionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateChannelEngagementActionMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelEngagementAction>>, TError,{id: number;data: BodyType<ChannelEngagementActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChannelEngagementAction>>, TError,{id: number;data: BodyType<ChannelEngagementActionInput>}, TContext> => {
+
+const mutationKey = ['createChannelEngagementAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChannelEngagementAction>>, {id: number;data: BodyType<ChannelEngagementActionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createChannelEngagementAction(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChannelEngagementActionMutationResult = NonNullable<Awaited<ReturnType<typeof createChannelEngagementAction>>>
+    export type CreateChannelEngagementActionMutationBody = BodyType<ChannelEngagementActionInput>
+    export type CreateChannelEngagementActionMutationError = ErrorType<Error>
+
+    /**
+ * @summary Perform an authenticated viewer or channel-owner engagement action
+ */
+export const useCreateChannelEngagementAction = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelEngagementAction>>, TError,{id: number;data: BodyType<ChannelEngagementActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createChannelEngagementAction>>,
+        TError,
+        {id: number;data: BodyType<ChannelEngagementActionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateChannelEngagementActionMutationOptions(options));
+    }
+
 export const getListChannelMessagesUrl = (id: number,) => {
 
 
@@ -1274,6 +2195,238 @@ export const useCreateChannelMessage = <TError = ErrorType<Error>,
       > => {
       return useMutation(getCreateChannelMessageMutationOptions(options));
     }
+
+export const getListClipsUrl = (params?: ListClipsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/clips?${stringifiedParams}` : `/api/clips`
+}
+
+/**
+ * @summary Browse public, ready-to-play Kryv clips
+ */
+export const listClips = async (params?: ListClipsParams, options?: RequestInit): Promise<ClipSummary[]> => {
+
+  return customFetch<ClipSummary[]>(getListClipsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListClipsQueryKey = (params?: ListClipsParams,) => {
+    return [
+    `/api/clips`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListClipsQueryOptions = <TData = Awaited<ReturnType<typeof listClips>>, TError = ErrorType<unknown>>(params?: ListClipsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClips>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListClipsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listClips>>> = ({ signal }) => listClips(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listClips>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListClipsQueryResult = NonNullable<Awaited<ReturnType<typeof listClips>>>
+export type ListClipsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Browse public, ready-to-play Kryv clips
+ */
+
+export function useListClips<TData = Awaited<ReturnType<typeof listClips>>, TError = ErrorType<unknown>>(
+ params?: ListClipsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClips>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListClipsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateClipUrl = () => {
+
+
+
+
+  return `/api/clips`
+}
+
+/**
+ * @summary Request a FastPix clip from an owned, ready Kryv video
+ */
+export const createClip = async (clipInput: ClipInput, options?: RequestInit): Promise<ClipSummary> => {
+
+  return customFetch<ClipSummary>(getCreateClipUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(clipInput)
+  }
+);}
+
+
+
+
+
+export const getCreateClipMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClip>>, TError,{data: BodyType<ClipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createClip>>, TError,{data: BodyType<ClipInput>}, TContext> => {
+
+const mutationKey = ['createClip'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createClip>>, {data: BodyType<ClipInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createClip(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateClipMutationResult = NonNullable<Awaited<ReturnType<typeof createClip>>>
+    export type CreateClipMutationBody = BodyType<ClipInput>
+    export type CreateClipMutationError = ErrorType<Error>
+
+    /**
+ * @summary Request a FastPix clip from an owned, ready Kryv video
+ */
+export const useCreateClip = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClip>>, TError,{data: BodyType<ClipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createClip>>,
+        TError,
+        {data: BodyType<ClipInput>},
+        TContext
+      > => {
+      return useMutation(getCreateClipMutationOptions(options));
+    }
+
+export const getGetClipUrl = (id: number,) => {
+
+
+
+
+  return `/api/clips/${id}`
+}
+
+/**
+ * @summary Get a public, ready-to-play Kryv clip
+ */
+export const getClip = async (id: number, options?: RequestInit): Promise<ClipSummary> => {
+
+  return customFetch<ClipSummary>(getGetClipUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetClipQueryKey = (id: number,) => {
+    return [
+    `/api/clips/${id}`
+    ] as const;
+    }
+
+
+export const getGetClipQueryOptions = <TData = Awaited<ReturnType<typeof getClip>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClip>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetClipQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getClip>>> = ({ signal }) => getClip(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getClip>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetClipQueryResult = NonNullable<Awaited<ReturnType<typeof getClip>>>
+export type GetClipQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get a public, ready-to-play Kryv clip
+ */
+
+export function useGetClip<TData = Awaited<ReturnType<typeof getClip>>, TError = ErrorType<Error>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClip>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetClipQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListVideosUrl = (params?: ListVideosParams,) => {
   const normalizedParams = new URLSearchParams();

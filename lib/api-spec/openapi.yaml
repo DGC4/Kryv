@@ -18,8 +18,12 @@ tags:
     description: Channel operations (Kryv Live — Twitch/Kick-style live streaming)
   - name: chat
     description: Live chat operations
+  - name: moderation
+    description: Channel moderation and chat-safety operations
   - name: discover
     description: Discovery / home page aggregates
+  - name: clips
+    description: Native short-form clips derived from Kryv video assets
   - name: videos
     description: On-demand video operations (Kryv Watch — YouTube-style uploads)
   - name: cinema
@@ -94,6 +98,99 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DiscoverSummary"
+
+  /search:
+    get:
+      operationId: searchKryv
+      tags: [discover]
+      summary: Search public live channels, uploaded videos, and ready clips
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 2, maxLength: 64 }
+      responses:
+        "200":
+          description: Search results grouped by content type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResults"
+        "400":
+          description: Invalid search query
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /me/followed/live:
+    get:
+      operationId: listFollowedLiveChannels
+      tags: [discover]
+      summary: List the signed-in viewer's followed channels that are currently live
+      responses:
+        "200":
+          description: Followed live channels ranked by viewers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChannelSummary"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /me/notification-preferences:
+    get:
+      operationId: getNotificationPreferences
+      tags: [users]
+      summary: Get the signed-in user's global notification preferences
+      responses:
+        "200":
+          description: Current global notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      operationId: updateNotificationPreferences
+      tags: [users]
+      summary: Update the signed-in user's global notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationPreferencesInput"
+      responses:
+        "200":
+          description: Updated global notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+        "400":
+          description: Invalid preference input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /channels:
     get:
@@ -289,6 +386,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /channels/{id}/analytics:
+    get:
+      operationId: getChannelAnalytics
+      tags: [channels]
+      summary: Get actionable live analytics for the current channel owner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Creator analytics based on stream sessions and recorded chat activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelAnalytics"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the channel owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /channels/{id}/heartbeat:
     post:
       operationId: channelHeartbeat
@@ -414,6 +548,250 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /channels/{id}/chat-settings:
+    get:
+      operationId: getChannelChatSettings
+      tags: [chat]
+      summary: Get the public chat participation settings for a channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Chat participation settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelChatSettings"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateChannelChatSettings
+      tags: [moderation]
+      summary: Update chat slow mode and follower-only mode for the current channel owner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelChatSettingsUpdate"
+      responses:
+        "200":
+          description: Updated chat participation settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelChatSettings"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the channel owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}/moderation/actions:
+    post:
+      operationId: createChannelModerationAction
+      tags: [moderation]
+      summary: Perform an owner or moderator action in a channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelModerationActionInput"
+      responses:
+        "200":
+          description: Moderation action completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelModerationActionResult"
+        "400":
+          description: Invalid action input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not permitted to perform this action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel, user, or message not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}/monetization/status:
+    get:
+      operationId: getChannelMonetizationStatus
+      tags: [channels]
+      summary: Get an owner’s Stripe Connect onboarding and capability status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Creator payment-account status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelMonetizationStatus"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Channel-owner permission required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}/monetization/onboarding-link:
+    post:
+      operationId: createChannelMonetizationOnboardingLink
+      tags: [channels]
+      summary: Create a short-lived Stripe-hosted onboarding link for the channel owner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: One-time hosted onboarding URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelMonetizationOnboardingLink"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Channel-owner permission required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Payment provider not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}/engagement:
+    get:
+      operationId: getChannelEngagement
+      tags: [channels]
+      summary: Get public channel-points, poll, and prediction state for a channel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Current engagement state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelEngagement"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /channels/{id}/engagement/actions:
+    post:
+      operationId: createChannelEngagementAction
+      tags: [channels]
+      summary: Perform an authenticated viewer or channel-owner engagement action
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelEngagementActionInput"
+      responses:
+        "200":
+          description: Action completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelEngagementActionResult"
+        "201":
+          description: Engagement resource created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelEngagementActionResult"
+        "400":
+          description: Invalid engagement action or current state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Channel-owner permission required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /channels/{id}/messages:
     get:
       operationId: listChannelMessages
@@ -477,6 +855,85 @@ paths:
                 $ref: "#/components/schemas/Error"
         "404":
           description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /clips:
+    get:
+      operationId: listClips
+      tags: [clips]
+      summary: Browse public, ready-to-play Kryv clips
+      parameters:
+        - name: channelId
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Public clips ordered by most recently created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClipSummary"
+    post:
+      operationId: createClip
+      tags: [clips]
+      summary: Request a FastPix clip from an owned, ready Kryv video
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClipInput"
+      responses:
+        "201":
+          description: Clip request accepted and processing asynchronously
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClipSummary"
+        "400":
+          description: Invalid clip range or source video state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the source video's channel owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /clips/{id}:
+    get:
+      operationId: getClip
+      tags: [clips]
+      summary: Get a public, ready-to-play Kryv clip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Clip detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClipSummary"
+        "404":
+          description: Clip not found or not yet publicly available
           content:
             application/json:
               schema:
@@ -936,6 +1393,48 @@ components:
         categoryId: { type: integer }
         streamTitle: { type: string, maxLength: 140 }
 
+    ChannelAnalytics:
+      type: object
+      required:
+        [
+          periodDays,
+          isLive,
+          currentViewerCount,
+          followerCount,
+          subscriberCount,
+          totalStreams,
+          totalStreamSeconds,
+          peakViewers,
+          averageViewers,
+          totalChatMessages,
+          recentStreams,
+        ]
+      properties:
+        periodDays: { type: integer, description: Rolling measurement period in calendar days }
+        isLive: { type: boolean }
+        currentViewerCount: { type: integer }
+        followerCount: { type: integer }
+        subscriberCount: { type: integer }
+        totalStreams: { type: integer }
+        totalStreamSeconds: { type: integer }
+        peakViewers: { type: integer }
+        averageViewers: { type: integer }
+        totalChatMessages: { type: integer }
+        recentStreams:
+          type: array
+          items:
+            type: object
+            required: [id, title, startedAt, endedAt, durationSeconds, peakViewers, averageViewers, totalChatMessages]
+            properties:
+              id: { type: integer }
+              title: { type: ["string", "null"] }
+              startedAt: { type: string, format: date-time }
+              endedAt: { type: ["string", "null"], format: date-time }
+              durationSeconds: { type: ["integer", "null"] }
+              peakViewers: { type: integer }
+              averageViewers: { type: integer }
+              totalChatMessages: { type: integer }
+
     StreamCredentials:
       type: object
       required: [rtmpUrl, streamKey, playbackId]
@@ -952,6 +1451,173 @@ components:
         fastpixPlaybackId:
           description: FastPix playback id for this channel's live stream
           type: ["string", "null"]
+
+    NotificationPreferences:
+      type: object
+      required: [notifyOnLive, notifyOnUpload, notifyOnClip, emailNotifications]
+      properties:
+        notifyOnLive: { type: boolean }
+        notifyOnUpload: { type: boolean }
+        notifyOnClip: { type: boolean }
+        emailNotifications: { type: boolean }
+
+    NotificationPreferencesInput:
+      type: object
+      required: [notifyOnLive, notifyOnUpload, notifyOnClip, emailNotifications]
+      properties:
+        notifyOnLive: { type: boolean }
+        notifyOnUpload: { type: boolean }
+        notifyOnClip: { type: boolean }
+        emailNotifications: { type: boolean }
+
+    SearchResults:
+      type: object
+      required: [channels, videos, clips]
+      properties:
+        channels:
+          type: array
+          items: { $ref: "#/components/schemas/ChannelSummary" }
+        videos:
+          type: array
+          items: { $ref: "#/components/schemas/VideoSummary" }
+        clips:
+          type: array
+          items: { $ref: "#/components/schemas/ClipSummary" }
+
+    ChannelMonetizationStatus:
+      type: object
+      required: [provider, onboardingStatus, chargesEnabled, payoutsEnabled, detailsSubmitted, requirementsDue]
+      properties:
+        provider: { type: string }
+        onboardingStatus: { type: string, enum: [not_started, pending, complete, restricted] }
+        chargesEnabled: { type: boolean }
+        payoutsEnabled: { type: boolean }
+        detailsSubmitted: { type: boolean }
+        requirementsDue:
+          type: array
+          items: { type: string }
+
+    ChannelMonetizationOnboardingLink:
+      type: object
+      required: [url, onboardingStatus]
+      properties:
+        url: { type: string }
+        onboardingStatus: { type: string }
+
+    ChannelEngagementChoice:
+      type: object
+      required: [id, title, votes]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        votes: { type: integer }
+        channelPoints: { type: integer }
+        users: { type: integer }
+        color: { type: string }
+
+    ChannelEngagementPoll:
+      type: object
+      required: [id, title, status, durationSeconds, startedAt, choices]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        status: { type: string }
+        durationSeconds: { type: integer }
+        startedAt: { type: string, format: date-time }
+        choices:
+          type: array
+          items: { $ref: "#/components/schemas/ChannelEngagementChoice" }
+
+    ChannelEngagementPrediction:
+      type: object
+      required: [id, title, status, predictionWindowSeconds, startedAt, outcomes]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        status: { type: string }
+        predictionWindowSeconds: { type: integer }
+        startedAt: { type: string, format: date-time }
+        outcomes:
+          type: array
+          items: { $ref: "#/components/schemas/ChannelEngagementChoice" }
+
+    ChannelEngagement:
+      type: object
+      required: [pointsBalance, pointsEnabled, activePoll, activePrediction]
+      properties:
+        pointsBalance: { type: ["integer", "null"] }
+        pointsEnabled: { type: boolean }
+        activePoll:
+          anyOf:
+            - $ref: "#/components/schemas/ChannelEngagementPoll"
+            - type: "null"
+        activePrediction:
+          anyOf:
+            - $ref: "#/components/schemas/ChannelEngagementPrediction"
+            - type: "null"
+
+    ChannelEngagementActionInput:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [claim_points, create_reward, redeem_reward, create_poll, vote_poll, end_poll, create_prediction, enter_prediction, lock_prediction, resolve_prediction, raid, set_host, clear_host]
+        title: { type: string, maxLength: 140 }
+        description: { type: string, maxLength: 500 }
+        choices:
+          type: array
+          minItems: 2
+          maxItems: 5
+          items: { type: string, maxLength: 80 }
+        pollId: { type: integer }
+        choiceId: { type: integer }
+        predictionId: { type: integer }
+        outcomeId: { type: integer }
+        rewardId: { type: integer }
+        targetChannelId: { type: integer }
+        channelPoints: { type: integer, minimum: 1, maximum: 100000 }
+        durationSeconds: { type: integer, minimum: 30, maximum: 3600 }
+        autoHost: { type: boolean }
+        userInput: { type: string, maxLength: 300 }
+
+    ChannelEngagementActionResult:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string }
+        status: { type: string }
+        entityId: { type: integer }
+        targetChannelId: { type: integer }
+        pointsBalance: { type: integer }
+        awarded: { type: integer }
+
+    ClipSummary:
+      type: object
+      required: [id, title, thumbnailUrl, durationSeconds, viewCount, channelId, channelName, channelSlug, processingStatus, playbackId, createdAt]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        thumbnailUrl: { type: ["string", "null"] }
+        durationSeconds: { type: ["integer", "null"] }
+        viewCount: { type: integer }
+        channelId: { type: integer }
+        channelName: { type: string }
+        channelSlug: { type: string }
+        processingStatus: { type: string, enum: [processing, ready, errored] }
+        playbackId:
+          description: FastPix playback ID. Present only when the clip is ready for playback.
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+
+    ClipInput:
+      type: object
+      required: [videoId, startTime, endTime, title]
+      properties:
+        videoId: { type: integer }
+        startTime: { type: number, minimum: 0 }
+        endTime: { type: number, exclusiveMinimum: 0 }
+        title: { type: string, minLength: 1, maxLength: 100 }
 
     VideoSummary:
       type: object
@@ -1063,6 +1729,42 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CinemaRow"
+
+    ChannelChatSettings:
+      type: object
+      required: [slowModeSeconds, followersOnly]
+      properties:
+        slowModeSeconds: { type: integer, minimum: 0, maximum: 300 }
+        followersOnly: { type: boolean }
+
+    ChannelChatSettingsUpdate:
+      type: object
+      properties:
+        slowModeSeconds: { type: integer, minimum: 0, maximum: 300 }
+        followersOnly: { type: boolean }
+
+    ChannelModerationActionInput:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [add_moderator, remove_moderator, timeout, ban, unban, delete_message]
+        targetUserId: { type: integer }
+        messageId: { type: integer }
+        durationSeconds: { type: integer, minimum: 1, maximum: 2592000 }
+        reason: { type: string, maxLength: 500 }
+
+    ChannelModerationActionResult:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [add_moderator, remove_moderator, timeout, ban, unban, delete_message]
+        targetUserId: { type: ["integer", "null"] }
+        messageId: { type: ["integer", "null"] }
+        expiresAt: { type: ["string", "null"], format: date-time }
 
     ChatMessage:
       type: object

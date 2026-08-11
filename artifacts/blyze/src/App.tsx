@@ -19,6 +19,9 @@ import LiveCategory from '@/pages/live/Category';
 import LiveChannel from '@/pages/live/Channel';
 import WatchHome from '@/pages/watch/Home';
 import WatchDetail from '@/pages/watch/Detail';
+import ClipsHome from '@/pages/clips/Home';
+import ClipDetail from '@/pages/clips/Detail';
+import SearchPage from '@/pages/search/Search';
 import CinemaHome from '@/pages/cinema/Home';
 import CinemaDetail from '@/pages/cinema/Detail';
 import DashboardLive from '@/pages/dashboard/Live';
@@ -66,6 +69,16 @@ function AppRoutes() {
       </Route>
       <Route path="/watch/:id">
         <Layout><WatchDetail /></Layout>
+      </Route>
+
+      <Route path="/clips">
+        <Layout><ClipsHome /></Layout>
+      </Route>
+      <Route path="/clips/:id">
+        <Layout><ClipDetail /></Layout>
+      </Route>
+      <Route path="/search">
+        <Layout><SearchPage /></Layout>
       </Route>
 
       <Route path="/cinema">

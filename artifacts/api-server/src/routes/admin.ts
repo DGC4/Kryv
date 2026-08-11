@@ -82,11 +82,16 @@ router.patch(
       res.status(400).json({ error: parsed.error.message });
       return;
     }
+    const targetUserId = Number(params.data.id);
+    if (!Number.isSafeInteger(targetUserId) || targetUserId < 1) {
+      res.status(400).json({ error: "Invalid user ID" });
+      return;
+    }
 
     const [existing] = await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.id, params.data.id));
+      .where(eq(usersTable.id, targetUserId));
     if (!existing) {
       res.status(404).json({ error: "User not found" });
       return;
@@ -105,7 +110,7 @@ router.patch(
     const [updated] = await db
       .update(usersTable)
       .set(parsed.data)
-      .where(eq(usersTable.id, params.data.id))
+      .where(eq(usersTable.id, targetUserId))
       .returning();
 
     res.json(UpdateAdminUserResponse.parse(updated));

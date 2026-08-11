@@ -48,6 +48,8 @@ export const channelsTable = pgTable("channels", {
   language: text("language").default("en"),
   matureContent: boolean("mature_content").notNull().default(false),
   channelPointsEnabled: boolean("channel_points_enabled").notNull().default(true),
+  chatSlowModeSeconds: integer("chat_slow_mode_seconds").notNull().default(0),
+  chatFollowersOnly: boolean("chat_followers_only").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

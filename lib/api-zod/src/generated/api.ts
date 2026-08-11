@@ -21,7 +21,7 @@ export const HealthCheckResponse = zod.object({
  * @summary Get current user profile, own channel, and followed channels
  */
 export const GetMeResponse = zod.object({
-  "id": zod.number(),
+  "id": zod.string(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),
@@ -110,6 +110,120 @@ export const GetDiscoverSummaryResponse = zod.object({
 })),
   "totalLiveChannels": zod.number(),
   "totalViewers": zod.number()
+})
+
+
+/**
+ * @summary Search public live channels, uploaded videos, and ready clips
+ */
+export const searchKryvQueryQMin = 2;
+export const searchKryvQueryQMax = 64;
+
+
+
+export const SearchKryvQueryParams = zod.object({
+  "q": zod.coerce.string().min(searchKryvQueryQMin).max(searchKryvQueryQMax)
+})
+
+export const SearchKryvResponse = zod.object({
+  "channels": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
+})),
+  "videos": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+})),
+  "clips": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelSlug": zod.string(),
+  "processingStatus": zod.enum(['processing', 'ready', 'errored']),
+  "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary List the signed-in viewer's followed channels that are currently live
+ */
+export const ListFollowedLiveChannelsResponseItem = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
+})
+export const ListFollowedLiveChannelsResponse = zod.array(ListFollowedLiveChannelsResponseItem)
+
+
+/**
+ * @summary Get the signed-in user's global notification preferences
+ */
+export const GetNotificationPreferencesResponse = zod.object({
+  "notifyOnLive": zod.boolean(),
+  "notifyOnUpload": zod.boolean(),
+  "notifyOnClip": zod.boolean(),
+  "emailNotifications": zod.boolean()
+})
+
+
+/**
+ * @summary Update the signed-in user's global notification preferences
+ */
+export const UpdateNotificationPreferencesBody = zod.object({
+  "notifyOnLive": zod.boolean(),
+  "notifyOnUpload": zod.boolean(),
+  "notifyOnClip": zod.boolean(),
+  "emailNotifications": zod.boolean()
+})
+
+export const UpdateNotificationPreferencesResponse = zod.object({
+  "notifyOnLive": zod.boolean(),
+  "notifyOnUpload": zod.boolean(),
+  "notifyOnClip": zod.boolean(),
+  "emailNotifications": zod.boolean()
 })
 
 
@@ -310,6 +424,37 @@ export const CreateChannelStreamResponse = zod.object({
 
 
 /**
+ * @summary Get actionable live analytics for the current channel owner
+ */
+export const GetChannelAnalyticsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetChannelAnalyticsResponse = zod.object({
+  "periodDays": zod.number().describe('Rolling measurement period in calendar days'),
+  "isLive": zod.boolean(),
+  "currentViewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "totalStreams": zod.number(),
+  "totalStreamSeconds": zod.number(),
+  "peakViewers": zod.number(),
+  "averageViewers": zod.number(),
+  "totalChatMessages": zod.number(),
+  "recentStreams": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string().nullable(),
+  "startedAt": zod.coerce.date(),
+  "endedAt": zod.coerce.date().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "peakViewers": zod.number(),
+  "averageViewers": zod.number(),
+  "totalChatMessages": zod.number()
+}))
+})
+
+
+/**
  * @summary Viewer heartbeat — increments viewer count while watching a live stream. Call every 30 seconds.
  */
 export const ChannelHeartbeatParams = zod.object({
@@ -401,6 +546,206 @@ export const UnfollowChannelResponse = zod.object({
 
 
 /**
+ * @summary Get the public chat participation settings for a channel
+ */
+export const GetChannelChatSettingsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const getChannelChatSettingsResponseSlowModeSecondsMin = 0;
+export const getChannelChatSettingsResponseSlowModeSecondsMax = 300;
+
+
+
+export const GetChannelChatSettingsResponse = zod.object({
+  "slowModeSeconds": zod.number().min(getChannelChatSettingsResponseSlowModeSecondsMin).max(getChannelChatSettingsResponseSlowModeSecondsMax),
+  "followersOnly": zod.boolean()
+})
+
+
+/**
+ * @summary Update chat slow mode and follower-only mode for the current channel owner
+ */
+export const UpdateChannelChatSettingsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateChannelChatSettingsBodySlowModeSecondsMin = 0;
+export const updateChannelChatSettingsBodySlowModeSecondsMax = 300;
+
+
+
+export const UpdateChannelChatSettingsBody = zod.object({
+  "slowModeSeconds": zod.number().min(updateChannelChatSettingsBodySlowModeSecondsMin).max(updateChannelChatSettingsBodySlowModeSecondsMax).optional(),
+  "followersOnly": zod.boolean().optional()
+})
+
+export const updateChannelChatSettingsResponseSlowModeSecondsMin = 0;
+export const updateChannelChatSettingsResponseSlowModeSecondsMax = 300;
+
+
+
+export const UpdateChannelChatSettingsResponse = zod.object({
+  "slowModeSeconds": zod.number().min(updateChannelChatSettingsResponseSlowModeSecondsMin).max(updateChannelChatSettingsResponseSlowModeSecondsMax),
+  "followersOnly": zod.boolean()
+})
+
+
+/**
+ * @summary Perform an owner or moderator action in a channel
+ */
+export const CreateChannelModerationActionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createChannelModerationActionBodyDurationSecondsMax = 2592000;
+
+export const createChannelModerationActionBodyReasonMax = 500;
+
+
+
+export const CreateChannelModerationActionBody = zod.object({
+  "action": zod.enum(['add_moderator', 'remove_moderator', 'timeout', 'ban', 'unban', 'delete_message']),
+  "targetUserId": zod.number().optional(),
+  "messageId": zod.number().optional(),
+  "durationSeconds": zod.number().min(1).max(createChannelModerationActionBodyDurationSecondsMax).optional(),
+  "reason": zod.string().max(createChannelModerationActionBodyReasonMax).optional()
+})
+
+export const CreateChannelModerationActionResponse = zod.object({
+  "action": zod.enum(['add_moderator', 'remove_moderator', 'timeout', 'ban', 'unban', 'delete_message']),
+  "targetUserId": zod.number().nullish(),
+  "messageId": zod.number().nullish(),
+  "expiresAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Get an owner’s Stripe Connect onboarding and capability status
+ */
+export const GetChannelMonetizationStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetChannelMonetizationStatusResponse = zod.object({
+  "provider": zod.string(),
+  "onboardingStatus": zod.enum(['not_started', 'pending', 'complete', 'restricted']),
+  "chargesEnabled": zod.boolean(),
+  "payoutsEnabled": zod.boolean(),
+  "detailsSubmitted": zod.boolean(),
+  "requirementsDue": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Create a short-lived Stripe-hosted onboarding link for the channel owner
+ */
+export const CreateChannelMonetizationOnboardingLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateChannelMonetizationOnboardingLinkResponse = zod.object({
+  "url": zod.string(),
+  "onboardingStatus": zod.string()
+})
+
+
+/**
+ * @summary Get public channel-points, poll, and prediction state for a channel
+ */
+export const GetChannelEngagementParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetChannelEngagementResponse = zod.object({
+  "pointsBalance": zod.number().nullable(),
+  "pointsEnabled": zod.boolean(),
+  "activePoll": zod.union([zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "status": zod.string(),
+  "durationSeconds": zod.number(),
+  "startedAt": zod.coerce.date(),
+  "choices": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "votes": zod.number(),
+  "channelPoints": zod.number().optional(),
+  "users": zod.number().optional(),
+  "color": zod.string().optional()
+}))
+}),zod.null()]),
+  "activePrediction": zod.union([zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "status": zod.string(),
+  "predictionWindowSeconds": zod.number(),
+  "startedAt": zod.coerce.date(),
+  "outcomes": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "votes": zod.number(),
+  "channelPoints": zod.number().optional(),
+  "users": zod.number().optional(),
+  "color": zod.string().optional()
+}))
+}),zod.null()])
+})
+
+
+/**
+ * @summary Perform an authenticated viewer or channel-owner engagement action
+ */
+export const CreateChannelEngagementActionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createChannelEngagementActionBodyTitleMax = 140;
+
+export const createChannelEngagementActionBodyDescriptionMax = 500;
+
+export const createChannelEngagementActionBodyChoicesItemMax = 80;
+
+export const createChannelEngagementActionBodyChoicesMin = 2;
+export const createChannelEngagementActionBodyChoicesMax = 5;
+
+export const createChannelEngagementActionBodyChannelPointsMax = 100000;
+
+export const createChannelEngagementActionBodyDurationSecondsMin = 30;
+export const createChannelEngagementActionBodyDurationSecondsMax = 3600;
+
+export const createChannelEngagementActionBodyUserInputMax = 300;
+
+
+
+export const CreateChannelEngagementActionBody = zod.object({
+  "action": zod.enum(['claim_points', 'create_reward', 'redeem_reward', 'create_poll', 'vote_poll', 'end_poll', 'create_prediction', 'enter_prediction', 'lock_prediction', 'resolve_prediction', 'raid', 'set_host', 'clear_host']),
+  "title": zod.string().max(createChannelEngagementActionBodyTitleMax).optional(),
+  "description": zod.string().max(createChannelEngagementActionBodyDescriptionMax).optional(),
+  "choices": zod.array(zod.string().max(createChannelEngagementActionBodyChoicesItemMax)).min(createChannelEngagementActionBodyChoicesMin).max(createChannelEngagementActionBodyChoicesMax).optional(),
+  "pollId": zod.number().optional(),
+  "choiceId": zod.number().optional(),
+  "predictionId": zod.number().optional(),
+  "outcomeId": zod.number().optional(),
+  "rewardId": zod.number().optional(),
+  "targetChannelId": zod.number().optional(),
+  "channelPoints": zod.number().min(1).max(createChannelEngagementActionBodyChannelPointsMax).optional(),
+  "durationSeconds": zod.number().min(createChannelEngagementActionBodyDurationSecondsMin).max(createChannelEngagementActionBodyDurationSecondsMax).optional(),
+  "autoHost": zod.boolean().optional(),
+  "userInput": zod.string().max(createChannelEngagementActionBodyUserInputMax).optional()
+})
+
+export const CreateChannelEngagementActionResponse = zod.object({
+  "action": zod.string(),
+  "status": zod.string().optional(),
+  "entityId": zod.number().optional(),
+  "targetChannelId": zod.number().optional(),
+  "pointsBalance": zod.number().optional(),
+  "awarded": zod.number().optional()
+})
+
+
+/**
  * @summary List recent chat messages for a channel
  */
 export const ListChannelMessagesParams = zod.object({
@@ -441,6 +786,84 @@ export const CreateChannelMessageResponse = zod.object({
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "message": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Browse public, ready-to-play Kryv clips
+ */
+export const ListClipsQueryParams = zod.object({
+  "channelId": zod.coerce.number().optional()
+})
+
+export const ListClipsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelSlug": zod.string(),
+  "processingStatus": zod.enum(['processing', 'ready', 'errored']),
+  "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
+  "createdAt": zod.coerce.date()
+})
+export const ListClipsResponse = zod.array(ListClipsResponseItem)
+
+
+/**
+ * @summary Request a FastPix clip from an owned, ready Kryv video
+ */
+export const createClipBodyStartTimeMin = 0;
+
+export const createClipBodyEndTimeExclusiveMin = 0;
+
+export const createClipBodyTitleMax = 100;
+
+
+
+export const CreateClipBody = zod.object({
+  "videoId": zod.number(),
+  "startTime": zod.number().min(createClipBodyStartTimeMin),
+  "endTime": zod.number().gt(createClipBodyEndTimeExclusiveMin),
+  "title": zod.string().min(1).max(createClipBodyTitleMax)
+})
+
+export const CreateClipResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelSlug": zod.string(),
+  "processingStatus": zod.enum(['processing', 'ready', 'errored']),
+  "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get a public, ready-to-play Kryv clip
+ */
+export const GetClipParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetClipResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelSlug": zod.string(),
+  "processingStatus": zod.enum(['processing', 'ready', 'errored']),
+  "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
   "createdAt": zod.coerce.date()
 })
 
@@ -662,7 +1085,7 @@ export const GetAdminStatsResponse = zod.object({
  * @summary Owner-only user list
  */
 export const ListAdminUsersResponseItem = zod.object({
-  "id": zod.number(),
+  "id": zod.string(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),
@@ -684,7 +1107,7 @@ export const UpdateAdminUserBody = zod.object({
 })
 
 export const UpdateAdminUserResponse = zod.object({
-  "id": zod.number(),
+  "id": zod.string(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),

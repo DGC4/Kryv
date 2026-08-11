@@ -6,6 +6,15 @@ import {
   useUpdateChannel,
   useCreateChannelStream,
   useResetChannelStream,
+  useGetChannelAnalytics,
+  useGetChannelChatSettings,
+  useUpdateChannelChatSettings,
+  useGetChannelEngagement,
+  useCreateChannelEngagementAction,
+  useGetChannelMonetizationStatus,
+  useCreateChannelMonetizationOnboardingLink,
+  useGetNotificationPreferences,
+  useUpdateNotificationPreferences,
   useListCategories,
 } from '@workspace/api-client-react';
 import HlsPlayer from '@/components/video/HlsPlayer';
@@ -15,7 +24,7 @@ import {
   Monitor, ExternalLink, MapPin, Wifi,
   Settings, BarChart2, Users, MessageSquare, Eye, EyeOff,
   ChevronRight, Lock, Unlock, Globe, Signal, CreditCard,
-  Zap, Shield, Crown,
+  Zap, Shield, Crown, Trophy, Vote, Sparkles, Swords, RadioTower, Bell,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -64,6 +73,14 @@ function CopyField({ label, value, secret }: { label: string; value: string; sec
       </div>
     </div>
   );
+}
+
+function formatDuration(seconds: number | null | undefined) {
+  const value = Math.max(0, seconds ?? 0);
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
 }
 
 function StatusBadge({ live }: { live: boolean }) {
@@ -127,7 +144,7 @@ function useIpLocation() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type DashTab = 'stream' | 'settings' | 'analytics';
+type DashTab = 'stream' | 'settings' | 'engagement' | 'analytics';
 
 export default function DashboardLive() {
   const [, navigate] = useLocation();
@@ -144,13 +161,47 @@ export default function DashboardLive() {
   const { toast } = useToast();
 
   const [displayName, setDisplayName] = useState('');
+  const [settingsDisplayName, setSettingsDisplayName] = useState('');
+  const [chatSlowModeSeconds, setChatSlowModeSeconds] = useState(0);
+  const [chatFollowersOnly, setChatFollowersOnly] = useState(false);
   const [streamTitle, setStreamTitle] = useState('');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
   const [activeTab, setActiveTab] = useState<DashTab>('stream');
   const [locationEnforced, setLocationEnforced] = useState(false);
   const [channelCreated, setChannelCreated] = useState(false);
+  const [pollTitle, setPollTitle] = useState('');
+  const [pollChoices, setPollChoices] = useState('');
+  const [predictionTitle, setPredictionTitle] = useState('');
+  const [predictionOutcomes, setPredictionOutcomes] = useState('');
+  const [rewardTitle, setRewardTitle] = useState('');
+  const [rewardCost, setRewardCost] = useState(100);
+  const [targetChannelId, setTargetChannelId] = useState('');
+  const [notificationPrefs, setNotificationPrefs] = useState({ notifyOnLive: true, notifyOnUpload: true, notifyOnClip: false, emailNotifications: false });
   const { location } = useIpLocation();
+  const { data: chatSettings } = useGetChannelChatSettings(me?.channel?.id ?? 0, {
+    query: { enabled: Boolean(me?.channel) },
+  });
+  const updateChatSettings = useUpdateChannelChatSettings();
+  const { data: engagement, refetch: refetchEngagement } = useGetChannelEngagement(me?.channel?.id ?? 0, {
+    query: { enabled: Boolean(me?.channel && activeTab === 'engagement'), refetchInterval: activeTab === 'engagement' ? 10000 : false },
+  });
+  const engagementAction = useCreateChannelEngagementAction();
+  const { data: monetizationStatus, refetch: refetchMonetizationStatus } = useGetChannelMonetizationStatus(me?.channel?.id ?? 0, {
+    query: { enabled: Boolean(me?.channel && activeTab === 'settings') },
+  });
+  const createOnboardingLink = useCreateChannelMonetizationOnboardingLink();
+  const { data: savedNotificationPrefs } = useGetNotificationPreferences({ query: { enabled: activeTab === 'settings' } });
+  const updateNotificationPrefs = useUpdateNotificationPreferences();
+  const { data: analytics, isLoading: analyticsLoading } = useGetChannelAnalytics(
+    me?.channel?.id ?? 0,
+    {
+      query: {
+        enabled: Boolean(me?.channel && activeTab === 'analytics'),
+        refetchInterval: activeTab === 'analytics' ? 15000 : false,
+      },
+    },
+  );
 
   // Auto-fetch credentials on mount if channel exists
   useEffect(() => {
@@ -164,10 +215,22 @@ export default function DashboardLive() {
 
   useEffect(() => {
     if (me?.channel) {
+      setSettingsDisplayName(me.channel.displayName);
       setStreamTitle(me.channel.streamTitle || '');
       setCategoryId(me.channel.categoryId || undefined);
     }
   }, [me]);
+
+  useEffect(() => {
+    if (chatSettings) {
+      setChatSlowModeSeconds(chatSettings.slowModeSeconds);
+      setChatFollowersOnly(chatSettings.followersOnly);
+    }
+  }, [chatSettings]);
+
+  useEffect(() => {
+    if (savedNotificationPrefs) setNotificationPrefs(savedNotificationPrefs);
+  }, [savedNotificationPrefs]);
 
   const handleCreateChannel = (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,6 +269,84 @@ export default function DashboardLive() {
         onSuccess: () => toast({ title: 'Stream info saved!' }),
         onError: (err: any) =>
           toast({ title: 'Failed', description: err?.body?.error || err.message, variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleSaveSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    const channel = me?.channel;
+    const nextDisplayName = settingsDisplayName.trim();
+    if (!channel || !nextDisplayName) return;
+
+    updateChannel.mutate(
+      { id: channel.id, data: { displayName: nextDisplayName } },
+      {
+        onSuccess: async () => {
+          await refetchMe();
+          toast({ title: 'Channel settings saved!', description: 'Your display name is now updated everywhere on Kryv.' });
+        },
+        onError: (err: any) =>
+          toast({ title: 'Unable to save settings', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleEngagementAction = (data: any, successTitle: string) => {
+    const channel = me?.channel;
+    if (!channel) return;
+    engagementAction.mutate(
+      { id: channel.id, data },
+      {
+        onSuccess: () => {
+          toast({ title: successTitle });
+          refetchEngagement();
+        },
+        onError: (err: any) => toast({ title: 'Unable to update engagement', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleStartStripeOnboarding = () => {
+    const channel = me?.channel;
+    if (!channel) return;
+    createOnboardingLink.mutate(
+      { id: channel.id },
+      {
+        onSuccess: (data) => {
+          refetchMonetizationStatus();
+          // Account Links are short-lived and contain access to the creator's Stripe profile.
+          // Navigate only after the owner deliberately initiated this action in Kryv.
+          window.location.assign(data.url);
+        },
+        onError: (err: any) => toast({ title: 'Payout onboarding is not ready', description: err?.body?.error || err?.message || 'Please try again after Stripe is configured.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleSaveNotificationPreferences = () => {
+    updateNotificationPrefs.mutate(
+      { data: notificationPrefs },
+      {
+        onSuccess: () => toast({ title: 'Notification preferences saved' }),
+        onError: (err: any) => toast({ title: 'Unable to save notifications', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleSaveChatSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    const channel = me?.channel;
+    if (!channel) return;
+
+    updateChatSettings.mutate(
+      {
+        id: channel.id,
+        data: { slowModeSeconds: chatSlowModeSeconds, followersOnly: chatFollowersOnly },
+      },
+      {
+        onSuccess: () => toast({ title: 'Chat safety settings saved', description: 'Your chat participation rules are now active.' }),
+        onError: (err: any) => toast({ title: 'Unable to update chat settings', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
       },
     );
   };
@@ -357,6 +498,7 @@ export default function DashboardLive() {
         <p className="text-[10px] font-black text-white/25 uppercase tracking-widest px-3 mb-2">Creator</p>
         <SidebarItem icon={Signal}    label="Stream"    active={activeTab === 'stream'}    onClick={() => setActiveTab('stream')} />
         <SidebarItem icon={Settings}  label="Settings"  active={activeTab === 'settings'}  onClick={() => setActiveTab('settings')} />
+        <SidebarItem icon={Sparkles}  label="Engagement" active={activeTab === 'engagement'} onClick={() => setActiveTab('engagement')} />
         <SidebarItem icon={BarChart2} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
 
         {/* Location pill at bottom of sidebar */}
@@ -664,12 +806,13 @@ export default function DashboardLive() {
                   <Settings className="w-5 h-5 text-primary" />
                   Channel Settings
                 </h2>
-                <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02] space-y-4">
+                <form onSubmit={handleSaveSettings} className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02] space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Channel Name</label>
                     <input
                       type="text"
-                      defaultValue={channel.displayName}
+                      value={settingsDisplayName}
+                      onChange={e => setSettingsDisplayName(e.target.value)}
                       className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary/50 transition-all"
                       maxLength={60}
                     />
@@ -681,8 +824,99 @@ export default function DashboardLive() {
                       <span className="text-white text-sm font-mono">{channel.slug}</span>
                     </div>
                   </div>
-                  <Button className="font-bold bg-primary text-primary-foreground rounded-xl px-6">
-                    <Save className="w-4 h-4 mr-2" /> Save Settings
+                  <Button
+                    type="submit"
+                    disabled={updateChannel.isPending || !settingsDisplayName.trim()}
+                    className="font-bold bg-primary text-primary-foreground rounded-xl px-6"
+                  >
+                    {updateChannel.isPending
+                      ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</>
+                      : <><Save className="w-4 h-4 mr-2" /> Save Settings</>
+                    }
+                  </Button>
+                </form>
+              </div>
+
+              <div>
+                <h2 className="text-lg font-black text-white mb-5 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  Chat Safety
+                </h2>
+                <form onSubmit={handleSaveChatSettings} className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02] space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-white">Followers-only chat</p>
+                      <p className="text-xs text-white/35 mt-1">Only viewers who follow your channel can post messages.</p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={chatFollowersOnly}
+                      onClick={() => setChatFollowersOnly(value => !value)}
+                      className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${chatFollowersOnly ? 'bg-primary' : 'bg-white/15'}`}
+                    >
+                      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${chatFollowersOnly ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  <div className="pt-4 border-t border-white/[0.07]">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-sm font-bold text-white">Slow mode</p>
+                        <p className="text-xs text-white/35 mt-1">Set a wait time between messages for non-moderators.</p>
+                      </div>
+                      <span className="text-sm font-black text-primary">{chatSlowModeSeconds ? `${chatSlowModeSeconds}s` : 'Off'}</span>
+                    </div>
+                    <input
+                      aria-label="Chat slow mode in seconds"
+                      type="range"
+                      min={0}
+                      max={300}
+                      step={5}
+                      value={chatSlowModeSeconds}
+                      onChange={e => setChatSlowModeSeconds(Number(e.target.value))}
+                      className="w-full accent-primary"
+                    />
+                    <div className="flex justify-between mt-1 text-[10px] font-bold text-white/25 uppercase tracking-widest"><span>Off</span><span>5 min</span></div>
+                  </div>
+                  <Button type="submit" disabled={updateChatSettings.isPending} className="font-bold bg-primary text-primary-foreground rounded-xl px-6">
+                    {updateChatSettings.isPending
+                      ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</>
+                      : <><Shield className="w-4 h-4 mr-2" /> Save Chat Settings</>
+                    }
+                  </Button>
+                </form>
+              </div>
+
+              <div>
+                <h2 className="text-lg font-black text-white mb-5 flex items-center gap-2"><Bell className="w-5 h-5 text-primary" />Notification Preferences</h2>
+                <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02] space-y-3">
+                  <p className="text-xs leading-relaxed text-white/40">These settings control which future Kryv alerts you allow. Email delivery remains off until you explicitly enable it.</p>
+                  {[
+                    { key: 'notifyOnLive' as const, title: 'Followed creators go live', detail: 'Receive in-app alerts when a channel you follow begins streaming.' },
+                    { key: 'notifyOnUpload' as const, title: 'New uploads', detail: 'Receive in-app alerts for fresh videos from followed creators.' },
+                    { key: 'notifyOnClip' as const, title: 'New clips', detail: 'Receive in-app alerts when a followed creator publishes a clip.' },
+                    { key: 'emailNotifications' as const, title: 'Email delivery', detail: 'Permit email notifications when Kryv delivery is configured.' },
+                  ].map(({ key, title, detail }) => <label key={key} className="flex items-start justify-between gap-4 rounded-xl border border-white/[0.06] bg-black/15 p-3 cursor-pointer"><span><span className="block text-sm font-bold text-white">{title}</span><span className="mt-0.5 block text-xs text-white/40">{detail}</span></span><input type="checkbox" checked={notificationPrefs[key]} onChange={e => setNotificationPrefs(current => ({ ...current, [key]: e.target.checked }))} className="mt-1 h-4 w-4 shrink-0 accent-primary" /></label>)}
+                  <Button type="button" onClick={handleSaveNotificationPreferences} disabled={updateNotificationPrefs.isPending} className="mt-1 font-bold rounded-xl">{updateNotificationPrefs.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : <><Bell className="w-4 h-4 mr-2" /> Save notification settings</>}</Button>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-lg font-black text-white mb-5 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  Creator Payouts
+                </h2>
+                <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-white">Stripe Connect verification</p>
+                      <p className="mt-1 text-xs leading-relaxed text-white/40">Kryv never collects payout or identity documents. Stripe securely verifies creators and controls the requirements for receiving subscription and tip revenue.</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${monetizationStatus?.onboardingStatus === 'complete' ? 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20' : 'bg-white/[0.06] text-white/45 border border-white/[0.08]'}`}>{monetizationStatus?.onboardingStatus === 'complete' ? 'Ready' : monetizationStatus?.onboardingStatus === 'restricted' ? 'Action needed' : 'Not started'}</span>
+                  </div>
+                  {monetizationStatus?.requirementsDue?.length ? <p className="mt-3 text-xs text-amber-300/80">Stripe still requires: {monetizationStatus.requirementsDue.join(', ')}</p> : null}
+                  <Button type="button" onClick={handleStartStripeOnboarding} disabled={createOnboardingLink.isPending || monetizationStatus?.onboardingStatus === 'complete'} className="mt-4 font-bold rounded-xl">
+                    {createOnboardingLink.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening secure verification…</> : <><ExternalLink className="w-4 h-4 mr-2" /> {monetizationStatus?.onboardingStatus === 'pending' ? 'Continue Stripe verification' : monetizationStatus?.onboardingStatus === 'complete' ? 'Payouts ready' : 'Set up creator payouts'}</>}
                   </Button>
                 </div>
               </div>
@@ -723,30 +957,136 @@ export default function DashboardLive() {
           </div>
         )}
 
+        {/* ── Engagement tab ── */}
+        {activeTab === 'engagement' && (
+          <div className="p-5 max-w-6xl">
+            <div className="flex flex-col gap-1 mb-6">
+              <h2 className="text-lg font-black text-white">Engagement Studio</h2>
+              <p className="text-xs text-white/35">Create live interactions that are backed by your Kryv channel points and safely enforced on the server.</p>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-5">
+              <form onSubmit={(e) => { e.preventDefault(); if (!rewardTitle.trim()) return; handleEngagementAction({ action: 'create_reward', title: rewardTitle.trim(), channelPoints: rewardCost }, 'Channel-point reward created'); setRewardTitle(''); }} className="rounded-2xl border border-amber-300/20 bg-amber-400/[0.05] p-4 sm:p-5 space-y-4">
+                <div className="flex items-center gap-2"><Trophy className="w-5 h-5 text-amber-300" /><h3 className="font-black text-white">Channel Points</h3></div>
+                <p className="text-xs leading-relaxed text-white/45">Viewers earn points during eligible live streams, then redeem them for creator-defined rewards.</p>
+                <input value={rewardTitle} onChange={e => setRewardTitle(e.target.value)} maxLength={140} placeholder="Reward title" className="w-full rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-amber-300/60" />
+                <label className="block text-xs font-bold text-white/55">Point cost<input type="number" min={1} max={100000} value={rewardCost} onChange={e => setRewardCost(Number(e.target.value))} className="mt-1.5 w-full rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-amber-300/60" /></label>
+                <Button type="submit" disabled={engagementAction.isPending || !rewardTitle.trim()} className="w-full bg-amber-300 text-black hover:bg-amber-200 font-black"><Trophy className="w-4 h-4 mr-2" /> Add reward</Button>
+              </form>
+
+              <form onSubmit={(e) => { e.preventDefault(); const choices = pollChoices.split('\n').map(value => value.trim()).filter(Boolean); if (!pollTitle.trim() || choices.length < 2) { toast({ title: 'Add a poll question and at least two choices', variant: 'destructive' }); return; } handleEngagementAction({ action: 'create_poll', title: pollTitle.trim(), choices, durationSeconds: 120 }, 'Poll started'); setPollTitle(''); setPollChoices(''); }} className="rounded-2xl border border-primary/25 bg-primary/[0.06] p-4 sm:p-5 space-y-4">
+                <div className="flex items-center gap-2"><Vote className="w-5 h-5 text-primary" /><h3 className="font-black text-white">Live Poll</h3></div>
+                <p className="text-xs leading-relaxed text-white/45">Starting a new poll automatically closes the previous active poll on this channel.</p>
+                <input value={pollTitle} onChange={e => setPollTitle(e.target.value)} maxLength={140} placeholder="Ask your community…" className="w-full rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" />
+                <textarea value={pollChoices} onChange={e => setPollChoices(e.target.value)} rows={3} placeholder={'Choice 1\nChoice 2'} className="w-full resize-none rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" />
+                <Button type="submit" disabled={engagementAction.isPending} className="w-full font-black"><Vote className="w-4 h-4 mr-2" /> Start poll</Button>
+                {engagement?.activePoll && <Button type="button" variant="ghost" onClick={() => handleEngagementAction({ action: 'end_poll', pollId: engagement.activePoll?.id }, 'Poll ended')} className="w-full text-white/55 hover:text-white">End “{engagement.activePoll.title}”</Button>}
+              </form>
+
+              <form onSubmit={(e) => { e.preventDefault(); const choices = predictionOutcomes.split('\n').map(value => value.trim()).filter(Boolean); if (!predictionTitle.trim() || choices.length < 2) { toast({ title: 'Add a prediction question and at least two outcomes', variant: 'destructive' }); return; } handleEngagementAction({ action: 'create_prediction', title: predictionTitle.trim(), choices, durationSeconds: 120 }, 'Prediction started'); setPredictionTitle(''); setPredictionOutcomes(''); }} className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-400/[0.05] p-4 sm:p-5 space-y-4">
+                <div className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-fuchsia-300" /><h3 className="font-black text-white">Prediction</h3></div>
+                <p className="text-xs leading-relaxed text-white/45">Predictions use only non-cash channel points. Lock entries before you resolve a winning outcome.</p>
+                <input value={predictionTitle} onChange={e => setPredictionTitle(e.target.value)} maxLength={140} placeholder="What will happen?" className="w-full rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-fuchsia-300/60" />
+                <textarea value={predictionOutcomes} onChange={e => setPredictionOutcomes(e.target.value)} rows={3} placeholder={'Outcome A\nOutcome B'} className="w-full resize-none rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-fuchsia-300/60" />
+                <Button type="submit" disabled={engagementAction.isPending} className="w-full bg-fuchsia-300 text-black hover:bg-fuchsia-200 font-black"><Sparkles className="w-4 h-4 mr-2" /> Start prediction</Button>
+                {engagement?.activePrediction?.status === 'active' && <Button type="button" variant="ghost" onClick={() => handleEngagementAction({ action: 'lock_prediction', predictionId: engagement.activePrediction?.id }, 'Prediction locked')} className="w-full text-white/55 hover:text-white">Lock entries</Button>}
+                {engagement?.activePrediction?.status === 'locked' && <div className="pt-2 border-t border-white/[0.08]"><p className="text-[10px] font-bold uppercase tracking-widest text-white/35 mb-2">Resolve with winner</p><div className="grid grid-cols-2 gap-2">{engagement.activePrediction.outcomes.map(outcome => <Button key={outcome.id} type="button" variant="secondary" disabled={engagementAction.isPending} onClick={() => handleEngagementAction({ action: 'resolve_prediction', predictionId: engagement.activePrediction?.id, outcomeId: outcome.id }, 'Prediction resolved and points awarded')} className="h-auto py-2 text-xs font-bold truncate">{outcome.title}</Button>)}</div></div>}
+              </form>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
+                <div className="flex items-center gap-2"><Swords className="w-5 h-5 text-primary" /><h3 className="font-black text-white">Raid a live channel</h3></div>
+                <p className="mt-2 text-xs text-white/45">Use the destination channel ID for now; the channel must already be live. Kryv records the event and viewer snapshot without moving viewers invisibly.</p>
+                <div className="mt-4 flex flex-col sm:flex-row gap-2"><input value={targetChannelId} onChange={e => setTargetChannelId(e.target.value)} inputMode="numeric" placeholder="Live channel ID" className="flex-1 rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /><Button type="button" disabled={engagementAction.isPending || !Number(targetChannelId)} onClick={() => handleEngagementAction({ action: 'raid', targetChannelId: Number(targetChannelId) }, 'Raid recorded')} className="font-black"><Swords className="w-4 h-4 mr-2" /> Raid</Button></div>
+              </div>
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
+                <div className="flex items-center gap-2"><RadioTower className="w-5 h-5 text-primary" /><h3 className="font-black text-white">Host another channel</h3></div>
+                <p className="mt-2 text-xs text-white/45">Set one creator-to-creator host relationship at a time. It never exposes stream keys or grants access to either channel.</p>
+                <div className="mt-4 flex flex-col sm:flex-row gap-2"><input value={targetChannelId} onChange={e => setTargetChannelId(e.target.value)} inputMode="numeric" placeholder="Channel ID" className="flex-1 rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /><Button type="button" variant="secondary" disabled={engagementAction.isPending || !Number(targetChannelId)} onClick={() => handleEngagementAction({ action: 'set_host', targetChannelId: Number(targetChannelId) }, 'Host channel saved')} className="font-black"><RadioTower className="w-4 h-4 mr-2" /> Host</Button></div>
+                <Button type="button" variant="ghost" disabled={engagementAction.isPending} onClick={() => handleEngagementAction({ action: 'clear_host' }, 'Host channel cleared')} className="mt-2 text-xs text-white/45 hover:text-white">Clear host</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Analytics tab ── */}
         {activeTab === 'analytics' && (
-          <div className="p-5">
-            <h2 className="text-lg font-black text-white mb-5">Analytics</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              {[
-                { label: 'Total Followers', value: String(channel.followerCount ?? 0), icon: Users },
-                { label: 'Subscribers',     value: String(channel.subscriberCount ?? 0), icon: Eye },
-                { label: 'Viewer Count',    value: isLive ? String(channel.viewerCount ?? 0) : '—', icon: Radio },
-                { label: 'Status',          value: isLive ? 'LIVE' : 'OFFLINE', icon: MessageSquare },
-              ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="p-4 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon className="w-4 h-4 text-primary" />
-                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{label}</p>
-                  </div>
-                  <p className="text-2xl font-black text-white">{value}</p>
+          <div className="p-5 max-w-6xl">
+            <div className="flex flex-col gap-1 mb-5">
+              <h2 className="text-lg font-black text-white">Live Analytics</h2>
+              <p className="text-xs text-white/35">A rolling 30-day view of your stream sessions and community activity.</p>
+            </div>
+
+            {analyticsLoading ? (
+              <div className="min-h-56 flex items-center justify-center border border-white/[0.07] rounded-2xl bg-white/[0.02]">
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                  {[
+                    { label: 'Current Viewers', value: analytics?.isLive ? (analytics.currentViewerCount ?? 0).toLocaleString() : 'Offline', icon: Radio, accent: analytics?.isLive },
+                    { label: 'Peak Viewers', value: (analytics?.peakViewers ?? 0).toLocaleString(), icon: Eye },
+                    { label: 'Avg. Viewers', value: (analytics?.averageViewers ?? 0).toLocaleString(), icon: Users },
+                    { label: 'Chat Messages', value: (analytics?.totalChatMessages ?? 0).toLocaleString(), icon: MessageSquare },
+                    { label: 'Streams', value: (analytics?.totalStreams ?? 0).toLocaleString(), icon: Signal },
+                    { label: 'Time Live', value: formatDuration(analytics?.totalStreamSeconds), icon: BarChart2 },
+                    { label: 'Followers', value: (analytics?.followerCount ?? channel.followerCount ?? 0).toLocaleString(), icon: Users },
+                    { label: 'Subscribers', value: (analytics?.subscriberCount ?? channel.subscriberCount ?? 0).toLocaleString(), icon: Crown },
+                  ].map(({ label, value, icon: Icon, accent }) => (
+                    <div key={label} className="p-3.5 sm:p-4 border border-white/[0.07] rounded-2xl bg-white/[0.02] min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Icon className={`w-4 h-4 shrink-0 ${accent ? 'text-red-400' : 'text-primary'}`} />
+                        <p className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase tracking-widest truncate">{label}</p>
+                      </div>
+                      <p className={`text-xl sm:text-2xl font-black truncate ${accent ? 'text-red-400' : 'text-white'}`}>{value}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02] text-center">
-              <BarChart2 className="w-8 h-8 text-white/20 mx-auto mb-2" />
-              <p className="text-sm text-white/30">Detailed analytics coming soon</p>
-            </div>
+
+                <div className="border border-white/[0.07] rounded-2xl bg-white/[0.02] overflow-hidden">
+                  <div className="flex items-center justify-between gap-3 p-4 border-b border-white/[0.07]">
+                    <div>
+                      <h3 className="text-sm font-black text-white">Recent broadcasts</h3>
+                      <p className="text-[11px] text-white/35 mt-0.5">Your five most recent live sessions.</p>
+                    </div>
+                    <span className="text-[10px] font-bold text-white/35 uppercase tracking-widest shrink-0">Last 30 days</span>
+                  </div>
+
+                  {analytics?.recentStreams?.length ? (
+                    <div className="divide-y divide-white/[0.06]">
+                      {analytics.recentStreams.map((stream) => (
+                        <div key={stream.id} className="p-4 grid grid-cols-2 sm:grid-cols-[minmax(0,1.6fr)_0.7fr_0.7fr_0.7fr] gap-x-4 gap-y-3 items-center">
+                          <div className="min-w-0 col-span-2 sm:col-span-1">
+                            <p className="text-sm font-bold text-white truncate">{stream.title || 'Untitled stream'}</p>
+                            <p className="text-[11px] text-white/35 mt-0.5">{new Date(stream.startedAt).toLocaleDateString()} · {formatDuration(stream.durationSeconds)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Peak</p>
+                            <p className="text-sm font-black text-white mt-0.5">{stream.peakViewers.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Average</p>
+                            <p className="text-sm font-black text-white mt-0.5">{stream.averageViewers.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Chat</p>
+                            <p className="text-sm font-black text-white mt-0.5">{stream.totalChatMessages.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-10 text-center">
+                      <BarChart2 className="w-8 h-8 text-white/15 mx-auto mb-3" />
+                      <p className="text-sm font-bold text-white/45">Your first broadcast will appear here.</p>
+                      <p className="text-xs text-white/25 mt-1">Go live in OBS and Kryv will begin recording your session metrics.</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

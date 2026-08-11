@@ -154,3 +154,62 @@ export async function createFastPixDirectUpload(corsOrigin: string) {
     uploadUrl: upload.url,
   };
 }
+
+/**
+ * Create an asynchronous FastPix on-demand clip from an existing media asset.
+ * Each request carries a Kryv correlation ID so webhook processing is idempotent.
+ */
+export async function createFastPixClip(input: {
+  sourceMediaId: string;
+  startTime: number;
+  endTime: number;
+  title: string;
+  requestId: string;
+}) {
+  if (!username || !password) {
+    throw new FastPixNotConfiguredError();
+  }
+
+  const authorization = Buffer.from(`${username}:${password}`).toString("base64");
+  const response = await fetch("https://api.fastpix.com/v1/on-demand", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${authorization}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      inputs: [
+        {
+          type: "video",
+          url: `fp_mediaId://${input.sourceMediaId}`,
+          startTime: input.startTime,
+          endTime: input.endTime,
+        },
+      ],
+      title: input.title,
+      accessPolicy: "public",
+      metadata: {
+        source: "kryv",
+        kryvClipRequestId: input.requestId,
+      },
+    }),
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = payload?.error?.message ?? payload?.message ?? `HTTP ${response.status}`;
+    throw new Error(`FastPix clip request failed: ${detail}`);
+  }
+
+  const media = payload?.data ?? payload;
+  const mediaId = media?.id;
+  if (!mediaId) {
+    throw new Error("FastPix clip request returned no media ID.");
+  }
+
+  return {
+    fastpixMediaId: mediaId as string,
+    fastpixPlaybackId: (media.playbackIds?.[0]?.id ?? null) as string | null,
+    thumbnailUrl: (media.thumbnail ?? null) as string | null,
+  };
+}

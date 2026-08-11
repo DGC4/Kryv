@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { and, eq, ilike, or, sql } from "drizzle-orm";
-import { db, channelsTable, followsTable } from "@workspace/db";
+import { and, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
+import { db, channelsTable, chatMessagesTable, followsTable, streamSessionsTable } from "@workspace/db";
 import {
   ListChannelsQueryParams,
   ListChannelsResponse,
@@ -11,6 +11,8 @@ import {
   UpdateChannelParams,
   UpdateChannelBody,
   UpdateChannelResponse,
+  GetChannelAnalyticsParams,
+  GetChannelAnalyticsResponse,
   CreateChannelStreamParams,
   CreateChannelStreamResponse,
   FollowChannelParams,
@@ -217,6 +219,93 @@ router.patch(
   },
 );
 
+router.get(
+  "/channels/:id/analytics",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const userId = req.user!.userId;
+    const params = GetChannelAnalyticsParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    const [channel] = await db
+      .select()
+      .from(channelsTable)
+      .where(eq(channelsTable.id, params.data.id));
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+    if (channel.ownerUserId !== userId) {
+      res.status(403).json({ error: "Not the channel owner" });
+      return;
+    }
+
+    const periodDays = 30;
+    const periodStart = new Date();
+    periodStart.setDate(periodStart.getDate() - periodDays);
+
+    const [summary] = await db
+      .select({
+        totalStreams: sql<number>`COALESCE(COUNT(*), 0)::int`,
+        totalStreamSeconds: sql<number>`COALESCE(SUM(COALESCE(${streamSessionsTable.durationSeconds}, EXTRACT(EPOCH FROM (COALESCE(${streamSessionsTable.endedAt}, NOW()) - ${streamSessionsTable.startedAt}))::int)), 0)::int`,
+        peakViewers: sql<number>`COALESCE(MAX(${streamSessionsTable.peakViewers}), 0)::int`,
+        averageViewers: sql<number>`COALESCE(ROUND(AVG(${streamSessionsTable.avgViewers})), 0)::int`,
+      })
+      .from(streamSessionsTable)
+      .where(
+        and(
+          eq(streamSessionsTable.channelId, channel.id),
+          gte(streamSessionsTable.startedAt, periodStart),
+        ),
+      );
+
+    const [chatSummary] = await db
+      .select({ totalChatMessages: sql<number>`COALESCE(COUNT(*), 0)::int` })
+      .from(chatMessagesTable)
+      .where(
+        and(
+          eq(chatMessagesTable.channelId, channel.id),
+          gte(chatMessagesTable.createdAt, periodStart),
+        ),
+      );
+
+    const recentStreams = await db
+      .select({
+        id: streamSessionsTable.id,
+        title: streamSessionsTable.title,
+        startedAt: streamSessionsTable.startedAt,
+        endedAt: streamSessionsTable.endedAt,
+        durationSeconds: streamSessionsTable.durationSeconds,
+        peakViewers: streamSessionsTable.peakViewers,
+        averageViewers: streamSessionsTable.avgViewers,
+        totalChatMessages: streamSessionsTable.totalChatMessages,
+      })
+      .from(streamSessionsTable)
+      .where(eq(streamSessionsTable.channelId, channel.id))
+      .orderBy(desc(streamSessionsTable.startedAt))
+      .limit(5);
+
+    res.json(
+      GetChannelAnalyticsResponse.parse({
+        periodDays,
+        isLive: channel.isLive,
+        currentViewerCount: channel.viewerCount,
+        followerCount: channel.followerCount,
+        subscriberCount: channel.subCount,
+        totalStreams: Number(summary?.totalStreams ?? 0),
+        totalStreamSeconds: Number(summary?.totalStreamSeconds ?? 0),
+        peakViewers: Number(summary?.peakViewers ?? 0),
+        averageViewers: Number(summary?.averageViewers ?? 0),
+        totalChatMessages: Number(chatSummary?.totalChatMessages ?? 0),
+        recentStreams,
+      }),
+    );
+  },
+);
+
 router.post(
   "/channels/:id/stream",
   requireAuth,
@@ -243,13 +332,14 @@ router.post(
 
     // ── Robust Stream Key Logic ──────────────────────────────────────────
     
-    // 1. If we already have a REAL FastPix key, return it.
+    // 1. If we already have a real FastPix key, return it.
     if (channel.fastpixStreamKey) {
-      return res.json(CreateChannelStreamResponse.parse({
+      res.json(CreateChannelStreamResponse.parse({
         rtmpUrl: "rtmps://live.fastpix.io:443/live",
         streamKey: channel.fastpixStreamKey,
         playbackId: channel.fastpixPlaybackId || "",
       }));
+      return;
     }
 
     // 2. Try to provision a new FastPix live stream
@@ -264,44 +354,27 @@ router.post(
         fastpixPlaybackId,
       }).where(eq(channelsTable.id, channel.id));
 
-      return res.json(CreateChannelStreamResponse.parse({
+      res.json(CreateChannelStreamResponse.parse({
         rtmpUrl: "rtmps://live.fastpix.io:443/live",
         streamKey: fastpixStreamKey,
         playbackId: fastpixPlaybackId ?? "",
       }));
+      return;
     } catch (err) {
-      // 3. Fallback ONLY if FastPix is not configured at all AND we don't have any key yet
+      // Never manufacture a placeholder key: it would look valid but cannot ingest to FastPix.
       if (err instanceof FastPixNotConfiguredError) {
-        if (channel.streamKey) {
-          return res.json(CreateChannelStreamResponse.parse({
-            rtmpUrl: "rtmps://live.fastpix.io:443/live",
-            streamKey: channel.streamKey,
-            playbackId: "",
-          }));
-        }
-
-        console.warn("FastPix is not configured, using placeholder stream key.");
-        const { randomBytes } = await import("crypto");
-        const selfHostedKey = `live_${channel.id}_${randomBytes(20).toString("hex")}`;
-        
-        await db.update(channelsTable).set({ 
-          streamKey: selfHostedKey, 
-          streamKeyGeneratedAt: new Date() 
-        }).where(eq(channelsTable.id, channel.id));
-
-        return res.json(CreateChannelStreamResponse.parse({
-          rtmpUrl: "rtmps://live.fastpix.io:443/live",
-          streamKey: selfHostedKey,
-          playbackId: "",
-        }));
+        res.status(503).json({
+          error: "FastPix is not configured. Set the FastPix access credentials before creating a stream key.",
+        });
+        return;
       }
 
-      // 4. If FastPix IS configured but failing (e.g. invalid tokens), we MUST report the error
       console.error("FastPix API Error:", err);
       const errorMessage = err instanceof Error ? err.message : "Unknown FastPix error";
-      return res.status(502).json({ 
-        error: `FastPix Integration Error: ${errorMessage}. Please check your ACCESS_TOKEN and SECRET_KEY in Render.` 
+      res.status(502).json({
+        error: `FastPix Integration Error: ${errorMessage}. Check the FastPix credentials in the server environment.`,
       });
+      return;
     }
   },
 );
@@ -409,24 +482,26 @@ router.post(
         fastpixPlaybackId,
       }).where(eq(channelsTable.id, channel.id));
 
-      return res.json(CreateChannelStreamResponse.parse({
+      res.json(CreateChannelStreamResponse.parse({
         rtmpUrl: "rtmps://live.fastpix.io:443/live",
         streamKey: fastpixStreamKey,
         playbackId: fastpixPlaybackId ?? "",
       }));
+      return;
     } catch (err) {
       if (err instanceof FastPixNotConfiguredError) {
-        // If they explicitly clicked "Rotate" but FastPix isn't set up, we should tell them
-        return res.status(503).json({ 
-          error: "FastPix is not configured. Please set ACCESS_TOKEN and SECRET_KEY in Render to generate a real stream key." 
+        res.status(503).json({
+          error: "FastPix is not configured. Set the FastPix access credentials before rotating a stream key.",
         });
+        return;
       }
 
       console.error("FastPix API Error (Reset):", err);
       const errorMessage = err instanceof Error ? err.message : "Unknown FastPix error";
-      return res.status(502).json({ 
-        error: `FastPix Integration Error: ${errorMessage}. Please check your ACCESS_TOKEN and SECRET_KEY in Render.` 
+      res.status(502).json({
+        error: `FastPix Integration Error: ${errorMessage}. Check the FastPix credentials in the server environment.`,
       });
+      return;
     }
   },
 );

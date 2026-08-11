@@ -7,11 +7,15 @@ import {
   useFollowChannel,
   useUnfollowChannel,
   useChannelHeartbeat,
+  useCreateChannelModerationAction,
+  useGetChannelChatSettings,
+  useGetChannelEngagement,
+  useCreateChannelEngagementAction,
 } from '@workspace/api-client-react';
 import { useAuthStore } from '@/lib/auth-store';
 import { useToast } from '@/hooks/use-toast';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 
@@ -29,12 +33,20 @@ export default function LiveChannel() {
   const { data: messages, refetch: refetchMessages } = useListChannelMessages(channelId!, {
     query: { enabled: !!channelId, refetchInterval: 3000 },
   });
+  const { data: chatSettings } = useGetChannelChatSettings(channelId!, {
+    query: { enabled: !!channelId, refetchInterval: 10000 },
+  });
+  const { data: engagement, refetch: refetchEngagement } = useGetChannelEngagement(channelId!, {
+    query: { enabled: !!channelId, refetchInterval: 10000 },
+  });
 
   const { toast } = useToast();
   const createMessage = useCreateChannelMessage();
   const follow = useFollowChannel();
   const unfollow = useUnfollowChannel();
   const heartbeat = useChannelHeartbeat();
+  const moderateMessage = useCreateChannelModerationAction();
+  const engagementAction = useCreateChannelEngagementAction();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [chatInput, setChatInput] = useState('');
@@ -102,6 +114,50 @@ export default function LiveChannel() {
           setChatInput('');
           refetchMessages();
         },
+      },
+    );
+  };
+
+  const handleModerationAction = (
+    action: 'delete_message' | 'timeout' | 'ban',
+    message: { id: number; userId: string; username: string },
+  ) => {
+    if (!channelId || !channel?.isOwner) return;
+    const targetUserId = Number(message.userId);
+    const data = action === 'delete_message'
+      ? { action, messageId: message.id }
+      : action === 'timeout'
+        ? { action, targetUserId, durationSeconds: 600 }
+        : { action, targetUserId };
+
+    moderateMessage.mutate(
+      { id: channelId, data },
+      {
+        onSuccess: () => {
+          refetchMessages();
+          const labels = { delete_message: 'Message removed', timeout: `${message.username} timed out for 10 minutes`, ban: `${message.username} banned from chat` };
+          toast({ title: labels[action] });
+        },
+        onError: (err: any) => toast({ title: 'Moderation action failed', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleEngagementAction = (data: any) => {
+    if (!channelId) return;
+    if (!isSignedIn) {
+      toast({ title: 'Sign in to participate', description: 'You need to be signed in to use channel points, polls, and predictions.' });
+      return;
+    }
+    engagementAction.mutate(
+      { id: channelId, data },
+      {
+        onSuccess: (result: any) => {
+          if (result?.awarded) toast({ title: `+${result.awarded} channel points`, description: 'Keep watching live to earn more.' });
+          else toast({ title: 'Participation recorded' });
+          refetchEngagement();
+        },
+        onError: (err: any) => toast({ title: 'Unable to complete action', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
       },
     );
   };
@@ -249,6 +305,31 @@ export default function LiveChannel() {
             </div>
           </div>
 
+          {(engagement?.pointsEnabled || engagement?.activePoll || engagement?.activePrediction) && (
+            <section className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
+              {engagement.pointsEnabled && (
+                <div className="rounded-xl border border-amber-300/20 bg-amber-400/[0.06] p-4">
+                  <div className="flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-300" /><h3 className="font-black text-sm text-white">Channel Points</h3></div>
+                  <p className="mt-2 text-xs text-white/45">{isSignedIn ? `${(engagement.pointsBalance ?? 0).toLocaleString()} points available` : 'Sign in to earn points while watching live.'}</p>
+                  <Button size="sm" onClick={() => handleEngagementAction({ action: 'claim_points' })} disabled={!isSignedIn || engagementAction.isPending || !channel.isLive} className="mt-3 w-full bg-amber-300 text-black hover:bg-amber-200 font-black text-xs">Claim points</Button>
+                </div>
+              )}
+              {engagement.activePoll && (
+                <div className="rounded-xl border border-primary/25 bg-primary/[0.06] p-4">
+                  <div className="flex items-center gap-2"><Vote className="w-4 h-4 text-primary" /><h3 className="font-black text-sm text-white truncate">{engagement.activePoll.title}</h3></div>
+                  <div className="mt-3 space-y-2">{engagement.activePoll.choices.map((choice) => <button key={choice.id} type="button" onClick={() => handleEngagementAction({ action: 'vote_poll', pollId: engagement.activePoll?.id, choiceId: choice.id })} disabled={!isSignedIn || engagementAction.isPending} className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-left text-xs font-bold text-white/75 hover:border-primary/60 hover:text-white disabled:opacity-50 flex justify-between gap-2"><span className="truncate">{choice.title}</span><span className="text-white/35">{choice.votes}</span></button>)}</div>
+                </div>
+              )}
+              {engagement.activePrediction && (
+                <div className="rounded-xl border border-fuchsia-300/20 bg-fuchsia-400/[0.05] p-4">
+                  <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-fuchsia-300" /><h3 className="font-black text-sm text-white truncate">{engagement.activePrediction.title}</h3></div>
+                  <p className="mt-2 text-[11px] text-white/40">Pick an outcome with 10 channel points.</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">{engagement.activePrediction.outcomes.map((outcome) => <button key={outcome.id} type="button" onClick={() => handleEngagementAction({ action: 'enter_prediction', predictionId: engagement.activePrediction?.id, outcomeId: outcome.id, channelPoints: 10 })} disabled={!isSignedIn || engagementAction.isPending || engagement.activePrediction.status !== 'active'} className="rounded-lg border border-white/10 bg-black/20 px-2 py-2 text-xs font-bold text-white/75 hover:border-fuchsia-300/60 hover:text-white disabled:opacity-50 truncate">{outcome.title}</button>)}</div>
+                </div>
+              )}
+            </section>
+          )}
+
           {channel.description && (
             <div className="mt-8 p-6 bg-white/5 border border-white/5 rounded-xl">
               <h3 className="font-bold text-white mb-2">About {channel.displayName}</h3>
@@ -260,19 +341,39 @@ export default function LiveChannel() {
 
       {/* Chat Sidebar - Mobile: bottom sheet, Desktop: right sidebar */}
       <div className="w-full lg:w-80 xl:w-96 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/40 backdrop-blur flex flex-col h-[45dvh] sm:h-[50dvh] lg:h-auto shrink-0 overflow-hidden">
-        <div className="p-2 sm:p-4 border-b border-white/10 flex items-center justify-between">
-          <h3 className="font-display font-bold text-white text-sm sm:text-base">Stream Chat</h3>
-          <Users className="w-4 h-4 text-muted-foreground" />
+        <div className="p-2 sm:p-4 border-b border-white/10 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-display font-bold text-white text-sm sm:text-base">Stream Chat</h3>
+            {(chatSettings?.slowModeSeconds || chatSettings?.followersOnly) ? (
+              <p className="text-[10px] text-white/40 mt-0.5 truncate">
+                {chatSettings.followersOnly ? 'Followers only' : ''}{chatSettings.followersOnly && chatSettings.slowModeSeconds ? ' · ' : ''}{chatSettings.slowModeSeconds ? `${chatSettings.slowModeSeconds}s slow mode` : ''}
+              </p>
+            ) : null}
+          </div>
+          {channel.isOwner ? <Shield className="w-4 h-4 text-primary shrink-0" /> : <Users className="w-4 h-4 text-muted-foreground shrink-0" />}
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4" ref={chatScrollRef}>
           {messages?.map((msg) => (
-            <div key={msg.id} className="text-xs sm:text-sm flex flex-col gap-0.5">
-              <div className="flex items-center gap-1">
+            <div key={msg.id} className="text-xs sm:text-sm flex flex-col gap-0.5 group">
+              <div className="flex items-center gap-1 min-w-0">
                 {msg.username.toLowerCase().includes('fano') && (
-                  <GoldenDBadge className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <GoldenDBadge className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                 )}
                 <span className="font-bold text-primary truncate">{msg.username}</span>
+                {channel.isOwner && Number(msg.userId) !== Number(channel.ownerUserId) && (
+                  <div className="ml-auto flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <button type="button" title="Timeout for 10 minutes" onClick={() => handleModerationAction('timeout', msg)} disabled={moderateMessage.isPending} className="p-1 rounded text-white/35 hover:text-amber-300 hover:bg-amber-400/10 disabled:opacity-40">
+                      <Clock3 className="w-3 h-3" />
+                    </button>
+                    <button type="button" title="Ban from chat" onClick={() => handleModerationAction('ban', msg)} disabled={moderateMessage.isPending} className="p-1 rounded text-white/35 hover:text-red-300 hover:bg-red-400/10 disabled:opacity-40">
+                      <Ban className="w-3 h-3" />
+                    </button>
+                    <button type="button" title="Remove message" onClick={() => handleModerationAction('delete_message', msg)} disabled={moderateMessage.isPending} className="p-1 rounded text-white/35 hover:text-white hover:bg-white/10 disabled:opacity-40">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
               <span className="text-white/90 break-words text-xs sm:text-sm">{msg.message}</span>
             </div>

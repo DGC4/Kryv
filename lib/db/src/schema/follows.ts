@@ -1,4 +1,4 @@
-import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { channelsTable } from "./channels";
@@ -15,7 +15,10 @@ export const followsTable = pgTable("follows", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => ({
+  followerChannelUnique: uniqueIndex("follows_follower_channel_unique").on(table.followerUserId, table.channelId),
+  followerCreatedIdx: index("follows_follower_created_idx").on(table.followerUserId, table.createdAt.desc()),
+}));
 
 export const insertFollowSchema = createInsertSchema(followsTable).omit({
   id: true,

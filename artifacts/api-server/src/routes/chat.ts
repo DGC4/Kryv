@@ -1,16 +1,391 @@
 import { Router, type IRouter } from "express";
-import { asc, eq } from "drizzle-orm";
-import { db, channelsTable, chatMessagesTable, usersTable } from "@workspace/db";
+import { and, asc, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import {
+  channelBansTable,
+  channelsTable,
+  chatMessagesTable,
+  chatTimeoutsTable,
+  db,
+  followsTable,
+  moderatorsTable,
+  streamSessionsTable,
+  usersTable,
+} from "@workspace/db";
+import {
+  CreateChannelMessageBody,
+  CreateChannelMessageParams,
+  CreateChannelMessageResponse,
+  CreateChannelModerationActionBody,
+  CreateChannelModerationActionParams,
+  CreateChannelModerationActionResponse,
+  GetChannelChatSettingsParams,
+  GetChannelChatSettingsResponse,
   ListChannelMessagesParams,
   ListChannelMessagesResponse,
-  CreateChannelMessageParams,
-  CreateChannelMessageBody,
-  CreateChannelMessageResponse,
+  UpdateChannelChatSettingsBody,
+  UpdateChannelChatSettingsParams,
+  UpdateChannelChatSettingsResponse,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
+import { logActivity } from "../lib/tracking";
 
 const router: IRouter = Router();
+
+type ChannelActorRole = {
+  isOwner: boolean;
+  isModerator: boolean;
+};
+
+async function getChannelActorRole(
+  channelId: number,
+  ownerUserId: number,
+  userId: number,
+): Promise<ChannelActorRole> {
+  if (ownerUserId === userId) {
+    return { isOwner: true, isModerator: true };
+  }
+
+  const [moderator] = await db
+    .select({ userId: moderatorsTable.userId })
+    .from(moderatorsTable)
+    .where(
+      and(
+        eq(moderatorsTable.channelId, channelId),
+        eq(moderatorsTable.userId, userId),
+      ),
+    )
+    .limit(1);
+
+  return { isOwner: false, isModerator: Boolean(moderator) };
+}
+
+async function findActiveRestriction(
+  table: typeof channelBansTable | typeof chatTimeoutsTable,
+  channelId: number,
+  userId: number,
+) {
+  const now = new Date();
+  const [restriction] = await db
+    .select()
+    .from(table)
+    .where(
+      and(
+        eq(table.channelId, channelId),
+        eq(table.userId, userId),
+        or(isNull(table.expiresAt), gt(table.expiresAt, now)),
+      ),
+    )
+    .orderBy(desc(table.createdAt))
+    .limit(1);
+
+  return restriction;
+}
+
+async function ensureModerationTargetIsAllowed(
+  channelId: number,
+  ownerUserId: number,
+  actor: ChannelActorRole,
+  targetUserId: number,
+): Promise<string | null> {
+  if (targetUserId === ownerUserId) {
+    return "The channel owner cannot be moderated.";
+  }
+
+  if (!actor.isOwner) {
+    const targetRole = await getChannelActorRole(channelId, ownerUserId, targetUserId);
+    if (targetRole.isModerator) {
+      return "Only the channel owner can moderate another moderator.";
+    }
+  }
+
+  return null;
+}
+
+router.get(
+  "/channels/:id/chat-settings",
+  async (req, res): Promise<void> => {
+    const params = GetChannelChatSettingsParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    const [channel] = await db
+      .select({
+        id: channelsTable.id,
+        chatSlowModeSeconds: channelsTable.chatSlowModeSeconds,
+        chatFollowersOnly: channelsTable.chatFollowersOnly,
+      })
+      .from(channelsTable)
+      .where(eq(channelsTable.id, params.data.id));
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+
+    res.json(
+      GetChannelChatSettingsResponse.parse({
+        slowModeSeconds: channel.chatSlowModeSeconds,
+        followersOnly: channel.chatFollowersOnly,
+      }),
+    );
+  },
+);
+
+router.patch(
+  "/channels/:id/chat-settings",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const userId = req.user!.userId;
+    const params = UpdateChannelChatSettingsParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const body = UpdateChannelChatSettingsBody.safeParse(req.body);
+    if (!body.success) {
+      res.status(400).json({ error: body.error.message });
+      return;
+    }
+
+    const [channel] = await db
+      .select()
+      .from(channelsTable)
+      .where(eq(channelsTable.id, params.data.id));
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+    if (channel.ownerUserId !== userId) {
+      res.status(403).json({ error: "Only the channel owner can change chat settings." });
+      return;
+    }
+
+    const [updated] = await db
+      .update(channelsTable)
+      .set({
+        ...(body.data.slowModeSeconds !== undefined
+          ? { chatSlowModeSeconds: body.data.slowModeSeconds }
+          : {}),
+        ...(body.data.followersOnly !== undefined
+          ? { chatFollowersOnly: body.data.followersOnly }
+          : {}),
+      })
+      .where(eq(channelsTable.id, channel.id))
+      .returning({
+        slowModeSeconds: channelsTable.chatSlowModeSeconds,
+        followersOnly: channelsTable.chatFollowersOnly,
+      });
+
+    logActivity(req, "channel_chat_settings_updated", {
+      channelId: channel.id,
+      slowModeSeconds: updated.slowModeSeconds,
+      followersOnly: updated.followersOnly,
+    }).catch(console.error);
+
+    res.json(UpdateChannelChatSettingsResponse.parse(updated));
+  },
+);
+
+router.post(
+  "/channels/:id/moderation/actions",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const userId = req.user!.userId;
+    const params = CreateChannelModerationActionParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const body = CreateChannelModerationActionBody.safeParse(req.body);
+    if (!body.success) {
+      res.status(400).json({ error: body.error.message });
+      return;
+    }
+
+    const [channel] = await db
+      .select()
+      .from(channelsTable)
+      .where(eq(channelsTable.id, params.data.id));
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+
+    const actor = await getChannelActorRole(channel.id, channel.ownerUserId, userId);
+    const canModerate = actor.isOwner || actor.isModerator;
+    if (!canModerate) {
+      res.status(403).json({ error: "Only the channel owner or an appointed moderator can perform this action." });
+      return;
+    }
+
+    const action = body.data.action;
+    const targetUserId = body.data.targetUserId;
+    const reason = body.data.reason?.trim() || null;
+    let expiresAt: Date | null = null;
+
+    if (action === "delete_message") {
+      if (!body.data.messageId) {
+        res.status(400).json({ error: "A message is required for this action." });
+        return;
+      }
+
+      const [message] = await db
+        .select()
+        .from(chatMessagesTable)
+        .where(
+          and(
+            eq(chatMessagesTable.id, body.data.messageId),
+            eq(chatMessagesTable.channelId, channel.id),
+            isNull(chatMessagesTable.deletedAt),
+          ),
+        );
+      if (!message) {
+        res.status(404).json({ error: "Message not found" });
+        return;
+      }
+
+      await db
+        .update(chatMessagesTable)
+        .set({ deletedAt: new Date(), deletedByUserId: userId })
+        .where(eq(chatMessagesTable.id, message.id));
+
+      logActivity(req, "channel_chat_message_deleted", {
+        channelId: channel.id,
+        messageId: message.id,
+        targetUserId: message.userId,
+      }).catch(console.error);
+
+      res.json(
+        CreateChannelModerationActionResponse.parse({
+          action,
+          targetUserId: message.userId,
+          messageId: message.id,
+          expiresAt: null,
+        }),
+      );
+      return;
+    }
+
+    if (!targetUserId) {
+      res.status(400).json({ error: "A user is required for this action." });
+      return;
+    }
+
+    const [targetUser] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.id, targetUserId));
+    if (!targetUser) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (action === "add_moderator" || action === "remove_moderator") {
+      if (!actor.isOwner) {
+        res.status(403).json({ error: "Only the channel owner can appoint or remove moderators." });
+        return;
+      }
+      if (targetUserId === channel.ownerUserId) {
+        res.status(400).json({ error: "The channel owner already has full moderation access." });
+        return;
+      }
+
+      if (action === "add_moderator") {
+        await db
+          .insert(moderatorsTable)
+          .values({ channelId: channel.id, userId: targetUserId, permissions: { chat: true } })
+          .onConflictDoNothing();
+      } else {
+        await db
+          .delete(moderatorsTable)
+          .where(
+            and(
+              eq(moderatorsTable.channelId, channel.id),
+              eq(moderatorsTable.userId, targetUserId),
+            ),
+          );
+      }
+    } else {
+      const targetError = await ensureModerationTargetIsAllowed(
+        channel.id,
+        channel.ownerUserId,
+        actor,
+        targetUserId,
+      );
+      if (targetError) {
+        res.status(403).json({ error: targetError });
+        return;
+      }
+
+      if (action === "timeout") {
+        const durationSeconds = body.data.durationSeconds ?? 600;
+        expiresAt = new Date(Date.now() + durationSeconds * 1000);
+        const existing = await findActiveRestriction(chatTimeoutsTable, channel.id, targetUserId);
+        if (existing) {
+          await db
+            .update(chatTimeoutsTable)
+            .set({ moderatorUserId: userId, reason, durationSeconds, expiresAt })
+            .where(eq(chatTimeoutsTable.id, existing.id));
+        } else {
+          await db.insert(chatTimeoutsTable).values({
+            channelId: channel.id,
+            userId: targetUserId,
+            moderatorUserId: userId,
+            reason,
+            durationSeconds,
+            expiresAt,
+          });
+        }
+      } else if (action === "ban") {
+        const existing = await findActiveRestriction(channelBansTable, channel.id, targetUserId);
+        if (existing) {
+          await db
+            .update(channelBansTable)
+            .set({ reason, expiresAt: null })
+            .where(eq(channelBansTable.id, existing.id));
+        } else {
+          await db.insert(channelBansTable).values({
+            channelId: channel.id,
+            userId: targetUserId,
+            reason,
+            expiresAt: null,
+          });
+        }
+      } else if (action === "unban") {
+        await db
+          .update(channelBansTable)
+          .set({ expiresAt: new Date() })
+          .where(
+            and(
+              eq(channelBansTable.channelId, channel.id),
+              eq(channelBansTable.userId, targetUserId),
+              or(
+                isNull(channelBansTable.expiresAt),
+                gt(channelBansTable.expiresAt, new Date()),
+              ),
+            ),
+          );
+      }
+    }
+
+    logActivity(req, `channel_moderation_${action}`, {
+      channelId: channel.id,
+      targetUserId,
+      reason,
+      expiresAt: expiresAt?.toISOString() ?? null,
+    }).catch(console.error);
+
+    res.json(
+      CreateChannelModerationActionResponse.parse({
+        action,
+        targetUserId,
+        messageId: null,
+        expiresAt,
+      }),
+    );
+  },
+);
 
 router.get(
   "/channels/:id/messages",
@@ -34,8 +409,13 @@ router.get(
       .select({ message: chatMessagesTable, user: usersTable })
       .from(chatMessagesTable)
       .innerJoin(usersTable, eq(chatMessagesTable.userId, usersTable.id))
-      .where(eq(chatMessagesTable.channelId, channel.id))
-      .orderBy(asc(chatMessagesTable.createdAt))
+      .where(
+        and(
+          eq(chatMessagesTable.channelId, channel.id),
+          isNull(chatMessagesTable.deletedAt),
+        ),
+      )
+      .orderBy(asc(chatMessagesTable.createdAt), asc(chatMessagesTable.id))
       .limit(200);
 
     res.json(
@@ -70,6 +450,12 @@ router.post(
       return;
     }
 
+    const content = parsed.data.message.trim();
+    if (!content) {
+      res.status(400).json({ error: "Chat messages cannot be blank." });
+      return;
+    }
+
     const [channel] = await db
       .select()
       .from(channelsTable)
@@ -83,23 +469,97 @@ router.post(
       .select()
       .from(usersTable)
       .where(eq(usersTable.id, userId));
+    if (!user) {
+      res.status(401).json({ error: "User session is no longer valid." });
+      return;
+    }
+
+    const actor = await getChannelActorRole(channel.id, channel.ownerUserId, userId);
+    const activeBan = await findActiveRestriction(channelBansTable, channel.id, userId);
+    if (activeBan) {
+      res.status(403).json({ error: "You are banned from this channel's chat." });
+      return;
+    }
+
+    const activeTimeout = await findActiveRestriction(chatTimeoutsTable, channel.id, userId);
+    if (activeTimeout?.expiresAt) {
+      res.status(403).json({
+        error: "You are temporarily timed out from this channel's chat.",
+        expiresAt: activeTimeout.expiresAt.toISOString(),
+      });
+      return;
+    }
+
+    if (!actor.isModerator && channel.chatFollowersOnly) {
+      const [follow] = await db
+        .select({ id: followsTable.id })
+        .from(followsTable)
+        .where(
+          and(
+            eq(followsTable.channelId, channel.id),
+            eq(followsTable.followerUserId, userId),
+          ),
+        )
+        .limit(1);
+      if (!follow) {
+        res.status(403).json({ error: "This channel is currently in followers-only chat mode." });
+        return;
+      }
+    }
+
+    if (!actor.isModerator && channel.chatSlowModeSeconds > 0) {
+      const [lastMessage] = await db
+        .select({ createdAt: chatMessagesTable.createdAt })
+        .from(chatMessagesTable)
+        .where(
+          and(
+            eq(chatMessagesTable.channelId, channel.id),
+            eq(chatMessagesTable.userId, userId),
+            isNull(chatMessagesTable.deletedAt),
+          ),
+        )
+        .orderBy(desc(chatMessagesTable.createdAt), desc(chatMessagesTable.id))
+        .limit(1);
+
+      if (lastMessage) {
+        const nextAllowedAt = lastMessage.createdAt.getTime() + channel.chatSlowModeSeconds * 1000;
+        const remainingSeconds = Math.ceil((nextAllowedAt - Date.now()) / 1000);
+        if (remainingSeconds > 0) {
+          res.status(429).json({
+            error: `Slow mode is active. Please wait ${remainingSeconds} second${remainingSeconds === 1 ? "" : "s"}.`,
+            retryAfterSeconds: remainingSeconds,
+          });
+          return;
+        }
+      }
+    }
 
     const [message] = await db
       .insert(chatMessagesTable)
       .values({
         channelId: channel.id,
         userId,
-        message: parsed.data.message,
+        message: content,
       })
       .returning();
+
+    await db
+      .update(streamSessionsTable)
+      .set({ totalChatMessages: sql`${streamSessionsTable.totalChatMessages} + 1` })
+      .where(
+        and(
+          eq(streamSessionsTable.channelId, channel.id),
+          isNull(streamSessionsTable.endedAt),
+        ),
+      );
 
     res.status(201).json(
       CreateChannelMessageResponse.parse({
         id: message.id,
         channelId: message.channelId,
         userId: message.userId.toString(),
-        username: user?.username ?? "viewer",
-        avatarUrl: user?.avatarUrl ?? null,
+        username: user.username,
+        avatarUrl: user.avatarUrl,
         message: message.message,
         createdAt: message.createdAt,
       }),

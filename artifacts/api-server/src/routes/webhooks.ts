@@ -1,13 +1,77 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
-import { db, channelsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { clipsTable, creatorPaymentAccountsTable, db, paymentEventsTable, channelsTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fastpix } from "../lib/fastpix";
+import { constructStripeWebhookEvent, StripeNotConfiguredError } from "../lib/stripe";
 
 const router: IRouter = Router();
 
+// Stripe uses the same raw-body and signature-verification discipline as FastPix.
+// The event ledger makes delivery retries harmless and avoids persisting sensitive raw payloads.
+router.post("/webhooks/stripe", async (req, res): Promise<void> => {
+  const rawBody = req.body as Buffer;
+  let event;
+  try {
+    event = constructStripeWebhookEvent(rawBody, req.headers["stripe-signature"] as string | undefined);
+  } catch (error) {
+    logger.warn({ error: error instanceof Error ? error.message : error }, "Rejected Stripe webhook");
+    res.status(error instanceof StripeNotConfiguredError ? 503 : 400).json({ error: "Invalid or unconfigured Stripe webhook" });
+    return;
+  }
 
+  const [recorded] = await db
+    .insert(paymentEventsTable)
+    .values({
+      provider: "stripe",
+      providerEventId: event.id,
+      eventType: event.type,
+      processingStatus: "received",
+      relatedProviderAccountId: event.account ?? null,
+      relatedProviderPaymentId: typeof event.data.object === "object" && "payment_intent" in event.data.object ? String(event.data.object.payment_intent ?? "") || null : null,
+    })
+    .onConflictDoNothing()
+    .returning({ id: paymentEventsTable.id });
+
+  // A prior delivery either finished or is being retried. Do not execute effects twice.
+  if (!recorded) {
+    res.status(200).json({ received: true, duplicate: true });
+    return;
+  }
+
+  try {
+    if (event.type === "account.updated") {
+      const account = event.data.object as any;
+      const requirementsDue = account.requirements?.currently_due ?? [];
+      await db
+        .update(creatorPaymentAccountsTable)
+        .set({
+          onboardingStatus: account.details_submitted && account.charges_enabled && account.payouts_enabled ? "complete" : account.requirements?.disabled_reason ? "restricted" : "pending",
+          chargesEnabled: Boolean(account.charges_enabled),
+          payoutsEnabled: Boolean(account.payouts_enabled),
+          detailsSubmitted: Boolean(account.details_submitted),
+          country: account.country ?? null,
+          requirementsDue: Array.isArray(requirementsDue) ? requirementsDue : [],
+          updatedAt: new Date(),
+        })
+        .where(eq(creatorPaymentAccountsTable.providerAccountId, account.id));
+    }
+
+    await db
+      .update(paymentEventsTable)
+      .set({ processingStatus: "processed", processedAt: new Date() })
+      .where(eq(paymentEventsTable.id, recorded.id));
+    res.status(200).json({ received: true });
+  } catch (error) {
+    logger.error({ error, stripeEventId: event.id, type: event.type }, "Stripe webhook processing failed");
+    await db
+      .update(paymentEventsTable)
+      .set({ processingStatus: "failed", errorCode: error instanceof Error ? error.name : "unknown" })
+      .where(eq(paymentEventsTable.id, recorded.id));
+    res.status(500).json({ error: "Webhook processing failed" });
+  }
+});
 
 /**
  * FastPix delivers live-stream state changes and on-demand asset processing
@@ -168,14 +232,58 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
         break;
       }
       const isLive = liveStream.status === "active";
-      await db
+      const [updatedChannel] = await db
         .update(channelsTable)
         .set({
           isLive,
           viewerCount: isLive ? (liveStream.viewerCount ?? 0) : 0,
           ...(playbackId ? { fastpixPlaybackId: playbackId } : {}),
         })
-        .where(eq(channelsTable.fastpixLiveStreamId, streamId));
+        .where(eq(channelsTable.fastpixLiveStreamId, streamId))
+        .returning();
+
+      // FastPix reports mediaIds once a recording has been created from the live stream.
+      // Create a normal Kryv VOD record so later clip requests can reference the same asset.
+      const mediaIds = Array.isArray(liveStream.mediaIds)
+        ? liveStream.mediaIds.filter((mediaId: unknown): mediaId is string => typeof mediaId === "string")
+        : [];
+      if (updatedChannel && mediaIds.length > 0) {
+        const [latestSession] = await db
+          .select({ id: streamSessionsTable.id, title: streamSessionsTable.title })
+          .from(streamSessionsTable)
+          .where(eq(streamSessionsTable.channelId, updatedChannel.id))
+          .orderBy(desc(streamSessionsTable.startedAt))
+          .limit(1);
+
+        for (const mediaId of mediaIds) {
+          const [existingVideo] = await db
+            .select({ id: videosTable.id })
+            .from(videosTable)
+            .where(eq(videosTable.fastpixAssetId, mediaId))
+            .limit(1);
+
+          const video = existingVideo
+            ? existingVideo
+            : (await db
+                .insert(videosTable)
+                .values({
+                  channelId: updatedChannel.id,
+                  title: latestSession?.title ?? updatedChannel.streamTitle ?? `${updatedChannel.displayName} live broadcast`,
+                  categoryId: updatedChannel.categoryId,
+                  contentType: "upload",
+                  uploadStatus: "processing",
+                  fastpixAssetId: mediaId,
+                })
+                .returning({ id: videosTable.id }))[0];
+
+          if (latestSession && video) {
+            await db
+              .update(streamSessionsTable)
+              .set({ vodVideoId: video.id })
+              .where(eq(streamSessionsTable.id, latestSession.id));
+          }
+        }
+      }
       break;
     }
 
@@ -196,31 +304,62 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
 
     // ── VOD / upload processing ────────────────────────────────────────────
     case "video.media.ready": {
-      const media = event.data;
+      const media = event.data ?? {};
+      const mediaId = media.id ?? null;
       const playbackId = media.playbackIds?.[0]?.id ?? null;
       const uploadId = media.uploadId ?? (media as any).upload_id;
+      const durationSeconds = media.duration ? Math.round(media.duration) : null;
+
       if (uploadId) {
         await db
           .update(videosTable)
           .set({
             uploadStatus: "ready",
-            fastpixAssetId: media.id,
+            fastpixAssetId: mediaId,
             fastpixPlaybackId: playbackId,
-            durationSeconds: media.duration ? Math.round(media.duration) : null,
+            durationSeconds,
           })
           .where(eq(videosTable.fastpixUploadId, uploadId));
+      }
+      if (mediaId) {
+        await db
+          .update(videosTable)
+          .set({ uploadStatus: "ready", fastpixPlaybackId: playbackId, durationSeconds })
+          .where(eq(videosTable.fastpixAssetId, mediaId));
+        await db
+          .update(clipsTable)
+          .set({
+            processingStatus: "ready",
+            isPublished: true,
+            fastpixPlaybackId: playbackId,
+            ...(media.thumbnail ? { thumbnailUrl: media.thumbnail } : {}),
+            ...(durationSeconds ? { durationSeconds } : {}),
+            processingError: null,
+          })
+          .where(eq(clipsTable.fastpixMediaId, mediaId));
       }
       break;
     }
 
     case "video.media.failed": {
-      const media = event.data;
+      const media = event.data ?? {};
+      const mediaId = media.id ?? null;
       const uploadId = media.uploadId ?? (media as any).upload_id;
       if (uploadId) {
         await db
           .update(videosTable)
           .set({ uploadStatus: "errored" })
           .where(eq(videosTable.fastpixUploadId, uploadId));
+      }
+      if (mediaId) {
+        await db
+          .update(videosTable)
+          .set({ uploadStatus: "errored" })
+          .where(eq(videosTable.fastpixAssetId, mediaId));
+        await db
+          .update(clipsTable)
+          .set({ processingStatus: "errored", isPublished: false, processingError: "FastPix could not process this clip." })
+          .where(eq(clipsTable.fastpixMediaId, mediaId));
       }
       break;
     }

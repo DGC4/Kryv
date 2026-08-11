@@ -102,6 +102,35 @@ export interface ChannelUpdate {
   streamTitle?: string;
 }
 
+export type ChannelAnalyticsRecentStreamsItem = {
+  id: number;
+  /** @nullable */
+  title: string | null;
+  startedAt: string;
+  /** @nullable */
+  endedAt: string | null;
+  /** @nullable */
+  durationSeconds: number | null;
+  peakViewers: number;
+  averageViewers: number;
+  totalChatMessages: number;
+};
+
+export interface ChannelAnalytics {
+  /** Rolling measurement period in calendar days */
+  periodDays: number;
+  isLive: boolean;
+  currentViewerCount: number;
+  followerCount: number;
+  subscriberCount: number;
+  totalStreams: number;
+  totalStreamSeconds: number;
+  peakViewers: number;
+  averageViewers: number;
+  totalChatMessages: number;
+  recentStreams: ChannelAnalyticsRecentStreamsItem[];
+}
+
 export interface StreamCredentials {
   /** RTMP ingest server URL to enter in broadcasting software (e.g. OBS) */
   rtmpUrl: string;
@@ -114,6 +143,20 @@ export interface StreamCredentials {
      * @nullable
      */
   fastpixPlaybackId?: string | null;
+}
+
+export interface NotificationPreferences {
+  notifyOnLive: boolean;
+  notifyOnUpload: boolean;
+  notifyOnClip: boolean;
+  emailNotifications: boolean;
+}
+
+export interface NotificationPreferencesInput {
+  notifyOnLive: boolean;
+  notifyOnUpload: boolean;
+  notifyOnClip: boolean;
+  emailNotifications: boolean;
 }
 
 export type VideoSummaryContentType = typeof VideoSummaryContentType[keyof typeof VideoSummaryContentType];
@@ -173,6 +216,174 @@ export interface VideoSummary {
   createdAt: string;
 }
 
+export type ClipSummaryProcessingStatus = typeof ClipSummaryProcessingStatus[keyof typeof ClipSummaryProcessingStatus];
+
+
+export const ClipSummaryProcessingStatus = {
+  processing: 'processing',
+  ready: 'ready',
+  errored: 'errored',
+} as const;
+
+export interface ClipSummary {
+  id: number;
+  title: string;
+  /** @nullable */
+  thumbnailUrl: string | null;
+  /** @nullable */
+  durationSeconds: number | null;
+  viewCount: number;
+  channelId: number;
+  channelName: string;
+  channelSlug: string;
+  processingStatus: ClipSummaryProcessingStatus;
+  /**
+     * FastPix playback ID. Present only when the clip is ready for playback.
+     * @nullable
+     */
+  playbackId: string | null;
+  createdAt: string;
+}
+
+export interface SearchResults {
+  channels: ChannelSummary[];
+  videos: VideoSummary[];
+  clips: ClipSummary[];
+}
+
+export type ChannelMonetizationStatusOnboardingStatus = typeof ChannelMonetizationStatusOnboardingStatus[keyof typeof ChannelMonetizationStatusOnboardingStatus];
+
+
+export const ChannelMonetizationStatusOnboardingStatus = {
+  not_started: 'not_started',
+  pending: 'pending',
+  complete: 'complete',
+  restricted: 'restricted',
+} as const;
+
+export interface ChannelMonetizationStatus {
+  provider: string;
+  onboardingStatus: ChannelMonetizationStatusOnboardingStatus;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  requirementsDue: string[];
+}
+
+export interface ChannelMonetizationOnboardingLink {
+  url: string;
+  onboardingStatus: string;
+}
+
+export interface ChannelEngagementChoice {
+  id: number;
+  title: string;
+  votes: number;
+  channelPoints?: number;
+  users?: number;
+  color?: string;
+}
+
+export interface ChannelEngagementPoll {
+  id: number;
+  title: string;
+  status: string;
+  durationSeconds: number;
+  startedAt: string;
+  choices: ChannelEngagementChoice[];
+}
+
+export interface ChannelEngagementPrediction {
+  id: number;
+  title: string;
+  status: string;
+  predictionWindowSeconds: number;
+  startedAt: string;
+  outcomes: ChannelEngagementChoice[];
+}
+
+export interface ChannelEngagement {
+  /** @nullable */
+  pointsBalance: number | null;
+  pointsEnabled: boolean;
+  activePoll: ChannelEngagementPoll | null;
+  activePrediction: ChannelEngagementPrediction | null;
+}
+
+export type ChannelEngagementActionInputAction = typeof ChannelEngagementActionInputAction[keyof typeof ChannelEngagementActionInputAction];
+
+
+export const ChannelEngagementActionInputAction = {
+  claim_points: 'claim_points',
+  create_reward: 'create_reward',
+  redeem_reward: 'redeem_reward',
+  create_poll: 'create_poll',
+  vote_poll: 'vote_poll',
+  end_poll: 'end_poll',
+  create_prediction: 'create_prediction',
+  enter_prediction: 'enter_prediction',
+  lock_prediction: 'lock_prediction',
+  resolve_prediction: 'resolve_prediction',
+  raid: 'raid',
+  set_host: 'set_host',
+  clear_host: 'clear_host',
+} as const;
+
+export interface ChannelEngagementActionInput {
+  action: ChannelEngagementActionInputAction;
+  /** @maxLength 140 */
+  title?: string;
+  /** @maxLength 500 */
+  description?: string;
+  /**
+     * @minItems 2
+     * @maxItems 5
+     * @items.maxLength 80
+     */
+  choices?: string[];
+  pollId?: number;
+  choiceId?: number;
+  predictionId?: number;
+  outcomeId?: number;
+  rewardId?: number;
+  targetChannelId?: number;
+  /**
+     * @minimum 1
+     * @maximum 100000
+     */
+  channelPoints?: number;
+  /**
+     * @minimum 30
+     * @maximum 3600
+     */
+  durationSeconds?: number;
+  autoHost?: boolean;
+  /** @maxLength 300 */
+  userInput?: string;
+}
+
+export interface ChannelEngagementActionResult {
+  action: string;
+  status?: string;
+  entityId?: number;
+  targetChannelId?: number;
+  pointsBalance?: number;
+  awarded?: number;
+}
+
+export interface ClipInput {
+  videoId: number;
+  /** @minimum 0 */
+  startTime: number;
+  /** @exclusiveMinimum 0 */
+  endTime: number;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  title: string;
+}
+
 export type VideoDetail = VideoSummary & ({
   /** @nullable */
   description: string | null;
@@ -223,6 +434,71 @@ export interface CinemaRow {
 export interface CinemaHome {
   hero: VideoSummary | null;
   rows: CinemaRow[];
+}
+
+export interface ChannelChatSettings {
+  /**
+     * @minimum 0
+     * @maximum 300
+     */
+  slowModeSeconds: number;
+  followersOnly: boolean;
+}
+
+export interface ChannelChatSettingsUpdate {
+  /**
+     * @minimum 0
+     * @maximum 300
+     */
+  slowModeSeconds?: number;
+  followersOnly?: boolean;
+}
+
+export type ChannelModerationActionInputAction = typeof ChannelModerationActionInputAction[keyof typeof ChannelModerationActionInputAction];
+
+
+export const ChannelModerationActionInputAction = {
+  add_moderator: 'add_moderator',
+  remove_moderator: 'remove_moderator',
+  timeout: 'timeout',
+  ban: 'ban',
+  unban: 'unban',
+  delete_message: 'delete_message',
+} as const;
+
+export interface ChannelModerationActionInput {
+  action: ChannelModerationActionInputAction;
+  targetUserId?: number;
+  messageId?: number;
+  /**
+     * @minimum 1
+     * @maximum 2592000
+     */
+  durationSeconds?: number;
+  /** @maxLength 500 */
+  reason?: string;
+}
+
+export type ChannelModerationActionResultAction = typeof ChannelModerationActionResultAction[keyof typeof ChannelModerationActionResultAction];
+
+
+export const ChannelModerationActionResultAction = {
+  add_moderator: 'add_moderator',
+  remove_moderator: 'remove_moderator',
+  timeout: 'timeout',
+  ban: 'ban',
+  unban: 'unban',
+  delete_message: 'delete_message',
+} as const;
+
+export interface ChannelModerationActionResult {
+  action: ChannelModerationActionResultAction;
+  /** @nullable */
+  targetUserId?: number | null;
+  /** @nullable */
+  messageId?: number | null;
+  /** @nullable */
+  expiresAt?: string | null;
 }
 
 export interface ChatMessage {
@@ -312,6 +588,14 @@ export const ListCategoriesKind = {
   genre: 'genre',
 } as const;
 
+export type SearchKryvParams = {
+/**
+ * @minLength 2
+ * @maxLength 64
+ */
+q: string;
+};
+
 export type ListChannelsParams = {
 categorySlug?: string;
 live?: boolean;
@@ -320,6 +604,10 @@ search?: string;
 
 export type ChannelHeartbeat200 = {
   viewerCount: number;
+};
+
+export type ListClipsParams = {
+channelId?: number;
 };
 
 export type ListVideosParams = {

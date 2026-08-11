@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useAuthStore } from '../lib/auth-store';
 import { useGetMe } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
-import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard } from 'lucide-react';
+import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard } from 'lucide-react';
 import { KryvLogo, GoldenDBadge, UserBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,15 +14,23 @@ import {
 const NAV = [
   { label: 'Live',   path: '/live',   icon: Radio,       match: ['/', '/live'] },
   { label: 'Watch',  path: '/watch',  icon: PlaySquare,  match: ['/watch'] },
+  { label: 'Clips',  path: '/clips',  icon: Clapperboard, match: ['/clips'] },
   { label: 'Cinema', path: '/cinema', icon: Tv,          match: ['/cinema'] },
 ];
 
 export function Header() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user, logout } = useAuthStore();
   const isSignedIn = !!user;
   const { data: me } = useGetMe({ query: { enabled: isSignedIn } });
   const cycleTheme = useThemeStore((s) => s.cycleTheme);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+    if (query.length >= 2) navigate(`/search?q=${encodeURIComponent(query)}`);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/[0.06] bg-black/60 backdrop-blur-xl">
@@ -61,14 +70,18 @@ export function Header() {
         {/* Right: Search + Actions */}
         <div className="flex items-center gap-2">
           {/* Search */}
-          <div className="relative hidden md:block">
+          <form onSubmit={submitSearch} className="relative hidden md:block">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
             <input
-              type="text"
-              placeholder="Search..."
+              type="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search Kryv..."
+              minLength={2}
+              maxLength={64}
               className="h-8 bg-white/[0.06] border border-white/[0.08] rounded-full pl-8 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/60 focus:bg-white/[0.09] transition-all w-44 lg:w-56"
             />
-          </div>
+          </form>
 
           {/* Theme cycle */}
           <Button

@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useParams, Link } from 'wouter';
-import { useGetVideo } from '@workspace/api-client-react';
+import { useCreateClip, useGetVideo } from '@workspace/api-client-react';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Eye, Share2, ThumbsUp } from 'lucide-react';
+import { Loader2, Eye, Share2, ThumbsUp, Clapperboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export default function WatchDetail() {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +14,26 @@ export default function WatchDetail() {
   const { data: video, isLoading } = useGetVideo(videoId, {
     query: { enabled: !!videoId }
   });
+  const createClip = useCreateClip();
+  const { toast } = useToast();
+  const [clipTitle, setClipTitle] = useState('');
+  const [clipStart, setClipStart] = useState(0);
+  const [clipEnd, setClipEnd] = useState(30);
+
+  const requestClip = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!video || !clipTitle.trim()) return;
+    createClip.mutate(
+      { videoId: video.id, startTime: clipStart, endTime: clipEnd, title: clipTitle.trim() },
+      {
+        onSuccess: () => {
+          setClipTitle('');
+          toast({ title: 'Clip is processing', description: 'FastPix is preparing your clip. It will appear in Clips when ready.' });
+        },
+        onError: (err: any) => toast({ title: 'Unable to create clip', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+      },
+    );
+  };
 
   if (isLoading) {
     return (
@@ -82,8 +104,27 @@ export default function WatchDetail() {
                 <Share2 className="w-4 h-4" />
                 <span>Share</span>
               </Button>
+              {video.isOwner && video.playbackId && (
+                <Button variant="secondary" className="gap-2 rounded-full border border-primary/30 text-primary hover:text-primary" onClick={() => { setClipTitle(`${video.title} · Clip`); setClipStart(0); setClipEnd(Math.min(video.durationSeconds || 30, 30)); }}>
+                  <Clapperboard className="w-4 h-4" />
+                  <span>Make Clip</span>
+                </Button>
+              )}
             </div>
           </div>
+
+          {video.isOwner && clipTitle && (
+            <form onSubmit={requestClip} className="mt-6 p-4 sm:p-5 rounded-xl bg-primary/[0.06] border border-primary/20 space-y-4">
+              <div className="flex items-center gap-2"><Clapperboard className="w-4 h-4 text-primary" /><h3 className="font-black text-white text-sm">Create a native clip</h3></div>
+              <p className="text-xs text-white/45 leading-relaxed">Select a segment up to three minutes. FastPix processes it as a new playable asset before Kryv publishes it.</p>
+              <input value={clipTitle} onChange={e => setClipTitle(e.target.value)} maxLength={100} placeholder="Clip title" className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" />
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-xs font-bold text-white/55">Start (seconds)<input type="number" min={0} max={Math.max(0, (video.durationSeconds || 0) - 1)} value={clipStart} onChange={e => setClipStart(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /></label>
+                <label className="text-xs font-bold text-white/55">End (seconds)<input type="number" min={1} max={video.durationSeconds || undefined} value={clipEnd} onChange={e => setClipEnd(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /></label>
+              </div>
+              <div className="flex flex-wrap gap-2"><Button type="submit" disabled={createClip.isPending || clipEnd <= clipStart} className="font-bold">{createClip.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…</> : <><Clapperboard className="w-4 h-4 mr-2" /> Create Clip</>}</Button><Button type="button" variant="ghost" onClick={() => setClipTitle('')} className="text-white/50">Cancel</Button></div>
+            </form>
+          )}
 
           <div className="mt-6 p-4 rounded-xl bg-white/5 border border-white/5">
             <div className="flex items-center gap-4 text-sm font-medium text-white mb-2">

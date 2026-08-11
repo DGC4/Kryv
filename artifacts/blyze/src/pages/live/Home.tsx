@@ -1,4 +1,5 @@
-import { useGetDiscoverSummary, useListCategories } from '@workspace/api-client-react';
+import { useGetDiscoverSummary, useListCategories, useListFollowedLiveChannels } from '@workspace/api-client-react';
+import { useAuthStore } from '@/lib/auth-store';
 import { ChannelCard } from '@/components/ChannelCard';
 import { Link } from 'wouter';
 import { ArrowUpRight, ChevronRight, CircleDot, Loader2, Radio, Sparkles, Users } from 'lucide-react';
@@ -16,6 +17,7 @@ function formatCount(value: number) {
 }
 
 export default function LiveHome() {
+  const { user } = useAuthStore();
   const { data: discover, isLoading: discoverLoading } = useGetDiscoverSummary({
     query: { refetchInterval: 10000 },
   });
@@ -23,6 +25,9 @@ export default function LiveHome() {
     { kind: 'live_game' },
     { query: { refetchInterval: 10000 } },
   );
+  const { data: followedLive } = useListFollowedLiveChannels({
+    query: { enabled: Boolean(user), refetchInterval: 10000 },
+  });
 
   if (discoverLoading || categoriesLoading) {
     return (
@@ -124,6 +129,22 @@ export default function LiveHome() {
             <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-5 py-10 text-center text-sm text-white/45">Categories are being prepared.</div>
           )}
         </section>
+
+        {user && followedLive && followedLive.length > 0 && (
+          <section aria-labelledby="followed-live">
+            <div className="mb-4 flex items-end justify-between gap-4 sm:mb-5">
+              <div>
+                <div className="flex items-center gap-2 text-primary"><Users className="h-4 w-4" /><span className="text-[11px] font-black uppercase tracking-[0.18em]">Your community</span></div>
+                <h2 id="followed-live" className="mt-1 text-2xl font-black text-white sm:text-3xl">Followed channels live now</h2>
+                <p className="mt-1 text-sm text-white/45">Catch the creators you follow before the moment passes.</p>
+              </div>
+              <span className="hidden text-sm font-semibold text-white/40 sm:block">{followedLive.length} live</span>
+            </div>
+            <div className="grid grid-cols-1 gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {followedLive.map(channel => <ChannelCard key={channel.id} channel={channel} />)}
+            </div>
+          </section>
+        )}
 
         <section aria-labelledby="live-now">
           <div className="mb-4 flex items-end justify-between gap-4 sm:mb-5">

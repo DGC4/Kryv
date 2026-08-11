@@ -1,4 +1,5 @@
-import { pgTable, serial, text, timestamp, integer, boolean, numeric, jsonb, primaryKey } from "drizzle-orm/pg-core";
+import { index, pgTable, serial, text, timestamp, integer, boolean, numeric, jsonb, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersTable } from "./users";
 import { channelsTable } from "./channels";
 import { videosTable } from "./videos";
@@ -11,9 +12,56 @@ export const subscriptionsTable = pgTable("subscriptions", {
   channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
   tier: integer("tier").notNull().default(1),
   status: text("status").notNull().default("active"),
+  provider: text("provider").notNull().default("stripe"),
+  providerCustomerId: text("provider_customer_id"),
+  providerSubscriptionId: text("provider_subscription_id").unique(),
+  providerPriceId: text("provider_price_id"),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  activeSubscriptionUnique: uniqueIndex("subscriptions_active_channel_user_unique")
+    .on(table.userId, table.channelId)
+    .where(sql`${table.status} = 'active'`),
+}));
+
+// ─── Creator Payment Accounts ─────────────────────────────────────────────────
+// KYC and payout details remain exclusively with the provider. Kryv stores only
+// opaque provider identifiers and capability state needed to gate monetization.
+export const creatorPaymentAccountsTable = pgTable("creator_payment_accounts", {
+  id: serial("id").primaryKey(),
+  channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }).unique(),
+  provider: text("provider").notNull().default("stripe"),
+  providerAccountId: text("provider_account_id").notNull().unique(),
+  onboardingStatus: text("onboarding_status").notNull().default("pending"),
+  chargesEnabled: boolean("charges_enabled").notNull().default(false),
+  payoutsEnabled: boolean("payouts_enabled").notNull().default(false),
+  detailsSubmitted: boolean("details_submitted").notNull().default(false),
+  country: text("country"),
+  requirementsDue: jsonb("requirements_due").notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  onboardingStatusIdx: index("creator_payment_accounts_onboarding_status_idx").on(table.onboardingStatus),
+}));
+
+// ─── Payment Event Ledger ─────────────────────────────────────────────────────
+// Stores a provider event ID and result, never raw card, KYC, or webhook payload data.
+export const paymentEventsTable = pgTable("payment_events", {
+  id: serial("id").primaryKey(),
+  provider: text("provider").notNull().default("stripe"),
+  providerEventId: text("provider_event_id").notNull().unique(),
+  eventType: text("event_type").notNull(),
+  processingStatus: text("processing_status").notNull().default("received"),
+  relatedProviderAccountId: text("related_provider_account_id"),
+  relatedProviderPaymentId: text("related_provider_payment_id"),
+  errorCode: text("error_code"),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  statusCreatedIdx: index("payment_events_status_created_idx").on(table.processingStatus, table.createdAt.desc()),
+}));
 
 // ─── Emotes ───────────────────────────────────────────────────────────────────
 export const emotesTable = pgTable("emotes", {
@@ -31,6 +79,11 @@ export const clipsTable = pgTable("clips", {
   creatorUserId: integer("creator_user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
   videoId: integer("video_id").references(() => videosTable.id, { onDelete: "set null" }),
+  fastpixRequestId: text("fastpix_request_id").unique(),
+  fastpixMediaId: text("fastpix_media_id").unique(),
+  fastpixPlaybackId: text("fastpix_playback_id"),
+  processingStatus: text("processing_status").notNull().default("processing"),
+  processingError: text("processing_error"),
   title: text("title").notNull(),
   thumbnailUrl: text("thumbnail_url"),
   viewCount: integer("view_count").notNull().default(0),
@@ -40,7 +93,12 @@ export const clipsTable = pgTable("clips", {
   isPublished: boolean("is_published").notNull().default(true),
   language: text("language").default("en"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  channelPublishedCreatedIdx: index("clips_channel_published_created_idx")
+    .on(table.channelId, table.createdAt.desc())
+    .where(sql`${table.isPublished} = true`),
+  processingStatusIdx: index("clips_processing_status_idx").on(table.processingStatus, table.createdAt.desc()),
+}));
 
 // ─── Moderators ───────────────────────────────────────────────────────────────
 export const moderatorsTable = pgTable("moderators", {
@@ -50,6 +108,7 @@ export const moderatorsTable = pgTable("moderators", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   pk: primaryKey({ columns: [table.userId, table.channelId] }),
+  channelModeratorIdx: index("moderators_channel_user_idx").on(table.channelId, table.userId),
 }));
 
 // ─── Channel Bans ─────────────────────────────────────────────────────────────
@@ -60,7 +119,9 @@ export const channelBansTable = pgTable("channel_bans", {
   reason: text("reason"),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  channelUserExpiresIdx: index("channel_bans_channel_user_expires_idx").on(table.channelId, table.userId, table.expiresAt),
+}));
 
 // ─── Tips / Donations ─────────────────────────────────────────────────────────
 export const tipsTable = pgTable("tips", {
@@ -69,6 +130,10 @@ export const tipsTable = pgTable("tips", {
   receiverChannelId: integer("receiver_channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("USD"),
+  provider: text("provider").notNull().default("stripe"),
+  providerPaymentIntentId: text("provider_payment_intent_id").unique(),
+  platformFeeAmount: numeric("platform_fee_amount", { precision: 10, scale: 2 }),
+  status: text("status").notNull().default("pending"),
   message: text("message"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -101,7 +166,9 @@ export const channelPointsTable = pgTable("channel_points", {
   totalEarned: integer("total_earned").notNull().default(0),
   lastEarnedAt: timestamp("last_earned_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  channelUserUnique: uniqueIndex("channel_points_channel_user_unique").on(table.channelId, table.userId),
+}));
 
 export const channelPointRewardsTable = pgTable("channel_point_rewards", {
   id: serial("id").primaryKey(),
@@ -159,7 +226,9 @@ export const pollVotesTable = pgTable("poll_votes", {
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   channelPointsUsed: integer("channel_points_used").notNull().default(0),
   votedAt: timestamp("voted_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  pollUserUnique: uniqueIndex("poll_votes_poll_user_unique").on(table.pollId, table.userId),
+}));
 
 // ─── Predictions ──────────────────────────────────────────────────────────────
 export const predictionsTable = pgTable("predictions", {
@@ -192,7 +261,9 @@ export const predictionEntriesTable = pgTable("prediction_predictions", {
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   channelPointsUsed: integer("channel_points_used").notNull().default(0),
   predictedAt: timestamp("predicted_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  predictionUserUnique: uniqueIndex("prediction_entries_prediction_user_unique").on(table.predictionId, table.userId),
+}));
 
 // ─── Raids & Hosts ────────────────────────────────────────────────────────────
 export const raidsTable = pgTable("raids", {
@@ -223,7 +294,9 @@ export const chatTimeoutsTable = pgTable("chat_timeouts", {
   durationSeconds: integer("duration_seconds").notNull().default(600),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  channelUserExpiresIdx: index("chat_timeouts_channel_user_expires_idx").on(table.channelId, table.userId, table.expiresAt),
+}));
 
 export const chatCommandsTable = pgTable("chat_commands", {
   id: serial("id").primaryKey(),
@@ -305,7 +378,9 @@ export const notificationPreferencesTable = pgTable("notification_preferences", 
   notifyOnClip: boolean("notify_on_clip").notNull().default(false),
   emailNotifications: boolean("email_notifications").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  userChannelIdx: index("notification_preferences_user_channel_idx").on(table.userId, table.channelId),
+}));
 
 // ─── Blocked Users ────────────────────────────────────────────────────────────
 export const blockedUsersTable = pgTable("blocked_users", {
