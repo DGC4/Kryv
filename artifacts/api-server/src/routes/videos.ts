@@ -77,8 +77,11 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  if (parsed.data.contentType === "original" && user?.role !== "owner") {
-    res.status(403).json({ error: "Only cinema staff can post original content." });
+  if (parsed.data.contentType === "original") {
+    // Cinema assets are intentionally never created through the general creator
+    // upload API. The owner-only Cinema control room records provenance, rights,
+    // provider processing, and audited publication state before a title can ship.
+    res.status(403).json({ error: "Cinema assets can only be uploaded through the owner Cinema control room." });
     return;
   }
 

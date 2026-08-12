@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 
-import { clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fastpix } from "../lib/fastpix";
 import { isPlisioConfigured, isSupportedKryvCryptoCode, verifyPlisioJsonCallback } from "../lib/plisio";
@@ -465,12 +465,28 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
             durationSeconds,
           })
           .where(eq(videosTable.fastpixUploadId, uploadId));
+        await db
+          .update(cinemaTitleAssetsTable)
+          .set({
+            processingStatus: "ready",
+            fastpixMediaId: mediaId,
+            fastpixPlaybackId: playbackId,
+            durationSeconds,
+            approvedAt: new Date(),
+            processingError: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(cinemaTitleAssetsTable.fastpixUploadId, uploadId));
       }
       if (mediaId) {
         await db
           .update(videosTable)
           .set({ uploadStatus: "ready", fastpixPlaybackId: playbackId, durationSeconds })
           .where(eq(videosTable.fastpixAssetId, mediaId));
+        await db
+          .update(cinemaTitleAssetsTable)
+          .set({ processingStatus: "ready", fastpixPlaybackId: playbackId, durationSeconds, processingError: null, updatedAt: new Date() })
+          .where(eq(cinemaTitleAssetsTable.fastpixMediaId, mediaId));
         await db
           .update(clipsTable)
           .set({
@@ -495,12 +511,20 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
           .update(videosTable)
           .set({ uploadStatus: "errored" })
           .where(eq(videosTable.fastpixUploadId, uploadId));
+        await db
+          .update(cinemaTitleAssetsTable)
+          .set({ processingStatus: "errored", processingError: "The media provider could not process this Cinema asset.", updatedAt: new Date() })
+          .where(eq(cinemaTitleAssetsTable.fastpixUploadId, uploadId));
       }
       if (mediaId) {
         await db
           .update(videosTable)
           .set({ uploadStatus: "errored" })
           .where(eq(videosTable.fastpixAssetId, mediaId));
+        await db
+          .update(cinemaTitleAssetsTable)
+          .set({ processingStatus: "errored", processingError: "The media provider could not process this Cinema asset.", updatedAt: new Date() })
+          .where(eq(cinemaTitleAssetsTable.fastpixMediaId, mediaId));
         await db
           .update(clipsTable)
           .set({ processingStatus: "errored", isPublished: false, processingError: "FastPix could not process this clip." })
@@ -517,6 +541,10 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
           .update(videosTable)
           .set({ uploadStatus: "processing", fastpixAssetId: media.id })
           .where(eq(videosTable.fastpixUploadId, uploadId));
+        await db
+          .update(cinemaTitleAssetsTable)
+          .set({ processingStatus: "processing", fastpixMediaId: media.id ?? null, updatedAt: new Date() })
+          .where(eq(cinemaTitleAssetsTable.fastpixUploadId, uploadId));
       }
       break;
     }

@@ -197,6 +197,7 @@ export default function DashboardLive() {
   const [selectedDestination, setSelectedDestination] = useState<{ id: number; displayName: string; isLive: boolean; categoryName: string | null } | null>(null);
   const [notificationPrefs, setNotificationPrefs] = useState({ notifyOnLive: true, notifyOnUpload: true, notifyOnClip: false, emailNotifications: false });
   const [studioChatMessage, setStudioChatMessage] = useState('');
+  const [hiddenStudioMessageIds, setHiddenStudioMessageIds] = useState<Set<number>>(() => new Set());
   // Location is intentionally not collected or required for broadcast setup.
   const location: LocationData | null = null;
   const { data: chatSettings } = useGetChannelChatSettings(me?.channel?.id ?? 0, {
@@ -419,6 +420,13 @@ export default function DashboardLive() {
     const channel = me?.channel;
     const targetUserId = Number(message.userId);
     if (!channel || !Number.isSafeInteger(targetUserId) || targetUserId < 1) return;
+
+    // Remove the message from the creator’s immediate view before the next poll.
+    // If the server rejects the audit-protected action, restore it visibly.
+    if (action === 'delete_message') {
+      setHiddenStudioMessageIds(current => new Set(current).add(message.id));
+    }
+
     studioModerationAction.mutate(
       {
         id: channel.id,
@@ -431,7 +439,16 @@ export default function DashboardLive() {
           refetchStudioMessages();
           toast({ title: action === 'delete_message' ? 'Message removed' : action === 'timeout' ? `${message.username} timed out for 10 minutes` : `${message.username} banned from chat` });
         },
-        onError: (err: any) => toast({ title: 'Moderation action failed', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+        onError: (err: any) => {
+          if (action === 'delete_message') {
+            setHiddenStudioMessageIds(current => {
+              const restored = new Set(current);
+              restored.delete(message.id);
+              return restored;
+            });
+          }
+          toast({ title: 'Moderation action failed', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' });
+        },
       },
     );
   };
@@ -807,6 +824,7 @@ export default function DashboardLive() {
                       src={`https://stream.fastpix.com/${channel.fastpixPlaybackId}.m3u8`}
                       autoPlay
                       muted
+                      live
                       className="w-full h-full object-contain"
                     />
                     <div className="absolute top-3 left-3 flex items-center gap-2">
@@ -838,7 +856,7 @@ export default function DashboardLive() {
                   <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Refreshes live</span>
                 </div>
                 <div className="max-h-60 min-h-36 space-y-3 overflow-y-auto px-4 py-3">
-                  {studioMessages?.length ? studioMessages.map((message) => (
+                  {studioMessages?.filter(message => !hiddenStudioMessageIds.has(message.id)).length ? studioMessages.filter(message => !hiddenStudioMessageIds.has(message.id)).map((message) => (
                     <div key={message.id} className="group flex gap-2.5">
                       <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-black text-primary">{message.username.slice(0, 1).toUpperCase()}</div>
                       <div className="min-w-0 flex-1"><div className="flex items-baseline gap-2"><span className="truncate text-xs font-bold text-white">{message.username}</span><span className="text-[10px] text-white/25">{new Date(message.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span></div><p className="mt-0.5 break-words text-xs leading-relaxed text-white/65">{message.message}</p></div>

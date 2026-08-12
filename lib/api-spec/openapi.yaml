@@ -323,6 +323,34 @@ paths:
         "403": { description: Owner access required }
         "404": { description: Cinema title not found }
 
+  /admin/cinema/titles/{id}/upload-sessions:
+    post:
+      operationId: createAdminCinemaUploadSession
+      tags: [admin]
+      summary: Create an owner-only direct upload session for a Cinema title asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCinemaUploadSessionInput"
+      responses:
+        "201":
+          description: Owner-authorized direct upload session and the pending Cinema asset record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCinemaUploadSession"
+        "400": { description: Invalid Cinema upload request }
+        "401": { description: Not authenticated }
+        "403": { description: Owner access required }
+        "404": { description: Cinema title not found }
+
   /admin/cinema/titles/{id}:
     get:
       operationId: getAdminCinemaTitle
@@ -2575,6 +2603,21 @@ components:
         fastpixPlaybackId: { type: string, minLength: 1, maxLength: 200 }
         sourceProvenance: { type: string, minLength: 1, maxLength: 500 }
         durationSeconds: { type: integer, minimum: 0 }
+
+    AdminCinemaUploadSessionInput:
+      type: object
+      required: [assetKind, sourceProvenance]
+      properties:
+        assetKind: { type: string, enum: [feature, trailer, preview] }
+        sourceProvenance: { type: string, minLength: 1, maxLength: 500 }
+        language: { type: string, minLength: 2, maxLength: 16 }
+
+    AdminCinemaUploadSession:
+      type: object
+      required: [assetId, uploadUrl]
+      properties:
+        assetId: { type: integer }
+        uploadUrl: { type: string, minLength: 1, maxLength: 4096 }
 
     AdminCinemaAssetDetail:
       allOf:

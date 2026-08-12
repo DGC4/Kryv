@@ -91,8 +91,10 @@ export async function createFastPixLiveStream(channelId: number) {
       mediaPolicy: "public",
       // Persist concluded broadcasts for the existing VOD and clipping workflow.
       enableRecording: true,
-      // Preserve a small live rewind window and tag the stream for webhook recovery.
-      enableDvrMode: true,
+      // Kryv's standard live experience joins the current broadcast edge. Rewind
+      // is a separate product capability, not the default behavior for every
+      // viewer session, so a new live stream should not open in a DVR window.
+      enableDvrMode: false,
       metadata: {
         source: "kryv",
         kryvChannelId: channelId.toString(),

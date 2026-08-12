@@ -297,6 +297,36 @@ export const CreateAdminCinemaAssetResponse = zod.object({
 
 
 /**
+ * @summary Create an owner-only direct upload session for a Cinema title asset
+ */
+export const CreateAdminCinemaUploadSessionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createAdminCinemaUploadSessionBodySourceProvenanceMax = 500;
+
+export const createAdminCinemaUploadSessionBodyLanguageMin = 2;
+export const createAdminCinemaUploadSessionBodyLanguageMax = 16;
+
+
+
+export const CreateAdminCinemaUploadSessionBody = zod.object({
+  "assetKind": zod.enum(['feature', 'trailer', 'preview']),
+  "sourceProvenance": zod.string().min(1).max(createAdminCinemaUploadSessionBodySourceProvenanceMax),
+  "language": zod.string().min(createAdminCinemaUploadSessionBodyLanguageMin).max(createAdminCinemaUploadSessionBodyLanguageMax).optional()
+})
+
+export const createAdminCinemaUploadSessionResponseUploadUrlMax = 4096;
+
+
+
+export const CreateAdminCinemaUploadSessionResponse = zod.object({
+  "assetId": zod.number(),
+  "uploadUrl": zod.string().min(1).max(createAdminCinemaUploadSessionResponseUploadUrlMax)
+})
+
+
+/**
  * @summary Retrieve the complete owner publishing record for a Cinema title
  */
 export const GetAdminCinemaTitleParams = zod.object({

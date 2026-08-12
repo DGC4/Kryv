@@ -237,6 +237,7 @@ export default function LiveChannel() {
               src={hlsSrc}
               autoPlay
               muted
+              live
               className="w-full h-full object-contain"
             />
           ) : (

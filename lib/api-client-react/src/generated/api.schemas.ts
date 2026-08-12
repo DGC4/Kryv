@@ -720,6 +720,38 @@ export interface AdminCinemaAssetInput {
   durationSeconds?: number;
 }
 
+export type AdminCinemaUploadSessionInputAssetKind = typeof AdminCinemaUploadSessionInputAssetKind[keyof typeof AdminCinemaUploadSessionInputAssetKind];
+
+
+export const AdminCinemaUploadSessionInputAssetKind = {
+  feature: 'feature',
+  trailer: 'trailer',
+  preview: 'preview',
+} as const;
+
+export interface AdminCinemaUploadSessionInput {
+  assetKind: AdminCinemaUploadSessionInputAssetKind;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  sourceProvenance: string;
+  /**
+     * @minLength 2
+     * @maxLength 16
+     */
+  language?: string;
+}
+
+export interface AdminCinemaUploadSession {
+  assetId: number;
+  /**
+     * @minLength 1
+     * @maxLength 4096
+     */
+  uploadUrl: string;
+}
+
 export type AdminCinemaAssetDetail = AdminCinemaAsset & ({
   /** @nullable */
   sourceProvenance: string | null;

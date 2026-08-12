@@ -11,6 +11,9 @@ import {
   CreateAdminCinemaAssetBody,
   CreateAdminCinemaAssetParams,
   CreateAdminCinemaAssetResponse,
+  CreateAdminCinemaUploadSessionBody,
+  CreateAdminCinemaUploadSessionParams,
+  CreateAdminCinemaUploadSessionResponse,
   CreateAdminCinemaRightsWindowBody,
   CreateAdminCinemaRightsWindowParams,
   CreateAdminCinemaRightsWindowResponse,
@@ -24,6 +27,7 @@ import {
   UpdateAdminCinemaTitleResponse,
 } from "@workspace/api-zod";
 import { requireOwner } from "../lib/auth";
+import { createFastPixDirectUpload, FastPixNotConfiguredError } from "../lib/fastpix";
 import { writeAuditLog } from "../lib/operations";
 
 const router: IRouter = Router();
@@ -168,6 +172,53 @@ router.post("/admin/cinema/titles", requireOwner, async (req, res): Promise<void
   });
   await writeAuditLog(req, { action: "cinema.title.created", targetType: "cinema_title", targetId: title.id, afterState: { title: title.title, publishState: title.publishState } });
   res.status(201).json(CreateAdminCinemaTitleResponse.parse(toTitle(title)));
+});
+
+router.post("/admin/cinema/titles/:id/upload-sessions", requireOwner, async (req, res): Promise<void> => {
+  const params = CreateAdminCinemaUploadSessionParams.safeParse(req.params);
+  const parsed = CreateAdminCinemaUploadSessionBody.safeParse(req.body);
+  if (!params.success || !parsed.success) {
+    res.status(400).json({ error: !params.success ? params.error.message : parsed.error.message });
+    return;
+  }
+
+  const title = await findTitle(params.data.id);
+  if (!title) {
+    res.status(404).json({ error: "Cinema title not found" });
+    return;
+  }
+
+  try {
+    // The signed upload URL is created only after the owner and title checks.
+    // It is sent directly to the owner browser and is never exposed through a
+    // public/creator API response.
+    const origin = req.get("origin") || "*";
+    const { fastpixUploadId, uploadUrl } = await createFastPixDirectUpload(origin);
+    const [asset] = await db.insert(cinemaTitleAssetsTable).values({
+      cinemaTitleId: title.id,
+      assetKind: parsed.data.assetKind,
+      fastpixUploadId,
+      processingStatus: "waiting",
+      sourceProvenance: parsed.data.sourceProvenance.trim(),
+      language: parsed.data.language?.trim() || "en",
+      approvedByUserId: req.user!.userId,
+    }).returning({ id: cinemaTitleAssetsTable.id });
+    if (!asset) throw new Error("Unable to create the pending Cinema asset.");
+
+    await writeAuditLog(req, {
+      action: "cinema.asset.upload_session_created",
+      targetType: "cinema_title",
+      targetId: title.id,
+      afterState: { assetId: asset.id, assetKind: parsed.data.assetKind },
+    });
+    res.status(201).json(CreateAdminCinemaUploadSessionResponse.parse({ assetId: asset.id, uploadUrl }));
+  } catch (error) {
+    if (error instanceof FastPixNotConfiguredError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 });
 
 router.get("/admin/cinema/titles/:id", requireOwner, async (req, res): Promise<void> => {

@@ -20,6 +20,7 @@ import {
   useUpdateAdminCinemaTitle,
   useCreateAdminCinemaRightsWindow,
   useCreateAdminCinemaAsset,
+  useCreateAdminCinemaUploadSession,
   getListAdminCinemaTitlesQueryKey,
   getGetAdminCinemaTitleQueryKey,
   useListAdminFeatureFlags,
@@ -106,6 +107,11 @@ export default function DashboardAdmin() {
   const [assetPlaybackId, setAssetPlaybackId] = useState('');
   const [assetMediaId, setAssetMediaId] = useState('');
   const [assetProvenance, setAssetProvenance] = useState('');
+  const [cinemaUploadAssetKind, setCinemaUploadAssetKind] = useState<'feature' | 'trailer' | 'preview'>('feature');
+  const [cinemaUploadFile, setCinemaUploadFile] = useState<File | null>(null);
+  const [cinemaUploadProvenance, setCinemaUploadProvenance] = useState('');
+  const [cinemaUploadLanguage, setCinemaUploadLanguage] = useState('en');
+  const [cinemaUploading, setCinemaUploading] = useState(false);
   const [rightsEntitlement, setRightsEntitlement] = useState<'free' | 'subscription' | 'rental' | 'purchase'>('subscription');
   const [rightsTerritories, setRightsTerritories] = useState('');
   const [rightsStartsAt, setRightsStartsAt] = useState(() => new Date().toISOString().slice(0, 16));
@@ -118,6 +124,7 @@ export default function DashboardAdmin() {
   const updateCinemaTitle = useUpdateAdminCinemaTitle();
   const createCinemaRightsWindow = useCreateAdminCinemaRightsWindow();
   const createCinemaAsset = useCreateAdminCinemaAsset();
+  const createCinemaUploadSession = useCreateAdminCinemaUploadSession();
   const updateFeatureFlag = useUpdateAdminFeatureFlag();
   const reviewAdminPayoutProfile = useReviewAdminPayoutProfile();
   const reviewAdminPayoutRequest = useReviewAdminPayoutRequest();
@@ -242,6 +249,48 @@ export default function DashboardAdmin() {
       onSuccess: () => { setAssetPlaybackId(''); setAssetMediaId(''); setAssetProvenance(''); refreshCinemaDesk(); toast({ title: 'Approved Cinema asset attached' }); },
       onError: (err: any) => toast({ title: 'Asset could not be attached', description: err?.body?.error || err?.message || 'Confirm the approved playback identifier and provenance.', variant: 'destructive' }),
     });
+  };
+
+  const handleCinemaDirectUpload = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (selectedCinemaTitleId === null || !cinemaUploadFile || !cinemaUploadProvenance.trim() || cinemaUploading) return;
+
+    const file = cinemaUploadFile;
+    setCinemaUploading(true);
+    createCinemaUploadSession.mutate(
+      {
+        id: selectedCinemaTitleId,
+        data: {
+          assetKind: cinemaUploadAssetKind,
+          sourceProvenance: cinemaUploadProvenance.trim(),
+          language: cinemaUploadLanguage.trim() || 'en',
+        },
+      },
+      {
+        onSuccess: async (session) => {
+          try {
+            const uploadResponse = await fetch(session.uploadUrl, {
+              method: 'PUT',
+              headers: { 'Content-Type': file.type || 'application/octet-stream' },
+              body: file,
+            });
+            if (!uploadResponse.ok) throw new Error(`Upload failed with HTTP ${uploadResponse.status}`);
+            setCinemaUploadFile(null);
+            setCinemaUploadProvenance('');
+            refreshCinemaDesk();
+            toast({ title: 'Cinema upload accepted', description: 'The file is processing. Provider readiness must complete before the asset can unlock publication.' });
+          } catch (error: any) {
+            toast({ title: 'Cinema upload did not complete', description: error?.message || 'The pending asset remains blocked until a successful approved upload is completed.', variant: 'destructive' });
+          } finally {
+            setCinemaUploading(false);
+          }
+        },
+        onError: (err: any) => {
+          setCinemaUploading(false);
+          toast({ title: 'Owner upload session blocked', description: err?.body?.error || err?.message || 'No upload URL was issued.', variant: 'destructive' });
+        },
+      },
+    );
   };
 
   const handleAddRightsWindow = (event: React.FormEvent) => {
@@ -534,7 +583,7 @@ export default function DashboardAdmin() {
                   <div className="mt-5 grid gap-3 sm:grid-cols-2"><div className={`rounded-xl border p-3 ${title.readiness.hasReadyFeature ? 'border-emerald-400/20 bg-emerald-400/[0.07]' : 'border-amber-400/20 bg-amber-400/[0.07]'}`}><div className="flex items-center gap-2 text-xs font-black text-white">{title.readiness.hasReadyFeature ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <CircleAlert className="h-4 w-4 text-amber-300" />} Approved feature</div><p className="mt-1 text-[11px] text-white/48">{title.readiness.hasReadyFeature ? 'A ready playback asset is attached.' : 'Attach a feature playback asset before publishing.'}</p></div><div className={`rounded-xl border p-3 ${title.readiness.hasActiveRightsWindow ? 'border-emerald-400/20 bg-emerald-400/[0.07]' : 'border-amber-400/20 bg-amber-400/[0.07]'}`}><div className="flex items-center gap-2 text-xs font-black text-white">{title.readiness.hasActiveRightsWindow ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <CircleAlert className="h-4 w-4 text-amber-300" />} Active rights</div><p className="mt-1 text-[11px] text-white/48">{title.readiness.hasActiveRightsWindow ? 'At least one entitlement window is active.' : 'Add a current entitlement window before publishing.'}</p></div></div>
                   {!title.readiness.isPublishEligible && <p className="mt-3 text-[11px] leading-relaxed text-amber-100/65">Release remains protected: {title.readiness.blockingReasons.join(' ')}</p>}
                 </div>
-                <div className="grid gap-5 p-5 lg:grid-cols-2"><div className="space-y-5"><section><div className="mb-3 flex items-center gap-2"><UploadCloud className="h-4 w-4 text-primary" /><h4 className="text-sm font-black text-white">Approved asset manifest</h4></div><form onSubmit={handleAddCinemaAsset} className="space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3"><div className="grid grid-cols-2 gap-2"><select value={assetKind} onChange={event => setAssetKind(event.target.value as typeof assetKind)} className="h-9 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none"><option value="feature">Feature</option><option value="trailer">Trailer</option><option value="preview">Preview</option><option value="captions">Captions</option></select><input value={assetMediaId} onChange={event => setAssetMediaId(event.target.value)} placeholder="Media ID (optional)" className="h-9 min-w-0 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /></div><input value={assetPlaybackId} onChange={event => setAssetPlaybackId(event.target.value)} placeholder="Approved playback ID" className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /><input value={assetProvenance} onChange={event => setAssetProvenance(event.target.value)} placeholder="Provenance / rights source" className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /><Button type="submit" size="sm" disabled={createCinemaAsset.isPending || !assetPlaybackId.trim() || !assetProvenance.trim()} className="h-9 w-full text-[10px] font-black uppercase tracking-wider">Attach approved asset</Button></form><div className="mt-3 space-y-2">{title.assets.map(asset => <div key={asset.id} className="rounded-lg border border-white/[0.07] bg-black/20 p-2.5"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-black uppercase tracking-wider text-white">{asset.assetKind}</span><span className="text-[9px] font-bold uppercase text-emerald-200">{asset.processingStatus}</span></div><p className="mt-1 truncate font-mono text-[10px] text-white/40">{asset.fastpixPlaybackId || 'No playback ID'}</p></div>)}{title.assets.length === 0 && <p className="rounded-lg border border-dashed border-white/10 p-3 text-[11px] text-white/35">No approved assets are attached.</p>}</div></section></div>
+                <div className="grid gap-5 p-5 lg:grid-cols-2"><div className="space-y-5"><section><div className="mb-3 flex items-center gap-2"><UploadCloud className="h-4 w-4 text-primary" /><h4 className="text-sm font-black text-white">Owner asset intake</h4></div><form onSubmit={handleCinemaDirectUpload} className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.045] p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-wider text-primary">Direct media upload</p><p className="mt-1 text-[10px] leading-relaxed text-white/45">Only the owner receives a one-time upload session. The media provider must verify processing before this asset can be published.</p></div><Lock className="h-4 w-4 shrink-0 text-primary" /></div><div className="grid grid-cols-2 gap-2"><select value={cinemaUploadAssetKind} onChange={event => setCinemaUploadAssetKind(event.target.value as typeof cinemaUploadAssetKind)} className="h-9 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none"><option value="feature">Feature</option><option value="trailer">Trailer</option><option value="preview">Preview</option></select><input value={cinemaUploadLanguage} onChange={event => setCinemaUploadLanguage(event.target.value)} maxLength={16} placeholder="Language (en)" className="h-9 min-w-0 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /></div><input type="file" accept="video/*" onChange={event => setCinemaUploadFile(event.target.files?.[0] ?? null)} className="block w-full text-[10px] text-white/50 file:mr-3 file:rounded-lg file:border-0 file:bg-white/[0.1] file:px-3 file:py-2 file:text-[10px] file:font-black file:text-white hover:file:bg-white/[0.16]" /><input value={cinemaUploadProvenance} onChange={event => setCinemaUploadProvenance(event.target.value)} placeholder="Rights / provenance reference" className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /><Button type="submit" size="sm" disabled={cinemaUploading || createCinemaUploadSession.isPending || !cinemaUploadFile || !cinemaUploadProvenance.trim()} className="h-9 w-full text-[10px] font-black uppercase tracking-wider">{cinemaUploading || createCinemaUploadSession.isPending ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Uploading</> : <><UploadCloud className="mr-1.5 h-3.5 w-3.5" /> Upload approved media</>}</Button></form><div className="my-4 flex items-center gap-3"><div className="h-px flex-1 bg-white/[0.08]" /><span className="text-[9px] font-black uppercase tracking-wider text-white/25">or attach a provider-approved asset</span><div className="h-px flex-1 bg-white/[0.08]" /></div><form onSubmit={handleAddCinemaAsset} className="space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3"><div className="grid grid-cols-2 gap-2"><select value={assetKind} onChange={event => setAssetKind(event.target.value as typeof assetKind)} className="h-9 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none"><option value="feature">Feature</option><option value="trailer">Trailer</option><option value="preview">Preview</option><option value="captions">Captions</option></select><input value={assetMediaId} onChange={event => setAssetMediaId(event.target.value)} placeholder="Media ID (optional)" className="h-9 min-w-0 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /></div><input value={assetPlaybackId} onChange={event => setAssetPlaybackId(event.target.value)} placeholder="Approved playback ID" className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /><input value={assetProvenance} onChange={event => setAssetProvenance(event.target.value)} placeholder="Provenance / rights source" className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /><Button type="submit" size="sm" disabled={createCinemaAsset.isPending || !assetPlaybackId.trim() || !assetProvenance.trim()} className="h-9 w-full text-[10px] font-black uppercase tracking-wider">Attach approved asset</Button></form><div className="mt-3 space-y-2">{title.assets.map(asset => <div key={asset.id} className="rounded-lg border border-white/[0.07] bg-black/20 p-2.5"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-black uppercase tracking-wider text-white">{asset.assetKind}</span><span className="text-[9px] font-bold uppercase text-emerald-200">{asset.processingStatus}</span></div><p className="mt-1 truncate font-mono text-[10px] text-white/40">{asset.fastpixPlaybackId || 'No playback ID'}</p></div>)}{title.assets.length === 0 && <p className="rounded-lg border border-dashed border-white/10 p-3 text-[11px] text-white/35">No approved assets are attached.</p>}</div></section></div>
                   <div className="space-y-5"><section><div className="mb-3 flex items-center gap-2"><Gavel className="h-4 w-4 text-primary" /><h4 className="text-sm font-black text-white">Rights and entitlements</h4></div><form onSubmit={handleAddRightsWindow} className="space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3"><div className="grid grid-cols-2 gap-2"><select value={rightsEntitlement} onChange={event => setRightsEntitlement(event.target.value as typeof rightsEntitlement)} className="h-9 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none"><option value="subscription">Subscription</option><option value="free">Free</option><option value="rental">Rental</option><option value="purchase">Purchase</option></select><input value={rightsTerritories} onChange={event => setRightsTerritories(event.target.value)} placeholder="US, CA (optional)" className="h-9 min-w-0 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /></div><input value={rightsReference} onChange={event => setRightsReference(event.target.value)} placeholder="Contract or license reference" className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /><div className="grid grid-cols-2 gap-2"><input type="datetime-local" value={rightsStartsAt} onChange={event => setRightsStartsAt(event.target.value)} className="h-9 min-w-0 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /><input type="datetime-local" value={rightsEndsAt} onChange={event => setRightsEndsAt(event.target.value)} className="h-9 min-w-0 rounded-lg border border-white/[0.1] bg-black/40 px-2 text-xs text-white outline-none" /></div><Button type="submit" size="sm" disabled={createCinemaRightsWindow.isPending || !rightsReference.trim()} className="h-9 w-full text-[10px] font-black uppercase tracking-wider">Add rights window</Button></form><div className="mt-3 space-y-2">{title.rightsWindows.map(window => <div key={window.id} className="rounded-lg border border-white/[0.07] bg-black/20 p-2.5"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-black uppercase tracking-wider text-white">{window.entitlementType}</span><span className="text-[9px] font-bold uppercase text-white/45">{window.territoryCodes.length ? window.territoryCodes.join(', ') : 'Global'}</span></div><p className="mt-1 truncate text-[10px] text-white/42">{window.rightsReference}</p><p className="mt-1 text-[9px] text-white/30">{new Date(window.startsAt).toLocaleDateString()} — {window.endsAt ? new Date(window.endsAt).toLocaleDateString() : 'Open ended'}</p></div>)}</div></section>
                     <section><div className="mb-3 flex items-center gap-2"><History className="h-4 w-4 text-primary" /><h4 className="text-sm font-black text-white">Owner activity</h4></div><div className="space-y-2">{title.activity.map(entry => <div key={entry.id} className="rounded-lg border border-white/[0.07] bg-black/20 p-2.5"><p className="text-[10px] font-black uppercase tracking-wider text-white/75">{entry.action.replaceAll('.', ' ')}</p><p className="mt-1 text-[10px] text-white/38">{entry.reason || 'Owner-controlled workflow event'}</p><p className="mt-1 text-[9px] text-white/25">{new Date(entry.createdAt).toLocaleString()}</p></div>)}{title.activity.length === 0 && <p className="rounded-lg border border-dashed border-white/10 p-3 text-[11px] text-white/35">The audit trail will appear after an owner action.</p>}</div></section></div></div>
               </div>; })() : <div className="flex min-h-[430px] flex-col items-center justify-center p-8 text-center"><Clapperboard className="h-8 w-8 text-primary/65" /><h3 className="mt-4 text-lg font-black text-white">Open a title control record</h3><p className="mt-2 max-w-sm text-sm leading-relaxed text-white/45">Select a Cinema title from the queue to inspect publishing readiness, approve its assets, establish rights, and control its release state.</p></div>}

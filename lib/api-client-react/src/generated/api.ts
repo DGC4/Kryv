@@ -34,6 +34,8 @@ import type {
   AdminCinemaTitleDetail,
   AdminCinemaTitleInput,
   AdminCinemaTitleUpdate,
+  AdminCinemaUploadSession,
+  AdminCinemaUploadSessionInput,
   AdminFeatureFlag,
   AdminFinanceOverview,
   AdminPayoutProfile,
@@ -947,6 +949,78 @@ export const useCreateAdminCinemaAsset = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateAdminCinemaAssetMutationOptions(options));
+    }
+
+export const getCreateAdminCinemaUploadSessionUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/cinema/titles/${id}/upload-sessions`
+}
+
+/**
+ * @summary Create an owner-only direct upload session for a Cinema title asset
+ */
+export const createAdminCinemaUploadSession = async (id: number,
+    adminCinemaUploadSessionInput: AdminCinemaUploadSessionInput, options?: RequestInit): Promise<AdminCinemaUploadSession> => {
+
+  return customFetch<AdminCinemaUploadSession>(getCreateAdminCinemaUploadSessionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminCinemaUploadSessionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminCinemaUploadSessionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaUploadSession>>, TError,{id: number;data: BodyType<AdminCinemaUploadSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaUploadSession>>, TError,{id: number;data: BodyType<AdminCinemaUploadSessionInput>}, TContext> => {
+
+const mutationKey = ['createAdminCinemaUploadSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminCinemaUploadSession>>, {id: number;data: BodyType<AdminCinemaUploadSessionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createAdminCinemaUploadSession(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminCinemaUploadSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminCinemaUploadSession>>>
+    export type CreateAdminCinemaUploadSessionMutationBody = BodyType<AdminCinemaUploadSessionInput>
+    export type CreateAdminCinemaUploadSessionMutationError = ErrorType<void>
+
+    /**
+ * @summary Create an owner-only direct upload session for a Cinema title asset
+ */
+export const useCreateAdminCinemaUploadSession = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaUploadSession>>, TError,{id: number;data: BodyType<AdminCinemaUploadSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminCinemaUploadSession>>,
+        TError,
+        {id: number;data: BodyType<AdminCinemaUploadSessionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminCinemaUploadSessionMutationOptions(options));
     }
 
 export const getGetAdminCinemaTitleUrl = (id: number,) => {
