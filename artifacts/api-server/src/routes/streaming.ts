@@ -65,7 +65,7 @@ function configuredSubscriptionAmount(tier: number) {
 }
 
 async function assertChannelExists(channelId: number) {
-  const [channel] = await db.select({ id: channelsTable.id, displayName: channelsTable.displayName }).from(channelsTable).where(eq(channelsTable.id, channelId));
+  const [channel] = await db.select({ id: channelsTable.id, slug: channelsTable.slug, displayName: channelsTable.displayName }).from(channelsTable).where(eq(channelsTable.id, channelId));
   return channel ?? null;
 }
 
@@ -73,6 +73,7 @@ async function createCryptoCheckout(input: {
   userId: number;
   channelId: number;
   channelName: string;
+  channelSlug: string;
   paymentKind: "subscription" | "tip";
   sourceAmountUsd: string;
   cryptoCurrency?: KryvCryptoCode;
@@ -107,8 +108,8 @@ async function createCryptoCheckout(input: {
       sourceAmountUsd: input.sourceAmountUsd,
       currency: input.cryptoCurrency,
       description: input.paymentKind === "subscription" ? `Kryv channel subscription for ${input.channelName}` : `Kryv creator tip for ${input.channelName}`,
-      successPath: `/live/${input.channelId}?payment=confirmed`,
-      failurePath: `/live/${input.channelId}?payment=cancelled`,
+      successPath: `/live/${encodeURIComponent(input.channelSlug)}?payment=confirmed`,
+      failurePath: `/live/${encodeURIComponent(input.channelSlug)}?payment=cancelled`,
     });
 
     await db
@@ -169,6 +170,7 @@ router.post("/channels/:id/subscribe", requireCryptoCommerceReadiness, requireAu
       userId: req.user!.userId,
       channelId,
       channelName: channel.displayName,
+      channelSlug: channel.slug,
       paymentKind: "subscription",
       sourceAmountUsd: amount,
       cryptoCurrency: parsed.data.cryptoCurrency,
@@ -198,6 +200,7 @@ router.post("/channels/:id/tip", requireCryptoCommerceReadiness, requireAuth, as
       userId: req.user!.userId,
       channelId,
       channelName: channel.displayName,
+      channelSlug: channel.slug,
       paymentKind: "tip",
       sourceAmountUsd: parsed.data.amount.toFixed(2),
       cryptoCurrency: parsed.data.cryptoCurrency,
