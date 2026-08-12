@@ -119,6 +119,17 @@ async function createCryptoCheckout(input: {
         selectedCurrency: invoice.selectedCurrency,
         status: "pending",
         expiresAt: invoice.expiresAt,
+        metadata: {
+          ...input.metadata,
+          checkout: {
+            providerPaymentId: invoice.transactionId,
+            selectedCurrency: invoice.selectedCurrency,
+            invoiceAmount: invoice.invoiceAmount,
+            invoiceCommission: invoice.invoiceCommission,
+            invoiceTotal: invoice.invoiceTotal,
+            providerFeePaidBy: "client",
+          },
+        },
         updatedAt: new Date(),
       })
       .where(eq(paymentIntentsTable.id, intent.id));
@@ -126,10 +137,16 @@ async function createCryptoCheckout(input: {
     return SubscribeResponse.parse({
       paymentIntentId: intent.id,
       invoiceUrl: invoice.invoiceUrl,
-      provider: "plisio",
+      provider: "crypto",
       status: "pending",
       selectedCurrency: invoice.selectedCurrency,
       expiresAt: invoice.expiresAt,
+      paymentAddress: invoice.paymentAddress,
+      qrCodeDataUrl: invoice.qrCodeDataUrl,
+      invoiceAmount: invoice.invoiceAmount,
+      invoiceCommission: invoice.invoiceCommission,
+      invoiceTotal: invoice.invoiceTotal,
+      providerFeePaidBy: "client",
     });
   } catch (error) {
     await db

@@ -6,9 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Customer-facing payment method label; payment-provider identity is not displayed to viewers.
+ */
 export type CryptoCheckoutProvider = typeof CryptoCheckoutProvider[keyof typeof CryptoCheckoutProvider];
 
 
 export const CryptoCheckoutProvider = {
-  plisio: 'plisio',
+  crypto: 'crypto',
 } as const;

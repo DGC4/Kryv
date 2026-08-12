@@ -101,6 +101,7 @@ export * from './creatorPayoutRequest';
 export * from './creatorPayoutRequestRequestSource';
 export * from './cryptoCheckout';
 export * from './cryptoCheckoutProvider';
+export * from './cryptoCheckoutProviderFeePaidBy';
 export * from './cryptoCheckoutStatus';
 export * from './cryptoCurrency';
 export * from './cryptoSubscriptionInput';

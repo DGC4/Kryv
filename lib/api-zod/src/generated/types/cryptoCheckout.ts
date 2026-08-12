@@ -6,14 +6,28 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CryptoCheckoutProvider } from './cryptoCheckoutProvider';
+import type { CryptoCheckoutProviderFeePaidBy } from './cryptoCheckoutProviderFeePaidBy';
 import type { CryptoCheckoutStatus } from './cryptoCheckoutStatus';
 import type { CryptoCurrency } from './cryptoCurrency';
 
 export interface CryptoCheckout {
   paymentIntentId: number;
+  /** Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available. */
   invoiceUrl: string;
+  /** Customer-facing payment method label; payment-provider identity is not displayed to viewers. */
   provider: CryptoCheckoutProvider;
   status: CryptoCheckoutStatus;
   selectedCurrency: CryptoCurrency | null;
   expiresAt: Date | null;
+  /** Per-invoice public payment address. It is never a creator payout destination. */
+  paymentAddress?: string | null;
+  /** Per-invoice QR image data URL for Kryv checkout presentation. */
+  qrCodeDataUrl?: string | null;
+  /** Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission. */
+  invoiceAmount?: string | null;
+  /** Provider-confirmed commission in the selected cryptocurrency. */
+  invoiceCommission?: string | null;
+  /** Provider-confirmed total amount the customer must send in the selected cryptocurrency. */
+  invoiceTotal?: string | null;
+  providerFeePaidBy?: CryptoCheckoutProviderFeePaidBy;
 }

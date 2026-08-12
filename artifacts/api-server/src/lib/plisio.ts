@@ -15,8 +15,13 @@ export class PlisioNotConfiguredError extends Error {
 export type PlisioInvoice = {
   transactionId: string;
   invoiceUrl: string;
-  selectedCurrency: string | null;
+  selectedCurrency: KryvCryptoCode | null;
   expiresAt: Date | null;
+  paymentAddress: string | null;
+  qrCodeDataUrl: string | null;
+  invoiceAmount: string | null;
+  invoiceCommission: string | null;
+  invoiceTotal: string | null;
 };
 
 export type PlisioAssetSnapshot = {
@@ -70,6 +75,15 @@ function allowedCoins() {
     .filter(Boolean);
   const candidates = configured?.length ? configured : [...DEFAULT_ALLOWED_COINS];
   return candidates.filter((coin): coin is KryvCryptoCode => DEFAULT_ALLOWED_COINS.includes(coin as KryvCryptoCode));
+}
+
+function providerCryptoAmount(value: unknown) {
+  return typeof value === "string" && /^\d+(\.\d{1,8})?$/.test(value) ? value : null;
+}
+
+function safeQrCodeDataUrl(value: unknown) {
+  if (typeof value !== "string" || value.length > 1_500_000) return null;
+  return /^data:image\/(png|svg\+xml);base64,[a-z0-9+/=\s]+$/i.test(value) ? value : null;
 }
 
 function constantTimeEqual(left: string, right: string) {
@@ -235,8 +249,13 @@ export async function createPlisioInvoice(input: {
     return {
       transactionId: String(payload.data.txn_id),
       invoiceUrl: String(payload.data.invoice_url),
-      selectedCurrency: typeof payload.data.currency === "string" ? payload.data.currency : selectedCurrency ?? null,
+      selectedCurrency: isSupportedKryvCryptoCode(payload.data.currency) ? payload.data.currency.toUpperCase() : selectedCurrency ?? null,
       expiresAt: expiresAt && !Number.isNaN(expiresAt.getTime()) ? expiresAt : null,
+      paymentAddress: typeof payload.data.wallet_hash === "string" && payload.data.wallet_hash.length <= 256 ? payload.data.wallet_hash : null,
+      qrCodeDataUrl: safeQrCodeDataUrl(payload.data.qr_code),
+      invoiceAmount: providerCryptoAmount(payload.data.invoice_sum),
+      invoiceCommission: providerCryptoAmount(payload.data.invoice_commission),
+      invoiceTotal: providerCryptoAmount(payload.data.invoice_total_sum),
     };
   } finally {
     clearTimeout(timer);

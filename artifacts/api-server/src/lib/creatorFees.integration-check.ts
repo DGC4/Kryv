@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { quoteCreatorPlatformFee } from "./creatorFees";
+import { addCryptoAmounts, compareCryptoAmounts, normalizeCryptoAmount, quoteCreatorPlatformFee } from "./creatorFees";
 
 const zeroFee = quoteCreatorPlatformFee("1.25", 0);
 assert.deepEqual(zeroFee, {
@@ -20,4 +20,10 @@ assert.deepEqual(standardFee, {
 assert.throws(() => quoteCreatorPlatformFee("0.01", 10_001));
 assert.throws(() => quoteCreatorPlatformFee("0.000000001", 100));
 
-console.log("creator fee allocator checks passed");
+assert.equal(normalizeCryptoAmount("01.25000000"), "1.25");
+assert.equal(addCryptoAmounts("0.12345678", "0.00185185"), "0.12530863");
+assert.equal(compareCryptoAmounts("0.12530863", "0.12530863"), 0);
+assert.equal(compareCryptoAmounts("0.12530864", "0.12530863"), 1);
+assert.equal(compareCryptoAmounts("0.12530862", "0.12530863"), -1);
+
+console.log("creator fee allocator and provider-total checks passed");

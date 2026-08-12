@@ -28,6 +28,20 @@ function formatCryptoAtomic(value: bigint) {
  * is never used for balances or fee allocation, which keeps the two immutable
  * ledger rows reconcilable to the provider-confirmed gross amount.
  */
+export function normalizeCryptoAmount(value: string) {
+  return formatCryptoAtomic(parseCryptoAtomic(value));
+}
+
+export function addCryptoAmounts(left: string, right: string) {
+  return formatCryptoAtomic(parseCryptoAtomic(left) + parseCryptoAtomic(right));
+}
+
+export function compareCryptoAmounts(left: string, right: string) {
+  const leftAtomic = parseCryptoAtomic(left);
+  const rightAtomic = parseCryptoAtomic(right);
+  return leftAtomic === rightAtomic ? 0 : leftAtomic > rightAtomic ? 1 : -1;
+}
+
 export function quoteCreatorPlatformFee(grossAmount: string, platformFeeBps: number): CreatorFeeQuote {
   if (!Number.isInteger(platformFeeBps) || platformFeeBps < 0 || platformFeeBps > 10_000) {
     throw new Error("The active platform fee policy must be an integer between 0 and 10,000 basis points.");

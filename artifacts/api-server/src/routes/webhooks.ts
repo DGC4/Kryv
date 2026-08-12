@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, desc, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 import { cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
-import { quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
+import { addCryptoAmounts, compareCryptoAmounts, normalizeCryptoAmount, quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
 import { enqueueDurableJob } from "../lib/jobs";
 import { deleteSharedKey, publishRealtimeEvent } from "../lib/realtime";
 import { logger } from "../lib/logger";
@@ -49,6 +49,36 @@ async function quoteActiveSettlementFee(txn: any, paymentKind: "subscription" | 
 
   const quote = quoteCreatorPlatformFee(grossAmount, policy?.platformFeeBps ?? 0);
   return { ...quote, feePolicyId: policy?.id ?? null, feePolicyVersion: policy?.version ?? null };
+}
+
+type VerifiedPlisioSettlementTerms = {
+  receivedAmount: string;
+  invoiceAmount: string;
+  invoiceCommission: string;
+  invoiceTotal: string;
+  currency: string;
+};
+
+function verifiedPlisioSettlementTerms(callback: Record<string, unknown>): VerifiedPlisioSettlementTerms {
+  const value = (field: "amount" | "invoice_sum" | "invoice_commission" | "invoice_total_sum") => {
+    const raw = callback[field];
+    if (typeof raw !== "string") throw new Error(`Completed crypto callback is missing ${field}.`);
+    return normalizeCryptoAmount(raw);
+  };
+  const currency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : "";
+  if (!isSupportedKryvCryptoCode(currency)) throw new Error("Completed crypto callback has an unsupported currency.");
+
+  const receivedAmount = value("amount");
+  const invoiceAmount = value("invoice_sum");
+  const invoiceCommission = value("invoice_commission");
+  const invoiceTotal = value("invoice_total_sum");
+  if (addCryptoAmounts(invoiceAmount, invoiceCommission) !== invoiceTotal) {
+    throw new Error("Completed crypto callback has inconsistent invoice commission totals.");
+  }
+  if (compareCryptoAmounts(receivedAmount, invoiceTotal) < 0) {
+    throw new Error("Completed crypto callback received less than the provider-confirmed invoice total.");
+  }
+  return { receivedAmount, invoiceAmount, invoiceCommission, invoiceTotal, currency };
 }
 
 async function recordCreatorSettlement(
@@ -153,6 +183,12 @@ async function recordCreatorSettlement(
  * event is recorded first; payment intent state and product effects are then
  * processed exactly once. The browser invoice-return route is never trusted.
  */
+// State-free reachability probe for the merchant console. Provider settlement remains
+// POST-only, JSON-only, signature-verified, and server-authoritative.
+router.get("/webhooks/plisio", (_req, res): void => {
+  res.status(200).type("text/plain").send("Kryv crypto settlement receiver ready");
+});
+
 router.post("/webhooks/plisio", async (req, res): Promise<void> => {
   const rawBody = req.body as Buffer;
   if (!isPlisioConfigured()) {
@@ -228,10 +264,36 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
       return;
     }
 
+    let terms: VerifiedPlisioSettlementTerms;
+    try {
+      terms = verifiedPlisioSettlementTerms(callback);
+    } catch (error) {
+      await db.update(paymentEventsTable).set({ processingStatus: "failed", errorCode: "invalid_settlement_terms" }).where(eq(paymentEventsTable.id, event.id));
+      res.status(422).json({ error: error instanceof Error ? error.message : "Invalid crypto settlement terms" });
+      return;
+    }
+
     const settlement = await db.transaction(async (txn) => {
       const [settledIntent] = await txn
         .update(paymentIntentsTable)
-        .set({ providerPaymentId: transactionId, status: "completed", completedAt: new Date(), updatedAt: new Date() })
+        .set({
+          providerPaymentId: transactionId,
+          status: "completed",
+          completedAt: new Date(),
+          metadata: {
+            ...((intent.metadata ?? {}) as Record<string, unknown>),
+            settlement: {
+              receivedAmount: terms.receivedAmount,
+              invoiceAmount: terms.invoiceAmount,
+              invoiceCommission: terms.invoiceCommission,
+              invoiceTotal: terms.invoiceTotal,
+              currency: terms.currency,
+              providerFeePaidBy: "client",
+              confirmations: typeof callback.confirmations === "string" || typeof callback.confirmations === "number" ? String(callback.confirmations) : null,
+            },
+          },
+          updatedAt: new Date(),
+        })
         .where(and(eq(paymentIntentsTable.id, intent.id), ne(paymentIntentsTable.status, "completed")))
         .returning();
       if (!settledIntent) return { duplicate: true };
@@ -252,36 +314,30 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
         } else {
           await txn.insert(subscriptionsTable).values({ userId: settledIntent.purchaserUserId, channelId: settledIntent.receiverChannelId, tier, status: "active", provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt });
         }
-        const paidAmount = typeof callback.amount === "string" && /^\d+(\.\d{1,8})?$/.test(callback.amount) ? callback.amount : null;
-        const paidCurrency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : null;
-        if (!paidAmount || !isSupportedKryvCryptoCode(paidCurrency)) throw new Error("Completed crypto subscription callback has an invalid or unsupported amount or currency.");
-        const allocation = await quoteActiveSettlementFee(txn, "subscription", paidAmount);
+        const allocation = await quoteActiveSettlementFee(txn, "subscription", terms.invoiceAmount);
         await recordCreatorSettlement(txn, {
           channelId: settledIntent.receiverChannelId,
-          currency: paidCurrency,
+          currency: terms.currency,
           paymentKind: "subscription",
           sourceType: "payment_intent",
           sourceId: String(settledIntent.id),
           providerPaymentId: transactionId,
           paymentIntentId: settledIntent.id,
           allocation,
-          metadata: { tier },
+          metadata: { tier, ...terms, providerFeePaidBy: "client" },
         });
       }
 
       if (settledIntent.paymentKind === "tip" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
-        const paidAmount = typeof callback.amount === "string" && /^\d+(\.\d{1,8})?$/.test(callback.amount) ? callback.amount : null;
-        const paidCurrency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : null;
-        if (!paidAmount || !isSupportedKryvCryptoCode(paidCurrency)) throw new Error("Completed crypto tip callback has an invalid or unsupported amount or currency.");
-        const allocation = await quoteActiveSettlementFee(txn, "tip", paidAmount);
+        const allocation = await quoteActiveSettlementFee(txn, "tip", terms.invoiceAmount);
         const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
         const [tip] = await txn
           .insert(tipsTable)
           .values({
             senderUserId: settledIntent.purchaserUserId,
             receiverChannelId: settledIntent.receiverChannelId,
-            amount: paidAmount,
-            currency: paidCurrency,
+            amount: terms.invoiceAmount,
+            currency: terms.currency,
             provider: "plisio",
             providerPaymentIntentId: transactionId,
             platformFeeAmount: allocation.platformFeeAmount,
@@ -293,13 +349,14 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
         if (!tip) throw new Error("Completed crypto tip is missing its immutable settlement record.");
         await recordCreatorSettlement(txn, {
           channelId: settledIntent.receiverChannelId,
-          currency: paidCurrency,
+          currency: terms.currency,
           paymentKind: "tip",
           sourceType: "tip",
           sourceId: String(tip.id),
           providerPaymentId: transactionId,
           paymentIntentId: settledIntent.id,
           allocation,
+          metadata: { ...terms, providerFeePaidBy: "client" },
         });
       }
       return { duplicate: false };

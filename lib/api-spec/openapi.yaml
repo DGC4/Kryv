@@ -2225,8 +2225,8 @@ components:
       required: [paymentIntentId, invoiceUrl, provider, status, selectedCurrency, expiresAt]
       properties:
         paymentIntentId: { type: integer }
-        invoiceUrl: { type: string }
-        provider: { type: string, enum: [plisio] }
+        invoiceUrl: { type: string, description: Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available. }
+        provider: { type: string, enum: [crypto], description: Customer-facing payment method label; payment-provider identity is not displayed to viewers. }
         status: { type: string, enum: [pending] }
         selectedCurrency:
           oneOf:
@@ -2237,6 +2237,32 @@ components:
             - type: string
               format: date-time
             - type: "null"
+        paymentAddress:
+          oneOf:
+            - type: string
+            - type: "null"
+          description: Per-invoice public payment address. It is never a creator payout destination.
+        qrCodeDataUrl:
+          oneOf:
+            - type: string
+            - type: "null"
+          description: Per-invoice QR image data URL for Kryv checkout presentation.
+        invoiceAmount:
+          oneOf:
+            - type: string
+            - type: "null"
+          description: Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.
+        invoiceCommission:
+          oneOf:
+            - type: string
+            - type: "null"
+          description: Provider-confirmed commission in the selected cryptocurrency.
+        invoiceTotal:
+          oneOf:
+            - type: string
+            - type: "null"
+          description: Provider-confirmed total amount the customer must send in the selected cryptocurrency.
+        providerFeePaidBy: { type: string, enum: [client] }
 
     CryptoSubscriptionInput:
       type: object

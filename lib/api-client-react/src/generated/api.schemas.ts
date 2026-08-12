@@ -261,11 +261,14 @@ export const CryptoCurrency = {
   DOGE: 'DOGE',
 } as const;
 
+/**
+ * Customer-facing payment method label; payment-provider identity is not displayed to viewers.
+ */
 export type CryptoCheckoutProvider = typeof CryptoCheckoutProvider[keyof typeof CryptoCheckoutProvider];
 
 
 export const CryptoCheckoutProvider = {
-  plisio: 'plisio',
+  crypto: 'crypto',
 } as const;
 
 export type CryptoCheckoutStatus = typeof CryptoCheckoutStatus[keyof typeof CryptoCheckoutStatus];
@@ -275,13 +278,33 @@ export const CryptoCheckoutStatus = {
   pending: 'pending',
 } as const;
 
+export type CryptoCheckoutProviderFeePaidBy = typeof CryptoCheckoutProviderFeePaidBy[keyof typeof CryptoCheckoutProviderFeePaidBy];
+
+
+export const CryptoCheckoutProviderFeePaidBy = {
+  client: 'client',
+} as const;
+
 export interface CryptoCheckout {
   paymentIntentId: number;
+  /** Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available. */
   invoiceUrl: string;
+  /** Customer-facing payment method label; payment-provider identity is not displayed to viewers. */
   provider: CryptoCheckoutProvider;
   status: CryptoCheckoutStatus;
   selectedCurrency: CryptoCurrency | null;
   expiresAt: string | null;
+  /** Per-invoice public payment address. It is never a creator payout destination. */
+  paymentAddress?: string | null;
+  /** Per-invoice QR image data URL for Kryv checkout presentation. */
+  qrCodeDataUrl?: string | null;
+  /** Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission. */
+  invoiceAmount?: string | null;
+  /** Provider-confirmed commission in the selected cryptocurrency. */
+  invoiceCommission?: string | null;
+  /** Provider-confirmed total amount the customer must send in the selected cryptocurrency. */
+  invoiceTotal?: string | null;
+  providerFeePaidBy?: CryptoCheckoutProviderFeePaidBy;
 }
 
 export interface CryptoSubscriptionInput {

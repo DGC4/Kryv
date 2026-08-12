@@ -1149,11 +1149,17 @@ export const CreateCryptoSubscriptionBody = zod.object({
 
 export const CreateCryptoSubscriptionResponse = zod.object({
   "paymentIntentId": zod.number(),
-  "invoiceUrl": zod.string(),
-  "provider": zod.enum(['plisio']),
+  "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
+  "provider": zod.enum(['crypto']).describe('Customer-facing payment method label; payment-provider identity is not displayed to viewers.'),
   "status": zod.enum(['pending']),
   "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
-  "expiresAt": zod.union([zod.coerce.date(),zod.null()])
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice public payment address. It is never a creator payout destination.'),
+  "qrCodeDataUrl": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice QR image data URL for Kryv checkout presentation.'),
+  "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
+  "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
+  "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
+  "providerFeePaidBy": zod.enum(['client']).optional()
 })
 
 
@@ -1179,11 +1185,17 @@ export const CreateCryptoTipBody = zod.object({
 
 export const CreateCryptoTipResponse = zod.object({
   "paymentIntentId": zod.number(),
-  "invoiceUrl": zod.string(),
-  "provider": zod.enum(['plisio']),
+  "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
+  "provider": zod.enum(['crypto']).describe('Customer-facing payment method label; payment-provider identity is not displayed to viewers.'),
   "status": zod.enum(['pending']),
   "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
-  "expiresAt": zod.union([zod.coerce.date(),zod.null()])
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice public payment address. It is never a creator payout destination.'),
+  "qrCodeDataUrl": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice QR image data URL for Kryv checkout presentation.'),
+  "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
+  "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
+  "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
+  "providerFeePaidBy": zod.enum(['client']).optional()
 })
 
 
