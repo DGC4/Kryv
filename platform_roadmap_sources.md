@@ -37,3 +37,7 @@ The deployed public home rendered normally in My Browser with no blank-screen fa
 A direct visit to the canonical `/live/fano` route rendered the channel viewer page successfully and exposed the **Follow** and **Support** controls in the rendered page content. The channel was offline during the check, and no support action, invoice creation, chat submission, or other state-changing action was performed.
 
 After the desktop-scroll repair deployed, the primary channel content region exposed its own scrollbar and accepted a container scroll rather than clipping the page outright. The browser’s rendered content continued to include the channel metadata, **Follow**, **Support**, and engagement elements; no transaction or other state-changing control was invoked.
+
+The final deployed canonical channel route rendered cleanly with a scrollable region below the player (343 pixels of additional content reported by the browser). The page content includes the creator metadata and Support control; the following inspection is limited to revealing that already-rendered control and will not initiate an invoice.
+
+Final production UI verification: after scrolling the canonical channel viewer to its creator actions, the **Support** control was visible and opened successfully. The panel exposed only BTC, LTC, ETH, and DOGE, a USD quote amount, an optional message, crypto-only disclosure, and a Continue control. No Continue action was taken, so no invoice, checkout, balance, entitlement, or payout state was created or changed.
