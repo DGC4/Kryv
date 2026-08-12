@@ -227,7 +227,7 @@ export default function LiveChannel() {
     : null;
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100dvh-4rem)] overflow-hidden bg-background relative z-10">
+    <div className="flex flex-1 min-h-0 flex-col lg:flex-row overflow-hidden bg-background relative z-10">
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Video Player - Responsive */}

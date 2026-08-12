@@ -12,7 +12,7 @@ export function Layout({ children }: LayoutProps) {
     <div className="min-h-[100dvh] flex flex-col relative text-foreground">
       <AnimatedBackground />
       <Header />
-      <main className="flex-1 relative z-10 flex flex-col">
+      <main className="flex-1 min-h-0 relative z-10 flex flex-col">
         {children}
       </main>
       <Footer />
