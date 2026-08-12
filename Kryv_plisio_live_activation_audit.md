@@ -92,3 +92,17 @@ After the `de33055` production release deployed successfully to both existing Re
 ## Interim external availability safeguard
 
 A UptimeRobot HTTP/S monitor was created for `https://kryv-backend.onrender.com/api/webhooks/plisio?json=true`. It is configured on the account’s available five-minute interval with e-mail notification enabled and uses the application’s read-only settlement-receiver GET probe. The monitor is initially preparing its first check. This reduces cold-start risk for the current free backend but does not change the documented production requirement for paid always-on API, realtime, worker, cache, and queue services before enabling funds movement.
+
+The UptimeRobot safeguard completed its initial verification successfully. The callback health monitor is **Up**, checks every five minutes from North America, reports no incidents, and recorded recent response times between 119 ms and 189 ms (154 ms average). This confirms the read-only health probe is externally reachable under the free-tier safeguard; it does not authorize customer deposits, wallet spending, or any payout execution.
+
+## Explicit free-tier withdrawal lock
+
+The deployed Render backend now has `PLISIO_WITHDRAWALS_ENABLED=false` configured explicitly. Render rebuilt and redeployed the backend successfully after the change, and the runtime reported that the service is live. This is an additional defense-in-depth control: provider withdrawals remain disabled even if any future code or owner control is misconfigured. The free-tier availability limitation remains unchanged, and wallet custody, internal wallet spending, crypto commerce, creator payout requests, and scheduled payout requests remain feature-flagged off.
+
+## Non-monetary public-surface check
+
+After the free-tier safety redeploy, the deployed Live discovery and Watch surfaces rendered successfully in a browser. The public routes showed their designed zero-inventory state without error: no active live channels and no processed Watch uploads. This is expected content state rather than a failed client render. The application navigation, search inputs, category controls, and creator-upload entry point were present; no payment or custody action was invoked during this check.
+
+The deployed public API was verified after the safety redeploy. `GET /api/discover/summary`, `GET /api/channels`, and the read-only `GET /api/webhooks/plisio?json=true` probe each returned HTTP 200. Discovery returned the configured category rail with zero current live channels; the channel read path returned the two existing non-live channels; and the settlement receiver returned its expected readiness response. No authenticated action, invoice, deposit, wallet movement, or payout was triggered.
+
+The existing public channel route `/live/fano` was also verified. Its explicit non-live fallback rendered correctly with the creator identity, category, engagement balance, and chat history instead of a blank player or client failure. The standalone realtime gateway remains intentionally un-deployed on the free tier because `VITE_REALTIME_URL` and the dedicated gateway service are absent; the deployed client therefore continues to use its REST read path rather than claiming active WebSocket delivery.
