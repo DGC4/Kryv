@@ -33,3 +33,5 @@ These are non-destructive checks; no production flag was enabled and no money mo
 ## Viewer-surface verification
 
 The deployed public home rendered normally in My Browser with no blank-screen failure. A direct visit to `/live/1` displayed the expected not-found state because the public viewer route resolves a **slug** (`/live/fano`), not a numeric ID. This exposed an invoice-return defect: the checkout API had constructed return paths from the numeric channel ID. The source has been corrected to return to the canonical channel slug before the next deployment; no invoice was opened during verification.
+
+A direct visit to the canonical `/live/fano` route rendered the channel viewer page successfully and exposed the **Follow** and **Support** controls in the rendered page content. The channel was offline during the check, and no support action, invoice creation, chat submission, or other state-changing action was performed.

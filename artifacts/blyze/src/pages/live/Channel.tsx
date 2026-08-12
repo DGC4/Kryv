@@ -229,7 +229,7 @@ export default function LiveChannel() {
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100dvh-4rem)] overflow-hidden bg-background relative z-10">
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto lg:overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Video Player - Responsive */}
         <div className="w-full bg-black aspect-video sm:aspect-video lg:flex-1 relative">
           {channel.isLive && hlsSrc ? (
