@@ -35,7 +35,7 @@ import {
   Settings, BarChart2, Users, MessageSquare, Eye, EyeOff,
   ChevronRight, Lock, Unlock, Globe, Signal, CreditCard,
   Zap, Shield, Crown, Trophy, Vote, Sparkles, Swords, RadioTower, Bell, Wallet,
-  Clapperboard, Library, Search, X, LayoutDashboard, Send, Trash2, Clock3, Ban,
+  Clapperboard, Library, Search, X, LayoutDashboard, Send, Trash2, Clock3, Ban, Camera, Mic, Square,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -198,6 +198,10 @@ export default function DashboardLive() {
   const [notificationPrefs, setNotificationPrefs] = useState({ notifyOnLive: true, notifyOnUpload: true, notifyOnClip: false, emailNotifications: false });
   const [studioChatMessage, setStudioChatMessage] = useState('');
   const [hiddenStudioMessageIds, setHiddenStudioMessageIds] = useState<Set<number>>(() => new Set());
+  const browserPreviewRef = useRef<HTMLVideoElement | null>(null);
+  const browserPreviewStreamRef = useRef<MediaStream | null>(null);
+  const [browserPreviewState, setBrowserPreviewState] = useState<'idle' | 'requesting' | 'ready' | 'blocked'>('idle');
+  const [browserPreviewError, setBrowserPreviewError] = useState<string | null>(null);
   // Location is intentionally not collected or required for broadcast setup.
   const location: LocationData | null = null;
   const { data: chatSettings } = useGetChannelChatSettings(me?.channel?.id ?? 0, {
@@ -245,6 +249,46 @@ export default function DashboardLive() {
     { q: normalizedDestinationSearch },
     { query: { enabled: activeTab === 'engagement' && normalizedDestinationSearch.length >= 2 } },
   );
+
+  const stopBrowserPreview = () => {
+    browserPreviewStreamRef.current?.getTracks().forEach((track) => track.stop());
+    browserPreviewStreamRef.current = null;
+    if (browserPreviewRef.current) browserPreviewRef.current.srcObject = null;
+    setBrowserPreviewState('idle');
+    setBrowserPreviewError(null);
+  };
+
+  const startBrowserPreview = async () => {
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      setBrowserPreviewState('blocked');
+      setBrowserPreviewError('Camera and microphone access requires HTTPS and a compatible browser.');
+      return;
+    }
+    stopBrowserPreview();
+    setBrowserPreviewState('requesting');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30, max: 60 } },
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      browserPreviewStreamRef.current = stream;
+      if (browserPreviewRef.current) {
+        browserPreviewRef.current.srcObject = stream;
+        await browserPreviewRef.current.play().catch(() => undefined);
+      }
+      setBrowserPreviewState('ready');
+    } catch (error) {
+      setBrowserPreviewState('blocked');
+      const message = error instanceof DOMException && error.name === 'NotAllowedError'
+        ? 'Camera or microphone permission was not granted.'
+        : 'Kryv could not start a local camera and microphone preview.';
+      setBrowserPreviewError(message);
+    }
+  };
+
+  useEffect(() => () => {
+    browserPreviewStreamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
 
   // Auto-fetch credentials on mount if channel exists
   useEffect(() => {
@@ -810,6 +854,15 @@ export default function DashboardLive() {
                   </div>
                 )}
               </div>
+
+              <section className="mt-4 overflow-hidden rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.035]">
+                <div className="flex flex-col gap-3 border-b border-cyan-200/[0.1] px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0"><div className="flex items-center gap-2"><Camera className="h-4 w-4 text-cyan-200" /><h2 className="text-sm font-black text-white">Browser Studio preflight</h2><span className="rounded-full border border-amber-300/20 bg-amber-300/[0.08] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-100">Gateway required</span></div><p className="mt-1 text-xs leading-relaxed text-white/45">Check your camera and microphone locally before a future browser broadcast. Kryv does not upload, record, or publish this preview. A managed publishing gateway and owner-approved destination connections are required before any browser stream can go live.</p></div>
+                  {browserPreviewState === 'ready' ? <Button type="button" variant="secondary" onClick={stopBrowserPreview} className="shrink-0 border border-red-300/20 text-red-100 hover:text-red-50"><Square className="mr-2 h-3.5 w-3.5 fill-current" /> Stop check</Button> : <Button type="button" onClick={startBrowserPreview} disabled={browserPreviewState === 'requesting'} className="shrink-0 bg-cyan-200 text-black hover:bg-cyan-100">{browserPreviewState === 'requesting' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Camera className="mr-2 h-4 w-4" /> Check camera & mic</>}</Button>}
+                </div>
+                <div className="relative aspect-video bg-black/45"><video ref={browserPreviewRef} muted playsInline className={`h-full w-full object-contain ${browserPreviewState === 'ready' ? 'block' : 'hidden'}`} />{browserPreviewState !== 'ready' && <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-200/[0.14] bg-cyan-300/[0.06]"><Camera className="h-5 w-5 text-cyan-100/60" /></div><p className="mt-3 text-sm font-bold text-white/55">Local preview is off</p><p className="mt-1 max-w-md text-xs leading-relaxed text-white/30">Permission is requested only when you choose the camera and microphone check.</p></div>}<div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-white/[0.1] bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white/65"><Mic className="h-3 w-3 text-cyan-200" />{browserPreviewState === 'ready' ? 'Local device preview' : 'No media transmitted'}</div></div>
+                {browserPreviewError && <p className="border-t border-red-300/[0.12] bg-red-400/[0.05] px-4 py-3 text-xs text-red-100/80">{browserPreviewError}</p>}
+              </section>
 
             </div>
 

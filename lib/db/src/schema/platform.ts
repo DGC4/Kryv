@@ -333,6 +333,26 @@ export const creatorBalanceMovementsTable = pgTable("creator_balance_movements",
   sourceIdx: index("creator_balance_movements_source_idx").on(table.sourceType, table.sourceId),
 }));
 
+export const platformRevenueMovementsTable = pgTable("platform_revenue_movements", {
+  id: serial("id").primaryKey(),
+  channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
+  currency: text("currency").notNull(),
+  paymentKind: text("payment_kind").notNull(),
+  grossAmount: numeric("gross_amount", { precision: 18, scale: 8 }).notNull(),
+  platformFeeAmount: numeric("platform_fee_amount", { precision: 18, scale: 8 }).notNull(),
+  creatorNetAmount: numeric("creator_net_amount", { precision: 18, scale: 8 }).notNull(),
+  feePolicyId: integer("fee_policy_id").references(() => creatorFeePoliciesTable.id, { onDelete: "set null" }),
+  sourceType: text("source_type").notNull(),
+  sourceId: text("source_id").notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  metadata: jsonb("metadata").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  channelCreatedIdx: index("platform_revenue_movements_channel_created_idx").on(table.channelId, table.createdAt),
+  paymentKindCreatedIdx: index("platform_revenue_movements_kind_created_idx").on(table.paymentKind, table.createdAt),
+  sourceIdx: index("platform_revenue_movements_source_idx").on(table.sourceType, table.sourceId),
+}));
+
 export const creatorPayoutProfilesTable = pgTable("creator_payout_profiles", {
   id: serial("id").primaryKey(),
   channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),

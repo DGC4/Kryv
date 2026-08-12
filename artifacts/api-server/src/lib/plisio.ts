@@ -26,6 +26,14 @@ export type PlisioAssetSnapshot = {
   fetchedAt: Date;
 };
 
+export type PlisioWithdrawal = {
+  providerPayoutId: string;
+  status: string;
+  amount: string;
+  feeAmount: string | null;
+  transactionUrl: string | null;
+};
+
 let assetSnapshotCache: { expiresAt: number; values: PlisioAssetSnapshot[] } | null = null;
 
 function getSecretKey() {
@@ -120,6 +128,59 @@ export async function getPlisioAssetSnapshots(): Promise<PlisioAssetSnapshot[]> 
     });
     assetSnapshotCache = { expiresAt: Date.now() + 60_000, values };
     return values;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function createPlisioWithdrawal(input: {
+  currency: KryvCryptoCode;
+  destination: string;
+  amount: string;
+  feePlan?: "normal" | "priority";
+}): Promise<PlisioWithdrawal> {
+  if (process.env.PLISIO_WITHDRAWALS_ENABLED !== "true") {
+    throw new Error("Provider withdrawals are disabled. Complete the documented owner activation gates before enabling them.");
+  }
+  if (!isSupportedKryvCryptoCode(input.currency)) {
+    throw new Error("The requested payout currency is not enabled for Kryv.");
+  }
+  if (!/^\d+(\.\d{1,8})?$/.test(input.amount) || input.amount === "0") {
+    throw new Error("A payout amount must be a positive crypto decimal with at most eight places.");
+  }
+  const destination = input.destination.trim();
+  if (destination.length < 10 || destination.length > 256 || /[\s,]/.test(destination)) {
+    throw new Error("The payout destination has an invalid format.");
+  }
+
+  const params = new URLSearchParams({
+    currency: input.currency,
+    type: "cash_out",
+    to: destination,
+    amount: input.amount,
+    feePlan: input.feePlan ?? "normal",
+    api_key: getSecretKey(),
+  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const response = await fetch(`${PLISIO_API_BASE.replace(/\/$/, "")}/operations/withdraw?${params.toString()}`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => null) as any;
+    if (!response.ok || payload?.status !== "success" || !payload?.data?.id) {
+      const message = typeof payload?.data?.message === "string" ? payload.data.message : "Plisio could not create the crypto withdrawal.";
+      throw new Error(message);
+    }
+    return {
+      providerPayoutId: String(payload.data.id),
+      status: typeof payload.data.status === "string" ? payload.data.status : "submitted",
+      amount: typeof payload.data.amount === "string" ? payload.data.amount : input.amount,
+      feeAmount: typeof payload.data.fee === "string" ? payload.data.fee : null,
+      transactionUrl: typeof payload.data.tx_url === "string" ? payload.data.tx_url : null,
+    };
   } finally {
     clearTimeout(timer);
   }

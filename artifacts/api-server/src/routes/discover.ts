@@ -6,8 +6,22 @@ import { requireAuth } from "../lib/auth";
 import { toChannelSummary } from "../lib/channelSerializer";
 import { toVideoSummary } from "../lib/videoSerializer";
 import { getFastPixViewerCount } from "../lib/fastpix";
+import { readSharedJson, writeSharedJson } from "../lib/realtime";
 
 const router: IRouter = Router();
+const DISCOVER_SUMMARY_CACHE_KEY = "kryv:discover:summary:v1";
+
+function rankLiveCandidate(channel: typeof channelsTable.$inferSelect) {
+  // Candidate generation intentionally stays bounded and explainable until Kryv has
+  // consented, inventory-rich engagement data for a real recommendation model.
+  const popularity = Math.log2(Math.max(0, channel.viewerCount) + 1) * 100;
+  const freshnessMinutes = channel.lastStreamAt
+    ? Math.max(0, (Date.now() - channel.lastStreamAt.getTime()) / 60_000)
+    : 180;
+  const freshness = Math.max(0, 30 - Math.min(30, freshnessMinutes));
+  const consistency = Math.min(20, Math.log2(Math.max(0, channel.peakViewerCount) + 1) * 3);
+  return popularity + freshness + consistency;
+}
 
 function normalizedSearchTerm(query: string) {
   // Preserve ordinary natural-language search while preventing wildcard-only scans.
@@ -15,11 +29,19 @@ function normalizedSearchTerm(query: string) {
 }
 
 router.get("/discover/summary", async (_req, res): Promise<void> => {
+  const cached = await readSharedJson<unknown>(DISCOVER_SUMMARY_CACHE_KEY);
+  const cachedResponse = cached ? GetDiscoverSummaryResponse.safeParse(cached) : null;
+  if (cachedResponse?.success) {
+    res.json(cachedResponse.data);
+    return;
+  }
+
   const persistedLiveChannels = await db
     .select()
     .from(channelsTable)
     .where(eq(channelsTable.isLive, true))
-    .orderBy(desc(channelsTable.viewerCount));
+    .orderBy(desc(channelsTable.viewerCount))
+    .limit(200);
 
   // FastPix owns concurrent-viewer measurement. Refresh the small live set here
   // before ranking the public directory, using the helper's 10-second cache.
@@ -39,7 +61,10 @@ router.get("/discover/summary", async (_req, res): Promise<void> => {
       return { ...channel, viewerCount, peakViewerCount: Math.max(channel.peakViewerCount, viewerCount) };
     }),
   );
-  liveChannels.sort((a, b) => b.viewerCount - a.viewerCount);
+  liveChannels.sort((a, b) => {
+    const scoreDifference = rankLiveCandidate(b) - rankLiveCandidate(a);
+    return scoreDifference !== 0 ? scoreDifference : b.viewerCount - a.viewerCount;
+  });
 
   const featuredChannels = await Promise.all(
     liveChannels.slice(0, 8).map(toChannelSummary),
@@ -68,14 +93,16 @@ router.get("/discover/summary", async (_req, res): Promise<void> => {
 
   const totalViewers = liveChannels.reduce((sum, c) => sum + c.viewerCount, 0);
 
-  res.json(
-    GetDiscoverSummaryResponse.parse({
-      featuredChannels,
-      topCategories,
-      totalLiveChannels: liveChannels.length,
-      totalViewers,
-    }),
-  );
+  const response = GetDiscoverSummaryResponse.parse({
+    featuredChannels,
+    topCategories,
+    totalLiveChannels: liveChannels.length,
+    totalViewers,
+  });
+  // Viewer counts remain provider-authoritative. The short cache only collapses
+  // simultaneous public-directory refreshes across the control-plane instances.
+  writeSharedJson(DISCOVER_SUMMARY_CACHE_KEY, response, 10).catch(() => undefined);
+  res.json(response);
 });
 
 router.get("/search", async (req, res): Promise<void> => {

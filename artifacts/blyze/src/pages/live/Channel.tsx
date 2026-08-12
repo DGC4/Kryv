@@ -12,11 +12,12 @@ import {
   useGetChannelEngagement,
   useCreateChannelEngagementAction,
   useCreateCryptoTip,
+  useCreateClip,
 } from '@workspace/api-client-react';
 import { useAuthStore } from '@/lib/auth-store';
 import { useToast } from '@/hooks/use-toast';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 
@@ -25,14 +26,14 @@ export default function LiveChannel() {
   const { user } = useAuthStore();
   const isSignedIn = !!user;
 
-  const { data: channel, isLoading } = useGetChannelBySlug(channelSlugOrId || '', {
-    query: { enabled: !!channelSlugOrId, refetchInterval: 10000 },
+  const { data: channel, isLoading, refetch: refetchChannel } = useGetChannelBySlug(channelSlugOrId || '', {
+    query: { enabled: !!channelSlugOrId, refetchInterval: 15000 },
   });
 
   const channelId = channel?.id;
 
   const { data: messages, refetch: refetchMessages } = useListChannelMessages(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: 3000 },
+    query: { enabled: !!channelId, refetchInterval: 15000 },
   });
   const { data: chatSettings } = useGetChannelChatSettings(channelId!, {
     query: { enabled: !!channelId, refetchInterval: 10000 },
@@ -49,6 +50,7 @@ export default function LiveChannel() {
   const moderateMessage = useCreateChannelModerationAction();
   const engagementAction = useCreateChannelEngagementAction();
   const createCryptoTip = useCreateCryptoTip();
+  const createClip = useCreateClip();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [chatInput, setChatInput] = useState('');
@@ -58,6 +60,43 @@ export default function LiveChannel() {
   const [supportCoin, setSupportCoin] = useState<'BTC' | 'LTC' | 'ETH' | 'DOGE'>('BTC');
   const [supportMessage, setSupportMessage] = useState('');
   const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  // Event-driven chat and live-state refresh. The websocket only carries server
+  // events; REST remains the authority for messages, moderation, and channel state.
+  useEffect(() => {
+    if (!channelId || typeof window === 'undefined') return;
+    const configuredUrl = import.meta.env.VITE_REALTIME_URL?.trim();
+    const fallbackUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
+    const websocketUrl = configuredUrl || fallbackUrl;
+    let closed = false;
+    let socket: WebSocket | null = null;
+
+    try {
+      socket = new WebSocket(websocketUrl, ['kryv.v1']);
+      socket.onopen = () => socket?.send(JSON.stringify({ type: 'subscribe', channelId }));
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data) as { type?: string; channelId?: number };
+          if (message.channelId !== channelId) return;
+          if (message.type === 'chat.message.created' || message.type === 'chat.message.deleted') refetchMessages();
+          if (message.type === 'channel.moderation.updated') refetchMessages();
+          if (message.type === 'live.state.updated') refetchChannel();
+        } catch {
+          // Ignore malformed transport events; the REST fallback keeps state current.
+        }
+      };
+    } catch {
+      // Browser WebSocket construction can fail under restrictive network policies.
+    }
+
+    return () => {
+      closed = true;
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'unsubscribe', channelId }));
+      }
+      if (!closed || socket) socket?.close();
+    };
+  }, [channelId, refetchChannel, refetchMessages]);
 
   // Auto-scroll chat to bottom on new messages
   useEffect(() => {
@@ -184,6 +223,32 @@ export default function LiveChannel() {
         window.location.assign(checkout.invoiceUrl);
       },
       onError: (err: any) => toast({ title: 'Crypto support is unavailable', description: err?.body?.error || err?.message || 'The creator invoice could not be started. Please try again later.', variant: 'destructive' }),
+    });
+  };
+
+  const handleLiveClip = () => {
+    if (!channelId || !channel?.isLive) return;
+    if (!isSignedIn) {
+      toast({ title: 'Sign in to clip a moment', description: 'You need to be signed in before requesting a live clip.' });
+      return;
+    }
+    const startedAt = channel.lastStreamAt ? new Date(channel.lastStreamAt).getTime() : Date.now();
+    const endTime = Math.floor((Date.now() - startedAt) / 1000);
+    const startTime = Math.max(0, endTime - 30);
+    if (endTime <= startTime) {
+      toast({ title: 'Live clip is not ready', description: 'Give the broadcast a few more seconds, then try again.' });
+      return;
+    }
+    createClip.mutate({
+      data: {
+        channelId,
+        startTime,
+        endTime,
+        title: `${channel.displayName} · Live moment`,
+      },
+    }, {
+      onSuccess: () => toast({ title: 'Clip processing', description: 'Your 30-second live moment will appear when processing finishes.' }),
+      onError: (err: any) => toast({ title: 'Could not create clip', description: err?.body?.error || err?.message || 'Try another moment in a few seconds.', variant: 'destructive' }),
     });
   };
 
@@ -325,6 +390,12 @@ export default function LiveChannel() {
                 <Heart className={`w-4 h-4 mr-2 ${channel.isFollowing ? 'fill-current' : ''}`} />
                 {channel.isFollowing ? 'Following' : 'Follow'}
               </Button>
+              {channel.isLive && (
+                <Button variant="secondary" onClick={handleLiveClip} disabled={createClip.isPending} className="font-bold border border-white/10 text-white hover:text-white">
+                  {createClip.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Scissors className="w-4 h-4 mr-2" />}
+                  Clip
+                </Button>
+              )}
               <Button variant="secondary" onClick={() => setSupportOpen(open => !open)} className="font-bold border border-primary/25 text-primary hover:text-primary">
                 <Wallet className="w-4 h-4 mr-2" />
                 Support

@@ -1,90 +1,60 @@
 export default function Terms() {
   return (
-    <div className="relative z-10 min-h-screen bg-black px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-14 border-b border-white/[0.08] pb-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4">
-            Legal &amp; Terms
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-4">Terms of Service</h1>
-          <p className="text-sm font-medium text-white/50">Effective Date: August 11, 2026 · Kryv Platform Agreement</p>
-        </div>
+    <main className="relative z-10 min-h-screen bg-black px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      <div className="mx-auto max-w-4xl">
+        <header className="mb-14 border-b border-white/[0.08] pb-10">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Legal &amp; Terms</div>
+          <h1 className="mb-4 text-3xl font-black tracking-tight text-white sm:text-5xl">Terms of Service</h1>
+          <p className="text-sm font-medium text-white/50">Effective Date: August 12, 2026 · Kryv Platform Agreement</p>
+          <p className="mt-3 text-xs leading-relaxed text-amber-100/70">Draft for jurisdiction-specific legal review before reliance. This product-facing summary does not replace a qualified attorney&apos;s review.</p>
+        </header>
 
-        {/* Content */}
-        <div className="space-y-12 text-white/80 leading-relaxed font-sans text-base sm:text-lg">
-
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8">
-            <p className="text-white/90 font-medium leading-relaxed">
-              Welcome to Kryv. These Terms of Service ("Terms") constitute a legally binding agreement between you and Kryv governing your access to and use of Kryv Live, Kryv Watch, Kryv Clips, Kryv Cinema, and associated creator monetization tools (collectively, the "Service"). By registering an account, streaming, uploading, or browsing, you unconditionally agree to be bound by these Terms.
-            </p>
-          </div>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">1. Account Registration &amp; Eligibility</h2>
-            <div className="space-y-4 text-white/70">
-              <p>
-                You must be at least 13 years of age to register an account or use the Service. Users under the age of majority in their jurisdiction must have parental or legal guardian supervision. You agree to provide accurate registration information and keep your credentials secure.
-              </p>
-              <p>
-                Your stream key and account password grant direct administrative and broadcasting authority over your channel. You are solely responsible for all activity occurring under your account. Stream keys must remain strictly confidential and never shared.
-              </p>
-            </div>
+        <div className="space-y-12 text-base leading-relaxed text-white/80 sm:text-lg">
+          <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8">
+            <p className="font-medium leading-relaxed text-white/90">Welcome to Kryv. These Terms of Service (&ldquo;Terms&rdquo;) govern access to Kryv Live, Kryv Watch, Kryv Clips, Kryv Cinema, creator tools, and related services (collectively, the &ldquo;Service&rdquo;). By creating an account, accessing the Service, streaming, uploading, clipping, or using creator tools, you agree to these Terms.</p>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">2. User Content &amp; Intellectual Property Rights</h2>
-            <div className="space-y-4 text-white/70">
-              <p>
-                Creators retain full ownership of all live broadcasts, VOD uploads, and native clips ("User Content") they create on Kryv. By submitting User Content, you grant Kryv a worldwide, non-exclusive, royalty-free license to host, transcode, distribute, display, and create technical clips or derivatives necessary to operate and promote the Platform.
-              </p>
-              <p>
-                You represent that you own or have secured all necessary rights to your User Content and that your broadcasts and uploads do not infringe upon third-party intellectual property or violate applicable laws.
-              </p>
-            </div>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">1. Eligibility, accounts, and access credentials</h2>
+            <div className="space-y-4 text-white/70"><p>You must be at least 13 years old to use the Service. If you are under the age of majority where you live, you must use the Service with the involvement of a parent or legal guardian. You must provide accurate account information and protect your password, session credentials, and any stream key.</p><p>A stream key is a sensitive broadcasting credential. Anyone with it may be able to send media to your channel, so you must not share it. Kryv may rotate, suspend, or invalidate credentials when necessary to protect an account, the Service, or other users.</p></div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">3. Creator Monetization</h2>
-            <div className="space-y-4 text-white/70">
-              <p>
-                Kryv provides creator monetization features including crypto channel subscriptions, crypto tips, polls, and engagement mechanics. All active payment and settlement flows use approved crypto settlement services; Kryv does not offer card or fiat checkout. A creator balance changes only after a signed provider callback confirms a crypto transaction. Creators must complete any required verification and payout review before a crypto payout can be requested or completed. Kryv discloses applicable platform and network fees before settlement where those features are enabled.
-              </p>
-            </div>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">2. Content, live streams, and clips</h2>
+            <div className="space-y-4 text-white/70"><p>Creators retain ownership of the live broadcasts, uploads, and other content they lawfully provide. You grant Kryv a worldwide, non-exclusive, royalty-free license to host, transcode, reproduce, display, distribute, cache, and perform technical processing needed to operate, secure, promote, and improve the Service.</p><p>You represent that you have every right, permission, consent, and release needed for your content, including music, artwork, likeness, and distribution rights. You may not use the Service to stream unlawful, infringing, pirated, harmful, or otherwise prohibited content.</p><p>Authenticated viewers may request short clips from an active public live broadcast where Kryv makes that feature available. Clip processing is asynchronous, provider-controlled, and subject to source availability, rights, moderation, and publication controls. A clip request is not a guarantee that a clip will be created or remain available.</p></div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">4. Prohibited Conduct &amp; Content Moderation</h2>
-            <div className="space-y-4 text-white/70">
-              <p>To maintain a safe, high-quality entertainment ecosystem, users are strictly prohibited from transmitting or uploading:</p>
-              <ul className="space-y-2 pl-4">
-                <li className="list-disc">Illegal content, copyright infringement, or unauthorized pirated media (including unauthorized Cinema playback);</li>
-                <li className="list-disc">Harassment, hate speech, malicious doxxing, or incitement of violence;</li>
-                <li className="list-disc">Sexually explicit material or content endangering minors;</li>
-                <li className="list-disc">Spam, automated bot traffic, or exploits designed to manipulate viewer counts, channel points, or predictions.</li>
-              </ul>
-              <p>
-                Channel owners and appointed moderators possess administrative authority to timeout, ban, or delete abusive chat messages. Kryv reserves the right to suspend or terminate accounts violating these standards without notice.
-              </p>
-            </div>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">3. Creator tools, moderation, and browser-device checks</h2>
+            <div className="space-y-4 text-white/70"><p>Channel owners and authorized moderators may remove chat messages, apply timeouts, ban users, adjust channel chat settings, and manage eligible engagement tools. Kryv retains final authority over safety, moderation, account, entitlement, balance, and publication decisions.</p><p>Kryv may offer a browser camera and microphone preflight. Device access is requested only after a creator expressly selects the check in a compatible secure browser. A local preview is not a live broadcast, recording, upload, or destination relay. No browser broadcasting or external destination relay is activated unless Kryv expressly makes an authorized, provider-verified feature available.</p></div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">5. Limitation of Liability &amp; Disclaimers</h2>
-            <p className="text-white/70 leading-relaxed">
-              The Service is provided on an "as is" and "as available" basis without warranties of any kind. Kryv, its officers, service providers, and affiliates disclaim all warranties, express or implied. Kryv shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your use of or inability to use the Platform.
-            </p>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">4. Crypto-only payments and creator balances</h2>
+            <div className="space-y-4 text-white/70"><p>Kryv&apos;s active commerce and settlement model is crypto-only. Where enabled, supported payment methods are limited to Bitcoin (BTC), Litecoin (LTC), Ethereum (ETH), and Dogecoin (DOGE). Kryv does not offer card checkout or fiat checkout through the Service.</p><p>Invoices, payment status, entitlements, creator balance movements, platform-fee movements, and payout-review records are determined on the server and reconciled through signed provider events. A creator balance is not a bank account, deposit account, or guarantee of value. Payout requests and provider withdrawals remain subject to feature controls, verification, network conditions, fees, compliance review, and owner approval. Never provide a private key or seed phrase to Kryv.</p></div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">6. Modifications &amp; Governing Law</h2>
-            <p className="text-white/70 leading-relaxed">
-              We reserve the right to modify these Terms at any time. Continued use of Kryv following any modification constitutes your binding acceptance of the revised Terms. These Terms are governed by applicable commercial laws without regard to conflict of law principles.
-            </p>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">5. Cinema and rights administration</h2>
+            <p className="text-white/70">Kryv Cinema is an owner- and administrator-governed publishing surface. Public users and ordinary creators cannot obtain Cinema upload URLs or independently publish Cinema assets. Cinema availability depends on rights windows, approved assets, processing readiness, and server-side publication controls. You may not upload, request, distribute, or access Cinema content without the necessary rights or authorization.</p>
           </section>
 
+          <section className="space-y-4">
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">6. Prohibited conduct</h2>
+            <ul className="space-y-2 pl-5 text-white/70"><li className="list-disc">Do not submit illegal, infringing, exploitative, sexually explicit, hateful, harassing, violent, or child-endangering content.</li><li className="list-disc">Do not dox, impersonate, phish, scrape unlawfully, evade access controls, automate abusive traffic, manipulate viewers or engagement, or interfere with the Service.</li><li className="list-disc">Do not attempt to obtain private stream credentials, wallet destinations, payment data, owner controls, or Cinema publishing access.</li></ul>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">7. Availability, suspension, and limitation of liability</h2>
+            <div className="space-y-4 text-white/70"><p>The Service is provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis. Streaming, playback, clipping, real-time delivery, third-party provider services, crypto networks, and external destination services may be interrupted, delayed, changed, or unavailable.</p><p>To the maximum extent permitted by law, Kryv and its service providers disclaim warranties and are not liable for indirect, incidental, special, consequential, exemplary, or punitive damages arising from use of or inability to use the Service. Kryv may restrict, suspend, remove, or terminate access or content to protect users, comply with law, enforce these Terms, or maintain service integrity.</p></div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">8. Changes, contact, and governing framework</h2>
+            <p className="text-white/70">Kryv may update these Terms as the Service, security controls, provider relationships, or law changes. Continued use after an updated effective date means you accept the revised Terms to the extent permitted by law. Questions about these Terms, content rights, or account access may be submitted through Kryv&apos;s official support channels. Jurisdiction-specific governing-law, dispute-resolution, and consumer-rights terms require legal review before final publication.</p>
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

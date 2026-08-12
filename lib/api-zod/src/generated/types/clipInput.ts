@@ -6,8 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ClipInput {
-  videoId: number;
+export type ClipInput = (unknown & {
+  /** Ready VOD source. Only the source channel owner may request this clip type. */
+  videoId?: number;
+  /** Active public live-channel source. An authenticated viewer may request this clip type while the broadcast is active. */
+  channelId?: number;
   /** @minimum 0 */
   startTime: number;
   /** @exclusiveMinimum 0 */
@@ -17,4 +20,4 @@ export interface ClipInput {
      * @maxLength 100
      */
   title: string;
-}
+});

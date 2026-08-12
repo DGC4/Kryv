@@ -2360,9 +2360,17 @@ components:
 
     ClipInput:
       type: object
-      required: [videoId, startTime, endTime, title]
+      required: [startTime, endTime, title]
+      oneOf:
+        - required: [videoId]
+        - required: [channelId]
       properties:
-        videoId: { type: integer }
+        videoId:
+          description: Ready VOD source. Only the source channel owner may request this clip type.
+          type: integer
+        channelId:
+          description: Active public live-channel source. An authenticated viewer may request this clip type while the broadcast is active.
+          type: integer
         startTime: { type: number, minimum: 0 }
         endTime: { type: number, exclusiveMinimum: 0 }
         title: { type: string, minLength: 1, maxLength: 100 }

@@ -1,12 +1,152 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
 
-import { cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
+import { enqueueDurableJob } from "../lib/jobs";
+import { deleteSharedKey, publishRealtimeEvent } from "../lib/realtime";
 import { logger } from "../lib/logger";
 import { fastpix } from "../lib/fastpix";
 import { isPlisioConfigured, isSupportedKryvCryptoCode, verifyPlisioJsonCallback } from "../lib/plisio";
 
 const router: IRouter = Router();
+const DISCOVER_SUMMARY_CACHE_KEY = "kryv:discover:summary:v1";
+
+function publishAuthoritativeLiveState(channel: { id: number; isLive: boolean; viewerCount: number; fastpixPlaybackId: string | null }, providerEvent: string) {
+  const occurredAt = new Date().toISOString();
+  deleteSharedKey(DISCOVER_SUMMARY_CACHE_KEY).catch(() => undefined);
+  publishRealtimeEvent({
+    type: "live.state.updated",
+    channelId: channel.id,
+    occurredAt,
+    data: { isLive: channel.isLive, viewerCount: channel.viewerCount, hasPlayback: Boolean(channel.fastpixPlaybackId), providerEvent },
+  }).catch(() => undefined);
+  enqueueDurableJob({
+    id: `live-state:${providerEvent}:${channel.id}:${occurredAt}`,
+    type: "analytics.event",
+    occurredAt,
+    payload: { event: "live.state.updated", channelId: channel.id, isLive: channel.isLive, viewerCount: channel.viewerCount, providerEvent },
+  }).catch(() => undefined);
+}
+
+type SettlementFeeAllocation = CreatorFeeQuote & {
+  feePolicyId: number | null;
+  feePolicyVersion: number | null;
+};
+
+async function quoteActiveSettlementFee(txn: any, paymentKind: "subscription" | "tip", grossAmount: string): Promise<SettlementFeeAllocation> {
+  const now = new Date();
+  const [policy] = await txn
+    .select()
+    .from(creatorFeePoliciesTable)
+    .where(and(
+      eq(creatorFeePoliciesTable.paymentKind, paymentKind),
+      eq(creatorFeePoliciesTable.status, "active"),
+      or(isNull(creatorFeePoliciesTable.effectiveAt), lte(creatorFeePoliciesTable.effectiveAt, now)),
+    ))
+    .orderBy(desc(creatorFeePoliciesTable.version))
+    .limit(1);
+
+  const quote = quoteCreatorPlatformFee(grossAmount, policy?.platformFeeBps ?? 0);
+  return { ...quote, feePolicyId: policy?.id ?? null, feePolicyVersion: policy?.version ?? null };
+}
+
+async function recordCreatorSettlement(
+  txn: any,
+  input: {
+    channelId: number;
+    currency: string;
+    paymentKind: "subscription" | "tip";
+    sourceType: string;
+    sourceId: string;
+    providerPaymentId: string;
+    paymentIntentId: number;
+    allocation: SettlementFeeAllocation;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  const { allocation } = input;
+  const baseMetadata = {
+    provider: "plisio",
+    providerPaymentId: input.providerPaymentId,
+    paymentIntentId: input.paymentIntentId,
+    feePolicyId: allocation.feePolicyId,
+    feePolicyVersion: allocation.feePolicyVersion,
+    platformFeeBps: allocation.platformFeeBps,
+    grossAmount: allocation.grossAmount,
+    platformFeeAmount: allocation.platformFeeAmount,
+    creatorNetAmount: allocation.creatorNetAmount,
+    ...input.metadata,
+  };
+
+  const [grossMovement] = await txn
+    .insert(creatorBalanceMovementsTable)
+    .values({
+      channelId: input.channelId,
+      currency: input.currency,
+      movementType: `${input.paymentKind}_gross_settled`,
+      availableDelta: allocation.grossAmount,
+      heldDelta: "0",
+      pendingDelta: "0",
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      idempotencyKey: `${input.paymentKind}-gross-credit:${input.providerPaymentId}`,
+      metadata: baseMetadata,
+    })
+    .onConflictDoNothing()
+    .returning({ id: creatorBalanceMovementsTable.id });
+  if (!grossMovement) throw new Error(`Completed crypto ${input.paymentKind} is missing its immutable gross creator-ledger movement.`);
+
+  const [platformRevenueMovement] = await txn
+    .insert(platformRevenueMovementsTable)
+    .values({
+      channelId: input.channelId,
+      currency: input.currency,
+      paymentKind: input.paymentKind,
+      grossAmount: allocation.grossAmount,
+      platformFeeAmount: allocation.platformFeeAmount,
+      creatorNetAmount: allocation.creatorNetAmount,
+      feePolicyId: allocation.feePolicyId,
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      idempotencyKey: `${input.paymentKind}-platform-fee:${input.providerPaymentId}`,
+      metadata: baseMetadata,
+    })
+    .onConflictDoNothing()
+    .returning({ id: platformRevenueMovementsTable.id });
+  if (!platformRevenueMovement) throw new Error(`Completed crypto ${input.paymentKind} is missing its immutable platform-revenue movement.`);
+
+  if (allocation.platformFeeAmount !== "0") {
+    const [feeDebit] = await txn
+      .insert(creatorBalanceMovementsTable)
+      .values({
+        channelId: input.channelId,
+        currency: input.currency,
+        movementType: "platform_fee_withheld",
+        availableDelta: `-${allocation.platformFeeAmount}`,
+        heldDelta: "0",
+        pendingDelta: "0",
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+        idempotencyKey: `${input.paymentKind}-platform-fee-debit:${input.providerPaymentId}`,
+        metadata: baseMetadata,
+      })
+      .onConflictDoNothing()
+      .returning({ id: creatorBalanceMovementsTable.id });
+    if (!feeDebit) throw new Error(`Completed crypto ${input.paymentKind} is missing its immutable creator platform-fee debit.`);
+  }
+
+  await txn
+    .insert(creatorBalancesTable)
+    .values({ channelId: input.channelId, currency: input.currency, availableAmount: allocation.creatorNetAmount })
+    .onConflictDoUpdate({
+      target: [creatorBalancesTable.channelId, creatorBalancesTable.currency],
+      set: {
+        availableAmount: sql`${creatorBalancesTable.availableAmount} + ${allocation.creatorNetAmount}`,
+        updatedAt: new Date(),
+      },
+    });
+}
 
 /**
  * Plisio JSON callbacks are HMAC-verified before any persistence. A payment
@@ -115,61 +255,52 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
         const paidAmount = typeof callback.amount === "string" && /^\d+(\.\d{1,8})?$/.test(callback.amount) ? callback.amount : null;
         const paidCurrency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : null;
         if (!paidAmount || !isSupportedKryvCryptoCode(paidCurrency)) throw new Error("Completed crypto subscription callback has an invalid or unsupported amount or currency.");
-        const [movement] = await txn
-          .insert(creatorBalanceMovementsTable)
-          .values({
-            channelId: settledIntent.receiverChannelId,
-            currency: paidCurrency,
-            movementType: "subscription_settled",
-            availableDelta: paidAmount,
-            heldDelta: "0",
-            pendingDelta: "0",
-            sourceType: "payment_intent",
-            sourceId: String(settledIntent.id),
-            idempotencyKey: `subscription-credit:${transactionId}`,
-            metadata: { provider: "plisio", providerPaymentId: transactionId, paymentIntentId: settledIntent.id, tier },
-          })
-          .onConflictDoNothing()
-          .returning({ id: creatorBalanceMovementsTable.id });
-        if (!movement) throw new Error("Completed crypto subscription is missing its immutable creator-ledger movement.");
-        await txn
-          .insert(creatorBalancesTable)
-          .values({ channelId: settledIntent.receiverChannelId, currency: paidCurrency, availableAmount: paidAmount })
-          .onConflictDoUpdate({ target: [creatorBalancesTable.channelId, creatorBalancesTable.currency], set: { availableAmount: sql`${creatorBalancesTable.availableAmount} + ${paidAmount}`, updatedAt: new Date() } });
+        const allocation = await quoteActiveSettlementFee(txn, "subscription", paidAmount);
+        await recordCreatorSettlement(txn, {
+          channelId: settledIntent.receiverChannelId,
+          currency: paidCurrency,
+          paymentKind: "subscription",
+          sourceType: "payment_intent",
+          sourceId: String(settledIntent.id),
+          providerPaymentId: transactionId,
+          paymentIntentId: settledIntent.id,
+          allocation,
+          metadata: { tier },
+        });
       }
 
       if (settledIntent.paymentKind === "tip" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
         const paidAmount = typeof callback.amount === "string" && /^\d+(\.\d{1,8})?$/.test(callback.amount) ? callback.amount : null;
         const paidCurrency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : null;
         if (!paidAmount || !isSupportedKryvCryptoCode(paidCurrency)) throw new Error("Completed crypto tip callback has an invalid or unsupported amount or currency.");
+        const allocation = await quoteActiveSettlementFee(txn, "tip", paidAmount);
         const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
         const [tip] = await txn
           .insert(tipsTable)
-          .values({ senderUserId: settledIntent.purchaserUserId, receiverChannelId: settledIntent.receiverChannelId, amount: paidAmount, currency: paidCurrency, provider: "plisio", providerPaymentIntentId: transactionId, status: "completed", message: typeof metadata.message === "string" ? metadata.message : null })
+          .values({
+            senderUserId: settledIntent.purchaserUserId,
+            receiverChannelId: settledIntent.receiverChannelId,
+            amount: paidAmount,
+            currency: paidCurrency,
+            provider: "plisio",
+            providerPaymentIntentId: transactionId,
+            platformFeeAmount: allocation.platformFeeAmount,
+            status: "completed",
+            message: typeof metadata.message === "string" ? metadata.message : null,
+          })
           .onConflictDoNothing()
           .returning({ id: tipsTable.id });
         if (!tip) throw new Error("Completed crypto tip is missing its immutable settlement record.");
-        const [movement] = await txn
-          .insert(creatorBalanceMovementsTable)
-          .values({
-            channelId: settledIntent.receiverChannelId,
-            currency: paidCurrency,
-            movementType: "tip_settled",
-            availableDelta: paidAmount,
-            heldDelta: "0",
-            pendingDelta: "0",
-            sourceType: "tip",
-            sourceId: String(tip.id),
-            idempotencyKey: `tip-credit:${transactionId}`,
-            metadata: { provider: "plisio", providerPaymentId: transactionId, paymentIntentId: settledIntent.id },
-          })
-          .onConflictDoNothing()
-          .returning({ id: creatorBalanceMovementsTable.id });
-        if (!movement) throw new Error("Completed crypto tip is missing its immutable creator-ledger movement.");
-        await txn
-          .insert(creatorBalancesTable)
-          .values({ channelId: settledIntent.receiverChannelId, currency: paidCurrency, availableAmount: paidAmount })
-          .onConflictDoUpdate({ target: [creatorBalancesTable.channelId, creatorBalancesTable.currency], set: { availableAmount: sql`${creatorBalancesTable.availableAmount} + ${paidAmount}`, updatedAt: new Date() } });
+        await recordCreatorSettlement(txn, {
+          channelId: settledIntent.receiverChannelId,
+          currency: paidCurrency,
+          paymentKind: "tip",
+          sourceType: "tip",
+          sourceId: String(tip.id),
+          providerPaymentId: transactionId,
+          paymentIntentId: settledIntent.id,
+          allocation,
+        });
       }
       return { duplicate: false };
     });
@@ -309,6 +440,7 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
             .set({ totalStreamCount: sql`${channelsTable.totalStreamCount} + 1` })
             .where(eq(channelsTable.id, updatedChannel.id));
         }
+        publishAuthoritativeLiveState(updatedChannel, event.type);
       }
       break;
     }
@@ -352,6 +484,7 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
               sql`${streamSessionsTable.endedAt} IS NULL`,
             )
           );
+        publishAuthoritativeLiveState(offlineChannel, event.type);
       }
       break;
     }
@@ -385,6 +518,10 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
             durationSeconds: sql`EXTRACT(EPOCH FROM (${now.toISOString()} - started_at))::integer`,
           })
           .where(and(eq(streamSessionsTable.channelId, updatedChannel.id), sql`${streamSessionsTable.endedAt} IS NULL`));
+      }
+
+      if (updatedChannel && nextLiveState !== undefined) {
+        publishAuthoritativeLiveState(updatedChannel, event.type);
       }
 
       // FastPix reports mediaIds once a recording has been created from the live stream.
@@ -440,10 +577,12 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
         logger.warn({ type: event.type }, "FastPix deleted event did not include a stream ID");
         break;
       }
-      await db
+      const [deletedChannel] = await db
         .update(channelsTable)
         .set({ isLive: false, viewerCount: 0 })
-        .where(eq(channelsTable.fastpixLiveStreamId, streamId));
+        .where(eq(channelsTable.fastpixLiveStreamId, streamId))
+        .returning();
+      if (deletedChannel) publishAuthoritativeLiveState(deletedChannel, event.type);
       break;
     }
 

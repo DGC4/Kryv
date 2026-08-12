@@ -175,10 +175,8 @@ export async function createFastPixDirectUpload(corsOrigin: string) {
  * Create an asynchronous FastPix on-demand clip from an existing media asset.
  * Each request carries a Kryv correlation ID so webhook processing is idempotent.
  */
-export async function createFastPixClip(input: {
-  sourceMediaId: string;
-  startTime: number;
-  endTime: number;
+async function createFastPixClipFromInput(input: {
+  source: { url: string; startTime?: number; endTime?: number };
   title: string;
   requestId: string;
 }) {
@@ -197,9 +195,9 @@ export async function createFastPixClip(input: {
       inputs: [
         {
           type: "video",
-          url: `fp_mediaId://${input.sourceMediaId}`,
-          startTime: input.startTime,
-          endTime: input.endTime,
+          url: input.source.url,
+          ...(input.source.startTime !== undefined ? { startTime: input.source.startTime } : {}),
+          ...(input.source.endTime !== undefined ? { endTime: input.source.endTime } : {}),
         },
       ],
       title: input.title,
@@ -228,4 +226,46 @@ export async function createFastPixClip(input: {
     fastpixPlaybackId: (media.playbackIds?.[0]?.id ?? null) as string | null,
     thumbnailUrl: (media.thumbnail ?? null) as string | null,
   };
+}
+
+/** Create an on-demand clip from a ready FastPix VOD asset. */
+export async function createFastPixClip(input: {
+  sourceMediaId: string;
+  startTime: number;
+  endTime: number;
+  title: string;
+  requestId: string;
+}) {
+  return createFastPixClipFromInput({
+    source: {
+      url: `fp_mediaId://${input.sourceMediaId}`,
+      startTime: input.startTime,
+      endTime: input.endTime,
+    },
+    title: input.title,
+    requestId: input.requestId,
+  });
+}
+
+/**
+ * Create an on-demand clip from an active FastPix live playback URL. FastPix
+ * documents `start`, `end`, and `clipAccess` on the HLS stream URL for live
+ * clipping; the resulting asset is an on-demand media item.
+ */
+export async function createFastPixLiveClip(input: {
+  playbackId: string;
+  startTime: number;
+  endTime: number;
+  title: string;
+  requestId: string;
+}) {
+  const streamUrl = new URL(`https://stream.fastpix.com/${encodeURIComponent(input.playbackId)}.m3u8`);
+  streamUrl.searchParams.set("start", String(Math.floor(input.startTime)));
+  streamUrl.searchParams.set("end", String(Math.ceil(input.endTime)));
+  streamUrl.searchParams.set("clipAccess", "public");
+  return createFastPixClipFromInput({
+    source: { url: streamUrl.toString() },
+    title: input.title,
+    requestId: input.requestId,
+  });
 }

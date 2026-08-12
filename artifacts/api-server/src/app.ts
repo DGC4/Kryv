@@ -4,12 +4,15 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import rateLimit, { MemoryStore, type Options, type Store } from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
 import cookieParser from "cookie-parser";
 import routes from "./routes";
 import webhooksRouter from "./routes/webhooks";
 import { attachUserId, verifyToken } from "./lib/auth";
 import { trackVisitor } from "./middleware/visitor";
+import { getSharedStateClient } from "./lib/realtime";
+import { logger } from "./lib/logger";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -83,8 +86,72 @@ app.use(
 );
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
+// Redis-compatible shared counters are used when configured so all API instances
+// enforce the same limits. A local fallback keeps the API fail-safe if shared state
+// is temporarily unavailable during deployment or cache recovery.
+class ResilientRateLimitStore implements Store {
+  prefix: string;
+  localKeys = false;
+  private readonly local = new MemoryStore();
+
+  constructor(private readonly shared: RedisStore, prefix: string) {
+    this.prefix = prefix;
+  }
+
+  init(options: Options) {
+    this.shared.init?.(options);
+    this.local.init(options);
+  }
+
+  async increment(key: string) {
+    try {
+      return await this.shared.increment(key);
+    } catch (error) {
+      // Do not turn a transient cache reconnect into an API outage. The fallback
+      // remains rate-limited locally and is observable in structured logs.
+      logger.warn({ error, keyPrefix: this.prefix }, "Falling back to local rate-limit state");
+      return this.local.increment(key);
+    }
+  }
+
+  async decrement(key: string) {
+    try {
+      await this.shared.decrement(key);
+    } catch {
+      await this.local.decrement(key);
+    }
+  }
+
+  async resetKey(key: string) {
+    try {
+      await this.shared.resetKey(key);
+    } catch {
+      await this.local.resetKey(key);
+    }
+  }
+
+  async resetAll() {
+    await this.local.resetAll();
+  }
+
+  shutdown() {
+    this.local.shutdown();
+  }
+}
+
+function sharedRateLimitStore(prefix: string): Store | undefined {
+  const client = getSharedStateClient();
+  if (!client) return undefined;
+  const shared = new RedisStore({
+    prefix,
+    sendCommand: (...args: string[]) => client.call(...args),
+  });
+  return new ResilientRateLimitStore(shared, prefix);
+}
+
 // Auth endpoints: strict limit to prevent brute-force / credential stuffing
 const authLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:auth:"),
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 20,
   standardHeaders: true,
@@ -94,6 +161,7 @@ const authLimiter = rateLimit({
 
 // Stream key endpoints: prevent key enumeration / abuse
 const streamKeyLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:stream-key:"),
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10,
   standardHeaders: true,
@@ -104,6 +172,7 @@ const streamKeyLimiter = rateLimit({
 // Chat writes have a tighter per-origin ceiling in addition to channel slow mode.
 // This is intentionally scoped to POSTs; public message reads remain available to viewers.
 const chatMessageLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:chat:"),
   windowMs: 60 * 1000,
   max: 30,
   standardHeaders: true,
@@ -114,6 +183,7 @@ const chatMessageLimiter = rateLimit({
 
 // General API limiter — prevents DDoS / scraping
 const apiLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:api:"),
   windowMs: 60 * 1000, // 1 minute
   max: 300,
   standardHeaders: true,

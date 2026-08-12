@@ -27,9 +27,15 @@ import {
   UpdateChannelChatSettingsResponse,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
+import { enqueueDurableJob } from "../lib/jobs";
+import { deleteSharedKey, getSharedStateClient, publishRealtimeEvent, readSharedJson, writeSharedJson } from "../lib/realtime";
 import { logActivity } from "../lib/tracking";
 
 const router: IRouter = Router();
+
+function messageListCacheKey(channelId: number) {
+  return `kryv:chat:messages:${channelId}`;
+}
 
 type ChannelActorRole = {
   isOwner: boolean;
@@ -182,6 +188,12 @@ router.patch(
       slowModeSeconds: updated.slowModeSeconds,
       followersOnly: updated.followersOnly,
     }).catch(console.error);
+    publishRealtimeEvent({
+      type: "channel.moderation.updated",
+      channelId: channel.id,
+      occurredAt: new Date().toISOString(),
+      data: { action: "chat_settings_updated", slowModeSeconds: updated.slowModeSeconds, followersOnly: updated.followersOnly },
+    }).catch(() => undefined);
 
     res.json(UpdateChannelChatSettingsResponse.parse(updated));
   },
@@ -255,6 +267,13 @@ router.post(
         messageId: message.id,
         targetUserId: message.userId,
       }).catch(console.error);
+      deleteSharedKey(messageListCacheKey(channel.id)).catch(() => undefined);
+      publishRealtimeEvent({
+        type: "chat.message.deleted",
+        channelId: channel.id,
+        occurredAt: new Date().toISOString(),
+        data: { messageId: message.id, targetUserId: message.userId },
+      }).catch(() => undefined);
 
       res.json(
         CreateChannelModerationActionResponse.parse({
@@ -375,6 +394,12 @@ router.post(
       reason,
       expiresAt: expiresAt?.toISOString() ?? null,
     }).catch(console.error);
+    publishRealtimeEvent({
+      type: "channel.moderation.updated",
+      channelId: channel.id,
+      occurredAt: new Date().toISOString(),
+      data: { action, targetUserId, expiresAt: expiresAt?.toISOString() ?? null },
+    }).catch(() => undefined);
 
     res.json(
       CreateChannelModerationActionResponse.parse({
@@ -405,6 +430,14 @@ router.get(
       return;
     }
 
+    const cacheKey = messageListCacheKey(channel.id);
+    const cached = await readSharedJson<unknown>(cacheKey);
+    const cachedResponse = cached ? ListChannelMessagesResponse.safeParse(cached) : null;
+    if (cachedResponse?.success) {
+      res.json(cachedResponse.data);
+      return;
+    }
+
     const rows = await db
       .select({ message: chatMessagesTable, user: usersTable })
       .from(chatMessagesTable)
@@ -418,19 +451,19 @@ router.get(
       .orderBy(asc(chatMessagesTable.createdAt), asc(chatMessagesTable.id))
       .limit(200);
 
-    res.json(
-      ListChannelMessagesResponse.parse(
-        rows.map((r) => ({
-          id: r.message.id,
-          channelId: r.message.channelId,
-          userId: r.message.userId.toString(),
-          username: r.user.username,
-          avatarUrl: r.user.avatarUrl,
-          message: r.message.message,
-          createdAt: r.message.createdAt,
-        })),
-      ),
+    const response = ListChannelMessagesResponse.parse(
+      rows.map((r) => ({
+        id: r.message.id,
+        channelId: r.message.channelId,
+        userId: r.message.userId.toString(),
+        username: r.user.username,
+        avatarUrl: r.user.avatarUrl,
+        message: r.message.message,
+        createdAt: r.message.createdAt,
+      })),
     );
+    writeSharedJson(cacheKey, response, 5).catch(() => undefined);
+    res.json(response);
   },
 );
 
@@ -508,28 +541,50 @@ router.post(
     }
 
     if (!actor.isModerator && channel.chatSlowModeSeconds > 0) {
-      const [lastMessage] = await db
-        .select({ createdAt: chatMessagesTable.createdAt })
-        .from(chatMessagesTable)
-        .where(
-          and(
-            eq(chatMessagesTable.channelId, channel.id),
-            eq(chatMessagesTable.userId, userId),
-            isNull(chatMessagesTable.deletedAt),
-          ),
-        )
-        .orderBy(desc(chatMessagesTable.createdAt), desc(chatMessagesTable.id))
-        .limit(1);
+      const slowModeKey = `kryv:chat:slow:${channel.id}:${userId}`;
+      const sharedState = getSharedStateClient();
+      let reservedBySharedState = false;
+      if (sharedState) {
+        try {
+          const result = await sharedState.set(slowModeKey, "1", "EX", channel.chatSlowModeSeconds, "NX");
+          if (result === "OK") reservedBySharedState = true;
+          else {
+            const remainingSeconds = Math.max(1, await sharedState.ttl(slowModeKey));
+            res.status(429).json({
+              error: `Slow mode is active. Please wait ${remainingSeconds} second${remainingSeconds === 1 ? "" : "s"}.`,
+              retryAfterSeconds: remainingSeconds,
+            });
+            return;
+          }
+        } catch {
+          // Continue to the authoritative database fallback below if shared state is unavailable.
+        }
+      }
 
-      if (lastMessage) {
-        const nextAllowedAt = lastMessage.createdAt.getTime() + channel.chatSlowModeSeconds * 1000;
-        const remainingSeconds = Math.ceil((nextAllowedAt - Date.now()) / 1000);
-        if (remainingSeconds > 0) {
-          res.status(429).json({
-            error: `Slow mode is active. Please wait ${remainingSeconds} second${remainingSeconds === 1 ? "" : "s"}.`,
-            retryAfterSeconds: remainingSeconds,
-          });
-          return;
+      if (!reservedBySharedState) {
+        const [lastMessage] = await db
+          .select({ createdAt: chatMessagesTable.createdAt })
+          .from(chatMessagesTable)
+          .where(
+            and(
+              eq(chatMessagesTable.channelId, channel.id),
+              eq(chatMessagesTable.userId, userId),
+              isNull(chatMessagesTable.deletedAt),
+            ),
+          )
+          .orderBy(desc(chatMessagesTable.createdAt), desc(chatMessagesTable.id))
+          .limit(1);
+
+        if (lastMessage) {
+          const nextAllowedAt = lastMessage.createdAt.getTime() + channel.chatSlowModeSeconds * 1000;
+          const remainingSeconds = Math.ceil((nextAllowedAt - Date.now()) / 1000);
+          if (remainingSeconds > 0) {
+            res.status(429).json({
+              error: `Slow mode is active. Please wait ${remainingSeconds} second${remainingSeconds === 1 ? "" : "s"}.`,
+              retryAfterSeconds: remainingSeconds,
+            });
+            return;
+          }
         }
       }
     }
@@ -553,17 +608,30 @@ router.post(
         ),
       );
 
-    res.status(201).json(
-      CreateChannelMessageResponse.parse({
-        id: message.id,
-        channelId: message.channelId,
-        userId: message.userId.toString(),
-        username: user.username,
-        avatarUrl: user.avatarUrl,
-        message: message.message,
-        createdAt: message.createdAt,
-      }),
-    );
+    const response = CreateChannelMessageResponse.parse({
+      id: message.id,
+      channelId: message.channelId,
+      userId: message.userId.toString(),
+      username: user.username,
+      avatarUrl: user.avatarUrl,
+      message: message.message,
+      createdAt: message.createdAt,
+    });
+    deleteSharedKey(messageListCacheKey(channel.id)).catch(() => undefined);
+    publishRealtimeEvent({
+      type: "chat.message.created",
+      channelId: channel.id,
+      occurredAt: message.createdAt.toISOString(),
+      data: response,
+    }).catch(() => undefined);
+    enqueueDurableJob({
+      id: `chat-message:${message.id}`,
+      type: "analytics.event",
+      occurredAt: message.createdAt.toISOString(),
+      payload: { event: "chat.message.created", channelId: channel.id, userId, messageId: message.id },
+    }).catch(() => undefined);
+
+    res.status(201).json(response);
   },
 );
 

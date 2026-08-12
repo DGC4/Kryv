@@ -1353,20 +1353,21 @@ export const ListClipsResponse = zod.array(ListClipsResponseItem)
 /**
  * @summary Request a FastPix clip from an owned, ready Kryv video
  */
-export const createClipBodyStartTimeMin = 0;
+export const createClipBodyThreeStartTimeMin = 0;
 
-export const createClipBodyEndTimeExclusiveMin = 0;
+export const createClipBodyThreeEndTimeExclusiveMin = 0;
 
-export const createClipBodyTitleMax = 100;
+export const createClipBodyThreeTitleMax = 100;
 
 
 
-export const CreateClipBody = zod.object({
-  "videoId": zod.number(),
-  "startTime": zod.number().min(createClipBodyStartTimeMin),
-  "endTime": zod.number().gt(createClipBodyEndTimeExclusiveMin),
-  "title": zod.string().min(1).max(createClipBodyTitleMax)
-})
+export const CreateClipBody = zod.union([zod.unknown(),zod.unknown()]).and(zod.object({
+  "videoId": zod.number().optional().describe('Ready VOD source. Only the source channel owner may request this clip type.'),
+  "channelId": zod.number().optional().describe('Active public live-channel source. An authenticated viewer may request this clip type while the broadcast is active.'),
+  "startTime": zod.number().min(createClipBodyThreeStartTimeMin),
+  "endTime": zod.number().gt(createClipBodyThreeEndTimeExclusiveMin),
+  "title": zod.string().min(1).max(createClipBodyThreeTitleMax)
+}))
 
 export const CreateClipResponse = zod.object({
   "id": zod.number(),

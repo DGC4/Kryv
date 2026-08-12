@@ -1,118 +1,48 @@
 export default function Privacy() {
   return (
-    <div className="relative z-10 min-h-screen bg-black px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-14 border-b border-white/[0.08] pb-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4">
-            Legal &amp; Privacy
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-4">Privacy Policy</h1>
-          <p className="text-sm font-medium text-white/50">Effective Date: August 11, 2026 · Kryv Platform Governance</p>
-        </div>
+    <main className="relative z-10 min-h-screen bg-black px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      <div className="mx-auto max-w-4xl">
+        <header className="mb-14 border-b border-white/[0.08] pb-10">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Legal &amp; Privacy</div>
+          <h1 className="mb-4 text-3xl font-black tracking-tight text-white sm:text-5xl">Privacy Policy</h1>
+          <p className="text-sm font-medium text-white/50">Effective Date: August 12, 2026 · Kryv Platform Governance</p>
+          <p className="mt-3 text-xs leading-relaxed text-amber-100/70">Draft for jurisdiction-specific legal review before reliance. This policy describes Kryv&apos;s current product behavior and should be reviewed by qualified privacy counsel before formal publication.</p>
+        </header>
 
-        {/* Content */}
-        <div className="space-y-12 text-white/80 leading-relaxed font-sans text-base sm:text-lg">
-          
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8">
-            <p className="text-white/90 font-medium leading-relaxed">
-              Kryv ("we," "our," or "the Platform") operates a multi-modal live-entertainment, video-on-demand, and cinematic streaming ecosystem (incorporating Kryv Live, Kryv Watch, Kryv Clips, and Kryv Cinema). We respect your privacy and are committed to safeguarding personal information through rigorous technical and organizational controls. This Privacy Policy details how we collect, process, secure, and share information when you access or interact with our services.
-            </p>
-          </div>
+        <div className="space-y-12 text-base leading-relaxed text-white/80 sm:text-lg">
+          <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8"><p className="font-medium leading-relaxed text-white/90">Kryv operates live entertainment, video-on-demand, clips, Cinema, and creator tools. This Privacy Policy explains the categories of information Kryv processes, why it processes them, how the information is protected and shared, and the choices available to you.</p></section>
 
-          <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">1. Information Architecture &amp; Collection Scope</h2>
-            <div className="space-y-6 text-white/70">
-              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
-                <h3 className="text-white font-bold text-lg mb-2">Account &amp; Authentication Data</h3>
-                <p className="text-sm sm:text-base leading-relaxed">
-                  When you register an account, we record your chosen username, email address, and a cryptographically salted and hashed password (never stored in plain text). We also record account creation timestamps, avatar URLs, role assignments (user, creator, or platform owner), and audit metadata regarding your acceptance of our terms.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
-                <h3 className="text-white font-bold text-lg mb-2">Creator Infrastructure &amp; Streaming Records</h3>
-                <p className="text-sm sm:text-base leading-relaxed">
-                  For creators broadcasting on Kryv Live, we store channel metadata, stream titles, category assignments, peak and average concurrent viewer counts, and private stream credentials used exclusively to operate the creator’s broadcast. Operational stream lifecycle events and session metrics are stored in Kryv’s secure platform records.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
-                <h3 className="text-white font-bold text-lg mb-2">Crypto Settlement &amp; Financial Compliance</h3>
-                <p className="text-sm sm:text-base leading-relaxed">
-                  Kryv supports creator subscriptions, tips, balances, and payouts through approved crypto settlement services. We do not collect or store wallet private keys, seed phrases, or custody credentials on Kryv servers. A provider processes crypto invoices and confirmations under its own security and compliance programs; Kryv records the minimum transaction, entitlement, balance, payout-review, and audit data needed to operate the Service.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
-                <h3 className="text-white font-bold text-lg mb-2">Engagement, Moderation &amp; Telemetry</h3>
-                <p className="text-sm sm:text-base leading-relaxed">
-                  We process chat messages, moderation actions (timeouts, bans, message deletions), channel point balances, poll votes, prediction entries, raid/host logs, follow relationships, and notification preferences. Technical telemetry includes device user agents, view history, and anonymous visitor sessions. Coarse location enrichment is optional, is never required to use Kryv or go live, and is performed only after an explicit request.
-                </p>
-              </div>
-            </div>
+          <section className="space-y-5">
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">1. Information Kryv processes</h2>
+            <div className="space-y-4 text-white/70"><article className="rounded-xl border border-white/[0.06] bg-black/40 p-5"><h3 className="text-lg font-bold text-white">Account and security data</h3><p className="mt-2 text-sm leading-relaxed sm:text-base">Kryv processes your username, email address, password hash, role, account timestamps, profile information, authenticated session information, and security or audit records needed to operate and protect an account. Kryv does not store account passwords in plain text.</p></article><article className="rounded-xl border border-white/[0.06] bg-black/40 p-5"><h3 className="text-lg font-bold text-white">Live, video, and engagement data</h3><p className="mt-2 text-sm leading-relaxed sm:text-base">Kryv processes channel metadata, stream titles, categories, stream lifecycle events, viewer-count aggregates, uploads, clip requests, playback availability, chat messages, follows, channel-point activity, polls, predictions, and moderation records. These records support delivery, safety, discovery, reporting, and the creator experience.</p></article><article className="rounded-xl border border-white/[0.06] bg-black/40 p-5"><h3 className="text-lg font-bold text-white">Crypto settlement and payout data</h3><p className="mt-2 text-sm leading-relaxed sm:text-base">For supported crypto subscriptions, tips, balances, fee allocation, and payout review, Kryv processes the minimum invoice, provider event, entitlement, ledger, balance, and audit information needed for server-authoritative settlement. Kryv does not collect wallet private keys or seed phrases. Creator payout destinations are encrypted server-side and returned to client surfaces only in masked form.</p></article><article className="rounded-xl border border-white/[0.06] bg-black/40 p-5"><h3 className="text-lg font-bold text-white">Technical and operational data</h3><p className="mt-2 text-sm leading-relaxed sm:text-base">Kryv processes limited technical data needed to secure and deliver the Service, such as request and rate-limit information, device/browser characteristics, error records, and service events. Short-lived shared-state systems may hold rate-limit counters, presence, cached live-directory records, and real-time event routing data. Durable analytics events are designed to be delivered outside the primary transactional database and do not need chat-message content to measure platform activity.</p></article></div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">2. Operational Use of Information</h2>
-            <p className="text-white/70">We process collected data strictly to deliver, secure, and enhance the Platform experience:</p>
-            <ul className="space-y-3 text-white/75">
-              <li className="flex items-start gap-3">
-                <span className="text-primary font-bold mt-1">▪</span>
-                <span><strong className="text-white">Service Delivery:</strong> Powering low-latency video playback, real-time chat dispatch, and channel discovery ranking.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-primary font-bold mt-1">▪</span>
-                <span><strong className="text-white">Trust &amp; Safety:</strong> Enforcing rate limits, chat moderation rules, spam filters, and channel ban lists.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-primary font-bold mt-1">▪</span>
-                <span><strong className="text-white">Crypto Settlement &amp; Payouts:</strong> Administering creator revenue shares, crypto subscription tiers, and reviewed payout operations through approved crypto settlement services.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-primary font-bold mt-1">▪</span>
-                <span><strong className="text-white">Platform Analytics:</strong> Providing creators with actionable stream analytics, viewer engagement metrics, and session summaries.</span>
-              </li>
-            </ul>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">2. Activity visibility and camera or microphone choices</h2>
+            <div className="space-y-4 text-white/70"><p>Activity visibility is optional and off by default. If you turn it on, Kryv stores only an allow-listed Kryv route category and device class to support platform operations and safety. Kryv does not use this feature to collect page pixels, screen recordings, typed content, credentials, wallet destinations, off-platform activity, or a camera or microphone feed.</p><p>A browser camera and microphone preflight requests permission only when you explicitly select the device check in a compatible secure browser. The current preflight presents a local device preview. It does not upload, record, broadcast, or relay camera or microphone media to Kryv or a third party.</p><p>Location is optional and is never required to create a channel, go live, or use the Service.</p></div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">3. Data Disclosure &amp; Service Providers</h2>
-            <p className="text-white/70 leading-relaxed">
-              We do not sell, rent, or monetize personal user data. Information is disclosed only to essential enterprise infrastructure partners bound by strict data protection agreements:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
-                <p className="font-black text-white">Video delivery services</p>
-                <p className="text-xs text-white/40 mt-1">Broadcast ingest, transcoding, playback delivery &amp; clipping</p>
-              </div>
-              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
-                <p className="font-black text-white">Data infrastructure services</p>
-                <p className="text-xs text-white/40 mt-1">Encrypted relational data storage</p>
-              </div>
-              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
-                <p className="font-black text-white">Crypto settlement services</p>
-                <p className="text-xs text-white/40 mt-1">Invoice processing, confirmation, and payout-operation support</p>
-              </div>
-            </div>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">3. How Kryv uses information</h2>
+            <ul className="space-y-3 text-white/70"><li className="flex gap-3"><span className="text-primary">▪</span><span><strong className="text-white">Service delivery:</strong> to authenticate users, deliver live and on-demand experiences, route real-time events, generate clips, manage channel settings, and operate Cinema.</span></li><li className="flex gap-3"><span className="text-primary">▪</span><span><strong className="text-white">Safety and integrity:</strong> to enforce rate limits, prevent fraud or abuse, protect credentials, apply moderation decisions, investigate security events, and preserve immutable settlement records.</span></li><li className="flex gap-3"><span className="text-primary">▪</span><span><strong className="text-white">Creator operations and settlement:</strong> to process permitted crypto invoices, evaluate balances and fee allocation, administer payout review, and provide creator analytics.</span></li><li className="flex gap-3"><span className="text-primary">▪</span><span><strong className="text-white">Discovery and improvement:</strong> to rank bounded live-channel candidates using current channel signals and to measure service health. Kryv does not claim to operate a trained personalized recommendation system unless and until it is separately introduced and disclosed.</span></li></ul>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">4. Security &amp; Data Retention</h2>
-            <p className="text-white/70 leading-relaxed">
-              Kryv employs industry-standard cryptographic protocols, HTTPS-enforced transit, parameterized query protection against SQL injection, and structured JWT authentication. Account data and logs are retained as long as your account remains active or as required by financial and legal compliance standards. Users may request account deletion at any time.
-            </p>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">4. Sharing and service providers</h2>
+            <div className="space-y-4 text-white/70"><p>Kryv does not sell or rent personal information. Kryv may disclose information to service providers that support video ingest, transcoding, playback, clipping, encrypted relational storage, cache and queue infrastructure, hosting, crypto settlement, and security operations. Providers receive information only as needed to perform their services and under applicable contractual, technical, and legal safeguards.</p><p>Kryv may also disclose information when required by law, to protect rights, safety, and security, to enforce these terms, or as part of a lawful corporate transaction. Cinema publishing is owner- and administrator-controlled; public users and ordinary creators are not issued Cinema upload URLs.</p></div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">5. User Rights &amp; Contact</h2>
-            <p className="text-white/70 leading-relaxed">
-              You possess statutory rights to access, correct, export, or delete your personal data. For privacy inquiries, data export requests, or account termination, contact the Kryv Platform Governance team through your account settings or official platform support channels.
-            </p>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">5. Retention, security, and your choices</h2>
+            <div className="space-y-4 text-white/70"><p>Kryv uses safeguards appropriate to the nature of the information, including encrypted transport, authentication controls, server-side authorization, parameterized database access, audit logging, encrypted payout destination storage, and data-minimization controls. No service can guarantee absolute security.</p><p>Kryv retains information for as long as needed to operate the Service, meet legal obligations, resolve disputes, enforce agreements, protect security, and maintain financial or safety records. You may request access, correction, export, deletion, or withdrawal of an optional consent through account settings or official support channels, subject to lawful exceptions and record-retention requirements.</p></div>
           </section>
 
+          <section className="space-y-4">
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">6. Changes and contact</h2>
+            <p className="text-white/70">Kryv may update this Privacy Policy as its product, safeguards, providers, and legal obligations change. Material changes will be reflected by an updated effective date and, where required, additional notice. Questions or requests about privacy can be submitted through Kryv&apos;s official support channels.</p>
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

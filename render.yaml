@@ -1,38 +1,126 @@
+# Kryv production topology
+# FastPix remains the media data plane. These services only run Kryv's control,
+# realtime, and asynchronous work; they never proxy video bytes.
+
+previews:
+  generation: manual
+
 services:
-  # Unified Service: Backend + Frontend
   - type: web
     name: kryv-app
     runtime: node
-    buildCommand: corepack enable && pnpm install && pnpm --filter @workspace/blyze build && pnpm --filter @workspace/api-server build && ls -R artifacts/blyze/dist
+    plan: starter
+    numInstances: 1
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/blyze build && pnpm --filter @workspace/api-server build
     startCommand: node artifacts/api-server/dist/index.mjs
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - fromGroup: kryv-runtime-shared
+      - key: KRYV_CACHE_REDIS_URL
+        fromService:
+          type: keyvalue
+          name: kryv-cache
+          property: connectionString
+      - key: KRYV_QUEUE_REDIS_URL
+        fromService:
+          type: keyvalue
+          name: kryv-queue
+          property: connectionString
+
+  # A separately restartable gateway for chat and live-control fan-out. HTTP writes,
+  # moderation, entitlements, and balances remain authoritative in kryv-app.
+  - type: web
+    name: kryv-realtime
+    runtime: node
+    plan: starter
+    numInstances: 1
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server build
+    startCommand: node artifacts/api-server/dist/realtime.mjs
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - fromGroup: kryv-runtime-shared
+      - key: KRYV_CACHE_REDIS_URL
+        fromService:
+          type: keyvalue
+          name: kryv-cache
+          property: connectionString
+
+  # A separately restartable event consumer for durable, non-request work. Payout
+  # execution remains feature-flagged and cannot run until the documented gates pass.
+  - type: worker
+    name: kryv-worker
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server build
+    startCommand: node artifacts/api-server/dist/worker.mjs
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - fromGroup: kryv-runtime-shared
+      - key: KRYV_CACHE_REDIS_URL
+        fromService:
+          type: keyvalue
+          name: kryv-cache
+          property: connectionString
+      - key: KRYV_QUEUE_REDIS_URL
+        fromService:
+          type: keyvalue
+          name: kryv-queue
+          property: connectionString
+
+  # Loss-tolerant shared cache, rate-limit counters, presence, hot live cards, and
+  # pub/sub. External access remains disabled; same-region services use private URLs.
+  - type: keyvalue
+    name: kryv-cache
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    persistenceMode: off
+    ipAllowList: []
+
+  # Durable event and job stream. It is deliberately separate from cache because
+  # queues must reject writes under pressure instead of silently evicting jobs.
+  - type: keyvalue
+    name: kryv-queue
+    plan: starter
+    maxmemoryPolicy: noeviction
+    persistenceMode: journal-snapshot
+    ipAllowList: []
+
+envVarGroups:
+  - name: kryv-runtime-shared
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
-        generateValue: true
-      # ── FastPix Live Streaming ─────────────────────────────────────────────
-      # ACCESS_TOKEN  = FastPix Access Token ID (username for Basic Auth)
-      # SECRET_KEY    = FastPix Secret Key (password for Basic Auth)
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: KRYV_APP_URL
+        sync: false
       - key: ACCESS_TOKEN
         sync: false
       - key: SECRET_KEY
         sync: false
-      # FASTPIX_WEBHOOK_SECRET: signing secret from FastPix dashboard
-      # Used to verify inbound webhooks at /api/webhooks/fastpix
       - key: FASTPIX_WEBHOOK_SECRET
         sync: false
-      # ── Legacy MUX (kept for backward compat) ─────────────────────────────
-      - key: MUX_TOKEN_ID
+      - key: PLISIO_SECRET_KEY
         sync: false
-      - key: MUX_TOKEN_SECRET
+      - key: PLISIO_CALLBACK_URL
         sync: false
-      - key: MUX_WEBHOOK_SECRET
+      - key: PLISIO_ALLOWED_COINS
+        value: BTC,LTC,ETH,DOGE
+      - key: CREATOR_PAYOUT_ENCRYPTION_KEY
         sync: false
-      # ── CORS ─────────────────────────────────────────────────────────────────────────────────────────
-      # ALLOWED_ORIGINS: comma-separated list of allowed frontend origins
-      # Set this to your production domain(s), e.g. https://kryv.tv,https://www.kryv.tv
-      # In development (NODE_ENV != production), all origins are allowed.
-      - key: ALLOWED_ORIGINS
+      - key: KRYV_ANALYTICS_WEBHOOK_URL
+        sync: false
+      - key: KRYV_ANALYTICS_WEBHOOK_SECRET
+        sync: false
+      - key: KRYV_REALTIME_TOKEN_SECRET
+        sync: false
+      # Public WSS origin for the separate kryv-realtime service, for example
+      # wss://kryv-realtime.onrender.com/ws. This is not a credential.
+      - key: VITE_REALTIME_URL
         sync: false
