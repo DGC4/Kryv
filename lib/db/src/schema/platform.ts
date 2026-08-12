@@ -303,6 +303,56 @@ export const paymentIntentsTable = pgTable("payment_intents", {
   receiverCreatedIdx: index("payment_intents_receiver_created_idx").on(table.receiverChannelId, table.createdAt),
 }));
 
+// ─── Customer wallet ledger ───────────────────────────────────────────────────
+// Customer deposits are credited only after a signed provider `pay_in` callback.
+// This balance is intentionally separate from creator earnings and never acts as a
+// substitute for the provider treasury balance.
+export const customerWalletBalancesTable = pgTable("customer_wallet_balances", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  currency: text("currency").notNull(),
+  pendingAmount: numeric("pending_amount", { precision: 18, scale: 8 }).notNull().default("0"),
+  availableAmount: numeric("available_amount", { precision: 18, scale: 8 }).notNull().default("0"),
+  heldAmount: numeric("held_amount", { precision: 18, scale: 8 }).notNull().default("0"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userCurrencyUnique: uniqueIndex("customer_wallet_balances_user_currency_unique").on(table.userId, table.currency),
+}));
+
+export const customerWalletMovementsTable = pgTable("customer_wallet_movements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  currency: text("currency").notNull(),
+  movementType: text("movement_type").notNull(),
+  availableDelta: numeric("available_delta", { precision: 18, scale: 8 }).notNull().default("0"),
+  heldDelta: numeric("held_delta", { precision: 18, scale: 8 }).notNull().default("0"),
+  pendingDelta: numeric("pending_delta", { precision: 18, scale: 8 }).notNull().default("0"),
+  sourceType: text("source_type").notNull(),
+  sourceId: text("source_id").notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  metadata: jsonb("metadata").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userCreatedIdx: index("customer_wallet_movements_user_created_idx").on(table.userId, table.createdAt),
+  sourceIdx: index("customer_wallet_movements_source_idx").on(table.sourceType, table.sourceId),
+}));
+
+export const customerWalletDepositAddressesTable = pgTable("customer_wallet_deposit_addresses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  currency: text("currency").notNull(),
+  provider: text("provider").notNull().default("plisio"),
+  providerDepositUid: text("provider_deposit_uid").notNull(),
+  depositAddress: text("deposit_address").notNull(),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userCurrencyProviderUnique: uniqueIndex("customer_wallet_deposit_addresses_user_currency_provider_unique").on(table.userId, table.currency, table.provider),
+  providerAddressUnique: uniqueIndex("customer_wallet_deposit_addresses_provider_address_unique").on(table.provider, table.depositAddress),
+  providerUidCurrencyIdx: index("customer_wallet_deposit_addresses_provider_uid_currency_idx").on(table.provider, table.providerDepositUid, table.currency),
+}));
+
 export const creatorBalancesTable = pgTable("creator_balances", {
   id: serial("id").primaryKey(),
   channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),

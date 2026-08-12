@@ -1200,6 +1200,35 @@ export const CreateCryptoTipResponse = zod.object({
 
 
 /**
+ * @summary Debit a customer’s confirmed Kryv wallet balance and settle a creator tip atomically in the crypto ledger
+ */
+export const CreateWalletTipParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createWalletTipBodyAmountRegExp = new RegExp('^\\d+(\\.\\d{1,8})?$');
+export const createWalletTipBodyMessageMax = 500;
+
+
+
+export const CreateWalletTipBody = zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string().regex(createWalletTipBodyAmountRegExp).describe('Exact crypto amount to debit from the customer’s confirmed Kryv wallet balance.'),
+  "message": zod.string().max(createWalletTipBodyMessageMax).optional()
+})
+
+export const CreateWalletTipResponse = zod.object({
+  "paymentIntentId": zod.number(),
+  "tipId": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "grossAmount": zod.string(),
+  "platformFeeAmount": zod.string(),
+  "creatorNetAmount": zod.string(),
+  "status": zod.enum(['completed'])
+})
+
+
+/**
  * @summary Get public channel-points, poll, and prediction state for a channel
  */
 export const GetChannelEngagementParams = zod.object({
@@ -1633,6 +1662,63 @@ export const GetCinemaHomeResponse = zod.object({
   "publishedAt": zod.coerce.date().nullable()
 }))
 }))
+})
+
+
+/**
+ * @summary Retrieve the authenticated customer’s provider-backed crypto wallet balances, deposit addresses, and recent immutable movements
+ */
+export const getCustomerWalletResponseDepositAddressesItemAddressMin = 10;
+export const getCustomerWalletResponseDepositAddressesItemAddressMax = 256;
+
+
+
+export const GetCustomerWalletResponse = zod.object({
+  "balances": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "usdReferenceValue": zod.string().nullable().describe('Provider-rate reference only; never used to settle crypto balances.'),
+  "rateUpdatedAt": zod.coerce.date().nullable()
+})),
+  "depositAddresses": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "address": zod.string().min(getCustomerWalletResponseDepositAddressesItemAddressMin).max(getCustomerWalletResponseDepositAddressesItemAddressMax).describe('Kryv-managed customer deposit address; it is not a creator payout address.'),
+  "status": zod.enum(['active', 'disabled']),
+  "createdAt": zod.coerce.date()
+})),
+  "movements": zod.array(zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "movementType": zod.string(),
+  "availableDelta": zod.string(),
+  "heldDelta": zod.string(),
+  "pendingDelta": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "depositsEnabled": zod.boolean(),
+  "providerRateAvailable": zod.boolean()
+})
+
+
+/**
+ * @summary Create or return a permanent Kryv-branded customer deposit address for one approved cryptocurrency
+ */
+export const CreateCustomerWalletDepositAddressBody = zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE'])
+})
+
+export const createCustomerWalletDepositAddressResponseAddressMin = 10;
+export const createCustomerWalletDepositAddressResponseAddressMax = 256;
+
+
+
+export const CreateCustomerWalletDepositAddressResponse = zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "address": zod.string().min(createCustomerWalletDepositAddressResponseAddressMin).max(createCustomerWalletDepositAddressResponseAddressMax).describe('Kryv-managed customer deposit address; it is not a creator payout address.'),
+  "status": zod.enum(['active', 'disabled']),
+  "createdAt": zod.coerce.date()
 })
 
 

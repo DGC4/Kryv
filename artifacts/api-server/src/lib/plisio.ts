@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 
 const PLISIO_API_BASE = process.env.PLISIO_API_BASE ?? "https://api.plisio.net/api/v1";
+// Plisio documents its White Label deposit-address API on the merchant domain.
+const PLISIO_DEPOSITS_API_BASE = process.env.PLISIO_DEPOSITS_API_BASE ?? "https://plisio.net/api/v1";
 const DEFAULT_ALLOWED_COINS = ["BTC", "LTC", "ETH", "DOGE"] as const;
 
 export type KryvCryptoCode = (typeof DEFAULT_ALLOWED_COINS)[number];
@@ -39,10 +41,18 @@ export type PlisioWithdrawal = {
   transactionUrl: string | null;
 };
 
+export type PlisioDepositAddress = {
+  uid: string;
+  currency: KryvCryptoCode;
+  address: string;
+};
+
 let assetSnapshotCache: { expiresAt: number; values: PlisioAssetSnapshot[] } | null = null;
 
 function getSecretKey() {
-  const key = process.env.PLISIO_SECRET_KEY?.trim();
+  // `Plisio_Token` is the pre-existing Render key name. Prefer the explicit
+  // production name while allowing a controlled zero-downtime migration.
+  const key = process.env.PLISIO_SECRET_KEY?.trim() || process.env.Plisio_Token?.trim();
   if (!key) throw new PlisioNotConfiguredError();
   return key;
 }
@@ -93,7 +103,7 @@ function constantTimeEqual(left: string, right: string) {
 }
 
 export function isPlisioConfigured() {
-  return Boolean(process.env.PLISIO_SECRET_KEY?.trim() && process.env.PLISIO_CALLBACK_URL?.trim() && process.env.KRYV_APP_URL?.trim());
+  return Boolean((process.env.PLISIO_SECRET_KEY?.trim() || process.env.Plisio_Token?.trim()) && process.env.PLISIO_CALLBACK_URL?.trim() && process.env.KRYV_APP_URL?.trim());
 }
 
 export function supportedKryvCryptoCodes() {
@@ -142,6 +152,48 @@ export async function getPlisioAssetSnapshots(): Promise<PlisioAssetSnapshot[]> 
     });
     assetSnapshotCache = { expiresAt: Date.now() + 60_000, values };
     return values;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function createPlisioDepositAddress(input: {
+  uid: string;
+  currency: KryvCryptoCode;
+}): Promise<PlisioDepositAddress> {
+  if (!isSupportedKryvCryptoCode(input.currency)) {
+    throw new Error("The requested deposit currency is not enabled for Kryv.");
+  }
+  const uid = input.uid.trim();
+  if (!/^[A-Za-z0-9:_-]{1,255}$/.test(uid)) {
+    throw new Error("The internal deposit reference is invalid.");
+  }
+
+  const params = new URLSearchParams({
+    psys_cid: input.currency,
+    uid,
+    api_key: getSecretKey(),
+  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch(`${PLISIO_DEPOSITS_API_BASE.replace(/\/$/, "")}/shops/deposit/new?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => null) as any;
+    const data = Array.isArray(payload?.data) ? payload.data[0] : payload?.data;
+    if (!response.ok || payload?.status !== "success" || !data || typeof data.hash !== "string") {
+      const message = typeof payload?.data?.message === "string" ? payload.data.message : "Kryv could not create a customer deposit address.";
+      throw new Error(message);
+    }
+    const currency = isSupportedKryvCryptoCode(data.currency ?? data.psys_cid)
+      ? String(data.currency ?? data.psys_cid).toUpperCase() as KryvCryptoCode
+      : input.currency;
+    if (currency !== input.currency || typeof data.uid !== "string" || data.uid !== uid || data.hash.length < 10 || data.hash.length > 256 || /\s/.test(data.hash)) {
+      throw new Error("Kryv received an invalid customer deposit address response.");
+    }
+    return { uid, currency, address: data.hash };
   } finally {
     clearTimeout(timer);
   }

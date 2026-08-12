@@ -16,6 +16,7 @@ import streamingRouter from "./streaming";
 import adsRouter from "./ads";
 import ownerCinemaRouter from "./owner-cinema";
 import creatorFinanceRouter from "./creator-finance";
+import walletRouter from "./wallet";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(streamingRouter);
 router.use(adsRouter);
 router.use(ownerCinemaRouter);
 router.use(creatorFinanceRouter);
+router.use(walletRouter);
 
 export default router;

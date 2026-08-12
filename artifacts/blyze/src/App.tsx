@@ -28,6 +28,7 @@ import CinemaDetail from '@/pages/cinema/Detail';
 import DashboardLive from '@/pages/dashboard/Live';
 import DashboardWatch from '@/pages/dashboard/Watch';
 import DashboardAdmin from '@/pages/dashboard/Admin';
+import CustomerWallet from '@/pages/wallet/Wallet';
 import Privacy from '@/pages/legal/Privacy';
 import Terms from '@/pages/legal/Terms';
 import SignInPage from '@/pages/auth/SignIn';
@@ -93,6 +94,12 @@ function AppRoutes() {
       <Route path="/cinema/:id">
         <ProtectedRoute>
           <Layout><CinemaDetail /></Layout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/wallet">
+        <ProtectedRoute>
+          <Layout><CustomerWallet /></Layout>
         </ProtectedRoute>
       </Route>
 

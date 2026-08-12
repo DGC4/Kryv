@@ -3,7 +3,7 @@ import { useLocation, Link } from 'wouter';
 import { useAuthStore } from '../lib/auth-store';
 import { useGetMe } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
-import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard } from 'lucide-react';
+import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, WalletCards } from 'lucide-react';
 import { KryvLogo, GoldenDBadge, UserBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
@@ -146,6 +146,12 @@ export function Header() {
                     <Link href="/dashboard/watch" className="flex items-center gap-2 cursor-pointer">
                       <LayoutDashboard className="w-4 h-4 text-white/50" />
                       <span>Creator Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/wallet" className="flex items-center gap-2 cursor-pointer">
+                      <WalletCards className="w-4 h-4 text-primary" />
+                      <span>Kryv Wallet</span>
                     </Link>
                   </DropdownMenuItem>
                   {me?.role === 'owner' && (

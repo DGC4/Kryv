@@ -12,6 +12,7 @@ import {
   useGetChannelEngagement,
   useCreateChannelEngagementAction,
   useCreateCryptoTip,
+  useCreateWalletTip,
   useCreateClip,
 } from '@workspace/api-client-react';
 import { useAuthStore } from '@/lib/auth-store';
@@ -50,6 +51,7 @@ export default function LiveChannel() {
   const moderateMessage = useCreateChannelModerationAction();
   const engagementAction = useCreateChannelEngagementAction();
   const createCryptoTip = useCreateCryptoTip();
+  const createWalletTip = useCreateWalletTip();
   const createClip = useCreateClip();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -59,6 +61,7 @@ export default function LiveChannel() {
   const [supportAmount, setSupportAmount] = useState('5');
   const [supportCoin, setSupportCoin] = useState<'BTC' | 'LTC' | 'ETH' | 'DOGE'>('BTC');
   const [supportMessage, setSupportMessage] = useState('');
+  const [supportSource, setSupportSource] = useState<'invoice' | 'wallet'>('invoice');
   const [cryptoCheckout, setCryptoCheckout] = useState<any | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -228,6 +231,25 @@ export default function LiveChannel() {
         window.location.assign(checkout.invoiceUrl);
       },
       onError: (err: any) => toast({ title: 'Crypto support is unavailable', description: err?.body?.error || err?.message || 'The creator invoice could not be started. Please try again later.', variant: 'destructive' }),
+    });
+  };
+
+  const handleWalletSupport = () => {
+    if (!channelId) return;
+    if (!isSignedIn) {
+      toast({ title: 'Sign in to support this creator', description: 'You need to be signed in before using your Kryv Wallet.' });
+      return;
+    }
+    if (!/^\d+(\.\d{1,8})?$/.test(supportAmount) || Number(supportAmount) <= 0) {
+      toast({ title: 'Enter an exact crypto amount', description: 'Use up to eight decimal places for the selected crypto asset.', variant: 'destructive' });
+      return;
+    }
+    createWalletTip.mutate({ id: channelId, data: { currency: supportCoin, amount: supportAmount, ...(supportMessage.trim() ? { message: supportMessage.trim() } : {}) } }, {
+      onSuccess: (payment) => {
+        setSupportMessage('');
+        toast({ title: 'Creator supported', description: `${payment.creatorNetAmount} ${payment.currency} settled to the creator balance.` });
+      },
+      onError: (err: any) => toast({ title: 'Kryv Wallet support is unavailable', description: err?.body?.error || err?.message || 'Your wallet payment could not be completed.', variant: 'destructive' }),
     });
   };
 
@@ -414,9 +436,10 @@ export default function LiveChannel() {
           {supportOpen && (
             <section className="mt-6 rounded-2xl border border-primary/25 bg-primary/[0.055] p-4 sm:p-5">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2 text-primary"><Wallet className="h-4 w-4" /><h3 className="text-sm font-black">Crypto support</h3></div><p className="mt-1 text-xs leading-relaxed text-white/50">Choose BTC, LTC, ETH, or DOGE. Kryv opens a secure crypto invoice; the USD amount is only a price quote, never a card or fiat checkout.</p></div><span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white/50">Crypto only</span></div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><label className="text-xs font-bold text-white/55">Support amount (USD quote)<input type="number" min="0.01" step="0.01" value={supportAmount} onChange={event => setSupportAmount(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label><label className="text-xs font-bold text-white/55">Pay with<select value={supportCoin} onChange={event => setSupportCoin(event.target.value as typeof supportCoin)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="BTC">Bitcoin (BTC)</option><option value="LTC">Litecoin (LTC)</option><option value="ETH">Ethereum (ETH)</option><option value="DOGE">Dogecoin (DOGE)</option></select></label><div className="flex items-end"><Button onClick={handleCryptoSupport} disabled={createCryptoTip.isPending} className="h-10 w-full rounded-xl font-black">{createCryptoTip.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wallet className="mr-2 h-4 w-4" /> Continue</>}</Button></div></div>
+              <div className="mt-4 flex rounded-xl border border-white/[0.1] bg-black/25 p-1 text-xs font-bold"><button type="button" onClick={() => setSupportSource('invoice')} className={`flex-1 rounded-lg px-3 py-2 transition ${supportSource === 'invoice' ? 'bg-primary text-primary-foreground' : 'text-white/55 hover:text-white'}`}>Direct crypto</button><button type="button" onClick={() => setSupportSource('wallet')} className={`flex-1 rounded-lg px-3 py-2 transition ${supportSource === 'wallet' ? 'bg-primary text-primary-foreground' : 'text-white/55 hover:text-white'}`}>Kryv Wallet</button></div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><label className="text-xs font-bold text-white/55">{supportSource === 'wallet' ? `Support amount (${supportCoin})` : 'Support amount (USD quote)'}<input type="number" min={supportSource === 'wallet' ? '0.00000001' : '0.01'} step={supportSource === 'wallet' ? '0.00000001' : '0.01'} value={supportAmount} onChange={event => setSupportAmount(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label><label className="text-xs font-bold text-white/55">Pay with<select value={supportCoin} onChange={event => setSupportCoin(event.target.value as typeof supportCoin)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="BTC">Bitcoin (BTC)</option><option value="LTC">Litecoin (LTC)</option><option value="ETH">Ethereum (ETH)</option><option value="DOGE">Dogecoin (DOGE)</option></select></label><div className="flex items-end"><Button onClick={supportSource === 'wallet' ? handleWalletSupport : handleCryptoSupport} disabled={supportSource === 'wallet' ? createWalletTip.isPending : createCryptoTip.isPending} className="h-10 w-full rounded-xl font-black">{(supportSource === 'wallet' ? createWalletTip.isPending : createCryptoTip.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wallet className="mr-2 h-4 w-4" /> {supportSource === 'wallet' ? 'Support now' : 'Continue'}</>}</Button></div></div>
               <label className="mt-3 block text-xs font-bold text-white/55">Optional message<input value={supportMessage} onChange={event => setSupportMessage(event.target.value)} maxLength={500} placeholder="Send a note with your support" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label>
-              <p className="mt-3 text-[11px] leading-relaxed text-white/42">A creator balance changes only after Kryv verifies a signed settlement confirmation. No wallet private key or seed phrase is requested by Kryv.</p>
+              <p className="mt-3 text-[11px] leading-relaxed text-white/42">{supportSource === 'wallet' ? 'Kryv Wallet support debits only your confirmed crypto balance and writes matching customer, creator, and platform ledger movements in one completed transaction.' : 'A creator balance changes only after Kryv verifies a signed settlement confirmation. No wallet private key or seed phrase is requested by Kryv.'}</p>
               {cryptoCheckout && (
                 <section className="mt-4 overflow-hidden rounded-2xl border border-primary/30 bg-black/35 p-4 sm:p-5" aria-label="Crypto payment instructions">
                   <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-black text-white">Complete your crypto support</p><p className="mt-1 text-xs leading-relaxed text-white/45">Scan the QR code or send the exact amount below. Kryv confirms payment only after network confirmation.</p></div><button type="button" onClick={() => setCryptoCheckout(null)} className="rounded-lg p-1 text-white/35 transition hover:bg-white/[0.08] hover:text-white" aria-label="Close payment instructions"><X className="h-4 w-4" /></button></div>

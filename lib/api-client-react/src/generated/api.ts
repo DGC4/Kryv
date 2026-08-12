@@ -65,6 +65,7 @@ import type {
   ClipInput,
   ClipSummary,
   CreateCreatorPayoutRequestInput,
+  CreateCustomerWalletDepositAddressInput,
   CreatorAchievement,
   CreatorFinanceOverview,
   CreatorPayoutPreference,
@@ -73,6 +74,8 @@ import type {
   CryptoCheckout,
   CryptoSubscriptionInput,
   CryptoTipInput,
+  CustomerWalletDepositAddress,
+  CustomerWalletOverview,
   DiscoverSummary,
   Error,
   GetAdDecisionParams,
@@ -99,7 +102,9 @@ import type {
   VideoUpdate,
   ViewerProfile,
   ViewerProfileInput,
-  ViewerProfileUpdate
+  ViewerProfileUpdate,
+  WalletTipInput,
+  WalletTipPayment
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -3111,6 +3116,78 @@ export const useCreateCryptoTip = <TError = ErrorType<void>,
       return useMutation(getCreateCryptoTipMutationOptions(options));
     }
 
+export const getCreateWalletTipUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/wallet-tip`
+}
+
+/**
+ * @summary Debit a customer’s confirmed Kryv wallet balance and settle a creator tip atomically in the crypto ledger
+ */
+export const createWalletTip = async (id: number,
+    walletTipInput: WalletTipInput, options?: RequestInit): Promise<WalletTipPayment> => {
+
+  return customFetch<WalletTipPayment>(getCreateWalletTipUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(walletTipInput)
+  }
+);}
+
+
+
+
+
+export const getCreateWalletTipMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletTip>>, TError,{id: number;data: BodyType<WalletTipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWalletTip>>, TError,{id: number;data: BodyType<WalletTipInput>}, TContext> => {
+
+const mutationKey = ['createWalletTip'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWalletTip>>, {id: number;data: BodyType<WalletTipInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createWalletTip(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWalletTipMutationResult = NonNullable<Awaited<ReturnType<typeof createWalletTip>>>
+    export type CreateWalletTipMutationBody = BodyType<WalletTipInput>
+    export type CreateWalletTipMutationError = ErrorType<void>
+
+    /**
+ * @summary Debit a customer’s confirmed Kryv wallet balance and settle a creator tip atomically in the crypto ledger
+ */
+export const useCreateWalletTip = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletTip>>, TError,{id: number;data: BodyType<WalletTipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWalletTip>>,
+        TError,
+        {id: number;data: BodyType<WalletTipInput>},
+        TContext
+      > => {
+      return useMutation(getCreateWalletTipMutationOptions(options));
+    }
+
 export const getGetChannelEngagementUrl = (id: number,) => {
 
 
@@ -4169,6 +4246,154 @@ export function useGetCinemaHome<TData = Awaited<ReturnType<typeof getCinemaHome
 
 
 
+
+export const getGetCustomerWalletUrl = () => {
+
+
+
+
+  return `/api/wallet`
+}
+
+/**
+ * @summary Retrieve the authenticated customer’s provider-backed crypto wallet balances, deposit addresses, and recent immutable movements
+ */
+export const getCustomerWallet = async ( options?: RequestInit): Promise<CustomerWalletOverview> => {
+
+  return customFetch<CustomerWalletOverview>(getGetCustomerWalletUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCustomerWalletQueryKey = () => {
+    return [
+    `/api/wallet`
+    ] as const;
+    }
+
+
+export const getGetCustomerWalletQueryOptions = <TData = Awaited<ReturnType<typeof getCustomerWallet>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCustomerWallet>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCustomerWalletQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCustomerWallet>>> = ({ signal }) => getCustomerWallet({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCustomerWallet>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCustomerWalletQueryResult = NonNullable<Awaited<ReturnType<typeof getCustomerWallet>>>
+export type GetCustomerWalletQueryError = ErrorType<void>
+
+
+/**
+ * @summary Retrieve the authenticated customer’s provider-backed crypto wallet balances, deposit addresses, and recent immutable movements
+ */
+
+export function useGetCustomerWallet<TData = Awaited<ReturnType<typeof getCustomerWallet>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCustomerWallet>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCustomerWalletQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCustomerWalletDepositAddressUrl = () => {
+
+
+
+
+  return `/api/wallet/deposit-addresses`
+}
+
+/**
+ * @summary Create or return a permanent Kryv-branded customer deposit address for one approved cryptocurrency
+ */
+export const createCustomerWalletDepositAddress = async (createCustomerWalletDepositAddressInput: CreateCustomerWalletDepositAddressInput, options?: RequestInit): Promise<CustomerWalletDepositAddress> => {
+
+  return customFetch<CustomerWalletDepositAddress>(getCreateCustomerWalletDepositAddressUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createCustomerWalletDepositAddressInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCustomerWalletDepositAddressMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustomerWalletDepositAddress>>, TError,{data: BodyType<CreateCustomerWalletDepositAddressInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCustomerWalletDepositAddress>>, TError,{data: BodyType<CreateCustomerWalletDepositAddressInput>}, TContext> => {
+
+const mutationKey = ['createCustomerWalletDepositAddress'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCustomerWalletDepositAddress>>, {data: BodyType<CreateCustomerWalletDepositAddressInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCustomerWalletDepositAddress(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCustomerWalletDepositAddressMutationResult = NonNullable<Awaited<ReturnType<typeof createCustomerWalletDepositAddress>>>
+    export type CreateCustomerWalletDepositAddressMutationBody = BodyType<CreateCustomerWalletDepositAddressInput>
+    export type CreateCustomerWalletDepositAddressMutationError = ErrorType<void>
+
+    /**
+ * @summary Create or return a permanent Kryv-branded customer deposit address for one approved cryptocurrency
+ */
+export const useCreateCustomerWalletDepositAddress = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustomerWalletDepositAddress>>, TError,{data: BodyType<CreateCustomerWalletDepositAddressInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCustomerWalletDepositAddress>>,
+        TError,
+        {data: BodyType<CreateCustomerWalletDepositAddressInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCustomerWalletDepositAddressMutationOptions(options));
+    }
 
 export const getGetCreatorFinanceUrl = () => {
 

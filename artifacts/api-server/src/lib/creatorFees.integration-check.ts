@@ -26,4 +26,11 @@ assert.equal(compareCryptoAmounts("0.12530863", "0.12530863"), 0);
 assert.equal(compareCryptoAmounts("0.12530864", "0.12530863"), 1);
 assert.equal(compareCryptoAmounts("0.12530862", "0.12530863"), -1);
 
-console.log("creator fee allocator and provider-total checks passed");
+// Customer-wallet-funded tips use the same fixed-point fee allocator. The debit,
+// platform movement, and creator credit must partition the customer balance exactly.
+const walletTip = quoteCreatorPlatformFee("0.12345678", 500);
+assert.equal(addCryptoAmounts(walletTip.platformFeeAmount, walletTip.creatorNetAmount), walletTip.grossAmount);
+assert.equal(compareCryptoAmounts("0.12345678", walletTip.grossAmount), 0);
+assert.equal(normalizeCryptoAmount("0.12345678"), walletTip.grossAmount);
+
+console.log("creator fee allocator, provider-total, and customer-wallet settlement checks passed");

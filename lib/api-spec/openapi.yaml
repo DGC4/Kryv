@@ -1146,6 +1146,34 @@ paths:
         "404": { description: Channel not found }
         "503": { description: Crypto commerce is not configured or active }
 
+  /channels/{id}/wallet-tip:
+    post:
+      operationId: createWalletTip
+      tags: [channels, wallet]
+      summary: Debit a customer’s confirmed Kryv wallet balance and settle a creator tip atomically in the crypto ledger
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletTipInput"
+      responses:
+        "201":
+          description: Completed wallet-funded creator tip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletTipPayment"
+        "400": { description: Insufficient wallet balance or invalid tip }
+        "401": { description: Authentication required }
+        "403": { description: Wallet custody is not active }
+        "404": { description: Channel not found }
+
   /channels/{id}/engagement:
     get:
       operationId: getChannelEngagement
@@ -1565,6 +1593,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CinemaHome"
+
+  /wallet:
+    get:
+      operationId: getCustomerWallet
+      tags: [wallet]
+      summary: Retrieve the authenticated customer’s provider-backed crypto wallet balances, deposit addresses, and recent immutable movements
+      responses:
+        "200":
+          description: Customer wallet overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerWalletOverview"
+        "401": { description: Authentication required }
+
+  /wallet/deposit-addresses:
+    post:
+      operationId: createCustomerWalletDepositAddress
+      tags: [wallet]
+      summary: Create or return a permanent Kryv-branded customer deposit address for one approved cryptocurrency
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerWalletDepositAddressInput"
+      responses:
+        "201":
+          description: Active customer deposit address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerWalletDepositAddress"
+        "403": { description: Customer wallet custody is not enabled }
+        "503": { description: Crypto provider configuration is incomplete }
 
   /creator/finance:
     get:
@@ -2278,6 +2341,26 @@ components:
         cryptoCurrency: { $ref: "#/components/schemas/CryptoCurrency" }
         message: { type: string, maxLength: 500 }
 
+    WalletTipInput:
+      type: object
+      required: [currency, amount]
+      properties:
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        amount: { type: string, pattern: "^\\d+(\\.\\d{1,8})?$", description: Exact crypto amount to debit from the customer’s confirmed Kryv wallet balance. }
+        message: { type: string, maxLength: 500 }
+
+    WalletTipPayment:
+      type: object
+      required: [paymentIntentId, tipId, currency, grossAmount, platformFeeAmount, creatorNetAmount, status]
+      properties:
+        paymentIntentId: { type: integer }
+        tipId: { type: integer }
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        grossAmount: { type: string }
+        platformFeeAmount: { type: string }
+        creatorNetAmount: { type: string }
+        status: { type: string, enum: [completed] }
+
     ChannelEngagementChoice:
       type: object
       required: [id, title, votes]
@@ -2854,6 +2937,60 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ChannelSummary"
+
+    CustomerWalletBalance:
+      type: object
+      required: [currency, pendingAmount, availableAmount, heldAmount, usdReferenceValue, rateUpdatedAt]
+      properties:
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        pendingAmount: { type: string }
+        availableAmount: { type: string }
+        heldAmount: { type: string }
+        usdReferenceValue: { type: ["string", "null"], description: Provider-rate reference only; never used to settle crypto balances. }
+        rateUpdatedAt: { type: ["string", "null"], format: date-time }
+
+    CustomerWalletDepositAddress:
+      type: object
+      required: [currency, address, status, createdAt]
+      properties:
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        address: { type: string, minLength: 10, maxLength: 256, description: Kryv-managed customer deposit address; it is not a creator payout address. }
+        status: { type: string, enum: [active, disabled] }
+        createdAt: { type: string, format: date-time }
+
+    CustomerWalletMovement:
+      type: object
+      required: [id, currency, movementType, availableDelta, heldDelta, pendingDelta, createdAt]
+      properties:
+        id: { type: integer }
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        movementType: { type: string }
+        availableDelta: { type: string }
+        heldDelta: { type: string }
+        pendingDelta: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    CustomerWalletOverview:
+      type: object
+      required: [balances, depositAddresses, movements, depositsEnabled, providerRateAvailable]
+      properties:
+        balances:
+          type: array
+          items: { $ref: "#/components/schemas/CustomerWalletBalance" }
+        depositAddresses:
+          type: array
+          items: { $ref: "#/components/schemas/CustomerWalletDepositAddress" }
+        movements:
+          type: array
+          items: { $ref: "#/components/schemas/CustomerWalletMovement" }
+        depositsEnabled: { type: boolean }
+        providerRateAvailable: { type: boolean }
+
+    CreateCustomerWalletDepositAddressInput:
+      type: object
+      required: [currency]
+      properties:
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
 
     CreatorBalance:
       type: object

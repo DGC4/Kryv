@@ -328,6 +328,34 @@ export interface CryptoTipInput {
   message?: string;
 }
 
+export interface WalletTipInput {
+  currency: CryptoCurrency;
+  /**
+     * Exact crypto amount to debit from the customer’s confirmed Kryv wallet balance.
+     * @pattern ^\d+(\.\d{1,8})?$
+     */
+  amount: string;
+  /** @maxLength 500 */
+  message?: string;
+}
+
+export type WalletTipPaymentStatus = typeof WalletTipPaymentStatus[keyof typeof WalletTipPaymentStatus];
+
+
+export const WalletTipPaymentStatus = {
+  completed: 'completed',
+} as const;
+
+export interface WalletTipPayment {
+  paymentIntentId: number;
+  tipId: number;
+  currency: CryptoCurrency;
+  grossAmount: string;
+  platformFeeAmount: string;
+  creatorNetAmount: string;
+  status: WalletTipPaymentStatus;
+}
+
 export interface ChannelEngagementChoice {
   id: number;
   title: string;
@@ -1105,6 +1133,62 @@ export interface Me {
   role: MeRole;
   channel: ChannelSummary | null;
   followedChannels: ChannelSummary[];
+}
+
+export interface CustomerWalletBalance {
+  currency: CryptoCurrency;
+  pendingAmount: string;
+  availableAmount: string;
+  heldAmount: string;
+  /**
+     * Provider-rate reference only; never used to settle crypto balances.
+     * @nullable
+     */
+  usdReferenceValue: string | null;
+  /** @nullable */
+  rateUpdatedAt: string | null;
+}
+
+export type CustomerWalletDepositAddressStatus = typeof CustomerWalletDepositAddressStatus[keyof typeof CustomerWalletDepositAddressStatus];
+
+
+export const CustomerWalletDepositAddressStatus = {
+  active: 'active',
+  disabled: 'disabled',
+} as const;
+
+export interface CustomerWalletDepositAddress {
+  currency: CryptoCurrency;
+  /**
+     * Kryv-managed customer deposit address; it is not a creator payout address.
+     * @minLength 10
+     * @maxLength 256
+     */
+  address: string;
+  status: CustomerWalletDepositAddressStatus;
+  createdAt: string;
+}
+
+export interface CustomerWalletMovement {
+  id: number;
+  currency: CryptoCurrency;
+  movementType: string;
+  availableDelta: string;
+  heldDelta: string;
+  pendingDelta: string;
+  createdAt: string;
+}
+
+export interface CustomerWalletOverview {
+  balances: CustomerWalletBalance[];
+  depositAddresses: CustomerWalletDepositAddress[];
+  movements: CustomerWalletMovement[];
+  depositsEnabled: boolean;
+  providerRateAvailable: boolean;
+}
+
+export interface CreateCustomerWalletDepositAddressInput {
+  currency: CryptoCurrency;
 }
 
 export interface CreatorBalance {

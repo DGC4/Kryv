@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
 
-import { cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { addCryptoAmounts, compareCryptoAmounts, normalizeCryptoAmount, quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
 import { enqueueDurableJob } from "../lib/jobs";
 import { deleteSharedKey, publishRealtimeEvent } from "../lib/realtime";
@@ -79,6 +79,109 @@ function verifiedPlisioSettlementTerms(callback: Record<string, unknown>): Verif
     throw new Error("Completed crypto callback received less than the provider-confirmed invoice total.");
   }
   return { receivedAmount, invoiceAmount, invoiceCommission, invoiceTotal, currency };
+}
+
+type VerifiedPlisioDepositTerms = {
+  depositUid: string;
+  receivedAmount: string;
+  depositAmount: string;
+  invoiceCommission: string;
+  invoiceTotal: string;
+  currency: string;
+  walletHash: string;
+};
+
+function verifiedPlisioDepositTerms(callback: Record<string, unknown>): VerifiedPlisioDepositTerms {
+  const value = (field: "amount" | "deposit_sum" | "invoice_commission" | "invoice_total_sum") => {
+    const raw = callback[field];
+    if (typeof raw !== "string") throw new Error(`Completed wallet deposit callback is missing ${field}.`);
+    return normalizeCryptoAmount(raw);
+  };
+  const depositUid = typeof callback.deposit_uid === "string" ? callback.deposit_uid.trim() : "";
+  const walletHash = typeof callback.wallet_hash === "string" ? callback.wallet_hash.trim() : "";
+  const currency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : "";
+  if (!/^[A-Za-z0-9:_-]{1,255}$/.test(depositUid) || walletHash.length < 10 || walletHash.length > 256 || /\s/.test(walletHash)) {
+    throw new Error("Completed wallet deposit callback has invalid destination identity.");
+  }
+  if (!isSupportedKryvCryptoCode(currency)) throw new Error("Completed wallet deposit callback has an unsupported currency.");
+
+  const receivedAmount = value("amount");
+  const depositAmount = value("deposit_sum");
+  const invoiceCommission = value("invoice_commission");
+  const invoiceTotal = value("invoice_total_sum");
+  if (addCryptoAmounts(depositAmount, invoiceCommission) !== invoiceTotal) {
+    throw new Error("Completed wallet deposit callback has inconsistent provider commission totals.");
+  }
+  if (compareCryptoAmounts(receivedAmount, invoiceTotal) < 0 || compareCryptoAmounts(depositAmount, "0") <= 0) {
+    throw new Error("Completed wallet deposit callback does not contain a fully settled positive deposit.");
+  }
+  return { depositUid, receivedAmount, depositAmount, invoiceCommission, invoiceTotal, currency, walletHash };
+}
+
+async function recordCustomerWalletDeposit(
+  txn: any,
+  input: {
+    providerPaymentId: string;
+    terms: VerifiedPlisioDepositTerms;
+    callback: Record<string, unknown>;
+  },
+) {
+  const [address] = await txn
+    .select()
+    .from(customerWalletDepositAddressesTable)
+    .where(and(
+      eq(customerWalletDepositAddressesTable.provider, "plisio"),
+      eq(customerWalletDepositAddressesTable.providerDepositUid, input.terms.depositUid),
+      eq(customerWalletDepositAddressesTable.currency, input.terms.currency),
+      eq(customerWalletDepositAddressesTable.status, "active"),
+    ))
+    .limit(1);
+  if (!address || address.depositAddress !== input.terms.walletHash) {
+    throw new Error("Completed wallet deposit callback does not match an active Kryv deposit address.");
+  }
+
+  const transactionUrls = Array.isArray(input.callback.tx_urls)
+    ? input.callback.tx_urls.filter((value): value is string => typeof value === "string" && value.length <= 2048).slice(0, 10)
+    : [];
+  const metadata = {
+    provider: "plisio",
+    providerPaymentId: input.providerPaymentId,
+    providerDepositUid: input.terms.depositUid,
+    receivedAmount: input.terms.receivedAmount,
+    depositAmount: input.terms.depositAmount,
+    invoiceCommission: input.terms.invoiceCommission,
+    invoiceTotal: input.terms.invoiceTotal,
+    transactionUrls,
+  };
+  const [movement] = await txn
+    .insert(customerWalletMovementsTable)
+    .values({
+      userId: address.userId,
+      currency: input.terms.currency,
+      movementType: "provider_deposit_settled",
+      availableDelta: input.terms.depositAmount,
+      heldDelta: "0",
+      pendingDelta: "0",
+      sourceType: "provider_pay_in",
+      sourceId: input.providerPaymentId,
+      idempotencyKey: `customer-wallet-deposit:${input.providerPaymentId}`,
+      metadata,
+    })
+    .onConflictDoNothing()
+    .returning({ id: customerWalletMovementsTable.id });
+  if (!movement) return { duplicate: true, userId: address.userId };
+
+  await txn
+    .insert(customerWalletBalancesTable)
+    .values({ userId: address.userId, currency: input.terms.currency, availableAmount: input.terms.depositAmount })
+    .onConflictDoUpdate({
+      target: [customerWalletBalancesTable.userId, customerWalletBalancesTable.currency],
+      set: {
+        availableAmount: sql`${customerWalletBalancesTable.availableAmount} + ${input.terms.depositAmount}`,
+        updatedAt: new Date(),
+      },
+    });
+  return { duplicate: false, userId: address.userId };
 }
 
 async function recordCreatorSettlement(
@@ -213,7 +316,8 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
   const transactionId = typeof callback.txn_id === "string" ? callback.txn_id : "";
   const orderNumber = typeof callback.order_number === "string" ? callback.order_number : "";
   const providerStatus = typeof callback.status === "string" ? callback.status.toLowerCase() : "unknown";
-  if (!transactionId || !orderNumber) {
+  const providerIpnType = typeof callback.ipn_type === "string" ? callback.ipn_type.toLowerCase() : "invoice";
+  if (!transactionId || (!orderNumber && providerIpnType !== "pay_in")) {
     res.status(400).json({ error: "Crypto callback is missing transaction identity" });
     return;
   }
@@ -224,7 +328,7 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
     .values({
       provider: "plisio",
       providerEventId,
-      eventType: `invoice.${providerStatus}`,
+      eventType: `${providerIpnType}.${providerStatus}`,
       processingStatus: "received",
       relatedProviderPaymentId: transactionId,
     })
@@ -241,6 +345,26 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
   }
 
   try {
+    if (providerIpnType === "pay_in") {
+      if (providerStatus !== "completed") {
+        await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
+        res.status(200).json({ received: true, status: providerStatus });
+        return;
+      }
+      let terms: VerifiedPlisioDepositTerms;
+      try {
+        terms = verifiedPlisioDepositTerms(callback);
+      } catch (error) {
+        await db.update(paymentEventsTable).set({ processingStatus: "failed", errorCode: "invalid_deposit_terms" }).where(eq(paymentEventsTable.id, event.id));
+        res.status(422).json({ error: error instanceof Error ? error.message : "Invalid wallet deposit terms" });
+        return;
+      }
+      const deposit = await db.transaction((txn) => recordCustomerWalletDeposit(txn, { providerPaymentId: transactionId, terms, callback }));
+      await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
+      res.status(200).json({ received: true, duplicate: deposit.duplicate });
+      return;
+    }
+
     const [intent] = await db
       .select()
       .from(paymentIntentsTable)
