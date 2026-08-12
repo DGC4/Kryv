@@ -51,3 +51,13 @@ A read-only Neon query confirmed that the deployed `payment_intents`, `payment_e
 ## Implementation prerequisites confirmed
 
 Kryv channels have a one-to-one owner relationship, so the creator finance records can be scoped safely by `channel_id`. The owner router already requires permanent-owner authorization, supports audited feature-flag updates, and has a clear tabbed console pattern. The Plisio client already protects its secret on the server, constrains the supported asset list to BTC/LTC/ETH/DOGE, uses HTTPS JSON callbacks, and has a bounded request timeout for invoice creation. The payout extension can build on these controls without introducing any client-held provider credential.
+
+## Production verification
+
+After the deployment repair, the authenticated production Owner Console rendered normally at `/dashboard/admin`, showed the new **Finance** tab alongside existing owner controls, and retained the permanent-owner guard. The finance route itself returned an authorization response when checked unauthenticated, confirming that it is registered and protected rather than publicly accessible.
+
+The deployed Finance Command tab was opened under the authenticated owner account without triggering any action. It rendered the controlled-launch status, asset-liability framing, masked destination-review section, payout review queue, zero current balances, and an explicit warning that provider withdrawals remain disabled. No destination approval, feature-flag change, payout review, invoice, or withdrawal was initiated.
+
+The authenticated production Creator Studio rendered **Revenue & Wallet** with zero BTC/LTC/ETH/DOGE balances, encrypted-destination setup copy, daily/weekly/monthly/manual cadence controls, payout activity, and a clear disabled launch gate. The panel correctly stated that no bank balance, fiat payout, conversion quote, invoice, payout request, address save, or preference update was performed during verification.
+
+The deployed **Creator Payout Ready** page rendered the four server-computed milestones with accurate progress for the authenticated creator: active channel setup, no qualifying 15-minute broadcast yet, no owner-approved payout destination, and no active payout hold. No creator data or financial state was changed.
