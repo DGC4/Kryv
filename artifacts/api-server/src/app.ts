@@ -139,8 +139,6 @@ app.use("/api", apiLimiter);
 
 // FastPix sends application/json but we need the raw buffer for HMAC verification
 app.use("/api/webhooks/fastpix", express.raw({ type: "*/*" }));
-// Stripe signatures are calculated over the exact raw JSON bytes.
-app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }));
 // Plisio signs the JSON callback payload with a merchant-key HMAC.
 app.use("/api/webhooks/plisio", express.raw({ type: "application/json" }));
 

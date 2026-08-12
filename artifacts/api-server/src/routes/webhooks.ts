@@ -1,78 +1,12 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 
-import { clipsTable, creatorBalancesTable, creatorPaymentAccountsTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { clipsTable, creatorBalancesTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fastpix } from "../lib/fastpix";
-import { constructStripeWebhookEvent, StripeNotConfiguredError } from "../lib/stripe";
-import { isPlisioConfigured, verifyPlisioJsonCallback } from "../lib/plisio";
+import { isPlisioConfigured, isSupportedKryvCryptoCode, verifyPlisioJsonCallback } from "../lib/plisio";
 
 const router: IRouter = Router();
-
-// Stripe uses the same raw-body and signature-verification discipline as FastPix.
-// The event ledger makes delivery retries harmless and avoids persisting sensitive raw payloads.
-router.post("/webhooks/stripe", async (req, res): Promise<void> => {
-  const rawBody = req.body as Buffer;
-  let event;
-  try {
-    event = constructStripeWebhookEvent(rawBody, req.headers["stripe-signature"] as string | undefined);
-  } catch (error) {
-    logger.warn({ error: error instanceof Error ? error.message : error }, "Rejected Stripe webhook");
-    res.status(error instanceof StripeNotConfiguredError ? 503 : 400).json({ error: "Invalid or unconfigured Stripe webhook" });
-    return;
-  }
-
-  const [recorded] = await db
-    .insert(paymentEventsTable)
-    .values({
-      provider: "stripe",
-      providerEventId: event.id,
-      eventType: event.type,
-      processingStatus: "received",
-      relatedProviderAccountId: event.account ?? null,
-      relatedProviderPaymentId: typeof event.data.object === "object" && "payment_intent" in event.data.object ? String(event.data.object.payment_intent ?? "") || null : null,
-    })
-    .onConflictDoNothing()
-    .returning({ id: paymentEventsTable.id });
-
-  // A prior delivery either finished or is being retried. Do not execute effects twice.
-  if (!recorded) {
-    res.status(200).json({ received: true, duplicate: true });
-    return;
-  }
-
-  try {
-    if (event.type === "account.updated") {
-      const account = event.data.object as any;
-      const requirementsDue = account.requirements?.currently_due ?? [];
-      await db
-        .update(creatorPaymentAccountsTable)
-        .set({
-          onboardingStatus: account.details_submitted && account.charges_enabled && account.payouts_enabled ? "complete" : account.requirements?.disabled_reason ? "restricted" : "pending",
-          chargesEnabled: Boolean(account.charges_enabled),
-          payoutsEnabled: Boolean(account.payouts_enabled),
-          detailsSubmitted: Boolean(account.details_submitted),
-          country: account.country ?? null,
-          requirementsDue: Array.isArray(requirementsDue) ? requirementsDue : [],
-          updatedAt: new Date(),
-        })
-        .where(eq(creatorPaymentAccountsTable.providerAccountId, account.id));
-    }
-
-    await db
-      .update(paymentEventsTable)
-      .set({ processingStatus: "processed", processedAt: new Date() })
-      .where(eq(paymentEventsTable.id, recorded.id));
-    res.status(200).json({ received: true });
-  } catch (error) {
-    logger.error({ error, stripeEventId: event.id, type: event.type }, "Stripe webhook processing failed");
-    await db
-      .update(paymentEventsTable)
-      .set({ processingStatus: "failed", errorCode: error instanceof Error ? error.name : "unknown" })
-      .where(eq(paymentEventsTable.id, recorded.id));
-    res.status(500).json({ error: "Webhook processing failed" });
-  }
-});
 
 /**
  * Plisio JSON callbacks are HMAC-verified before any persistence. A payment
@@ -183,7 +117,7 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
     if (settledIntent.paymentKind === "tip" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
       const paidAmount = typeof callback.amount === "string" && /^\d+(\.\d{1,8})?$/.test(callback.amount) ? callback.amount : null;
       const paidCurrency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : null;
-      if (!paidAmount || !paidCurrency) throw new Error("Completed crypto tip callback has invalid amount or currency.");
+      if (!paidAmount || !isSupportedKryvCryptoCode(paidCurrency)) throw new Error("Completed crypto tip callback has an invalid or unsupported amount or currency.");
       const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
       const [tip] = await db
         .insert(tipsTable)

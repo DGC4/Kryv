@@ -6,7 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ChannelMonetizationOnboardingLink {
-  url: string;
-  onboardingStatus: string;
+export interface AdminFeatureFlag {
+  key: string;
+  enabled: boolean;
+  description: string;
+  updatedAt: Date;
 }

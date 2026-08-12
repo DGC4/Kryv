@@ -11,11 +11,12 @@ import {
   useGetChannelChatSettings,
   useGetChannelEngagement,
   useCreateChannelEngagementAction,
+  useCreateCryptoTip,
 } from '@workspace/api-client-react';
 import { useAuthStore } from '@/lib/auth-store';
 import { useToast } from '@/hooks/use-toast';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 
@@ -47,10 +48,15 @@ export default function LiveChannel() {
   const heartbeat = useChannelHeartbeat();
   const moderateMessage = useCreateChannelModerationAction();
   const engagementAction = useCreateChannelEngagementAction();
+  const createCryptoTip = useCreateCryptoTip();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [chatInput, setChatInput] = useState('');
   const [liveViewerCount, setLiveViewerCount] = useState<number>(0);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportAmount, setSupportAmount] = useState('5');
+  const [supportCoin, setSupportCoin] = useState<'BTC' | 'LTC' | 'ETH' | 'DOGE'>('BTC');
+  const [supportMessage, setSupportMessage] = useState('');
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chat to bottom on new messages
@@ -160,6 +166,25 @@ export default function LiveChannel() {
         onError: (err: any) => toast({ title: 'Unable to complete action', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
       },
     );
+  };
+
+  const handleCryptoSupport = () => {
+    if (!channelId) return;
+    if (!isSignedIn) {
+      toast({ title: 'Sign in to support this creator', description: 'You need to be signed in before starting a crypto invoice.' });
+      return;
+    }
+    const amount = Number(supportAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast({ title: 'Enter a valid support amount', description: 'Choose a positive USD price quote for your selected crypto invoice.', variant: 'destructive' });
+      return;
+    }
+    createCryptoTip.mutate({ id: channelId, data: { amount, cryptoCurrency: supportCoin, ...(supportMessage.trim() ? { message: supportMessage.trim() } : {}) } }, {
+      onSuccess: (checkout) => {
+        window.location.assign(checkout.invoiceUrl);
+      },
+      onError: (err: any) => toast({ title: 'Crypto support is unavailable', description: err?.body?.error || err?.message || 'The creator invoice could not be started. Please try again later.', variant: 'destructive' }),
+    });
   };
 
   const handleFollowToggle = () => {
@@ -299,11 +324,24 @@ export default function LiveChannel() {
                 <Heart className={`w-4 h-4 mr-2 ${channel.isFollowing ? 'fill-current' : ''}`} />
                 {channel.isFollowing ? 'Following' : 'Follow'}
               </Button>
-              <Button variant="secondary" size="icon">
+              <Button variant="secondary" onClick={() => setSupportOpen(open => !open)} className="font-bold border border-primary/25 text-primary hover:text-primary">
+                <Wallet className="w-4 h-4 mr-2" />
+                Support
+              </Button>
+              <Button variant="secondary" size="icon" aria-label="Share this channel">
                 <Share2 className="w-4 h-4" />
               </Button>
             </div>
           </div>
+
+          {supportOpen && (
+            <section className="mt-6 rounded-2xl border border-primary/25 bg-primary/[0.055] p-4 sm:p-5">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2 text-primary"><Wallet className="h-4 w-4" /><h3 className="text-sm font-black">Crypto support</h3></div><p className="mt-1 text-xs leading-relaxed text-white/50">Choose BTC, LTC, ETH, or DOGE. Kryv opens a secure crypto invoice; the USD amount is only a price quote, never a card or fiat checkout.</p></div><span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white/50">Crypto only</span></div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><label className="text-xs font-bold text-white/55">Support amount (USD quote)<input type="number" min="0.01" step="0.01" value={supportAmount} onChange={event => setSupportAmount(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label><label className="text-xs font-bold text-white/55">Pay with<select value={supportCoin} onChange={event => setSupportCoin(event.target.value as typeof supportCoin)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="BTC">Bitcoin (BTC)</option><option value="LTC">Litecoin (LTC)</option><option value="ETH">Ethereum (ETH)</option><option value="DOGE">Dogecoin (DOGE)</option></select></label><div className="flex items-end"><Button onClick={handleCryptoSupport} disabled={createCryptoTip.isPending} className="h-10 w-full rounded-xl font-black">{createCryptoTip.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wallet className="mr-2 h-4 w-4" /> Continue</>}</Button></div></div>
+              <label className="mt-3 block text-xs font-bold text-white/55">Optional message<input value={supportMessage} onChange={event => setSupportMessage(event.target.value)} maxLength={500} placeholder="Send a note with your support" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label>
+              <p className="mt-3 text-[11px] leading-relaxed text-white/42">A creator balance changes only after the crypto settlement service sends a signed confirmation. No wallet private key or seed phrase is requested by Kryv.</p>
+            </section>
+          )}
 
           {(engagement?.pointsEnabled || engagement?.activePoll || engagement?.activePrediction) && (
             <section className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">

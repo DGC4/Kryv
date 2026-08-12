@@ -69,6 +69,10 @@ export function supportedKryvCryptoCodes() {
   return allowedCoins();
 }
 
+export function isSupportedKryvCryptoCode(value: unknown): value is KryvCryptoCode {
+  return typeof value === "string" && (allowedCoins() as readonly string[]).includes(value.toUpperCase());
+}
+
 export async function createPlisioInvoice(input: {
   orderNumber: string;
   orderName: string;

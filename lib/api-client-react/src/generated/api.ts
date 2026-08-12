@@ -31,6 +31,7 @@ import type {
   AdminCinemaTitleDetail,
   AdminCinemaTitleInput,
   AdminCinemaTitleUpdate,
+  AdminFeatureFlag,
   AdminStats,
   AdminUser,
   AdminUserUpdate,
@@ -46,8 +47,6 @@ import type {
   ChannelInput,
   ChannelModerationActionInput,
   ChannelModerationActionResult,
-  ChannelMonetizationOnboardingLink,
-  ChannelMonetizationStatus,
   ChannelSummary,
   ChannelUpdate,
   ChatMessage,
@@ -56,6 +55,9 @@ import type {
   CinemaTitle,
   ClipInput,
   ClipSummary,
+  CryptoCheckout,
+  CryptoSubscriptionInput,
+  CryptoTipInput,
   DiscoverSummary,
   Error,
   GetAdDecisionParams,
@@ -70,6 +72,7 @@ import type {
   SearchKryvParams,
   SearchResults,
   StreamCredentials,
+  UpdateAdminFeatureFlagInput,
   VideoCreateResponse,
   VideoDetail,
   VideoInput,
@@ -2654,25 +2657,26 @@ export const useCreateChannelModerationAction = <TError = ErrorType<Error>,
       return useMutation(getCreateChannelModerationActionMutationOptions(options));
     }
 
-export const getGetChannelMonetizationStatusUrl = (id: number,) => {
+export const getCreateCryptoSubscriptionUrl = (id: number,) => {
 
 
 
 
-  return `/api/channels/${id}/monetization/status`
+  return `/api/channels/${id}/subscribe`
 }
 
 /**
- * @summary Get an owner’s Stripe Connect onboarding and capability status
+ * @summary Start a crypto-only channel subscription invoice; no entitlement is granted until a signed callback settles it
  */
-export const getChannelMonetizationStatus = async (id: number, options?: RequestInit): Promise<ChannelMonetizationStatus> => {
+export const createCryptoSubscription = async (id: number,
+    cryptoSubscriptionInput: CryptoSubscriptionInput, options?: RequestInit): Promise<CryptoCheckout> => {
 
-  return customFetch<ChannelMonetizationStatus>(getGetChannelMonetizationStatusUrl(id),
+  return customFetch<CryptoCheckout>(getCreateCryptoSubscriptionUrl(id),
   {
     ...options,
-    method: 'GET'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(cryptoSubscriptionInput)
   }
 );}
 
@@ -2680,88 +2684,11 @@ export const getChannelMonetizationStatus = async (id: number, options?: Request
 
 
 
-export const getGetChannelMonetizationStatusQueryKey = (id: number,) => {
-    return [
-    `/api/channels/${id}/monetization/status`
-    ] as const;
-    }
+export const getCreateCryptoSubscriptionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCryptoSubscription>>, TError,{id: number;data: BodyType<CryptoSubscriptionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCryptoSubscription>>, TError,{id: number;data: BodyType<CryptoSubscriptionInput>}, TContext> => {
 
-
-export const getGetChannelMonetizationStatusQueryOptions = <TData = Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetChannelMonetizationStatusQueryKey(id);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChannelMonetizationStatus>>> = ({ signal }) => getChannelMonetizationStatus(id, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetChannelMonetizationStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getChannelMonetizationStatus>>>
-export type GetChannelMonetizationStatusQueryError = ErrorType<Error>
-
-
-/**
- * @summary Get an owner’s Stripe Connect onboarding and capability status
- */
-
-export function useGetChannelMonetizationStatus<TData = Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError = ErrorType<Error>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelMonetizationStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetChannelMonetizationStatusQueryOptions(id,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export const getCreateChannelMonetizationOnboardingLinkUrl = (id: number,) => {
-
-
-
-
-  return `/api/channels/${id}/monetization/onboarding-link`
-}
-
-/**
- * @summary Create a short-lived Stripe-hosted onboarding link for the channel owner
- */
-export const createChannelMonetizationOnboardingLink = async (id: number, options?: RequestInit): Promise<ChannelMonetizationOnboardingLink> => {
-
-  return customFetch<ChannelMonetizationOnboardingLink>(getCreateChannelMonetizationOnboardingLinkUrl(id),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-
-export const getCreateChannelMonetizationOnboardingLinkMutationOptions = <TError = ErrorType<Error>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>, TError,{id: number}, TContext> => {
-
-const mutationKey = ['createChannelMonetizationOnboardingLink'];
+const mutationKey = ['createCryptoSubscription'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2771,10 +2698,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCryptoSubscription>>, {id: number;data: BodyType<CryptoSubscriptionInput>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  createChannelMonetizationOnboardingLink(id,requestOptions)
+          return  createCryptoSubscription(id,data,requestOptions)
         }
 
 
@@ -2784,22 +2711,94 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateChannelMonetizationOnboardingLinkMutationResult = NonNullable<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>>
-
-    export type CreateChannelMonetizationOnboardingLinkMutationError = ErrorType<Error>
+    export type CreateCryptoSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof createCryptoSubscription>>>
+    export type CreateCryptoSubscriptionMutationBody = BodyType<CryptoSubscriptionInput>
+    export type CreateCryptoSubscriptionMutationError = ErrorType<void>
 
     /**
- * @summary Create a short-lived Stripe-hosted onboarding link for the channel owner
+ * @summary Start a crypto-only channel subscription invoice; no entitlement is granted until a signed callback settles it
  */
-export const useCreateChannelMonetizationOnboardingLink = <TError = ErrorType<Error>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useCreateCryptoSubscription = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCryptoSubscription>>, TError,{id: number;data: BodyType<CryptoSubscriptionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof createChannelMonetizationOnboardingLink>>,
+        Awaited<ReturnType<typeof createCryptoSubscription>>,
         TError,
-        {id: number},
+        {id: number;data: BodyType<CryptoSubscriptionInput>},
         TContext
       > => {
-      return useMutation(getCreateChannelMonetizationOnboardingLinkMutationOptions(options));
+      return useMutation(getCreateCryptoSubscriptionMutationOptions(options));
+    }
+
+export const getCreateCryptoTipUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/tip`
+}
+
+/**
+ * @summary Start a crypto-only creator tip invoice; a balance changes only after signed provider confirmation
+ */
+export const createCryptoTip = async (id: number,
+    cryptoTipInput: CryptoTipInput, options?: RequestInit): Promise<CryptoCheckout> => {
+
+  return customFetch<CryptoCheckout>(getCreateCryptoTipUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(cryptoTipInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCryptoTipMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCryptoTip>>, TError,{id: number;data: BodyType<CryptoTipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCryptoTip>>, TError,{id: number;data: BodyType<CryptoTipInput>}, TContext> => {
+
+const mutationKey = ['createCryptoTip'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCryptoTip>>, {id: number;data: BodyType<CryptoTipInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createCryptoTip(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCryptoTipMutationResult = NonNullable<Awaited<ReturnType<typeof createCryptoTip>>>
+    export type CreateCryptoTipMutationBody = BodyType<CryptoTipInput>
+    export type CreateCryptoTipMutationError = ErrorType<void>
+
+    /**
+ * @summary Start a crypto-only creator tip invoice; a balance changes only after signed provider confirmation
+ */
+export const useCreateCryptoTip = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCryptoTip>>, TError,{id: number;data: BodyType<CryptoTipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCryptoTip>>,
+        TError,
+        {id: number;data: BodyType<CryptoTipInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCryptoTipMutationOptions(options));
     }
 
 export const getGetChannelEngagementUrl = (id: number,) => {
@@ -3937,6 +3936,155 @@ export function useGetAdminStats<TData = Awaited<ReturnType<typeof getAdminStats
 
 
 
+
+export const getListAdminFeatureFlagsUrl = () => {
+
+
+
+
+  return `/api/admin/feature-flags`
+}
+
+/**
+ * @summary Owner-only platform feature flags and emergency kill switches
+ */
+export const listAdminFeatureFlags = async ( options?: RequestInit): Promise<AdminFeatureFlag[]> => {
+
+  return customFetch<AdminFeatureFlag[]>(getListAdminFeatureFlagsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminFeatureFlagsQueryKey = () => {
+    return [
+    `/api/admin/feature-flags`
+    ] as const;
+    }
+
+
+export const getListAdminFeatureFlagsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminFeatureFlagsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminFeatureFlags>>> = ({ signal }) => listAdminFeatureFlags({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminFeatureFlagsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminFeatureFlags>>>
+export type ListAdminFeatureFlagsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Owner-only platform feature flags and emergency kill switches
+ */
+
+export function useListAdminFeatureFlags<TData = Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminFeatureFlagsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminFeatureFlagUrl = (key: string,) => {
+
+
+
+
+  return `/api/admin/feature-flags/${key}`
+}
+
+/**
+ * @summary Owner-only — change a platform feature flag or kill switch
+ */
+export const updateAdminFeatureFlag = async (key: string,
+    updateAdminFeatureFlagInput: UpdateAdminFeatureFlagInput, options?: RequestInit): Promise<AdminFeatureFlag> => {
+
+  return customFetch<AdminFeatureFlag>(getUpdateAdminFeatureFlagUrl(key),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateAdminFeatureFlagInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminFeatureFlagMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminFeatureFlag>>, TError,{key: string;data: BodyType<UpdateAdminFeatureFlagInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminFeatureFlag>>, TError,{key: string;data: BodyType<UpdateAdminFeatureFlagInput>}, TContext> => {
+
+const mutationKey = ['updateAdminFeatureFlag'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminFeatureFlag>>, {key: string;data: BodyType<UpdateAdminFeatureFlagInput>}> = (props) => {
+          const {key,data} = props ?? {};
+
+          return  updateAdminFeatureFlag(key,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminFeatureFlagMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminFeatureFlag>>>
+    export type UpdateAdminFeatureFlagMutationBody = BodyType<UpdateAdminFeatureFlagInput>
+    export type UpdateAdminFeatureFlagMutationError = ErrorType<Error>
+
+    /**
+ * @summary Owner-only — change a platform feature flag or kill switch
+ */
+export const useUpdateAdminFeatureFlag = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminFeatureFlag>>, TError,{key: string;data: BodyType<UpdateAdminFeatureFlagInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminFeatureFlag>>,
+        TError,
+        {key: string;data: BodyType<UpdateAdminFeatureFlagInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminFeatureFlagMutationOptions(options));
+    }
 
 export const getListAdminUsersUrl = () => {
 

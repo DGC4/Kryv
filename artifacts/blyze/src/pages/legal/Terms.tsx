@@ -48,7 +48,7 @@ export default function Terms() {
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">3. Creator Monetization</h2>
             <div className="space-y-4 text-white/70">
               <p>
-                Kryv provides creator monetization features including channel subscriptions, tips, polls, and engagement mechanics. Payments, settlement, and any creator verification are handled through approved payment service providers when those features are enabled. Creators must complete any required verification before payouts can be requested. Kryv deducts applicable platform service fees as configured in creator dashboards prior to settlement.
+                Kryv provides creator monetization features including crypto channel subscriptions, crypto tips, polls, and engagement mechanics. All active payment and settlement flows use approved crypto settlement services; Kryv does not offer card or fiat checkout. A creator balance changes only after a signed provider callback confirms a crypto transaction. Creators must complete any required verification and payout review before a crypto payout can be requested or completed. Kryv discloses applicable platform and network fees before settlement where those features are enabled.
               </p>
             </div>
           </section>

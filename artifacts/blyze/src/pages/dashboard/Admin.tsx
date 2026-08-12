@@ -21,17 +21,20 @@ import {
   useCreateAdminCinemaAsset,
   getListAdminCinemaTitlesQueryKey,
   getGetAdminCinemaTitleQueryKey,
+  useListAdminFeatureFlags,
+  useUpdateAdminFeatureFlag,
+  getListAdminFeatureFlagsQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Loader2, Ban, ShieldCheck, Trash2, Users, Radio, Film, Eye,
-  Crown, Lock, ShieldAlert, Activity, PlaySquare, Tv, Plus, Clapperboard, CheckCircle2, CircleAlert, FileVideo2, Gavel, History, Send, UploadCloud,
+  Crown, Lock, ShieldAlert, Activity, PlaySquare, Tv, Plus, Clapperboard, CheckCircle2, CircleAlert, FileVideo2, Gavel, History, Send, UploadCloud, Power, Zap,
 } from 'lucide-react';
 import { GoldenDBadge, UserBadge } from '@/components/brand/BrandIdentity';
 import { useToast } from '@/hooks/use-toast';
 
-type Tab = 'users' | 'channels' | 'videos' | 'cinema';
+type Tab = 'users' | 'channels' | 'videos' | 'cinema' | 'operations';
 
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: boolean }) {
   return (
@@ -68,6 +71,9 @@ export default function DashboardAdmin() {
   const { data: cinemaTitles, isLoading: cinemaTitlesLoading } = useListAdminCinemaTitles({
     query: { enabled: me?.role === 'owner' },
   });
+  const { data: featureFlags, isLoading: featureFlagsLoading } = useListAdminFeatureFlags({
+    query: { enabled: me?.role === 'owner' },
+  });
   const [selectedCinemaTitleId, setSelectedCinemaTitleId] = useState<number | null>(null);
   const cinemaDetailQuery = useGetAdminCinemaTitle(selectedCinemaTitleId ?? 0, {
     query: { enabled: me?.role === 'owner' && selectedCinemaTitleId !== null },
@@ -90,6 +96,7 @@ export default function DashboardAdmin() {
   const updateCinemaTitle = useUpdateAdminCinemaTitle();
   const createCinemaRightsWindow = useCreateAdminCinemaRightsWindow();
   const createCinemaAsset = useCreateAdminCinemaAsset();
+  const updateFeatureFlag = useUpdateAdminFeatureFlag();
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
@@ -97,6 +104,7 @@ export default function DashboardAdmin() {
     queryClient.invalidateQueries({ queryKey: getListAdminChannelsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListAdminVideosQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListAdminCinemaTitlesQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListAdminFeatureFlagsQueryKey() });
     if (selectedCinemaTitleId !== null) queryClient.invalidateQueries({ queryKey: getGetAdminCinemaTitleQueryKey(selectedCinemaTitleId) });
   };
 
@@ -127,6 +135,18 @@ export default function DashboardAdmin() {
   };
 
   const handleAddOriginal = () => setTab('cinema');
+
+  const toggleOperationalFlag = (key: string, enabled: boolean) => {
+    const label = key === 'crypto_commerce' ? 'crypto commerce' : 'ad delivery';
+    if (enabled && !confirm(`Enable ${label}? Confirm that its provider configuration, monitoring, and incident response are ready.`)) return;
+    updateFeatureFlag.mutate({ key, data: { enabled } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListAdminFeatureFlagsQueryKey() });
+        toast({ title: enabled ? `${label} enabled` : `${label} disabled`, description: enabled ? 'The server-side feature gate is now open.' : 'The server-side feature gate is now closed.' });
+      },
+      onError: (err: any) => toast({ title: 'Operational change blocked', description: err?.body?.error || err?.message || 'The feature flag could not be updated.', variant: 'destructive' }),
+    });
+  };
 
   const handleCreateCinemaTitle = (event: React.FormEvent) => {
     event.preventDefault();
@@ -230,7 +250,7 @@ export default function DashboardAdmin() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-white/[0.08] mb-5">
-        {(['users', 'channels', 'videos', 'cinema'] as Tab[]).map((t) => (
+        {(['users', 'channels', 'videos', 'cinema', 'operations'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -244,6 +264,30 @@ export default function DashboardAdmin() {
           </button>
         ))}
       </div>
+
+      {tab === 'operations' && (
+        <section className="space-y-4">
+          <div className="rounded-2xl border border-primary/20 bg-primary/[0.045] p-5 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div><div className="flex items-center gap-2 text-primary"><ShieldAlert className="h-5 w-5" /><h2 className="text-lg font-black">Operational controls</h2></div><p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/50">Server-enforced feature gates for controlled launch and immediate incident response. Every change is retained in the platform audit ledger.</p></div>
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/50"><Zap className="h-3.5 w-3.5 text-primary" /> Kill switches</div>
+            </div>
+          </div>
+          {featureFlagsLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {featureFlags?.map((flag) => {
+                const isCrypto = flag.key === 'crypto_commerce';
+                return <article key={flag.key} className={`rounded-2xl border p-5 ${flag.enabled ? 'border-emerald-400/25 bg-emerald-400/[0.045]' : 'border-white/[0.1] bg-black/30'}`}>
+                  <div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2"><Power className={`h-4 w-4 ${flag.enabled ? 'text-emerald-300' : 'text-white/35'}`} /><h3 className="text-sm font-black text-white">{isCrypto ? 'Crypto commerce' : 'Ad delivery'}</h3></div><p className="mt-2 text-xs leading-relaxed text-white/50">{flag.description}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${flag.enabled ? 'bg-emerald-400/15 text-emerald-300' : 'bg-white/[0.07] text-white/45'}`}>{flag.enabled ? 'Enabled' : 'Disabled'}</span></div>
+                  {isCrypto && !flag.enabled && <p className="mt-4 rounded-xl border border-amber-300/15 bg-amber-300/[0.06] p-3 text-[11px] leading-relaxed text-amber-100/70">Before enabling: confirm the provider secret, HTTPS JSON callback URL, public application URL, and signed-callback monitoring are configured in production.</p>}
+                  <div className="mt-5 flex items-center justify-between gap-3"><span className="text-[10px] font-bold text-white/35">Updated {new Date(flag.updatedAt).toLocaleString()}</span><Button variant={flag.enabled ? 'secondary' : 'default'} size="sm" disabled={updateFeatureFlag.isPending} onClick={() => toggleOperationalFlag(flag.key, !flag.enabled)} className="font-black">{updateFeatureFlag.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : flag.enabled ? 'Disable now' : 'Enable'}</Button></div>
+                </article>;
+              })}
+              {!featureFlags?.length && <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.05] p-5 text-sm text-amber-100/80">No operational flags are provisioned. Apply the platform foundations migration before attempting activation.</div>}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Users table */}
       {tab === 'users' && (

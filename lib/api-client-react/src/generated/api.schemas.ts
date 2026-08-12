@@ -251,28 +251,58 @@ export interface SearchResults {
   clips: ClipSummary[];
 }
 
-export type ChannelMonetizationStatusOnboardingStatus = typeof ChannelMonetizationStatusOnboardingStatus[keyof typeof ChannelMonetizationStatusOnboardingStatus];
+export type CryptoCurrency = typeof CryptoCurrency[keyof typeof CryptoCurrency];
 
 
-export const ChannelMonetizationStatusOnboardingStatus = {
-  not_started: 'not_started',
-  pending: 'pending',
-  complete: 'complete',
-  restricted: 'restricted',
+export const CryptoCurrency = {
+  BTC: 'BTC',
+  LTC: 'LTC',
+  ETH: 'ETH',
+  DOGE: 'DOGE',
 } as const;
 
-export interface ChannelMonetizationStatus {
-  provider: string;
-  onboardingStatus: ChannelMonetizationStatusOnboardingStatus;
-  chargesEnabled: boolean;
-  payoutsEnabled: boolean;
-  detailsSubmitted: boolean;
-  requirementsDue: string[];
+export type CryptoCheckoutProvider = typeof CryptoCheckoutProvider[keyof typeof CryptoCheckoutProvider];
+
+
+export const CryptoCheckoutProvider = {
+  plisio: 'plisio',
+} as const;
+
+export type CryptoCheckoutStatus = typeof CryptoCheckoutStatus[keyof typeof CryptoCheckoutStatus];
+
+
+export const CryptoCheckoutStatus = {
+  pending: 'pending',
+} as const;
+
+export interface CryptoCheckout {
+  paymentIntentId: number;
+  invoiceUrl: string;
+  provider: CryptoCheckoutProvider;
+  status: CryptoCheckoutStatus;
+  selectedCurrency: CryptoCurrency | null;
+  expiresAt: string | null;
 }
 
-export interface ChannelMonetizationOnboardingLink {
-  url: string;
-  onboardingStatus: string;
+export interface CryptoSubscriptionInput {
+  /**
+     * @minimum 1
+     * @maximum 3
+     */
+  tier?: number;
+  cryptoCurrency?: CryptoCurrency;
+}
+
+export interface CryptoTipInput {
+  /**
+     * USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.
+     * @maximum 100000
+     * @exclusiveMinimum 0
+     */
+  amount: number;
+  cryptoCurrency?: CryptoCurrency;
+  /** @maxLength 500 */
+  message?: string;
 }
 
 export interface ChannelEngagementChoice {
@@ -1017,6 +1047,17 @@ export interface Me {
   role: MeRole;
   channel: ChannelSummary | null;
   followedChannels: ChannelSummary[];
+}
+
+export interface AdminFeatureFlag {
+  key: string;
+  enabled: boolean;
+  description: string;
+  updatedAt: string;
+}
+
+export interface UpdateAdminFeatureFlagInput {
+  enabled: boolean;
 }
 
 export interface AdminStats {

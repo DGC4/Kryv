@@ -989,71 +989,59 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /channels/{id}/monetization/status:
-    get:
-      operationId: getChannelMonetizationStatus
-      tags: [channels]
-      summary: Get an owner’s Stripe Connect onboarding and capability status
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      responses:
-        "200":
-          description: Creator payment-account status
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ChannelMonetizationStatus"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "403":
-          description: Channel-owner permission required
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /channels/{id}/monetization/onboarding-link:
+  /channels/{id}/subscribe:
     post:
-      operationId: createChannelMonetizationOnboardingLink
+      operationId: createCryptoSubscription
       tags: [channels]
-      summary: Create a short-lived Stripe-hosted onboarding link for the channel owner
+      summary: Start a crypto-only channel subscription invoice; no entitlement is granted until a signed callback settles it
       parameters:
         - name: id
           in: path
           required: true
           schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CryptoSubscriptionInput"
       responses:
-        "200":
-          description: One-time hosted onboarding URL
+        "201":
+          description: Pending crypto invoice
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ChannelMonetizationOnboardingLink"
-        "401":
-          description: Not authenticated
+                $ref: "#/components/schemas/CryptoCheckout"
+        "401": { description: Authentication required }
+        "404": { description: Channel not found }
+        "503": { description: Crypto commerce is not configured or active }
+
+  /channels/{id}/tip:
+    post:
+      operationId: createCryptoTip
+      tags: [channels]
+      summary: Start a crypto-only creator tip invoice; a balance changes only after signed provider confirmation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CryptoTipInput"
+      responses:
+        "201":
+          description: Pending crypto invoice
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "403":
-          description: Channel-owner permission required
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "503":
-          description: Payment provider not configured
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/CryptoCheckout"
+        "401": { description: Authentication required }
+        "404": { description: Channel not found }
+        "503": { description: Crypto commerce is not configured or active }
 
   /channels/{id}/engagement:
     get:
@@ -1494,6 +1482,70 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /admin/feature-flags:
+    get:
+      operationId: listAdminFeatureFlags
+      tags: [admin]
+      summary: Owner-only platform feature flags and emergency kill switches
+      responses:
+        "200":
+          description: Feature flags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminFeatureFlag"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/feature-flags/{key}:
+    patch:
+      operationId: updateAdminFeatureFlag
+      tags: [admin]
+      summary: Owner-only — change a platform feature flag or kill switch
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAdminFeatureFlagInput"
+      responses:
+        "200":
+          description: Updated feature flag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminFeatureFlag"
+        "400":
+          description: Invalid update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Flag not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/users:
     get:
       operationId: listAdminUsers
@@ -1838,25 +1890,41 @@ components:
           type: array
           items: { $ref: "#/components/schemas/ClipSummary" }
 
-    ChannelMonetizationStatus:
-      type: object
-      required: [provider, onboardingStatus, chargesEnabled, payoutsEnabled, detailsSubmitted, requirementsDue]
-      properties:
-        provider: { type: string }
-        onboardingStatus: { type: string, enum: [not_started, pending, complete, restricted] }
-        chargesEnabled: { type: boolean }
-        payoutsEnabled: { type: boolean }
-        detailsSubmitted: { type: boolean }
-        requirementsDue:
-          type: array
-          items: { type: string }
+    CryptoCurrency:
+      type: string
+      enum: [BTC, LTC, ETH, DOGE]
 
-    ChannelMonetizationOnboardingLink:
+    CryptoCheckout:
       type: object
-      required: [url, onboardingStatus]
+      required: [paymentIntentId, invoiceUrl, provider, status, selectedCurrency, expiresAt]
       properties:
-        url: { type: string }
-        onboardingStatus: { type: string }
+        paymentIntentId: { type: integer }
+        invoiceUrl: { type: string }
+        provider: { type: string, enum: [plisio] }
+        status: { type: string, enum: [pending] }
+        selectedCurrency:
+          oneOf:
+            - $ref: "#/components/schemas/CryptoCurrency"
+            - type: "null"
+        expiresAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: "null"
+
+    CryptoSubscriptionInput:
+      type: object
+      properties:
+        tier: { type: integer, minimum: 1, maximum: 3, default: 1 }
+        cryptoCurrency: { $ref: "#/components/schemas/CryptoCurrency" }
+
+    CryptoTipInput:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, exclusiveMinimum: 0, maximum: 100000, description: USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout. }
+        cryptoCurrency: { $ref: "#/components/schemas/CryptoCurrency" }
+        message: { type: string, maxLength: 500 }
 
     ChannelEngagementChoice:
       type: object
@@ -2411,6 +2479,27 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ChannelSummary"
+
+    AdminFeatureFlag:
+      type: object
+      required: [key, enabled, description, updatedAt]
+      properties:
+        key:
+          type: string
+        enabled:
+          type: boolean
+        description:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateAdminFeatureFlagInput:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
 
     AdminStats:
       type: object

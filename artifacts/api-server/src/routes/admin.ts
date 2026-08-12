@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { eq, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import {
   db,
   usersTable,
   channelsTable,
   videosTable,
+  featureFlagsTable,
 } from "@workspace/db";
 import {
   GetAdminStatsResponse,
@@ -16,12 +17,80 @@ import {
   DeleteAdminChannelParams,
   ListAdminVideosResponse,
   DeleteAdminVideoParams,
+  ListAdminFeatureFlagsResponse,
+  UpdateAdminFeatureFlagParams,
+  UpdateAdminFeatureFlagBody,
+  UpdateAdminFeatureFlagResponse,
 } from "@workspace/api-zod";
 import { requireOwner } from "../lib/auth";
 import { toChannelSummary } from "../lib/channelSerializer";
 import { toVideoSummary } from "../lib/videoSerializer";
+import { writeAuditLog } from "../lib/operations";
+
+const OPERATIONAL_FLAG_COPY: Record<string, string> = {
+  crypto_commerce: "Crypto-only invoices for channel support and subscriptions. Disable immediately if provider callbacks or settlement monitoring are unhealthy.",
+  ads_delivery: "Viewer ad decision and eligible ad-break delivery. Keep disabled until consent, frequency caps, and impression monitoring are operational.",
+};
+
+function toAdminFeatureFlag(row: { key: string; enabled: boolean; description: string | null; updatedAt: Date }) {
+  return {
+    key: row.key,
+    enabled: row.enabled,
+    description: row.description || OPERATIONAL_FLAG_COPY[row.key] || "Platform operational feature flag.",
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
 
 const router: IRouter = Router();
+
+router.get("/admin/feature-flags", requireOwner, async (_req, res): Promise<void> => {
+  const flags = await db
+    .select({ key: featureFlagsTable.key, enabled: featureFlagsTable.enabled, description: featureFlagsTable.description, updatedAt: featureFlagsTable.updatedAt })
+    .from(featureFlagsTable)
+    .orderBy(asc(featureFlagsTable.key));
+
+  res.json(ListAdminFeatureFlagsResponse.parse(flags.filter((flag) => flag.key in OPERATIONAL_FLAG_COPY).map(toAdminFeatureFlag)));
+});
+
+router.patch("/admin/feature-flags/:key", requireOwner, async (req, res): Promise<void> => {
+  const params = UpdateAdminFeatureFlagParams.safeParse(req.params);
+  const body = UpdateAdminFeatureFlagBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    return;
+  }
+
+  const key = params.data.key;
+  if (!(key in OPERATIONAL_FLAG_COPY)) {
+    res.status(404).json({ error: "Operational feature flag not found" });
+    return;
+  }
+
+  const [before] = await db
+    .select({ key: featureFlagsTable.key, enabled: featureFlagsTable.enabled, description: featureFlagsTable.description, updatedAt: featureFlagsTable.updatedAt })
+    .from(featureFlagsTable)
+    .where(eq(featureFlagsTable.key, key));
+  if (!before) {
+    res.status(404).json({ error: "Operational feature flag has not been provisioned" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(featureFlagsTable)
+    .set({ enabled: body.data.enabled, updatedByUserId: req.user!.userId, updatedAt: new Date() })
+    .where(eq(featureFlagsTable.key, key))
+    .returning({ key: featureFlagsTable.key, enabled: featureFlagsTable.enabled, description: featureFlagsTable.description, updatedAt: featureFlagsTable.updatedAt });
+
+  await writeAuditLog(req, {
+    action: updated.enabled ? "feature_flag.enabled" : "feature_flag.disabled",
+    targetType: "feature_flag",
+    targetId: key,
+    beforeState: toAdminFeatureFlag(before),
+    afterState: toAdminFeatureFlag(updated),
+  });
+
+  res.json(UpdateAdminFeatureFlagResponse.parse(toAdminFeatureFlag(updated)));
+});
 
 router.get("/admin/stats", requireOwner, async (_req, res): Promise<void> => {
   const [users] = await db

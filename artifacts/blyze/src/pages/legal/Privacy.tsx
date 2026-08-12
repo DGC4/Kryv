@@ -38,9 +38,9 @@ export default function Privacy() {
               </div>
 
               <div className="rounded-xl border border-white/[0.06] bg-black/40 p-5">
-                <h3 className="text-white font-bold text-lg mb-2">Monetization &amp; Financial Compliance</h3>
+                <h3 className="text-white font-bold text-lg mb-2">Crypto Settlement &amp; Financial Compliance</h3>
                 <p className="text-sm sm:text-base leading-relaxed">
-                  Kryv uses vetted payment and payout service providers to support creator monetization, subscriptions, tips, and settlement. We do not collect, process, or store raw payment-card numbers or identity-verification documents on Kryv servers. These providers process payment and verification information under their own security and compliance programs; Kryv records only opaque provider identifiers, subscription status, payout eligibility flags, and transaction ledgers.
+                  Kryv supports creator subscriptions, tips, balances, and payouts through approved crypto settlement services. We do not collect or store wallet private keys, seed phrases, or custody credentials on Kryv servers. A provider processes crypto invoices and confirmations under its own security and compliance programs; Kryv records the minimum transaction, entitlement, balance, payout-review, and audit data needed to operate the Service.
                 </p>
               </div>
 
@@ -67,7 +67,7 @@ export default function Privacy() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-primary font-bold mt-1">▪</span>
-                <span><strong className="text-white">Monetization &amp; Payouts:</strong> Administering creator revenue shares, subscription tiers, and payout compliance through vetted payment service providers.</span>
+                <span><strong className="text-white">Crypto Settlement &amp; Payouts:</strong> Administering creator revenue shares, crypto subscription tiers, and reviewed payout operations through approved crypto settlement services.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-primary font-bold mt-1">▪</span>
@@ -91,8 +91,8 @@ export default function Privacy() {
                 <p className="text-xs text-white/40 mt-1">Encrypted relational data storage</p>
               </div>
               <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center">
-                <p className="font-black text-white">Payment service providers</p>
-                <p className="text-xs text-white/40 mt-1">Secure payment processing and settlement support</p>
+                <p className="font-black text-white">Crypto settlement services</p>
+                <p className="text-xs text-white/40 mt-1">Invoice processing, confirmation, and payout-operation support</p>
               </div>
             </div>
           </section>

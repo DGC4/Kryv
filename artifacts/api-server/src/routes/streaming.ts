@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
 import { eq } from "drizzle-orm";
 import {
   channelsTable,
   db,
   emotesTable,
+  featureFlagsTable,
   paymentIntentsTable,
 } from "@workspace/db";
 import {
@@ -24,6 +25,36 @@ import {
 } from "../lib/plisio";
 
 const router: IRouter = Router();
+
+class CryptoCommerceDisabledError extends Error {
+  constructor() {
+    super("Crypto commerce is not active yet. The owner must complete provider configuration and controlled activation before new invoices can be created.");
+    this.name = "CryptoCommerceDisabledError";
+  }
+}
+
+async function assertCryptoCommerceEnabled() {
+  const [flag] = await db
+    .select({ enabled: featureFlagsTable.enabled })
+    .from(featureFlagsTable)
+    .where(eq(featureFlagsTable.key, "crypto_commerce"))
+    .limit(1);
+  if (!flag?.enabled) throw new CryptoCommerceDisabledError();
+}
+
+async function requireCryptoCommerceReadiness(_req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!isPlisioConfigured()) throw new PlisioNotConfiguredError();
+    await assertCryptoCommerceEnabled();
+    next();
+  } catch (error) {
+    if (error instanceof PlisioNotConfiguredError || error instanceof CryptoCommerceDisabledError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    next(error);
+  }
+}
 
 function configuredSubscriptionAmount(tier: number) {
   const value = process.env[`KRYV_CRYPTO_SUB_TIER_${tier}_USD`]?.trim();
@@ -48,6 +79,7 @@ async function createCryptoCheckout(input: {
   metadata: Record<string, unknown>;
 }) {
   if (!isPlisioConfigured()) throw new PlisioNotConfiguredError();
+  await assertCryptoCommerceEnabled();
 
   const orderNumber = `kryv_${input.paymentKind}_${input.userId}_${crypto.randomUUID()}`;
   const [intent] = await db
@@ -122,7 +154,7 @@ router.get("/channels/:id/emotes", async (req, res) => {
 });
 
 // POST /channels/:id/subscribe - starts, but never grants, a crypto checkout.
-router.post("/channels/:id/subscribe", requireAuth, async (req, res) => {
+router.post("/channels/:id/subscribe", requireCryptoCommerceReadiness, requireAuth, async (req, res) => {
   const channelId = Number(req.params.id);
   const parsed = SubscribeBody.safeParse(req.body);
   if (!Number.isSafeInteger(channelId) || channelId < 1) return res.status(400).json({ error: "Invalid channel ID" });
@@ -145,14 +177,14 @@ router.post("/channels/:id/subscribe", requireAuth, async (req, res) => {
     logActivity(req, "subscription_checkout_started", { channelId, tier: parsed.data.tier, paymentIntentId: checkout.paymentIntentId }).catch(console.error);
     res.status(201).json(SubscribeResponse.parse(checkout));
   } catch (error) {
-    if (error instanceof PlisioNotConfiguredError) return res.status(503).json({ error: error.message });
+    if (error instanceof PlisioNotConfiguredError || error instanceof CryptoCommerceDisabledError) return res.status(503).json({ error: error.message });
     console.error("Crypto subscription checkout creation failed", error);
     res.status(502).json({ error: "Crypto checkout could not be started. Please try again." });
   }
 });
 
 // POST /channels/:id/tip - starts, but never settles, a crypto creator tip.
-router.post("/channels/:id/tip", requireAuth, async (req, res) => {
+router.post("/channels/:id/tip", requireCryptoCommerceReadiness, requireAuth, async (req, res) => {
   const channelId = Number(req.params.id);
   const parsed = TipBody.safeParse(req.body);
   if (!Number.isSafeInteger(channelId) || channelId < 1) return res.status(400).json({ error: "Invalid channel ID" });
@@ -174,7 +206,7 @@ router.post("/channels/:id/tip", requireAuth, async (req, res) => {
     logActivity(req, "tip_checkout_started", { channelId, amount: parsed.data.amount, paymentIntentId: checkout.paymentIntentId }).catch(console.error);
     res.status(201).json(TipResponse.parse(checkout));
   } catch (error) {
-    if (error instanceof PlisioNotConfiguredError) return res.status(503).json({ error: error.message });
+    if (error instanceof PlisioNotConfiguredError || error instanceof CryptoCommerceDisabledError) return res.status(503).json({ error: error.message });
     console.error("Crypto tip checkout creation failed", error);
     res.status(502).json({ error: "Crypto checkout could not be started. Please try again." });
   }

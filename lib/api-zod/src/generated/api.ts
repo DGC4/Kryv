@@ -1070,32 +1070,59 @@ export const CreateChannelModerationActionResponse = zod.object({
 
 
 /**
- * @summary Get an owner’s Stripe Connect onboarding and capability status
+ * @summary Start a crypto-only channel subscription invoice; no entitlement is granted until a signed callback settles it
  */
-export const GetChannelMonetizationStatusParams = zod.object({
+export const CreateCryptoSubscriptionParams = zod.object({
   "id": zod.coerce.number()
 })
 
-export const GetChannelMonetizationStatusResponse = zod.object({
-  "provider": zod.string(),
-  "onboardingStatus": zod.enum(['not_started', 'pending', 'complete', 'restricted']),
-  "chargesEnabled": zod.boolean(),
-  "payoutsEnabled": zod.boolean(),
-  "detailsSubmitted": zod.boolean(),
-  "requirementsDue": zod.array(zod.string())
+export const createCryptoSubscriptionBodyTierDefault = 1;
+export const createCryptoSubscriptionBodyTierMax = 3;
+
+
+
+export const CreateCryptoSubscriptionBody = zod.object({
+  "tier": zod.number().min(1).max(createCryptoSubscriptionBodyTierMax).default(createCryptoSubscriptionBodyTierDefault),
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional()
+})
+
+export const CreateCryptoSubscriptionResponse = zod.object({
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string(),
+  "provider": zod.enum(['plisio']),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()])
 })
 
 
 /**
- * @summary Create a short-lived Stripe-hosted onboarding link for the channel owner
+ * @summary Start a crypto-only creator tip invoice; a balance changes only after signed provider confirmation
  */
-export const CreateChannelMonetizationOnboardingLinkParams = zod.object({
+export const CreateCryptoTipParams = zod.object({
   "id": zod.coerce.number()
 })
 
-export const CreateChannelMonetizationOnboardingLinkResponse = zod.object({
-  "url": zod.string(),
-  "onboardingStatus": zod.string()
+export const createCryptoTipBodyAmountExclusiveMin = 0;
+export const createCryptoTipBodyAmountMax = 100000;
+
+export const createCryptoTipBodyMessageMax = 500;
+
+
+
+export const CreateCryptoTipBody = zod.object({
+  "amount": zod.number().gt(createCryptoTipBodyAmountExclusiveMin).max(createCryptoTipBodyAmountMax).describe('USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.'),
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional(),
+  "message": zod.string().max(createCryptoTipBodyMessageMax).optional()
+})
+
+export const CreateCryptoTipResponse = zod.object({
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string(),
+  "provider": zod.enum(['plisio']),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()])
 })
 
 
@@ -1545,6 +1572,37 @@ export const GetAdminStatsResponse = zod.object({
   "totalVideos": zod.number(),
   "totalViews": zod.number(),
   "bannedUsers": zod.number()
+})
+
+
+/**
+ * @summary Owner-only platform feature flags and emergency kill switches
+ */
+export const ListAdminFeatureFlagsResponseItem = zod.object({
+  "key": zod.string(),
+  "enabled": zod.boolean(),
+  "description": zod.string(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminFeatureFlagsResponse = zod.array(ListAdminFeatureFlagsResponseItem)
+
+
+/**
+ * @summary Owner-only — change a platform feature flag or kill switch
+ */
+export const UpdateAdminFeatureFlagParams = zod.object({
+  "key": zod.coerce.string()
+})
+
+export const UpdateAdminFeatureFlagBody = zod.object({
+  "enabled": zod.boolean()
+})
+
+export const UpdateAdminFeatureFlagResponse = zod.object({
+  "key": zod.string(),
+  "enabled": zod.boolean(),
+  "description": zod.string(),
+  "updatedAt": zod.coerce.date()
 })
 
 

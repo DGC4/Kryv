@@ -12,7 +12,7 @@ export const subscriptionsTable = pgTable("subscriptions", {
   channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
   tier: integer("tier").notNull().default(1),
   status: text("status").notNull().default("active"),
-  provider: text("provider").notNull().default("stripe"),
+  provider: text("provider").notNull().default("plisio"),
   providerCustomerId: text("provider_customer_id"),
   providerSubscriptionId: text("provider_subscription_id").unique(),
   providerPriceId: text("provider_price_id"),
@@ -26,31 +26,14 @@ export const subscriptionsTable = pgTable("subscriptions", {
     .where(sql`${table.status} = 'active'`),
 }));
 
-// ─── Creator Payment Accounts ─────────────────────────────────────────────────
-// KYC and payout details remain exclusively with the provider. Kryv stores only
-// opaque provider identifiers and capability state needed to gate monetization.
-export const creatorPaymentAccountsTable = pgTable("creator_payment_accounts", {
-  id: serial("id").primaryKey(),
-  channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }).unique(),
-  provider: text("provider").notNull().default("stripe"),
-  providerAccountId: text("provider_account_id").notNull().unique(),
-  onboardingStatus: text("onboarding_status").notNull().default("pending"),
-  chargesEnabled: boolean("charges_enabled").notNull().default(false),
-  payoutsEnabled: boolean("payouts_enabled").notNull().default(false),
-  detailsSubmitted: boolean("details_submitted").notNull().default(false),
-  country: text("country"),
-  requirementsDue: jsonb("requirements_due").notNull().default([]),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  onboardingStatusIdx: index("creator_payment_accounts_onboarding_status_idx").on(table.onboardingStatus),
-}));
+// Historical creator payment-account rows remain in the database for audit retention,
+// but no application path uses card-provider onboarding or account capabilities.
 
 // ─── Payment Event Ledger ─────────────────────────────────────────────────────
 // Stores a provider event ID and result, never raw card, KYC, or webhook payload data.
 export const paymentEventsTable = pgTable("payment_events", {
   id: serial("id").primaryKey(),
-  provider: text("provider").notNull().default("stripe"),
+  provider: text("provider").notNull().default("plisio"),
   providerEventId: text("provider_event_id").notNull().unique(),
   eventType: text("event_type").notNull(),
   processingStatus: text("processing_status").notNull().default("received"),
@@ -128,11 +111,11 @@ export const tipsTable = pgTable("tips", {
   id: serial("id").primaryKey(),
   senderUserId: integer("sender_user_id").references(() => usersTable.id, { onDelete: "set null" }),
   receiverChannelId: integer("receiver_channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
-  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").notNull().default("USD"),
-  provider: text("provider").notNull().default("stripe"),
+  amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
+  currency: text("currency").notNull(),
+  provider: text("provider").notNull().default("plisio"),
   providerPaymentIntentId: text("provider_payment_intent_id").unique(),
-  platformFeeAmount: numeric("platform_fee_amount", { precision: 10, scale: 2 }),
+  platformFeeAmount: numeric("platform_fee_amount", { precision: 18, scale: 8 }),
   status: text("status").notNull().default("pending"),
   message: text("message"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
