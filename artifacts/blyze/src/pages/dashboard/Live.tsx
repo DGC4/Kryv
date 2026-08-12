@@ -19,6 +19,11 @@ import {
   useListChannelMessages,
   useCreateChannelMessage,
   useCreateChannelModerationAction,
+  useGetCreatorFinance,
+  useSaveCreatorPayoutProfile,
+  useUpdateCreatorPayoutPreference,
+  useCreateCreatorPayoutRequest,
+  useGetCreatorAchievements,
 } from '@workspace/api-client-react';
 import HlsPlayer from '@/components/video/HlsPlayer';
 import { Button } from '@/components/ui/button';
@@ -27,7 +32,7 @@ import {
   Monitor, ExternalLink, MapPin, Wifi,
   Settings, BarChart2, Users, MessageSquare, Eye, EyeOff,
   ChevronRight, Lock, Unlock, Globe, Signal, CreditCard,
-  Zap, Shield, Crown, Trophy, Vote, Sparkles, Swords, RadioTower, Bell,
+  Zap, Shield, Crown, Trophy, Vote, Sparkles, Swords, RadioTower, Bell, Wallet,
   Clapperboard, Library, Search, X, LayoutDashboard, Send, Trash2, Clock3, Ban,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -148,7 +153,7 @@ function useIpLocation() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type DashTab = 'stream' | 'content' | 'settings' | 'engagement' | 'analytics';
+type DashTab = 'stream' | 'content' | 'settings' | 'engagement' | 'analytics' | 'revenue' | 'achievements';
 
 export default function DashboardLive() {
   const [, navigate] = useLocation();
@@ -172,6 +177,13 @@ export default function DashboardLive() {
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
   const [activeTab, setActiveTab] = useState<DashTab>('stream');
+  const [payoutCurrency, setPayoutCurrency] = useState<'BTC' | 'LTC' | 'ETH' | 'DOGE'>('BTC');
+  const [payoutAddress, setPayoutAddress] = useState('');
+  const [payoutCadence, setPayoutCadence] = useState<'manual' | 'daily' | 'weekly' | 'monthly'>('manual');
+  const [payoutMinimumAmount, setPayoutMinimumAmount] = useState('0');
+  const [payoutWeekday, setPayoutWeekday] = useState(1);
+  const [payoutMonthDay, setPayoutMonthDay] = useState(1);
+  const [payoutAmount, setPayoutAmount] = useState('');
   const [channelCreated, setChannelCreated] = useState(false);
   const [pollTitle, setPollTitle] = useState('');
   const [pollChoices, setPollChoices] = useState('');
@@ -193,6 +205,15 @@ export default function DashboardLive() {
     query: { enabled: Boolean(me?.channel && activeTab === 'engagement'), refetchInterval: activeTab === 'engagement' ? 10000 : false },
   });
   const engagementAction = useCreateChannelEngagementAction();
+  const creatorFinanceQuery = useGetCreatorFinance({
+    query: { enabled: Boolean(me?.channel && (activeTab === 'revenue' || activeTab === 'achievements')), refetchInterval: activeTab === 'revenue' ? 15000 : false },
+  });
+  const creatorAchievementsQuery = useGetCreatorAchievements({
+    query: { enabled: Boolean(me?.channel && activeTab === 'achievements') },
+  });
+  const saveCreatorPayoutProfile = useSaveCreatorPayoutProfile();
+  const updateCreatorPayoutPreference = useUpdateCreatorPayoutPreference();
+  const createCreatorPayoutRequest = useCreateCreatorPayoutRequest();
   const { data: savedNotificationPrefs } = useGetNotificationPreferences({ query: { enabled: activeTab === 'settings' } });
   const updateNotificationPrefs = useUpdateNotificationPreferences();
   const { data: analytics, isLoading: analyticsLoading } = useGetChannelAnalytics(
@@ -248,6 +269,15 @@ export default function DashboardLive() {
   useEffect(() => {
     if (savedNotificationPrefs) setNotificationPrefs(savedNotificationPrefs);
   }, [savedNotificationPrefs]);
+
+  useEffect(() => {
+    if (!creatorFinanceQuery.data?.payoutPreference) return;
+    const preference = creatorFinanceQuery.data.payoutPreference;
+    setPayoutCadence(preference.cadence);
+    setPayoutMinimumAmount(preference.minimumAmount);
+    setPayoutWeekday(preference.weekday ?? 1);
+    setPayoutMonthDay(preference.monthDay ?? 1);
+  }, [creatorFinanceQuery.data?.payoutPreference]);
 
   const handleCreateChannel = (e: React.FormEvent) => {
     e.preventDefault();
@@ -529,6 +559,8 @@ export default function DashboardLive() {
         <SidebarItem icon={LayoutDashboard} label="Stream Manager" active={activeTab === 'stream'} onClick={() => setActiveTab('stream')} />
         <SidebarItem icon={Library} label="Content" active={activeTab === 'content'} onClick={() => setActiveTab('content')} />
         <SidebarItem icon={Sparkles} label="Community" active={activeTab === 'engagement'} onClick={() => setActiveTab('engagement')} />
+        <SidebarItem icon={Wallet} label="Revenue & Wallet" active={activeTab === 'revenue'} onClick={() => setActiveTab('revenue')} />
+        <SidebarItem icon={Trophy} label="Achievements" active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')} />
         <SidebarItem icon={BarChart2} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
         <SidebarItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
 
@@ -592,6 +624,8 @@ export default function DashboardLive() {
               { id: 'stream', label: 'Stream', icon: LayoutDashboard },
               { id: 'content', label: 'Content', icon: Library },
               { id: 'engagement', label: 'Community', icon: Sparkles },
+              { id: 'revenue', label: 'Wallet', icon: Wallet },
+              { id: 'achievements', label: 'Achievements', icon: Trophy },
               { id: 'analytics', label: 'Analytics', icon: BarChart2 },
               { id: 'settings', label: 'Settings', icon: Settings },
             ] as Array<{ id: DashTab; label: string; icon: any }>).map(({ id, label, icon: Icon }) => (
@@ -1060,6 +1094,75 @@ export default function DashboardLive() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── Revenue & Wallet tab ── */}
+        {activeTab === 'revenue' && (
+          <div className="max-w-6xl p-5 space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Creator settlement</p>
+                <h2 className="mt-1 text-2xl font-black text-white">Revenue &amp; Wallet</h2>
+                <p className="mt-1 max-w-2xl text-xs leading-relaxed text-white/45">Your creator balance is crypto-only. USD figures are reference values—not a conversion quote, bank balance, or fiat payout.</p>
+              </div>
+              <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${creatorFinanceQuery.data?.payoutRequestsEnabled ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' : 'border-amber-300/20 bg-amber-300/10 text-amber-100'}`}>{creatorFinanceQuery.data?.payoutRequestsEnabled ? 'Payout requests enabled' : 'Payout launch controlled'}</span>
+            </div>
+
+            {creatorFinanceQuery.isLoading ? <div className="flex min-h-64 items-center justify-center rounded-2xl border border-white/[0.08] bg-black/25"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div> : (
+              <>
+                <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {(['BTC', 'LTC', 'ETH', 'DOGE'] as const).map((currency) => {
+                    const balance = creatorFinanceQuery.data?.balances.find((item) => item.currency === currency);
+                    return <article key={currency} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                      <div className="flex items-center justify-between"><span className="text-xs font-black text-white">{currency}</span><Wallet className="h-4 w-4 text-primary" /></div>
+                      <p className="mt-4 text-xl font-black text-white">{balance?.availableAmount ?? '0'}</p>
+                      <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-white/35">Available</p>
+                      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/[0.06] pt-3 text-[11px]"><span className="text-white/35">Pending <b className="ml-1 text-white/70">{balance?.pendingAmount ?? '0'}</b></span><span className="text-right text-white/35">Held <b className="ml-1 text-white/70">{balance?.heldAmount ?? '0'}</b></span></div>
+                    </article>;
+                  })}
+                </section>
+
+                <section className="grid gap-5 xl:grid-cols-2">
+                  <form onSubmit={(event) => { event.preventDefault(); if (!payoutAddress.trim()) return; saveCreatorPayoutProfile.mutate({ data: { currency: payoutCurrency, address: payoutAddress.trim() } }, { onSuccess: () => { setPayoutAddress(''); creatorFinanceQuery.refetch(); toast({ title: 'Destination saved for review', description: 'Kryv stores only an encrypted destination and shows a masked value in your wallet.' }); }, onError: (err: any) => toast({ title: 'Destination not saved', description: err?.body?.error || err?.message || 'Check the destination and platform configuration.', variant: 'destructive' }) }); }} className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
+                    <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Wallet className="h-5 w-5" /></div><div><h3 className="text-sm font-black text-white">Payout destination</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Add one destination per supported asset. A change resets owner approval and is never returned to your browser in full.</p></div></div>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-[140px_1fr]">
+                      <label className="text-xs font-bold text-white/65">Asset<select value={payoutCurrency} onChange={event => setPayoutCurrency(event.target.value as typeof payoutCurrency)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="BTC">Bitcoin (BTC)</option><option value="LTC">Litecoin (LTC)</option><option value="ETH">Ethereum (ETH)</option><option value="DOGE">Dogecoin (DOGE)</option></select></label>
+                      <label className="text-xs font-bold text-white/65">Destination address<input value={payoutAddress} onChange={event => setPayoutAddress(event.target.value)} minLength={12} maxLength={240} placeholder="Paste the matching crypto address" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label>
+                    </div>
+                    <Button type="submit" disabled={saveCreatorPayoutProfile.isPending || !payoutAddress.trim()} className="mt-4 w-full font-black">{saveCreatorPayoutProfile.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Encrypting…</> : <><Lock className="mr-2 h-4 w-4" /> Save for owner review</>}</Button>
+                    <div className="mt-4 space-y-2">{creatorFinanceQuery.data?.payoutProfiles.length ? creatorFinanceQuery.data.payoutProfiles.map((profile) => <div key={profile.id} className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-xs"><span className="font-bold text-white">{profile.currency} <span className="ml-2 font-mono text-white/45">{profile.addressMasked}</span></span><span className={`rounded-full px-2 py-1 text-[9px] font-black uppercase ${profile.reviewStatus === 'approved' ? 'bg-emerald-400/10 text-emerald-200' : profile.reviewStatus === 'rejected' ? 'bg-red-400/10 text-red-200' : 'bg-amber-300/10 text-amber-100'}`}>{profile.reviewStatus}</span></div>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-3 text-xs text-white/35">No payout destination has been saved.</p>}</div>
+                  </form>
+
+                  <form onSubmit={(event) => { event.preventDefault(); updateCreatorPayoutPreference.mutate({ data: { cadence: payoutCadence, minimumAmount: payoutMinimumAmount || '0', ...(payoutCadence === 'weekly' ? { weekday: payoutWeekday } : {}), ...(payoutCadence === 'monthly' ? { monthDay: payoutMonthDay } : {}), enabled: payoutCadence !== 'manual' } }, { onSuccess: () => { creatorFinanceQuery.refetch(); toast({ title: 'Payout preference saved', description: payoutCadence === 'manual' ? 'Manual request mode is active.' : 'The selected cadence can create a review request after scheduled processing is enabled.' }); }, onError: (err: any) => toast({ title: 'Preference not saved', description: err?.body?.error || err?.message || 'Check the schedule values.', variant: 'destructive' }) }); }} className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
+                    <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Clock3 className="h-5 w-5" /></div><div><h3 className="text-sm font-black text-white">Payout cadence</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Daily, weekly, and monthly preferences create reviewable requests only. They never send funds automatically.</p></div></div>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2"><label className="text-xs font-bold text-white/65">Cadence<select value={payoutCadence} onChange={event => setPayoutCadence(event.target.value as typeof payoutCadence)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="manual">Manual request</option><option value="daily">Daily review request</option><option value="weekly">Weekly review request</option><option value="monthly">Monthly review request</option></select></label><label className="text-xs font-bold text-white/65">Minimum per asset<input type="text" inputMode="decimal" value={payoutMinimumAmount} onChange={event => setPayoutMinimumAmount(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label></div>
+                    {payoutCadence === 'weekly' && <label className="mt-3 block text-xs font-bold text-white/65">Weekday<select value={payoutWeekday} onChange={event => setPayoutWeekday(Number(event.target.value))} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60">{['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) => <option key={day} value={index}>{day}</option>)}</select></label>}
+                    {payoutCadence === 'monthly' && <label className="mt-3 block text-xs font-bold text-white/65">Day of month<input type="number" min={1} max={28} value={payoutMonthDay} onChange={event => setPayoutMonthDay(Number(event.target.value))} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label>}
+                    <Button type="submit" disabled={updateCreatorPayoutPreference.isPending} className="mt-4 w-full font-black">{updateCreatorPayoutPreference.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : <><Save className="mr-2 h-4 w-4" /> Save payout preference</>}</Button>
+                    <p className="mt-3 text-[11px] leading-relaxed text-white/35">All scheduled evaluation uses UTC. A schedule remains inactive until the owner enables scheduled payout requests and production monitoring.</p>
+                  </form>
+                </section>
+
+                <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+                  <form onSubmit={(event) => { event.preventDefault(); if (!payoutAmount.trim()) return; createCreatorPayoutRequest.mutate({ data: { currency: payoutCurrency, amount: payoutAmount.trim() } }, { onSuccess: () => { setPayoutAmount(''); creatorFinanceQuery.refetch(); toast({ title: 'Payout request queued', description: 'Your balance is reserved for owner review; no provider withdrawal has been sent.' }); }, onError: (err: any) => toast({ title: 'Payout request blocked', description: err?.body?.error || err?.message || 'Complete payout readiness before trying again.', variant: 'destructive' }) }); }} className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-5">
+                    <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary"><Send className="h-5 w-5" /></div><div><h3 className="text-sm font-black text-white">Request a payout</h3><p className="mt-1 text-xs leading-relaxed text-white/45">Available crypto is reserved first, then reviewed in the Owner Finance Command. No card or fiat payout exists.</p></div></div>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-[140px_1fr]"><label className="text-xs font-bold text-white/65">Asset<select value={payoutCurrency} onChange={event => setPayoutCurrency(event.target.value as typeof payoutCurrency)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="BTC">BTC</option><option value="LTC">LTC</option><option value="ETH">ETH</option><option value="DOGE">DOGE</option></select></label><label className="text-xs font-bold text-white/65">Amount<input type="text" inputMode="decimal" value={payoutAmount} onChange={event => setPayoutAmount(event.target.value)} placeholder="0.00000000" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label></div>
+                    <Button type="submit" disabled={createCreatorPayoutRequest.isPending || !creatorFinanceQuery.data?.payoutRequestsEnabled || !payoutAmount.trim()} className="mt-4 w-full font-black">{createCreatorPayoutRequest.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reserving…</> : 'Queue payout for owner review'}</Button>
+                    {!creatorFinanceQuery.data?.payoutRequestsEnabled && <p className="mt-3 rounded-xl border border-amber-300/15 bg-amber-300/[0.06] p-3 text-xs leading-relaxed text-amber-100/75">Payout requests are intentionally disabled until the owner verifies encrypted destination storage, ledger monitoring, review procedures, and provider readiness.</p>}
+                  </form>
+                  <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><h3 className="text-sm font-black text-white">Payout activity</h3><div className="mt-4 space-y-2">{creatorFinanceQuery.data?.payoutRequests.length ? creatorFinanceQuery.data.payoutRequests.map((request) => <div key={request.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"><div className="flex items-center justify-between gap-3"><span className="text-sm font-bold text-white">{request.amount} {request.currency}</span><span className="text-[10px] font-black uppercase tracking-wider text-primary">{request.status}</span></div><p className="mt-1 text-[11px] text-white/35">{request.destinationMasked ?? 'Destination pending'} · {new Date(request.requestedAt).toLocaleString()}</p>{request.riskHoldReason && <p className="mt-2 text-[11px] text-amber-100/75">{request.riskHoldReason}</p>}</div>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-4 text-xs text-white/35">No payout activity yet.</p>}</div></div>
+                </section>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Achievements tab ── */}
+        {activeTab === 'achievements' && (
+          <div className="max-w-5xl p-5">
+            <div className="mb-6"><p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Creator progression</p><h2 className="mt-1 text-2xl font-black text-white">Creator Payout Ready</h2><p className="mt-1 max-w-2xl text-xs leading-relaxed text-white/45">These modest milestones unlock payout eligibility. They do not create money, guarantee payment, or convert channel points into cash.</p></div>
+            {creatorAchievementsQuery.isLoading ? <div className="flex min-h-64 items-center justify-center rounded-2xl border border-white/[0.08] bg-black/25"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div> : <div className="space-y-3">{(creatorAchievementsQuery.data ?? creatorFinanceQuery.data?.achievements ?? []).map((achievement) => <article key={achievement.key} className={`rounded-2xl border p-5 ${achievement.completed ? 'border-emerald-300/20 bg-emerald-300/[0.045]' : 'border-white/[0.09] bg-black/25'}`}><div className="flex gap-4"><div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${achievement.completed ? 'bg-emerald-300/15 text-emerald-200' : 'bg-white/[0.06] text-white/40'}`}>{achievement.completed ? <CheckCircle2 className="h-5 w-5" /> : <Trophy className="h-5 w-5" />}</div><div className="min-w-0 flex-1"><div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><h3 className="text-sm font-black text-white">{achievement.title}</h3><span className={`text-xs font-black ${achievement.completed ? 'text-emerald-200' : 'text-white/50'}`}>{achievement.currentValue}/{achievement.targetValue}</span></div><p className="mt-1 text-xs text-white/45">{achievement.description}</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]"><div className={`h-full rounded-full ${achievement.completed ? 'bg-emerald-300' : 'bg-primary'}`} style={{ width: `${Math.min(100, (achievement.currentValue / Math.max(achievement.targetValue, 1)) * 100)}%` }} /></div><p className="mt-2 text-[11px] text-white/35">{achievement.evidence}</p></div></div></article>)}</div>}
           </div>
         )}
 

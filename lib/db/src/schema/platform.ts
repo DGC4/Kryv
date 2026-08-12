@@ -315,6 +315,75 @@ export const creatorBalancesTable = pgTable("creator_balances", {
   channelCurrencyUnique: uniqueIndex("creator_balances_channel_currency_unique").on(table.channelId, table.currency),
 }));
 
+export const creatorBalanceMovementsTable = pgTable("creator_balance_movements", {
+  id: serial("id").primaryKey(),
+  channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
+  currency: text("currency").notNull(),
+  movementType: text("movement_type").notNull(),
+  availableDelta: numeric("available_delta", { precision: 18, scale: 8 }).notNull().default("0"),
+  heldDelta: numeric("held_delta", { precision: 18, scale: 8 }).notNull().default("0"),
+  pendingDelta: numeric("pending_delta", { precision: 18, scale: 8 }).notNull().default("0"),
+  sourceType: text("source_type").notNull(),
+  sourceId: text("source_id").notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  metadata: jsonb("metadata").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  channelCreatedIdx: index("creator_balance_movements_channel_created_idx").on(table.channelId, table.createdAt),
+  sourceIdx: index("creator_balance_movements_source_idx").on(table.sourceType, table.sourceId),
+}));
+
+export const creatorPayoutProfilesTable = pgTable("creator_payout_profiles", {
+  id: serial("id").primaryKey(),
+  channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
+  currency: text("currency").notNull(),
+  addressCiphertext: text("address_ciphertext").notNull(),
+  addressIv: text("address_iv").notNull(),
+  addressAuthTag: text("address_auth_tag").notNull(),
+  addressDigest: text("address_digest").notNull(),
+  addressMasked: text("address_masked").notNull(),
+  keyVersion: text("key_version").notNull().default("v1"),
+  confirmationStatus: text("confirmation_status").notNull().default("pending"),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  reviewedByUserId: integer("reviewed_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewStatus: text("review_status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  channelCurrencyUnique: uniqueIndex("creator_payout_profiles_channel_currency_unique").on(table.channelId, table.currency),
+  reviewStatusIdx: index("creator_payout_profiles_review_status_idx").on(table.reviewStatus, table.updatedAt),
+}));
+
+export const creatorPayoutPreferencesTable = pgTable("creator_payout_preferences", {
+  id: serial("id").primaryKey(),
+  channelId: integer("channel_id").notNull().unique().references(() => channelsTable.id, { onDelete: "cascade" }),
+  cadence: text("cadence").notNull().default("manual"),
+  minimumAmount: numeric("minimum_amount", { precision: 18, scale: 8 }).notNull().default("0"),
+  weekday: integer("weekday"),
+  monthDay: integer("month_day"),
+  timezone: text("timezone").notNull().default("UTC"),
+  enabled: boolean("enabled").notNull().default(false),
+  nextRunAt: timestamp("next_run_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const creatorFeePoliciesTable = pgTable("creator_fee_policies", {
+  id: serial("id").primaryKey(),
+  paymentKind: text("payment_kind").notNull(),
+  platformFeeBps: integer("platform_fee_bps").notNull().default(0),
+  payoutFeePayer: text("payout_fee_payer").notNull().default("creator"),
+  status: text("status").notNull().default("draft"),
+  version: integer("version").notNull().default(1),
+  effectiveAt: timestamp("effective_at", { withTimezone: true }),
+  updatedByUserId: integer("updated_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  paymentKindVersionUnique: uniqueIndex("creator_fee_policies_kind_version_unique").on(table.paymentKind, table.version),
+  paymentKindStatusIdx: index("creator_fee_policies_kind_status_idx").on(table.paymentKind, table.status, table.effectiveAt),
+}));
+
 export const payoutRequestsTable = pgTable("payout_requests", {
   id: serial("id").primaryKey(),
   channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
@@ -322,8 +391,18 @@ export const payoutRequestsTable = pgTable("payout_requests", {
   currency: text("currency").notNull(),
   amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
   destinationReference: text("destination_reference"),
+  payoutProfileId: integer("payout_profile_id").references(() => creatorPayoutProfilesTable.id, { onDelete: "set null" }),
+  destinationMasked: text("destination_masked"),
+  requestSource: text("request_source").notNull().default("manual"),
+  feeAmount: numeric("fee_amount", { precision: 18, scale: 8 }),
+  feeCurrency: text("fee_currency"),
+  feeQuotedAt: timestamp("fee_quoted_at", { withTimezone: true }),
+  usdReferenceAmount: numeric("usd_reference_amount", { precision: 18, scale: 8 }),
+  usdReferenceRate: numeric("usd_reference_rate", { precision: 18, scale: 8 }),
   provider: text("provider"),
   providerPayoutId: text("provider_payout_id").unique(),
+  providerTransactionUrl: text("provider_transaction_url"),
+  idempotencyKey: text("idempotency_key").unique(),
   status: text("status").notNull().default("requested"),
   riskHoldReason: text("risk_hold_reason"),
   requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),

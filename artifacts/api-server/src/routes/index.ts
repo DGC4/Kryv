@@ -15,6 +15,7 @@ import locationRouter from "./location";
 import streamingRouter from "./streaming";
 import adsRouter from "./ads";
 import ownerCinemaRouter from "./owner-cinema";
+import creatorFinanceRouter from "./creator-finance";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(locationRouter);
 router.use(streamingRouter);
 router.use(adsRouter);
 router.use(ownerCinemaRouter);
+router.use(creatorFinanceRouter);
 
 export default router;

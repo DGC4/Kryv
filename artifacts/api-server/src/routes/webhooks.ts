@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 
-import { clipsTable, creatorBalancesTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fastpix } from "../lib/fastpix";
 import { isPlisioConfigured, isSupportedKryvCryptoCode, verifyPlisioJsonCallback } from "../lib/plisio";
@@ -52,7 +52,11 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
       processingStatus: "received",
       relatedProviderPaymentId: transactionId,
     })
-    .onConflictDoNothing()
+    .onConflictDoUpdate({
+      target: [paymentEventsTable.provider, paymentEventsTable.providerEventId],
+      set: { processingStatus: "received", errorCode: null, processedAt: null },
+      where: eq(paymentEventsTable.processingStatus, "failed"),
+    })
     .returning({ id: paymentEventsTable.id });
 
   if (!event) {
@@ -84,52 +88,96 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
       return;
     }
 
-    const [settledIntent] = await db
-      .update(paymentIntentsTable)
-      .set({ providerPaymentId: transactionId, status: "completed", completedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(paymentIntentsTable.id, intent.id), ne(paymentIntentsTable.status, "completed")))
-      .returning();
+    const settlement = await db.transaction(async (txn) => {
+      const [settledIntent] = await txn
+        .update(paymentIntentsTable)
+        .set({ providerPaymentId: transactionId, status: "completed", completedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(paymentIntentsTable.id, intent.id), ne(paymentIntentsTable.status, "completed")))
+        .returning();
+      if (!settledIntent) return { duplicate: true };
 
-    if (!settledIntent) {
-      await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
-      res.status(200).json({ received: true, duplicate: true });
-      return;
-    }
-
-    if (settledIntent.paymentKind === "subscription" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
-      const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
-      const tier = typeof metadata.tier === "number" && Number.isInteger(metadata.tier) ? metadata.tier : 1;
-      const [active] = await db
-        .select()
-        .from(subscriptionsTable)
-        .where(and(eq(subscriptionsTable.userId, settledIntent.purchaserUserId), eq(subscriptionsTable.channelId, settledIntent.receiverChannelId), eq(subscriptionsTable.status, "active")))
-        .limit(1);
-      const base = active?.expiresAt && active.expiresAt > new Date() ? active.expiresAt : new Date();
-      const expiresAt = new Date(base);
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
-      if (active) {
-        await db.update(subscriptionsTable).set({ tier, provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt }).where(eq(subscriptionsTable.id, active.id));
-      } else {
-        await db.insert(subscriptionsTable).values({ userId: settledIntent.purchaserUserId, channelId: settledIntent.receiverChannelId, tier, status: "active", provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt });
-      }
-    }
-
-    if (settledIntent.paymentKind === "tip" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
-      const paidAmount = typeof callback.amount === "string" && /^\d+(\.\d{1,8})?$/.test(callback.amount) ? callback.amount : null;
-      const paidCurrency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : null;
-      if (!paidAmount || !isSupportedKryvCryptoCode(paidCurrency)) throw new Error("Completed crypto tip callback has an invalid or unsupported amount or currency.");
-      const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
-      const [tip] = await db
-        .insert(tipsTable)
-        .values({ senderUserId: settledIntent.purchaserUserId, receiverChannelId: settledIntent.receiverChannelId, amount: paidAmount, currency: paidCurrency, provider: "plisio", providerPaymentIntentId: transactionId, status: "completed", message: typeof metadata.message === "string" ? metadata.message : null })
-        .onConflictDoNothing()
-        .returning({ id: tipsTable.id });
-      if (tip) {
-        await db
+      if (settledIntent.paymentKind === "subscription" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
+        const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
+        const tier = typeof metadata.tier === "number" && Number.isInteger(metadata.tier) ? metadata.tier : 1;
+        const [active] = await txn
+          .select()
+          .from(subscriptionsTable)
+          .where(and(eq(subscriptionsTable.userId, settledIntent.purchaserUserId), eq(subscriptionsTable.channelId, settledIntent.receiverChannelId), eq(subscriptionsTable.status, "active")))
+          .limit(1);
+        const base = active?.expiresAt && active.expiresAt > new Date() ? active.expiresAt : new Date();
+        const expiresAt = new Date(base);
+        expiresAt.setMonth(expiresAt.getMonth() + 1);
+        if (active) {
+          await txn.update(subscriptionsTable).set({ tier, provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt }).where(eq(subscriptionsTable.id, active.id));
+        } else {
+          await txn.insert(subscriptionsTable).values({ userId: settledIntent.purchaserUserId, channelId: settledIntent.receiverChannelId, tier, status: "active", provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt });
+        }
+        const paidAmount = typeof callback.amount === "string" && /^\d+(\.\d{1,8})?$/.test(callback.amount) ? callback.amount : null;
+        const paidCurrency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : null;
+        if (!paidAmount || !isSupportedKryvCryptoCode(paidCurrency)) throw new Error("Completed crypto subscription callback has an invalid or unsupported amount or currency.");
+        const [movement] = await txn
+          .insert(creatorBalanceMovementsTable)
+          .values({
+            channelId: settledIntent.receiverChannelId,
+            currency: paidCurrency,
+            movementType: "subscription_settled",
+            availableDelta: paidAmount,
+            heldDelta: "0",
+            pendingDelta: "0",
+            sourceType: "payment_intent",
+            sourceId: String(settledIntent.id),
+            idempotencyKey: `subscription-credit:${transactionId}`,
+            metadata: { provider: "plisio", providerPaymentId: transactionId, paymentIntentId: settledIntent.id, tier },
+          })
+          .onConflictDoNothing()
+          .returning({ id: creatorBalanceMovementsTable.id });
+        if (!movement) throw new Error("Completed crypto subscription is missing its immutable creator-ledger movement.");
+        await txn
           .insert(creatorBalancesTable)
           .values({ channelId: settledIntent.receiverChannelId, currency: paidCurrency, availableAmount: paidAmount })
           .onConflictDoUpdate({ target: [creatorBalancesTable.channelId, creatorBalancesTable.currency], set: { availableAmount: sql`${creatorBalancesTable.availableAmount} + ${paidAmount}`, updatedAt: new Date() } });
       }
+
+      if (settledIntent.paymentKind === "tip" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
+        const paidAmount = typeof callback.amount === "string" && /^\d+(\.\d{1,8})?$/.test(callback.amount) ? callback.amount : null;
+        const paidCurrency = typeof callback.currency === "string" ? callback.currency.toUpperCase() : null;
+        if (!paidAmount || !isSupportedKryvCryptoCode(paidCurrency)) throw new Error("Completed crypto tip callback has an invalid or unsupported amount or currency.");
+        const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
+        const [tip] = await txn
+          .insert(tipsTable)
+          .values({ senderUserId: settledIntent.purchaserUserId, receiverChannelId: settledIntent.receiverChannelId, amount: paidAmount, currency: paidCurrency, provider: "plisio", providerPaymentIntentId: transactionId, status: "completed", message: typeof metadata.message === "string" ? metadata.message : null })
+          .onConflictDoNothing()
+          .returning({ id: tipsTable.id });
+        if (!tip) throw new Error("Completed crypto tip is missing its immutable settlement record.");
+        const [movement] = await txn
+          .insert(creatorBalanceMovementsTable)
+          .values({
+            channelId: settledIntent.receiverChannelId,
+            currency: paidCurrency,
+            movementType: "tip_settled",
+            availableDelta: paidAmount,
+            heldDelta: "0",
+            pendingDelta: "0",
+            sourceType: "tip",
+            sourceId: String(tip.id),
+            idempotencyKey: `tip-credit:${transactionId}`,
+            metadata: { provider: "plisio", providerPaymentId: transactionId, paymentIntentId: settledIntent.id },
+          })
+          .onConflictDoNothing()
+          .returning({ id: creatorBalanceMovementsTable.id });
+        if (!movement) throw new Error("Completed crypto tip is missing its immutable creator-ledger movement.");
+        await txn
+          .insert(creatorBalancesTable)
+          .values({ channelId: settledIntent.receiverChannelId, currency: paidCurrency, availableAmount: paidAmount })
+          .onConflictDoUpdate({ target: [creatorBalancesTable.channelId, creatorBalancesTable.currency], set: { availableAmount: sql`${creatorBalancesTable.availableAmount} + ${paidAmount}`, updatedAt: new Date() } });
+      }
+      return { duplicate: false };
+    });
+
+    if (settlement.duplicate) {
+      await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
+      res.status(200).json({ received: true, duplicate: true });
+      return;
     }
 
     await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));

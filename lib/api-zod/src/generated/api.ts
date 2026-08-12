@@ -1563,6 +1563,336 @@ export const GetCinemaHomeResponse = zod.object({
 
 
 /**
+ * @summary Creator-only wallet, earnings, payout readiness, and recent payout requests
+ */
+export const getCreatorFinanceResponsePayoutPreferenceWeekdayMin = 0;
+export const getCreatorFinanceResponsePayoutPreferenceWeekdayMax = 6;
+
+export const getCreatorFinanceResponsePayoutPreferenceMonthDayMax = 28;
+
+export const getCreatorFinanceResponsePayoutRequestsItemProviderTransactionUrlMax = 2048;
+
+
+
+export const GetCreatorFinanceResponse = zod.object({
+  "channelId": zod.number(),
+  "balances": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "usdReferenceValue": zod.string().nullable(),
+  "rateUpdatedAt": zod.coerce.date().nullable()
+})),
+  "payoutProfiles": zod.array(zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "addressMasked": zod.string(),
+  "confirmationStatus": zod.enum(['pending', 'confirmed', 'rejected']),
+  "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "confirmedAt": zod.coerce.date().nullish(),
+  "updatedAt": zod.coerce.date()
+})),
+  "payoutPreference": zod.object({
+  "cadence": zod.enum(['manual', 'daily', 'weekly', 'monthly']),
+  "minimumAmount": zod.string(),
+  "weekday": zod.number().min(getCreatorFinanceResponsePayoutPreferenceWeekdayMin).max(getCreatorFinanceResponsePayoutPreferenceWeekdayMax).nullish(),
+  "monthDay": zod.number().min(1).max(getCreatorFinanceResponsePayoutPreferenceMonthDayMax).nullish(),
+  "timezone": zod.string(),
+  "enabled": zod.boolean(),
+  "nextRunAt": zod.coerce.date().nullable(),
+  "updatedAt": zod.coerce.date()
+}),
+  "payoutRequests": zod.array(zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string(),
+  "destinationMasked": zod.string().nullable(),
+  "requestSource": zod.enum(['manual', 'scheduled']),
+  "feeAmount": zod.string().nullish(),
+  "feeCurrency": zod.string().nullish(),
+  "usdReferenceAmount": zod.string().nullish(),
+  "status": zod.string(),
+  "riskHoldReason": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "providerTransactionUrl": zod.string().max(getCreatorFinanceResponsePayoutRequestsItemProviderTransactionUrlMax).nullish()
+})),
+  "achievements": zod.array(zod.object({
+  "key": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "currentValue": zod.number(),
+  "targetValue": zod.number(),
+  "completed": zod.boolean(),
+  "evidence": zod.string()
+})),
+  "payoutRequestsEnabled": zod.boolean(),
+  "providerRateAvailable": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Save or replace an encrypted creator payout destination for an approved asset
+ */
+export const saveCreatorPayoutProfileBodyAddressMin = 12;
+export const saveCreatorPayoutProfileBodyAddressMax = 240;
+
+
+
+export const SaveCreatorPayoutProfileBody = zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "address": zod.string().min(saveCreatorPayoutProfileBodyAddressMin).max(saveCreatorPayoutProfileBodyAddressMax)
+})
+
+export const SaveCreatorPayoutProfileResponse = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "addressMasked": zod.string(),
+  "confirmationStatus": zod.enum(['pending', 'confirmed', 'rejected']),
+  "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "confirmedAt": zod.coerce.date().nullish(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Set creator payout cadence and minimum amount; schedules create review requests only
+ */
+export const updateCreatorPayoutPreferenceBodyMinimumAmountRegExp = new RegExp('^\\d+(\\.\\d{1,8})?$');
+export const updateCreatorPayoutPreferenceBodyWeekdayMin = 0;
+export const updateCreatorPayoutPreferenceBodyWeekdayMax = 6;
+
+export const updateCreatorPayoutPreferenceBodyMonthDayMax = 28;
+
+
+
+export const UpdateCreatorPayoutPreferenceBody = zod.object({
+  "cadence": zod.enum(['manual', 'daily', 'weekly', 'monthly']),
+  "minimumAmount": zod.string().regex(updateCreatorPayoutPreferenceBodyMinimumAmountRegExp),
+  "weekday": zod.number().min(updateCreatorPayoutPreferenceBodyWeekdayMin).max(updateCreatorPayoutPreferenceBodyWeekdayMax).optional(),
+  "monthDay": zod.number().min(1).max(updateCreatorPayoutPreferenceBodyMonthDayMax).optional(),
+  "enabled": zod.boolean()
+})
+
+export const updateCreatorPayoutPreferenceResponseWeekdayMin = 0;
+export const updateCreatorPayoutPreferenceResponseWeekdayMax = 6;
+
+export const updateCreatorPayoutPreferenceResponseMonthDayMax = 28;
+
+
+
+export const UpdateCreatorPayoutPreferenceResponse = zod.object({
+  "cadence": zod.enum(['manual', 'daily', 'weekly', 'monthly']),
+  "minimumAmount": zod.string(),
+  "weekday": zod.number().min(updateCreatorPayoutPreferenceResponseWeekdayMin).max(updateCreatorPayoutPreferenceResponseWeekdayMax).nullish(),
+  "monthDay": zod.number().min(1).max(updateCreatorPayoutPreferenceResponseMonthDayMax).nullish(),
+  "timezone": zod.string(),
+  "enabled": zod.boolean(),
+  "nextRunAt": zod.coerce.date().nullable(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Create a server-calculated, owner-reviewable payout request without executing a withdrawal
+ */
+export const createCreatorPayoutRequestBodyAmountRegExp = new RegExp('^\\d+(\\.\\d{1,8})?$');
+
+
+export const CreateCreatorPayoutRequestBody = zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string().regex(createCreatorPayoutRequestBodyAmountRegExp)
+})
+
+export const createCreatorPayoutRequestResponseProviderTransactionUrlMax = 2048;
+
+
+
+export const CreateCreatorPayoutRequestResponse = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string(),
+  "destinationMasked": zod.string().nullable(),
+  "requestSource": zod.enum(['manual', 'scheduled']),
+  "feeAmount": zod.string().nullish(),
+  "feeCurrency": zod.string().nullish(),
+  "usdReferenceAmount": zod.string().nullish(),
+  "status": zod.string(),
+  "riskHoldReason": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "providerTransactionUrl": zod.string().max(createCreatorPayoutRequestResponseProviderTransactionUrlMax).nullish()
+})
+
+
+/**
+ * @summary Creator-only server-computed payout-readiness milestones
+ */
+export const GetCreatorAchievementsResponseItem = zod.object({
+  "key": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "currentValue": zod.number(),
+  "targetValue": zod.number(),
+  "completed": zod.boolean(),
+  "evidence": zod.string()
+})
+export const GetCreatorAchievementsResponse = zod.array(GetCreatorAchievementsResponseItem)
+
+
+/**
+ * @summary Owner-only finance command overview with asset liabilities and controlled-launch status
+ */
+export const GetAdminFinanceOverviewResponse = zod.object({
+  "assetLiabilities": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "providerTreasuryBalance": zod.string().nullable(),
+  "priceUsd": zod.string().nullable(),
+  "rateUpdatedAt": zod.coerce.date().nullable()
+})),
+  "pendingProfileReviews": zod.number(),
+  "requestedPayouts": zod.number(),
+  "cryptoCommerceEnabled": zod.boolean(),
+  "payoutRequestsEnabled": zod.boolean(),
+  "scheduledPayoutRequestsEnabled": zod.boolean(),
+  "providerWithdrawalsEnabled": zod.boolean(),
+  "providerConfigured": zod.boolean()
+})
+
+
+/**
+ * @summary Owner-only masked creator payout profiles awaiting or completing review
+ */
+export const ListAdminPayoutProfilesResponseItem = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "addressMasked": zod.string(),
+  "confirmationStatus": zod.enum(['pending', 'confirmed', 'rejected']),
+  "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "confirmedAt": zod.coerce.date().nullish(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string()
+}))
+export const ListAdminPayoutProfilesResponse = zod.array(ListAdminPayoutProfilesResponseItem)
+
+
+/**
+ * @summary Owner-only approval or rejection of a masked payout destination
+ */
+export const ReviewAdminPayoutProfileParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const reviewAdminPayoutProfileBodyReasonMax = 500;
+
+
+
+export const ReviewAdminPayoutProfileBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected']),
+  "reason": zod.string().max(reviewAdminPayoutProfileBodyReasonMax).optional()
+})
+
+export const ReviewAdminPayoutProfileResponse = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "addressMasked": zod.string(),
+  "confirmationStatus": zod.enum(['pending', 'confirmed', 'rejected']),
+  "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "confirmedAt": zod.coerce.date().nullish(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string()
+}))
+
+
+/**
+ * @summary Owner-only creator payout review queue and settlement history
+ */
+export const listAdminPayoutRequestsResponseOneProviderTransactionUrlMax = 2048;
+
+
+
+export const ListAdminPayoutRequestsResponseItem = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string(),
+  "destinationMasked": zod.string().nullable(),
+  "requestSource": zod.enum(['manual', 'scheduled']),
+  "feeAmount": zod.string().nullish(),
+  "feeCurrency": zod.string().nullish(),
+  "usdReferenceAmount": zod.string().nullish(),
+  "status": zod.string(),
+  "riskHoldReason": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "providerTransactionUrl": zod.string().max(listAdminPayoutRequestsResponseOneProviderTransactionUrlMax).nullish()
+}).and(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string()
+}))
+export const ListAdminPayoutRequestsResponse = zod.array(ListAdminPayoutRequestsResponseItem)
+
+
+/**
+ * @summary Owner-only payout decision; approval does not execute a provider withdrawal
+ */
+export const ReviewAdminPayoutRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const reviewAdminPayoutRequestBodyReasonMax = 500;
+
+
+
+export const ReviewAdminPayoutRequestBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected', 'held']),
+  "reason": zod.string().max(reviewAdminPayoutRequestBodyReasonMax).optional()
+})
+
+export const reviewAdminPayoutRequestResponseOneProviderTransactionUrlMax = 2048;
+
+
+
+export const ReviewAdminPayoutRequestResponse = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string(),
+  "destinationMasked": zod.string().nullable(),
+  "requestSource": zod.enum(['manual', 'scheduled']),
+  "feeAmount": zod.string().nullish(),
+  "feeCurrency": zod.string().nullish(),
+  "usdReferenceAmount": zod.string().nullish(),
+  "status": zod.string(),
+  "riskHoldReason": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "providerTransactionUrl": zod.string().max(reviewAdminPayoutRequestResponseOneProviderTransactionUrlMax).nullish()
+}).and(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string()
+}))
+
+
+/**
  * @summary Owner-only platform totals
  */
 export const GetAdminStatsResponse = zod.object({

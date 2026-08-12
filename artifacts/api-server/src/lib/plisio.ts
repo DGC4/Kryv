@@ -19,6 +19,15 @@ export type PlisioInvoice = {
   expiresAt: Date | null;
 };
 
+export type PlisioAssetSnapshot = {
+  currency: KryvCryptoCode;
+  priceUsd: string;
+  treasuryBalance: string | null;
+  fetchedAt: Date;
+};
+
+let assetSnapshotCache: { expiresAt: number; values: PlisioAssetSnapshot[] } | null = null;
+
 function getSecretKey() {
   const key = process.env.PLISIO_SECRET_KEY?.trim();
   if (!key) throw new PlisioNotConfiguredError();
@@ -71,6 +80,49 @@ export function supportedKryvCryptoCodes() {
 
 export function isSupportedKryvCryptoCode(value: unknown): value is KryvCryptoCode {
   return typeof value === "string" && (allowedCoins() as readonly string[]).includes(value.toUpperCase());
+}
+
+export async function getPlisioAssetSnapshots(): Promise<PlisioAssetSnapshot[]> {
+  if (!isPlisioConfigured()) return [];
+  if (assetSnapshotCache && assetSnapshotCache.expiresAt > Date.now()) return assetSnapshotCache.values;
+
+  const secretKey = getSecretKey();
+  const base = PLISIO_API_BASE.replace(/\/$/, "");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const currenciesResponse = await fetch(`${base}/currencies/USD?${new URLSearchParams({ api_key: secretKey }).toString()}`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    const currenciesPayload = await currenciesResponse.json().catch(() => null) as any;
+    if (!currenciesResponse.ok || currenciesPayload?.status !== "success" || !Array.isArray(currenciesPayload?.data)) {
+      throw new Error("Plisio currency metadata could not be loaded.");
+    }
+    const byCurrency = new Map<string, any>(currenciesPayload.data.map((value: any) => [String(value?.currency ?? "").toUpperCase(), value]));
+    const balances = await Promise.all((allowedCoins()).map(async (currency) => {
+      try {
+        const response = await fetch(`${base}/balances/${encodeURIComponent(currency)}?${new URLSearchParams({ api_key: secretKey }).toString()}`, {
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => null) as any;
+        return response.ok && payload?.status === "success" && typeof payload?.data?.balance === "string" ? payload.data.balance : null;
+      } catch {
+        return null;
+      }
+    }));
+    const fetchedAt = new Date();
+    const values = allowedCoins().flatMap((currency, index) => {
+      const asset = byCurrency.get(currency);
+      if (!asset || typeof asset.price_usd !== "string") return [];
+      return [{ currency, priceUsd: asset.price_usd, treasuryBalance: balances[index], fetchedAt }];
+    });
+    assetSnapshotCache = { expiresAt: Date.now() + 60_000, values };
+    return values;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function createPlisioInvoice(input: {

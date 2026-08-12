@@ -1463,6 +1463,199 @@ paths:
               schema:
                 $ref: "#/components/schemas/CinemaHome"
 
+  /creator/finance:
+    get:
+      operationId: getCreatorFinance
+      tags: [creator-finance]
+      summary: Creator-only wallet, earnings, payout readiness, and recent payout requests
+      responses:
+        "200":
+          description: Creator finance overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorFinanceOverview"
+        "403": { description: Creator channel is required }
+
+  /creator/finance/payout-profiles:
+    post:
+      operationId: saveCreatorPayoutProfile
+      tags: [creator-finance]
+      summary: Save or replace an encrypted creator payout destination for an approved asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveCreatorPayoutProfileInput"
+      responses:
+        "200":
+          description: Masked payout profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorPayoutProfile"
+        "400": { description: Invalid destination or configuration }
+        "403": { description: Creator channel is required }
+
+  /creator/finance/preferences:
+    put:
+      operationId: updateCreatorPayoutPreference
+      tags: [creator-finance]
+      summary: Set creator payout cadence and minimum amount; schedules create review requests only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCreatorPayoutPreferenceInput"
+      responses:
+        "200":
+          description: Updated preference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorPayoutPreference"
+        "400": { description: Invalid payout preference }
+        "403": { description: Creator channel is required }
+
+  /creator/finance/payout-requests:
+    post:
+      operationId: createCreatorPayoutRequest
+      tags: [creator-finance]
+      summary: Create a server-calculated, owner-reviewable payout request without executing a withdrawal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCreatorPayoutRequestInput"
+      responses:
+        "201":
+          description: Payout request reserved for review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorPayoutRequest"
+        "400": { description: Payout request cannot be created }
+        "403": { description: Payout requests are disabled or creator channel is not ready }
+
+  /creator/achievements:
+    get:
+      operationId: getCreatorAchievements
+      tags: [creator-finance]
+      summary: Creator-only server-computed payout-readiness milestones
+      responses:
+        "200":
+          description: Creator achievement progress
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreatorAchievement"
+        "403": { description: Creator channel is required }
+
+  /admin/finance/overview:
+    get:
+      operationId: getAdminFinanceOverview
+      tags: [admin-finance]
+      summary: Owner-only finance command overview with asset liabilities and controlled-launch status
+      responses:
+        "200":
+          description: Finance command overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminFinanceOverview"
+        "403": { description: Not an owner }
+
+  /admin/finance/payout-profiles:
+    get:
+      operationId: listAdminPayoutProfiles
+      tags: [admin-finance]
+      summary: Owner-only masked creator payout profiles awaiting or completing review
+      responses:
+        "200":
+          description: Payout profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPayoutProfile"
+        "403": { description: Not an owner }
+
+  /admin/finance/payout-profiles/{id}/review:
+    post:
+      operationId: reviewAdminPayoutProfile
+      tags: [admin-finance]
+      summary: Owner-only approval or rejection of a masked payout destination
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewPayoutProfileInput"
+      responses:
+        "200":
+          description: Reviewed payout profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPayoutProfile"
+        "400": { description: Invalid review }
+        "403": { description: Not an owner }
+        "404": { description: Payout profile not found }
+
+  /admin/finance/payout-requests:
+    get:
+      operationId: listAdminPayoutRequests
+      tags: [admin-finance]
+      summary: Owner-only creator payout review queue and settlement history
+      responses:
+        "200":
+          description: Payout requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPayoutRequest"
+        "403": { description: Not an owner }
+
+  /admin/finance/payout-requests/{id}/review:
+    post:
+      operationId: reviewAdminPayoutRequest
+      tags: [admin-finance]
+      summary: Owner-only payout decision; approval does not execute a provider withdrawal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewPayoutRequestInput"
+      responses:
+        "200":
+          description: Reviewed payout request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPayoutRequest"
+        "400": { description: Invalid review }
+        "403": { description: Not an owner }
+        "404": { description: Payout request not found }
+
   /admin/stats:
     get:
       operationId: getAdminStats
@@ -2479,6 +2672,181 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ChannelSummary"
+
+    CreatorBalance:
+      type: object
+      required: [currency, pendingAmount, availableAmount, heldAmount, usdReferenceValue, rateUpdatedAt]
+      properties:
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        pendingAmount: { type: string }
+        availableAmount: { type: string }
+        heldAmount: { type: string }
+        usdReferenceValue: { type: ["string", "null"] }
+        rateUpdatedAt: { type: ["string", "null"], format: date-time }
+
+    CreatorPayoutProfile:
+      type: object
+      required: [id, currency, addressMasked, confirmationStatus, reviewStatus, updatedAt]
+      properties:
+        id: { type: integer }
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        addressMasked: { type: string }
+        confirmationStatus: { type: string, enum: [pending, confirmed, rejected] }
+        reviewStatus: { type: string, enum: [pending, approved, rejected] }
+        confirmedAt: { type: ["string", "null"], format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CreatorPayoutPreference:
+      type: object
+      required: [cadence, minimumAmount, timezone, enabled, nextRunAt, updatedAt]
+      properties:
+        cadence: { type: string, enum: [manual, daily, weekly, monthly] }
+        minimumAmount: { type: string }
+        weekday: { type: ["integer", "null"], minimum: 0, maximum: 6 }
+        monthDay: { type: ["integer", "null"], minimum: 1, maximum: 28 }
+        timezone: { type: string }
+        enabled: { type: boolean }
+        nextRunAt: { type: ["string", "null"], format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CreatorPayoutRequest:
+      type: object
+      required: [id, currency, amount, destinationMasked, requestSource, status, requestedAt]
+      properties:
+        id: { type: integer }
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        amount: { type: string }
+        destinationMasked: { type: ["string", "null"] }
+        requestSource: { type: string, enum: [manual, scheduled] }
+        feeAmount: { type: ["string", "null"] }
+        feeCurrency: { type: ["string", "null"] }
+        usdReferenceAmount: { type: ["string", "null"] }
+        status: { type: string }
+        riskHoldReason: { type: ["string", "null"] }
+        requestedAt: { type: string, format: date-time }
+        reviewedAt: { type: ["string", "null"], format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+        providerTransactionUrl: { type: ["string", "null"], maxLength: 2048 }
+
+    CreatorAchievement:
+      type: object
+      required: [key, title, description, currentValue, targetValue, completed, evidence]
+      properties:
+        key: { type: string }
+        title: { type: string }
+        description: { type: string }
+        currentValue: { type: number }
+        targetValue: { type: number }
+        completed: { type: boolean }
+        evidence: { type: string }
+
+    CreatorFinanceOverview:
+      type: object
+      required: [channelId, balances, payoutProfiles, payoutPreference, payoutRequests, achievements, payoutRequestsEnabled]
+      properties:
+        channelId: { type: integer }
+        balances:
+          type: array
+          items: { $ref: "#/components/schemas/CreatorBalance" }
+        payoutProfiles:
+          type: array
+          items: { $ref: "#/components/schemas/CreatorPayoutProfile" }
+        payoutPreference: { $ref: "#/components/schemas/CreatorPayoutPreference" }
+        payoutRequests:
+          type: array
+          items: { $ref: "#/components/schemas/CreatorPayoutRequest" }
+        achievements:
+          type: array
+          items: { $ref: "#/components/schemas/CreatorAchievement" }
+        payoutRequestsEnabled: { type: boolean }
+        providerRateAvailable: { type: boolean }
+
+    SaveCreatorPayoutProfileInput:
+      type: object
+      required: [currency, address]
+      properties:
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        address: { type: string, minLength: 12, maxLength: 240 }
+
+    UpdateCreatorPayoutPreferenceInput:
+      type: object
+      required: [cadence, minimumAmount, enabled]
+      properties:
+        cadence: { type: string, enum: [manual, daily, weekly, monthly] }
+        minimumAmount: { type: string, pattern: "^\\d+(\\.\\d{1,8})?$" }
+        weekday: { type: integer, minimum: 0, maximum: 6 }
+        monthDay: { type: integer, minimum: 1, maximum: 28 }
+        enabled: { type: boolean }
+
+    CreateCreatorPayoutRequestInput:
+      type: object
+      required: [currency, amount]
+      properties:
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        amount: { type: string, pattern: "^\\d+(\\.\\d{1,8})?$" }
+
+    AdminPayoutProfile:
+      allOf:
+        - $ref: "#/components/schemas/CreatorPayoutProfile"
+        - type: object
+          required: [channelId, channelSlug, channelDisplayName, creatorUsername]
+          properties:
+            channelId: { type: integer }
+            channelSlug: { type: string }
+            channelDisplayName: { type: string }
+            creatorUsername: { type: string }
+
+    AdminPayoutRequest:
+      allOf:
+        - $ref: "#/components/schemas/CreatorPayoutRequest"
+        - type: object
+          required: [channelId, channelSlug, channelDisplayName, creatorUsername]
+          properties:
+            channelId: { type: integer }
+            channelSlug: { type: string }
+            channelDisplayName: { type: string }
+            creatorUsername: { type: string }
+
+    AdminFinanceAssetLiability:
+      type: object
+      required: [currency, pendingAmount, availableAmount, heldAmount, providerTreasuryBalance, priceUsd, rateUpdatedAt]
+      properties:
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        pendingAmount: { type: string }
+        availableAmount: { type: string }
+        heldAmount: { type: string }
+        providerTreasuryBalance: { type: ["string", "null"] }
+        priceUsd: { type: ["string", "null"] }
+        rateUpdatedAt: { type: ["string", "null"], format: date-time }
+
+    AdminFinanceOverview:
+      type: object
+      required: [assetLiabilities, pendingProfileReviews, requestedPayouts, cryptoCommerceEnabled, payoutRequestsEnabled, scheduledPayoutRequestsEnabled, providerWithdrawalsEnabled, providerConfigured]
+      properties:
+        assetLiabilities:
+          type: array
+          items: { $ref: "#/components/schemas/AdminFinanceAssetLiability" }
+        pendingProfileReviews: { type: integer }
+        requestedPayouts: { type: integer }
+        cryptoCommerceEnabled: { type: boolean }
+        payoutRequestsEnabled: { type: boolean }
+        scheduledPayoutRequestsEnabled: { type: boolean }
+        providerWithdrawalsEnabled: { type: boolean }
+        providerConfigured: { type: boolean }
+
+    ReviewPayoutProfileInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approved, rejected] }
+        reason: { type: string, maxLength: 500 }
+
+    ReviewPayoutRequestInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approved, rejected, held] }
+        reason: { type: string, maxLength: 500 }
 
     AdminFeatureFlag:
       type: object

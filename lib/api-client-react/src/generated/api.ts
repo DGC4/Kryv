@@ -32,6 +32,9 @@ import type {
   AdminCinemaTitleInput,
   AdminCinemaTitleUpdate,
   AdminFeatureFlag,
+  AdminFinanceOverview,
+  AdminPayoutProfile,
+  AdminPayoutRequest,
   AdminStats,
   AdminUser,
   AdminUserUpdate,
@@ -55,6 +58,12 @@ import type {
   CinemaTitle,
   ClipInput,
   ClipSummary,
+  CreateCreatorPayoutRequestInput,
+  CreatorAchievement,
+  CreatorFinanceOverview,
+  CreatorPayoutPreference,
+  CreatorPayoutProfile,
+  CreatorPayoutRequest,
   CryptoCheckout,
   CryptoSubscriptionInput,
   CryptoTipInput,
@@ -69,10 +78,14 @@ import type {
   Me,
   NotificationPreferences,
   NotificationPreferencesInput,
+  ReviewPayoutProfileInput,
+  ReviewPayoutRequestInput,
+  SaveCreatorPayoutProfileInput,
   SearchKryvParams,
   SearchResults,
   StreamCredentials,
   UpdateAdminFeatureFlagInput,
+  UpdateCreatorPayoutPreferenceInput,
   VideoCreateResponse,
   VideoDetail,
   VideoInput,
@@ -3859,6 +3872,748 @@ export function useGetCinemaHome<TData = Awaited<ReturnType<typeof getCinemaHome
 
 
 
+
+export const getGetCreatorFinanceUrl = () => {
+
+
+
+
+  return `/api/creator/finance`
+}
+
+/**
+ * @summary Creator-only wallet, earnings, payout readiness, and recent payout requests
+ */
+export const getCreatorFinance = async ( options?: RequestInit): Promise<CreatorFinanceOverview> => {
+
+  return customFetch<CreatorFinanceOverview>(getGetCreatorFinanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCreatorFinanceQueryKey = () => {
+    return [
+    `/api/creator/finance`
+    ] as const;
+    }
+
+
+export const getGetCreatorFinanceQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorFinance>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorFinance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCreatorFinanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCreatorFinance>>> = ({ signal }) => getCreatorFinance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCreatorFinance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCreatorFinanceQueryResult = NonNullable<Awaited<ReturnType<typeof getCreatorFinance>>>
+export type GetCreatorFinanceQueryError = ErrorType<void>
+
+
+/**
+ * @summary Creator-only wallet, earnings, payout readiness, and recent payout requests
+ */
+
+export function useGetCreatorFinance<TData = Awaited<ReturnType<typeof getCreatorFinance>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorFinance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCreatorFinanceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveCreatorPayoutProfileUrl = () => {
+
+
+
+
+  return `/api/creator/finance/payout-profiles`
+}
+
+/**
+ * @summary Save or replace an encrypted creator payout destination for an approved asset
+ */
+export const saveCreatorPayoutProfile = async (saveCreatorPayoutProfileInput: SaveCreatorPayoutProfileInput, options?: RequestInit): Promise<CreatorPayoutProfile> => {
+
+  return customFetch<CreatorPayoutProfile>(getSaveCreatorPayoutProfileUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(saveCreatorPayoutProfileInput)
+  }
+);}
+
+
+
+
+
+export const getSaveCreatorPayoutProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveCreatorPayoutProfile>>, TError,{data: BodyType<SaveCreatorPayoutProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveCreatorPayoutProfile>>, TError,{data: BodyType<SaveCreatorPayoutProfileInput>}, TContext> => {
+
+const mutationKey = ['saveCreatorPayoutProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveCreatorPayoutProfile>>, {data: BodyType<SaveCreatorPayoutProfileInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveCreatorPayoutProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveCreatorPayoutProfileMutationResult = NonNullable<Awaited<ReturnType<typeof saveCreatorPayoutProfile>>>
+    export type SaveCreatorPayoutProfileMutationBody = BodyType<SaveCreatorPayoutProfileInput>
+    export type SaveCreatorPayoutProfileMutationError = ErrorType<void>
+
+    /**
+ * @summary Save or replace an encrypted creator payout destination for an approved asset
+ */
+export const useSaveCreatorPayoutProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveCreatorPayoutProfile>>, TError,{data: BodyType<SaveCreatorPayoutProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveCreatorPayoutProfile>>,
+        TError,
+        {data: BodyType<SaveCreatorPayoutProfileInput>},
+        TContext
+      > => {
+      return useMutation(getSaveCreatorPayoutProfileMutationOptions(options));
+    }
+
+export const getUpdateCreatorPayoutPreferenceUrl = () => {
+
+
+
+
+  return `/api/creator/finance/preferences`
+}
+
+/**
+ * @summary Set creator payout cadence and minimum amount; schedules create review requests only
+ */
+export const updateCreatorPayoutPreference = async (updateCreatorPayoutPreferenceInput: UpdateCreatorPayoutPreferenceInput, options?: RequestInit): Promise<CreatorPayoutPreference> => {
+
+  return customFetch<CreatorPayoutPreference>(getUpdateCreatorPayoutPreferenceUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateCreatorPayoutPreferenceInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateCreatorPayoutPreferenceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>, TError,{data: BodyType<UpdateCreatorPayoutPreferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>, TError,{data: BodyType<UpdateCreatorPayoutPreferenceInput>}, TContext> => {
+
+const mutationKey = ['updateCreatorPayoutPreference'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>, {data: BodyType<UpdateCreatorPayoutPreferenceInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateCreatorPayoutPreference(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCreatorPayoutPreferenceMutationResult = NonNullable<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>>
+    export type UpdateCreatorPayoutPreferenceMutationBody = BodyType<UpdateCreatorPayoutPreferenceInput>
+    export type UpdateCreatorPayoutPreferenceMutationError = ErrorType<void>
+
+    /**
+ * @summary Set creator payout cadence and minimum amount; schedules create review requests only
+ */
+export const useUpdateCreatorPayoutPreference = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>, TError,{data: BodyType<UpdateCreatorPayoutPreferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCreatorPayoutPreference>>,
+        TError,
+        {data: BodyType<UpdateCreatorPayoutPreferenceInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateCreatorPayoutPreferenceMutationOptions(options));
+    }
+
+export const getCreateCreatorPayoutRequestUrl = () => {
+
+
+
+
+  return `/api/creator/finance/payout-requests`
+}
+
+/**
+ * @summary Create a server-calculated, owner-reviewable payout request without executing a withdrawal
+ */
+export const createCreatorPayoutRequest = async (createCreatorPayoutRequestInput: CreateCreatorPayoutRequestInput, options?: RequestInit): Promise<CreatorPayoutRequest> => {
+
+  return customFetch<CreatorPayoutRequest>(getCreateCreatorPayoutRequestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createCreatorPayoutRequestInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCreatorPayoutRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCreatorPayoutRequest>>, TError,{data: BodyType<CreateCreatorPayoutRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCreatorPayoutRequest>>, TError,{data: BodyType<CreateCreatorPayoutRequestInput>}, TContext> => {
+
+const mutationKey = ['createCreatorPayoutRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCreatorPayoutRequest>>, {data: BodyType<CreateCreatorPayoutRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCreatorPayoutRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCreatorPayoutRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createCreatorPayoutRequest>>>
+    export type CreateCreatorPayoutRequestMutationBody = BodyType<CreateCreatorPayoutRequestInput>
+    export type CreateCreatorPayoutRequestMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a server-calculated, owner-reviewable payout request without executing a withdrawal
+ */
+export const useCreateCreatorPayoutRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCreatorPayoutRequest>>, TError,{data: BodyType<CreateCreatorPayoutRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCreatorPayoutRequest>>,
+        TError,
+        {data: BodyType<CreateCreatorPayoutRequestInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCreatorPayoutRequestMutationOptions(options));
+    }
+
+export const getGetCreatorAchievementsUrl = () => {
+
+
+
+
+  return `/api/creator/achievements`
+}
+
+/**
+ * @summary Creator-only server-computed payout-readiness milestones
+ */
+export const getCreatorAchievements = async ( options?: RequestInit): Promise<CreatorAchievement[]> => {
+
+  return customFetch<CreatorAchievement[]>(getGetCreatorAchievementsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCreatorAchievementsQueryKey = () => {
+    return [
+    `/api/creator/achievements`
+    ] as const;
+    }
+
+
+export const getGetCreatorAchievementsQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorAchievements>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorAchievements>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCreatorAchievementsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCreatorAchievements>>> = ({ signal }) => getCreatorAchievements({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCreatorAchievements>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCreatorAchievementsQueryResult = NonNullable<Awaited<ReturnType<typeof getCreatorAchievements>>>
+export type GetCreatorAchievementsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Creator-only server-computed payout-readiness milestones
+ */
+
+export function useGetCreatorAchievements<TData = Awaited<ReturnType<typeof getCreatorAchievements>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorAchievements>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCreatorAchievementsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminFinanceOverviewUrl = () => {
+
+
+
+
+  return `/api/admin/finance/overview`
+}
+
+/**
+ * @summary Owner-only finance command overview with asset liabilities and controlled-launch status
+ */
+export const getAdminFinanceOverview = async ( options?: RequestInit): Promise<AdminFinanceOverview> => {
+
+  return customFetch<AdminFinanceOverview>(getGetAdminFinanceOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminFinanceOverviewQueryKey = () => {
+    return [
+    `/api/admin/finance/overview`
+    ] as const;
+    }
+
+
+export const getGetAdminFinanceOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminFinanceOverviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminFinanceOverview>>> = ({ signal }) => getAdminFinanceOverview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminFinanceOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminFinanceOverview>>>
+export type GetAdminFinanceOverviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only finance command overview with asset liabilities and controlled-launch status
+ */
+
+export function useGetAdminFinanceOverview<TData = Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminFinanceOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAdminPayoutProfilesUrl = () => {
+
+
+
+
+  return `/api/admin/finance/payout-profiles`
+}
+
+/**
+ * @summary Owner-only masked creator payout profiles awaiting or completing review
+ */
+export const listAdminPayoutProfiles = async ( options?: RequestInit): Promise<AdminPayoutProfile[]> => {
+
+  return customFetch<AdminPayoutProfile[]>(getListAdminPayoutProfilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminPayoutProfilesQueryKey = () => {
+    return [
+    `/api/admin/finance/payout-profiles`
+    ] as const;
+    }
+
+
+export const getListAdminPayoutProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminPayoutProfilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminPayoutProfiles>>> = ({ signal }) => listAdminPayoutProfiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminPayoutProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminPayoutProfiles>>>
+export type ListAdminPayoutProfilesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only masked creator payout profiles awaiting or completing review
+ */
+
+export function useListAdminPayoutProfiles<TData = Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminPayoutProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewAdminPayoutProfileUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/finance/payout-profiles/${id}/review`
+}
+
+/**
+ * @summary Owner-only approval or rejection of a masked payout destination
+ */
+export const reviewAdminPayoutProfile = async (id: number,
+    reviewPayoutProfileInput: ReviewPayoutProfileInput, options?: RequestInit): Promise<AdminPayoutProfile> => {
+
+  return customFetch<AdminPayoutProfile>(getReviewAdminPayoutProfileUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reviewPayoutProfileInput)
+  }
+);}
+
+
+
+
+
+export const getReviewAdminPayoutProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAdminPayoutProfile>>, TError,{id: number;data: BodyType<ReviewPayoutProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewAdminPayoutProfile>>, TError,{id: number;data: BodyType<ReviewPayoutProfileInput>}, TContext> => {
+
+const mutationKey = ['reviewAdminPayoutProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewAdminPayoutProfile>>, {id: number;data: BodyType<ReviewPayoutProfileInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewAdminPayoutProfile(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewAdminPayoutProfileMutationResult = NonNullable<Awaited<ReturnType<typeof reviewAdminPayoutProfile>>>
+    export type ReviewAdminPayoutProfileMutationBody = BodyType<ReviewPayoutProfileInput>
+    export type ReviewAdminPayoutProfileMutationError = ErrorType<void>
+
+    /**
+ * @summary Owner-only approval or rejection of a masked payout destination
+ */
+export const useReviewAdminPayoutProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAdminPayoutProfile>>, TError,{id: number;data: BodyType<ReviewPayoutProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewAdminPayoutProfile>>,
+        TError,
+        {id: number;data: BodyType<ReviewPayoutProfileInput>},
+        TContext
+      > => {
+      return useMutation(getReviewAdminPayoutProfileMutationOptions(options));
+    }
+
+export const getListAdminPayoutRequestsUrl = () => {
+
+
+
+
+  return `/api/admin/finance/payout-requests`
+}
+
+/**
+ * @summary Owner-only creator payout review queue and settlement history
+ */
+export const listAdminPayoutRequests = async ( options?: RequestInit): Promise<AdminPayoutRequest[]> => {
+
+  return customFetch<AdminPayoutRequest[]>(getListAdminPayoutRequestsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminPayoutRequestsQueryKey = () => {
+    return [
+    `/api/admin/finance/payout-requests`
+    ] as const;
+    }
+
+
+export const getListAdminPayoutRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminPayoutRequestsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminPayoutRequests>>> = ({ signal }) => listAdminPayoutRequests({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminPayoutRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminPayoutRequests>>>
+export type ListAdminPayoutRequestsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only creator payout review queue and settlement history
+ */
+
+export function useListAdminPayoutRequests<TData = Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminPayoutRequestsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewAdminPayoutRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/finance/payout-requests/${id}/review`
+}
+
+/**
+ * @summary Owner-only payout decision; approval does not execute a provider withdrawal
+ */
+export const reviewAdminPayoutRequest = async (id: number,
+    reviewPayoutRequestInput: ReviewPayoutRequestInput, options?: RequestInit): Promise<AdminPayoutRequest> => {
+
+  return customFetch<AdminPayoutRequest>(getReviewAdminPayoutRequestUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reviewPayoutRequestInput)
+  }
+);}
+
+
+
+
+
+export const getReviewAdminPayoutRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAdminPayoutRequest>>, TError,{id: number;data: BodyType<ReviewPayoutRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewAdminPayoutRequest>>, TError,{id: number;data: BodyType<ReviewPayoutRequestInput>}, TContext> => {
+
+const mutationKey = ['reviewAdminPayoutRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewAdminPayoutRequest>>, {id: number;data: BodyType<ReviewPayoutRequestInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewAdminPayoutRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewAdminPayoutRequestMutationResult = NonNullable<Awaited<ReturnType<typeof reviewAdminPayoutRequest>>>
+    export type ReviewAdminPayoutRequestMutationBody = BodyType<ReviewPayoutRequestInput>
+    export type ReviewAdminPayoutRequestMutationError = ErrorType<void>
+
+    /**
+ * @summary Owner-only payout decision; approval does not execute a provider withdrawal
+ */
+export const useReviewAdminPayoutRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAdminPayoutRequest>>, TError,{id: number;data: BodyType<ReviewPayoutRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewAdminPayoutRequest>>,
+        TError,
+        {id: number;data: BodyType<ReviewPayoutRequestInput>},
+        TContext
+      > => {
+      return useMutation(getReviewAdminPayoutRequestMutationOptions(options));
+    }
 
 export const getGetAdminStatsUrl = () => {
 

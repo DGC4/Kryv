@@ -1,11 +1,16 @@
 import { Router, type IRouter } from "express";
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   db,
   usersTable,
   channelsTable,
   videosTable,
   featureFlagsTable,
+  creatorBalancesTable,
+  creatorBalanceMovementsTable,
+  creatorPayoutProfilesTable,
+  payoutRequestsTable,
+  payoutApprovalsTable,
 } from "@workspace/db";
 import {
   GetAdminStatsResponse,
@@ -21,15 +26,28 @@ import {
   UpdateAdminFeatureFlagParams,
   UpdateAdminFeatureFlagBody,
   UpdateAdminFeatureFlagResponse,
+  GetAdminFinanceOverviewResponse,
+  ListAdminPayoutProfilesResponse,
+  ReviewAdminPayoutProfileParams,
+  ReviewAdminPayoutProfileBody,
+  ReviewAdminPayoutProfileResponse,
+  ListAdminPayoutRequestsResponse,
+  ReviewAdminPayoutRequestParams,
+  ReviewAdminPayoutRequestBody,
+  ReviewAdminPayoutRequestResponse,
 } from "@workspace/api-zod";
 import { requireOwner } from "../lib/auth";
 import { toChannelSummary } from "../lib/channelSerializer";
 import { toVideoSummary } from "../lib/videoSerializer";
 import { writeAuditLog } from "../lib/operations";
+import { getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode } from "../lib/plisio";
 
 const OPERATIONAL_FLAG_COPY: Record<string, string> = {
   crypto_commerce: "Crypto-only invoices for channel support and subscriptions. Disable immediately if provider callbacks or settlement monitoring are unhealthy.",
   ads_delivery: "Viewer ad decision and eligible ad-break delivery. Keep disabled until consent, frequency caps, and impression monitoring are operational.",
+  creator_payout_requests: "Creator payout request queue. Keep disabled until encrypted payout profiles, creator ledger monitoring, and owner review procedures are operational.",
+  scheduled_payout_requests: "Scheduled daily, weekly, and monthly payout request generation. Keep disabled until a production scheduler, idempotency checks, and alerting are configured.",
+  provider_withdrawals: "Provider withdrawal execution. Keep disabled until request IP, provider balances, fee estimation, reconciliation, and incident response are verified.",
 };
 
 function toAdminFeatureFlag(row: { key: string; enabled: boolean; description: string | null; updatedAt: Date }) {
@@ -41,7 +59,356 @@ function toAdminFeatureFlag(row: { key: string; enabled: boolean; description: s
   };
 }
 
+function toDecimalString(value: unknown) {
+  return typeof value === "string" ? value : String(value ?? "0");
+}
+
+function toAdminPayoutProfile(row: any) {
+  return {
+    id: row.id,
+    currency: row.currency,
+    addressMasked: row.addressMasked,
+    confirmationStatus: row.confirmationStatus,
+    reviewStatus: row.reviewStatus,
+    confirmedAt: row.confirmedAt,
+    updatedAt: row.updatedAt,
+    channelId: row.channelId,
+    channelSlug: row.channelSlug,
+    channelDisplayName: row.channelDisplayName,
+    creatorUsername: row.creatorUsername,
+  };
+}
+
+function toAdminPayoutRequest(row: any) {
+  return {
+    id: row.id,
+    currency: row.currency,
+    amount: toDecimalString(row.amount),
+    destinationMasked: row.destinationMasked,
+    requestSource: row.requestSource === "scheduled" ? "scheduled" : "manual",
+    feeAmount: row.feeAmount === null ? null : toDecimalString(row.feeAmount),
+    feeCurrency: row.feeCurrency,
+    usdReferenceAmount: row.usdReferenceAmount === null ? null : toDecimalString(row.usdReferenceAmount),
+    status: row.status,
+    riskHoldReason: row.riskHoldReason,
+    requestedAt: row.requestedAt,
+    reviewedAt: row.reviewedAt,
+    completedAt: row.completedAt,
+    providerTransactionUrl: row.providerTransactionUrl,
+    channelId: row.channelId,
+    channelSlug: row.channelSlug,
+    channelDisplayName: row.channelDisplayName,
+    creatorUsername: row.creatorUsername,
+  };
+}
+
+async function getFinanceFlags() {
+  const keys = ["crypto_commerce", "creator_payout_requests", "scheduled_payout_requests", "provider_withdrawals"];
+  const rows = await db
+    .select({ key: featureFlagsTable.key, enabled: featureFlagsTable.enabled })
+    .from(featureFlagsTable)
+    .where(inArray(featureFlagsTable.key, keys));
+  const flags = new Map(rows.map((row) => [row.key, row.enabled]));
+  return {
+    cryptoCommerceEnabled: Boolean(flags.get("crypto_commerce")),
+    payoutRequestsEnabled: Boolean(flags.get("creator_payout_requests")),
+    scheduledPayoutRequestsEnabled: Boolean(flags.get("scheduled_payout_requests")),
+    providerWithdrawalsEnabled: Boolean(flags.get("provider_withdrawals")),
+  };
+}
+
 const router: IRouter = Router();
+
+router.get("/admin/finance/overview", requireOwner, async (_req, res): Promise<void> => {
+  const [liabilityRows, profileReview, payoutReview, flags, snapshots] = await Promise.all([
+    db
+      .select({
+        currency: creatorBalancesTable.currency,
+        pendingAmount: sql<string>`coalesce(sum(${creatorBalancesTable.pendingAmount}), 0)::text`,
+        availableAmount: sql<string>`coalesce(sum(${creatorBalancesTable.availableAmount}), 0)::text`,
+        heldAmount: sql<string>`coalesce(sum(${creatorBalancesTable.heldAmount}), 0)::text`,
+      })
+      .from(creatorBalancesTable)
+      .groupBy(creatorBalancesTable.currency),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(creatorPayoutProfilesTable).where(eq(creatorPayoutProfilesTable.reviewStatus, "pending")),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(payoutRequestsTable).where(inArray(payoutRequestsTable.status, ["requested", "held"])),
+    getFinanceFlags(),
+    getPlisioAssetSnapshots().catch(() => []),
+  ]);
+  const snapshotByCurrency = new Map(snapshots.map((snapshot) => [snapshot.currency, snapshot]));
+
+  res.json(GetAdminFinanceOverviewResponse.parse({
+    assetLiabilities: liabilityRows
+      .filter((row) => isSupportedKryvCryptoCode(row.currency))
+      .map((row) => {
+        const snapshot = snapshotByCurrency.get(row.currency);
+        return {
+          currency: row.currency,
+          pendingAmount: row.pendingAmount,
+          availableAmount: row.availableAmount,
+          heldAmount: row.heldAmount,
+          providerTreasuryBalance: snapshot?.treasuryBalance ?? null,
+          priceUsd: snapshot?.priceUsd ?? null,
+          rateUpdatedAt: snapshot?.fetchedAt ?? null,
+        };
+      }),
+    pendingProfileReviews: profileReview[0]?.count ?? 0,
+    requestedPayouts: payoutReview[0]?.count ?? 0,
+    ...flags,
+    providerConfigured: isPlisioConfigured(),
+  }));
+});
+
+router.get("/admin/finance/payout-profiles", requireOwner, async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: creatorPayoutProfilesTable.id,
+      currency: creatorPayoutProfilesTable.currency,
+      addressMasked: creatorPayoutProfilesTable.addressMasked,
+      confirmationStatus: creatorPayoutProfilesTable.confirmationStatus,
+      reviewStatus: creatorPayoutProfilesTable.reviewStatus,
+      confirmedAt: creatorPayoutProfilesTable.confirmedAt,
+      updatedAt: creatorPayoutProfilesTable.updatedAt,
+      channelId: channelsTable.id,
+      channelSlug: channelsTable.slug,
+      channelDisplayName: channelsTable.displayName,
+      creatorUsername: usersTable.username,
+    })
+    .from(creatorPayoutProfilesTable)
+    .innerJoin(channelsTable, eq(creatorPayoutProfilesTable.channelId, channelsTable.id))
+    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+    .orderBy(asc(creatorPayoutProfilesTable.reviewStatus), desc(creatorPayoutProfilesTable.updatedAt));
+  res.json(ListAdminPayoutProfilesResponse.parse(rows.filter((row) => isSupportedKryvCryptoCode(row.currency)).map(toAdminPayoutProfile)));
+});
+
+router.post("/admin/finance/payout-profiles/:id/review", requireOwner, async (req, res): Promise<void> => {
+  const params = ReviewAdminPayoutProfileParams.safeParse(req.params);
+  const body = ReviewAdminPayoutProfileBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    return;
+  }
+  const [before] = await db
+    .select({
+      id: creatorPayoutProfilesTable.id,
+      currency: creatorPayoutProfilesTable.currency,
+      addressMasked: creatorPayoutProfilesTable.addressMasked,
+      confirmationStatus: creatorPayoutProfilesTable.confirmationStatus,
+      reviewStatus: creatorPayoutProfilesTable.reviewStatus,
+      confirmedAt: creatorPayoutProfilesTable.confirmedAt,
+      updatedAt: creatorPayoutProfilesTable.updatedAt,
+      channelId: channelsTable.id,
+      channelSlug: channelsTable.slug,
+      channelDisplayName: channelsTable.displayName,
+      creatorUsername: usersTable.username,
+    })
+    .from(creatorPayoutProfilesTable)
+    .innerJoin(channelsTable, eq(creatorPayoutProfilesTable.channelId, channelsTable.id))
+    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+    .where(eq(creatorPayoutProfilesTable.id, params.data.id));
+  if (!before) {
+    res.status(404).json({ error: "Payout profile not found" });
+    return;
+  }
+
+  const now = new Date();
+  await db
+    .update(creatorPayoutProfilesTable)
+    .set({
+      reviewStatus: body.data.decision,
+      confirmationStatus: body.data.decision === "approved" ? "confirmed" : "rejected",
+      confirmedAt: body.data.decision === "approved" ? now : null,
+      reviewedByUserId: req.user!.userId,
+      reviewedAt: now,
+      updatedAt: now,
+    })
+    .where(eq(creatorPayoutProfilesTable.id, before.id));
+
+  const [after] = await db
+    .select({
+      id: creatorPayoutProfilesTable.id,
+      currency: creatorPayoutProfilesTable.currency,
+      addressMasked: creatorPayoutProfilesTable.addressMasked,
+      confirmationStatus: creatorPayoutProfilesTable.confirmationStatus,
+      reviewStatus: creatorPayoutProfilesTable.reviewStatus,
+      confirmedAt: creatorPayoutProfilesTable.confirmedAt,
+      updatedAt: creatorPayoutProfilesTable.updatedAt,
+      channelId: channelsTable.id,
+      channelSlug: channelsTable.slug,
+      channelDisplayName: channelsTable.displayName,
+      creatorUsername: usersTable.username,
+    })
+    .from(creatorPayoutProfilesTable)
+    .innerJoin(channelsTable, eq(creatorPayoutProfilesTable.channelId, channelsTable.id))
+    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+    .where(eq(creatorPayoutProfilesTable.id, before.id));
+
+  await writeAuditLog(req, {
+    action: `owner_payout_profile.${body.data.decision}`,
+    targetType: "creator_payout_profile",
+    targetId: String(before.id),
+    reason: body.data.reason,
+    beforeState: toAdminPayoutProfile(before),
+    afterState: toAdminPayoutProfile(after!),
+  });
+  res.json(ReviewAdminPayoutProfileResponse.parse(toAdminPayoutProfile(after!)));
+});
+
+router.get("/admin/finance/payout-requests", requireOwner, async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: payoutRequestsTable.id,
+      currency: payoutRequestsTable.currency,
+      amount: payoutRequestsTable.amount,
+      destinationMasked: payoutRequestsTable.destinationMasked,
+      requestSource: payoutRequestsTable.requestSource,
+      feeAmount: payoutRequestsTable.feeAmount,
+      feeCurrency: payoutRequestsTable.feeCurrency,
+      usdReferenceAmount: payoutRequestsTable.usdReferenceAmount,
+      status: payoutRequestsTable.status,
+      riskHoldReason: payoutRequestsTable.riskHoldReason,
+      requestedAt: payoutRequestsTable.requestedAt,
+      reviewedAt: payoutRequestsTable.reviewedAt,
+      completedAt: payoutRequestsTable.completedAt,
+      providerTransactionUrl: payoutRequestsTable.providerTransactionUrl,
+      channelId: channelsTable.id,
+      channelSlug: channelsTable.slug,
+      channelDisplayName: channelsTable.displayName,
+      creatorUsername: usersTable.username,
+    })
+    .from(payoutRequestsTable)
+    .innerJoin(channelsTable, eq(payoutRequestsTable.channelId, channelsTable.id))
+    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+    .orderBy(desc(payoutRequestsTable.requestedAt));
+  res.json(ListAdminPayoutRequestsResponse.parse(rows.filter((row) => isSupportedKryvCryptoCode(row.currency)).map(toAdminPayoutRequest)));
+});
+
+router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (req, res): Promise<void> => {
+  const params = ReviewAdminPayoutRequestParams.safeParse(req.params);
+  const body = ReviewAdminPayoutRequestBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    return;
+  }
+  const [before] = await db
+    .select({
+      id: payoutRequestsTable.id,
+      channelId: payoutRequestsTable.channelId,
+      requestedByUserId: payoutRequestsTable.requestedByUserId,
+      currency: payoutRequestsTable.currency,
+      amount: payoutRequestsTable.amount,
+      destinationMasked: payoutRequestsTable.destinationMasked,
+      requestSource: payoutRequestsTable.requestSource,
+      feeAmount: payoutRequestsTable.feeAmount,
+      feeCurrency: payoutRequestsTable.feeCurrency,
+      usdReferenceAmount: payoutRequestsTable.usdReferenceAmount,
+      status: payoutRequestsTable.status,
+      riskHoldReason: payoutRequestsTable.riskHoldReason,
+      requestedAt: payoutRequestsTable.requestedAt,
+      reviewedAt: payoutRequestsTable.reviewedAt,
+      completedAt: payoutRequestsTable.completedAt,
+      providerTransactionUrl: payoutRequestsTable.providerTransactionUrl,
+      channelSlug: channelsTable.slug,
+      channelDisplayName: channelsTable.displayName,
+      creatorUsername: usersTable.username,
+    })
+    .from(payoutRequestsTable)
+    .innerJoin(channelsTable, eq(payoutRequestsTable.channelId, channelsTable.id))
+    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+    .where(eq(payoutRequestsTable.id, params.data.id));
+  if (!before) {
+    res.status(404).json({ error: "Payout request not found" });
+    return;
+  }
+  if (before.requestedByUserId === req.user!.userId) {
+    res.status(403).json({ error: "An owner cannot approve their own payout request." });
+    return;
+  }
+  if (!["requested", "held"].includes(before.status)) {
+    res.status(400).json({ error: "Only requested or held payouts can be reviewed." });
+    return;
+  }
+
+  const nextStatus = body.data.decision === "approved" ? "approved" : body.data.decision === "held" ? "held" : "rejected";
+  const now = new Date();
+  await db.transaction(async (txn) => {
+    if (body.data.decision === "rejected") {
+      await txn.execute(sql`SELECT id FROM creator_balances WHERE channel_id = ${before.channelId} AND currency = ${before.currency} FOR UPDATE`);
+      const [balance] = await txn
+        .select()
+        .from(creatorBalancesTable)
+        .where(and(eq(creatorBalancesTable.channelId, before.channelId), eq(creatorBalancesTable.currency, before.currency)))
+        .limit(1);
+      if (!balance) throw new Error("Creator balance projection is missing for this payout.");
+      await txn
+        .update(creatorBalancesTable)
+        .set({
+          availableAmount: sql`${creatorBalancesTable.availableAmount} + ${before.amount}`,
+          heldAmount: sql`${creatorBalancesTable.heldAmount} - ${before.amount}`,
+          updatedAt: now,
+        })
+        .where(eq(creatorBalancesTable.id, balance.id));
+      await txn.insert(creatorBalanceMovementsTable).values({
+        channelId: before.channelId,
+        currency: before.currency,
+        movementType: "payout_released",
+        availableDelta: toDecimalString(before.amount),
+        heldDelta: `-${toDecimalString(before.amount)}`,
+        pendingDelta: "0",
+        sourceType: "payout_request",
+        sourceId: String(before.id),
+        idempotencyKey: `payout-release:${before.id}`,
+        metadata: { decision: "rejected", reason: body.data.reason ?? null },
+      });
+    }
+    await txn
+      .update(payoutRequestsTable)
+      .set({ status: nextStatus, riskHoldReason: body.data.decision === "held" ? body.data.reason ?? "Owner review hold" : body.data.decision === "rejected" ? body.data.reason ?? "Owner rejected payout" : null, reviewedAt: now })
+      .where(eq(payoutRequestsTable.id, before.id));
+    await txn.insert(payoutApprovalsTable).values({
+      payoutRequestId: before.id,
+      reviewerUserId: req.user!.userId,
+      decision: body.data.decision,
+      reason: body.data.reason ?? null,
+    });
+  });
+
+  const [after] = await db
+    .select({
+      id: payoutRequestsTable.id,
+      currency: payoutRequestsTable.currency,
+      amount: payoutRequestsTable.amount,
+      destinationMasked: payoutRequestsTable.destinationMasked,
+      requestSource: payoutRequestsTable.requestSource,
+      feeAmount: payoutRequestsTable.feeAmount,
+      feeCurrency: payoutRequestsTable.feeCurrency,
+      usdReferenceAmount: payoutRequestsTable.usdReferenceAmount,
+      status: payoutRequestsTable.status,
+      riskHoldReason: payoutRequestsTable.riskHoldReason,
+      requestedAt: payoutRequestsTable.requestedAt,
+      reviewedAt: payoutRequestsTable.reviewedAt,
+      completedAt: payoutRequestsTable.completedAt,
+      providerTransactionUrl: payoutRequestsTable.providerTransactionUrl,
+      channelId: channelsTable.id,
+      channelSlug: channelsTable.slug,
+      channelDisplayName: channelsTable.displayName,
+      creatorUsername: usersTable.username,
+    })
+    .from(payoutRequestsTable)
+    .innerJoin(channelsTable, eq(payoutRequestsTable.channelId, channelsTable.id))
+    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+    .where(eq(payoutRequestsTable.id, before.id));
+
+  await writeAuditLog(req, {
+    action: `owner_payout_request.${body.data.decision}`,
+    targetType: "payout_request",
+    targetId: String(before.id),
+    reason: body.data.reason,
+    beforeState: toAdminPayoutRequest(before),
+    afterState: toAdminPayoutRequest(after!),
+  });
+  res.json(ReviewAdminPayoutRequestResponse.parse(toAdminPayoutRequest(after!)));
+});
 
 router.get("/admin/feature-flags", requireOwner, async (_req, res): Promise<void> => {
   const flags = await db

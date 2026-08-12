@@ -1049,6 +1049,244 @@ export interface Me {
   followedChannels: ChannelSummary[];
 }
 
+export interface CreatorBalance {
+  currency: CryptoCurrency;
+  pendingAmount: string;
+  availableAmount: string;
+  heldAmount: string;
+  /** @nullable */
+  usdReferenceValue: string | null;
+  /** @nullable */
+  rateUpdatedAt: string | null;
+}
+
+export type CreatorPayoutProfileConfirmationStatus = typeof CreatorPayoutProfileConfirmationStatus[keyof typeof CreatorPayoutProfileConfirmationStatus];
+
+
+export const CreatorPayoutProfileConfirmationStatus = {
+  pending: 'pending',
+  confirmed: 'confirmed',
+  rejected: 'rejected',
+} as const;
+
+export type CreatorPayoutProfileReviewStatus = typeof CreatorPayoutProfileReviewStatus[keyof typeof CreatorPayoutProfileReviewStatus];
+
+
+export const CreatorPayoutProfileReviewStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface CreatorPayoutProfile {
+  id: number;
+  currency: CryptoCurrency;
+  addressMasked: string;
+  confirmationStatus: CreatorPayoutProfileConfirmationStatus;
+  reviewStatus: CreatorPayoutProfileReviewStatus;
+  /** @nullable */
+  confirmedAt?: string | null;
+  updatedAt: string;
+}
+
+export type CreatorPayoutPreferenceCadence = typeof CreatorPayoutPreferenceCadence[keyof typeof CreatorPayoutPreferenceCadence];
+
+
+export const CreatorPayoutPreferenceCadence = {
+  manual: 'manual',
+  daily: 'daily',
+  weekly: 'weekly',
+  monthly: 'monthly',
+} as const;
+
+export interface CreatorPayoutPreference {
+  cadence: CreatorPayoutPreferenceCadence;
+  minimumAmount: string;
+  /**
+     * @minimum 0
+     * @maximum 6
+     * @nullable
+     */
+  weekday?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 28
+     * @nullable
+     */
+  monthDay?: number | null;
+  timezone: string;
+  enabled: boolean;
+  /** @nullable */
+  nextRunAt: string | null;
+  updatedAt: string;
+}
+
+export type CreatorPayoutRequestRequestSource = typeof CreatorPayoutRequestRequestSource[keyof typeof CreatorPayoutRequestRequestSource];
+
+
+export const CreatorPayoutRequestRequestSource = {
+  manual: 'manual',
+  scheduled: 'scheduled',
+} as const;
+
+export interface CreatorPayoutRequest {
+  id: number;
+  currency: CryptoCurrency;
+  amount: string;
+  /** @nullable */
+  destinationMasked: string | null;
+  requestSource: CreatorPayoutRequestRequestSource;
+  /** @nullable */
+  feeAmount?: string | null;
+  /** @nullable */
+  feeCurrency?: string | null;
+  /** @nullable */
+  usdReferenceAmount?: string | null;
+  status: string;
+  /** @nullable */
+  riskHoldReason?: string | null;
+  requestedAt: string;
+  /** @nullable */
+  reviewedAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+  /**
+     * @maxLength 2048
+     * @nullable
+     */
+  providerTransactionUrl?: string | null;
+}
+
+export interface CreatorAchievement {
+  key: string;
+  title: string;
+  description: string;
+  currentValue: number;
+  targetValue: number;
+  completed: boolean;
+  evidence: string;
+}
+
+export interface CreatorFinanceOverview {
+  channelId: number;
+  balances: CreatorBalance[];
+  payoutProfiles: CreatorPayoutProfile[];
+  payoutPreference: CreatorPayoutPreference;
+  payoutRequests: CreatorPayoutRequest[];
+  achievements: CreatorAchievement[];
+  payoutRequestsEnabled: boolean;
+  providerRateAvailable?: boolean;
+}
+
+export interface SaveCreatorPayoutProfileInput {
+  currency: CryptoCurrency;
+  /**
+     * @minLength 12
+     * @maxLength 240
+     */
+  address: string;
+}
+
+export type UpdateCreatorPayoutPreferenceInputCadence = typeof UpdateCreatorPayoutPreferenceInputCadence[keyof typeof UpdateCreatorPayoutPreferenceInputCadence];
+
+
+export const UpdateCreatorPayoutPreferenceInputCadence = {
+  manual: 'manual',
+  daily: 'daily',
+  weekly: 'weekly',
+  monthly: 'monthly',
+} as const;
+
+export interface UpdateCreatorPayoutPreferenceInput {
+  cadence: UpdateCreatorPayoutPreferenceInputCadence;
+  /** @pattern ^\d+(\.\d{1,8})?$ */
+  minimumAmount: string;
+  /**
+     * @minimum 0
+     * @maximum 6
+     */
+  weekday?: number;
+  /**
+     * @minimum 1
+     * @maximum 28
+     */
+  monthDay?: number;
+  enabled: boolean;
+}
+
+export interface CreateCreatorPayoutRequestInput {
+  currency: CryptoCurrency;
+  /** @pattern ^\d+(\.\d{1,8})?$ */
+  amount: string;
+}
+
+export type AdminPayoutProfile = CreatorPayoutProfile & {
+  channelId: number;
+  channelSlug: string;
+  channelDisplayName: string;
+  creatorUsername: string;
+};
+
+export type AdminPayoutRequest = CreatorPayoutRequest & {
+  channelId: number;
+  channelSlug: string;
+  channelDisplayName: string;
+  creatorUsername: string;
+};
+
+export interface AdminFinanceAssetLiability {
+  currency: CryptoCurrency;
+  pendingAmount: string;
+  availableAmount: string;
+  heldAmount: string;
+  /** @nullable */
+  providerTreasuryBalance: string | null;
+  /** @nullable */
+  priceUsd: string | null;
+  /** @nullable */
+  rateUpdatedAt: string | null;
+}
+
+export interface AdminFinanceOverview {
+  assetLiabilities: AdminFinanceAssetLiability[];
+  pendingProfileReviews: number;
+  requestedPayouts: number;
+  cryptoCommerceEnabled: boolean;
+  payoutRequestsEnabled: boolean;
+  scheduledPayoutRequestsEnabled: boolean;
+  providerWithdrawalsEnabled: boolean;
+  providerConfigured: boolean;
+}
+
+export type ReviewPayoutProfileInputDecision = typeof ReviewPayoutProfileInputDecision[keyof typeof ReviewPayoutProfileInputDecision];
+
+
+export const ReviewPayoutProfileInputDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface ReviewPayoutProfileInput {
+  decision: ReviewPayoutProfileInputDecision;
+  /** @maxLength 500 */
+  reason?: string;
+}
+
+export type ReviewPayoutRequestInputDecision = typeof ReviewPayoutRequestInputDecision[keyof typeof ReviewPayoutRequestInputDecision];
+
+
+export const ReviewPayoutRequestInputDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+  held: 'held',
+} as const;
+
+export interface ReviewPayoutRequestInput {
+  decision: ReviewPayoutRequestInputDecision;
+  /** @maxLength 500 */
+  reason?: string;
+}
+
 export interface AdminFeatureFlag {
   key: string;
   enabled: boolean;

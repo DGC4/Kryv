@@ -24,17 +24,25 @@ import {
   useListAdminFeatureFlags,
   useUpdateAdminFeatureFlag,
   getListAdminFeatureFlagsQueryKey,
+  useGetAdminFinanceOverview,
+  useListAdminPayoutProfiles,
+  useReviewAdminPayoutProfile,
+  useListAdminPayoutRequests,
+  useReviewAdminPayoutRequest,
+  getGetAdminFinanceOverviewQueryKey,
+  getListAdminPayoutProfilesQueryKey,
+  getListAdminPayoutRequestsQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Loader2, Ban, ShieldCheck, Trash2, Users, Radio, Film, Eye,
-  Crown, Lock, ShieldAlert, Activity, PlaySquare, Tv, Plus, Clapperboard, CheckCircle2, CircleAlert, FileVideo2, Gavel, History, Send, UploadCloud, Power, Zap,
+  Crown, Lock, ShieldAlert, Activity, PlaySquare, Tv, Plus, Clapperboard, CheckCircle2, CircleAlert, FileVideo2, Gavel, History, Send, UploadCloud, Power, Zap, Wallet, Landmark, Clock3, XCircle,
 } from 'lucide-react';
 import { GoldenDBadge, UserBadge } from '@/components/brand/BrandIdentity';
 import { useToast } from '@/hooks/use-toast';
 
-type Tab = 'users' | 'channels' | 'videos' | 'cinema' | 'operations';
+type Tab = 'users' | 'channels' | 'videos' | 'cinema' | 'finance' | 'operations';
 
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: boolean }) {
   return (
@@ -74,6 +82,15 @@ export default function DashboardAdmin() {
   const { data: featureFlags, isLoading: featureFlagsLoading } = useListAdminFeatureFlags({
     query: { enabled: me?.role === 'owner' },
   });
+  const financeOverviewQuery = useGetAdminFinanceOverview({
+    query: { enabled: me?.role === 'owner' && tab === 'finance', refetchInterval: tab === 'finance' ? 15000 : false },
+  });
+  const payoutProfilesQuery = useListAdminPayoutProfiles({
+    query: { enabled: me?.role === 'owner' && tab === 'finance' },
+  });
+  const payoutRequestsQuery = useListAdminPayoutRequests({
+    query: { enabled: me?.role === 'owner' && tab === 'finance' },
+  });
   const [selectedCinemaTitleId, setSelectedCinemaTitleId] = useState<number | null>(null);
   const cinemaDetailQuery = useGetAdminCinemaTitle(selectedCinemaTitleId ?? 0, {
     query: { enabled: me?.role === 'owner' && selectedCinemaTitleId !== null },
@@ -97,6 +114,8 @@ export default function DashboardAdmin() {
   const createCinemaRightsWindow = useCreateAdminCinemaRightsWindow();
   const createCinemaAsset = useCreateAdminCinemaAsset();
   const updateFeatureFlag = useUpdateAdminFeatureFlag();
+  const reviewAdminPayoutProfile = useReviewAdminPayoutProfile();
+  const reviewAdminPayoutRequest = useReviewAdminPayoutRequest();
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
@@ -134,11 +153,47 @@ export default function DashboardAdmin() {
     });
   };
 
+  const refreshFinanceCommand = () => {
+    queryClient.invalidateQueries({ queryKey: getGetAdminFinanceOverviewQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListAdminPayoutProfilesQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListAdminPayoutRequestsQueryKey() });
+  };
+
+  const reviewPayoutProfile = (id: number, decision: 'approved' | 'rejected') => {
+    if (!confirm(`${decision === 'approved' ? 'Approve' : 'Reject'} this masked payout destination? The destination is never displayed in full.`)) return;
+    reviewAdminPayoutProfile.mutate({ id, data: { decision } }, {
+      onSuccess: () => { refreshFinanceCommand(); toast({ title: `Payout destination ${decision}` }); },
+      onError: (err: any) => toast({ title: 'Profile review blocked', description: err?.body?.error || err?.message || 'Review could not be recorded.', variant: 'destructive' }),
+    });
+  };
+
+  const reviewPayoutRequest = (id: number, decision: 'approved' | 'held' | 'rejected') => {
+    const labels = { approved: 'Approve for controlled release', held: 'Place on hold', rejected: 'Reject and release balance' };
+    if (!confirm(`${labels[decision]}? This action is audited. Approval does not send a provider withdrawal.`)) return;
+    reviewAdminPayoutRequest.mutate({ id, data: { decision } }, {
+      onSuccess: () => { refreshFinanceCommand(); toast({ title: `Payout ${decision}`, description: decision === 'approved' ? 'No provider withdrawal was sent.' : undefined }); },
+      onError: (err: any) => toast({ title: 'Payout review blocked', description: err?.body?.error || err?.message || 'Review could not be recorded.', variant: 'destructive' }),
+    });
+  };
+
   const handleAddOriginal = () => setTab('cinema');
 
+  const operationalFlagLabel = (key: string) => ({
+    crypto_commerce: 'crypto commerce',
+    ads_delivery: 'ad delivery',
+    creator_payout_requests: 'creator payout requests',
+    scheduled_payout_requests: 'scheduled payout requests',
+    provider_withdrawals: 'provider withdrawals',
+  }[key] ?? 'operational control');
+
   const toggleOperationalFlag = (key: string, enabled: boolean) => {
-    const label = key === 'crypto_commerce' ? 'crypto commerce' : 'ad delivery';
-    if (enabled && !confirm(`Enable ${label}? Confirm that its provider configuration, monitoring, and incident response are ready.`)) return;
+    const label = operationalFlagLabel(key);
+    const warning = key === 'provider_withdrawals'
+      ? 'Confirm provider request-IP rules, balances, fee estimation, reconciliation, and incident response are verified.'
+      : key === 'scheduled_payout_requests'
+        ? 'Confirm a production scheduler, UTC cadence tests, idempotency checks, and alerting are operating.'
+        : 'Confirm that its provider configuration, monitoring, and incident response are ready.';
+    if (enabled && !confirm(`Enable ${label}? ${warning}`)) return;
     updateFeatureFlag.mutate({ key, data: { enabled } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListAdminFeatureFlagsQueryKey() });
@@ -250,7 +305,7 @@ export default function DashboardAdmin() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-white/[0.08] mb-5">
-        {(['users', 'channels', 'videos', 'cinema', 'operations'] as Tab[]).map((t) => (
+        {(['users', 'channels', 'videos', 'cinema', 'finance', 'operations'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -265,6 +320,41 @@ export default function DashboardAdmin() {
         ))}
       </div>
 
+      {tab === 'finance' && (
+        <section className="space-y-5">
+          <div className="rounded-2xl border border-primary/20 bg-primary/[0.045] p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div><div className="flex items-center gap-2 text-primary"><Landmark className="h-5 w-5" /><h2 className="text-lg font-black">Finance Command</h2></div><p className="mt-1 max-w-3xl text-sm leading-relaxed text-white/50">Server-authoritative creator liabilities, destination-review queue, and payout decisions. Balances remain asset-denominated and destinations stay masked; this screen never exposes provider credentials or full payout addresses.</p></div>
+              <div className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${financeOverviewQuery.data?.providerConfigured ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' : 'border-amber-300/20 bg-amber-300/10 text-amber-100'}`}><Activity className="h-3.5 w-3.5" /> {financeOverviewQuery.data?.providerConfigured ? 'Provider configuration detected' : 'Provider configuration pending'}</div>
+            </div>
+          </div>
+
+          {financeOverviewQuery.isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div> : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard label="Profile reviews" value={financeOverviewQuery.data?.pendingProfileReviews ?? 0} icon={ShieldCheck} accent />
+                <StatCard label="Payout queue" value={financeOverviewQuery.data?.requestedPayouts ?? 0} icon={Clock3} />
+                <StatCard label="Payout requests" value={financeOverviewQuery.data?.payoutRequestsEnabled ? 1 : 0} icon={Wallet} accent={Boolean(financeOverviewQuery.data?.payoutRequestsEnabled)} />
+                <StatCard label="Provider withdrawals" value={financeOverviewQuery.data?.providerWithdrawalsEnabled ? 1 : 0} icon={Send} accent={Boolean(financeOverviewQuery.data?.providerWithdrawalsEnabled)} />
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-black/25">
+                <div className="flex flex-col gap-2 border-b border-white/[0.07] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-black text-white">Creator liability by asset</h3><p className="mt-1 text-xs text-white/40">On-platform pending, available, and held balance projections. These are not provider treasury balances.</p></div><span className="text-[10px] font-bold uppercase tracking-widest text-white/35">Crypto only</span></div>
+                <div className="grid grid-cols-1 divide-y divide-white/[0.06] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">{financeOverviewQuery.data?.assetLiabilities.length ? financeOverviewQuery.data.assetLiabilities.map((asset) => <div key={asset.currency} className="p-4"><div className="flex items-center justify-between"><span className="font-black text-white">{asset.currency}</span><Wallet className="h-4 w-4 text-primary" /></div><p className="mt-3 text-sm font-black text-white">{asset.availableAmount}</p><p className="text-[10px] font-bold uppercase tracking-widest text-white/35">Available liability</p><div className="mt-3 flex justify-between text-[11px] text-white/45"><span>Pending {asset.pendingAmount}</span><span>Held {asset.heldAmount}</span></div></div>) : <div className="col-span-full p-6 text-sm text-white/40">No creator balances have settled yet.</div>}</div>
+              </div>
+
+              <div className="grid gap-5 xl:grid-cols-2">
+                <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-black text-white">Payout destination review</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Review only the asset and masked value. Approval confirms the record for payout requests; it does not move funds.</p></div><span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[9px] font-black uppercase text-white/45">{payoutProfilesQuery.data?.length ?? 0} records</span></div><div className="mt-4 space-y-3">{payoutProfilesQuery.isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : payoutProfilesQuery.data?.length ? payoutProfilesQuery.data.map((profile) => <article key={profile.id} className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-bold text-white">{profile.creatorUsername} · {profile.channelDisplayName}</p><p className="mt-1 font-mono text-xs text-white/45">{profile.currency} · {profile.addressMasked}</p><p className="mt-1 text-[10px] text-white/30">Updated {new Date(profile.updatedAt).toLocaleString()}</p></div><span className={`rounded-full px-2 py-1 text-[9px] font-black uppercase ${profile.reviewStatus === 'approved' ? 'bg-emerald-300/10 text-emerald-200' : profile.reviewStatus === 'rejected' ? 'bg-red-400/10 text-red-200' : 'bg-amber-300/10 text-amber-100'}`}>{profile.reviewStatus}</span></div>{profile.reviewStatus === 'pending' && <div className="mt-3 flex gap-2"><Button size="sm" className="h-8 flex-1 text-xs font-black" disabled={reviewAdminPayoutProfile.isPending} onClick={() => reviewPayoutProfile(profile.id, 'approved')}><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Approve</Button><Button size="sm" variant="secondary" className="h-8 flex-1 text-xs font-black" disabled={reviewAdminPayoutProfile.isPending} onClick={() => reviewPayoutProfile(profile.id, 'rejected')}><XCircle className="mr-1.5 h-3.5 w-3.5" /> Reject</Button></div>}</article>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-5 text-xs text-white/35">No creator payout destinations are awaiting review.</p>}</div></div>
+
+                <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-black text-white">Payout review queue</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Approve for controlled release, hold for investigation, or reject to release the reserved creator balance. Approval is not a provider withdrawal.</p></div><span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[9px] font-black uppercase text-white/45">{payoutRequestsQuery.data?.length ?? 0} records</span></div><div className="mt-4 space-y-3">{payoutRequestsQuery.isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : payoutRequestsQuery.data?.length ? payoutRequestsQuery.data.map((request) => <article key={request.id} className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-bold text-white">{request.creatorUsername} · {request.amount} {request.currency}</p><p className="mt-1 font-mono text-xs text-white/45">{request.destinationMasked ?? 'No destination snapshot'}</p><p className="mt-1 text-[10px] text-white/30">{request.requestSource} request · {new Date(request.requestedAt).toLocaleString()}</p>{request.riskHoldReason && <p className="mt-2 text-[11px] text-amber-100/75">{request.riskHoldReason}</p>}</div><span className="rounded-full bg-primary/10 px-2 py-1 text-[9px] font-black uppercase text-primary">{request.status}</span></div>{['requested', 'held'].includes(request.status) && <div className="mt-3 grid grid-cols-3 gap-2"><Button size="sm" className="h-8 text-[10px] font-black" disabled={reviewAdminPayoutRequest.isPending} onClick={() => reviewPayoutRequest(request.id, 'approved')}>Approve</Button><Button size="sm" variant="secondary" className="h-8 text-[10px] font-black" disabled={reviewAdminPayoutRequest.isPending} onClick={() => reviewPayoutRequest(request.id, 'held')}>Hold</Button><Button size="sm" variant="secondary" className="h-8 text-[10px] font-black" disabled={reviewAdminPayoutRequest.isPending} onClick={() => reviewPayoutRequest(request.id, 'rejected')}>Reject</Button></div>}</article>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-5 text-xs text-white/35">No payout requests have entered the queue.</p>}</div></div>
+              </div>
+
+              <p className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.05] p-4 text-xs leading-relaxed text-amber-100/75">Provider withdrawals remain disabled by default. Before enabling them, verify provider request-IP rules, asset balances, fee estimation, callback reconciliation, response monitoring, and the incident runbook. Use a separate, explicit activation decision after a review-first pilot.</p>
+            </>
+          )}
+        </section>
+      )}
+
       {tab === 'operations' && (
         <section className="space-y-4">
           <div className="rounded-2xl border border-primary/20 bg-primary/[0.045] p-5 sm:p-6">
@@ -277,9 +367,10 @@ export default function DashboardAdmin() {
             <div className="grid gap-4 lg:grid-cols-2">
               {featureFlags?.map((flag) => {
                 const isCrypto = flag.key === 'crypto_commerce';
+                const label = operationalFlagLabel(flag.key);
                 return <article key={flag.key} className={`rounded-2xl border p-5 ${flag.enabled ? 'border-emerald-400/25 bg-emerald-400/[0.045]' : 'border-white/[0.1] bg-black/30'}`}>
-                  <div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2"><Power className={`h-4 w-4 ${flag.enabled ? 'text-emerald-300' : 'text-white/35'}`} /><h3 className="text-sm font-black text-white">{isCrypto ? 'Crypto commerce' : 'Ad delivery'}</h3></div><p className="mt-2 text-xs leading-relaxed text-white/50">{flag.description}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${flag.enabled ? 'bg-emerald-400/15 text-emerald-300' : 'bg-white/[0.07] text-white/45'}`}>{flag.enabled ? 'Enabled' : 'Disabled'}</span></div>
-                  {isCrypto && !flag.enabled && <p className="mt-4 rounded-xl border border-amber-300/15 bg-amber-300/[0.06] p-3 text-[11px] leading-relaxed text-amber-100/70">Before enabling: confirm the provider secret, HTTPS JSON callback URL, public application URL, and signed-callback monitoring are configured in production.</p>}
+                  <div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2"><Power className={`h-4 w-4 ${flag.enabled ? 'text-emerald-300' : 'text-white/35'}`} /><h3 className="text-sm font-black text-white">{label}</h3></div><p className="mt-2 text-xs leading-relaxed text-white/50">{flag.description}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${flag.enabled ? 'bg-emerald-400/15 text-emerald-300' : 'bg-white/[0.07] text-white/45'}`}>{flag.enabled ? 'Enabled' : 'Disabled'}</span></div>
+                  {!flag.enabled && <p className="mt-4 rounded-xl border border-amber-300/15 bg-amber-300/[0.06] p-3 text-[11px] leading-relaxed text-amber-100/70">{isCrypto ? 'Before enabling: confirm the provider secret, HTTPS JSON callback URL, public application URL, and signed-callback monitoring are configured in production.' : flag.key === 'provider_withdrawals' ? 'Before enabling: verify the provider request-IP rule, provider asset balance, fee estimation, reconciliation, and the incident response runbook.' : flag.key === 'scheduled_payout_requests' ? 'Before enabling: configure and test a production scheduler, UTC schedule handling, idempotency, retries, and alerting.' : 'Before enabling: complete the documented controlled-launch readiness checks.'}</p>}
                   <div className="mt-5 flex items-center justify-between gap-3"><span className="text-[10px] font-bold text-white/35">Updated {new Date(flag.updatedAt).toLocaleString()}</span><Button variant={flag.enabled ? 'secondary' : 'default'} size="sm" disabled={updateFeatureFlag.isPending} onClick={() => toggleOperationalFlag(flag.key, !flag.enabled)} className="font-black">{updateFeatureFlag.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : flag.enabled ? 'Disable now' : 'Enable'}</Button></div>
                 </article>;
               })}
