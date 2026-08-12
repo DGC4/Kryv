@@ -12,3 +12,4 @@ export * from "./activityLogs";
 export * from "./deviceHistory";
 export * from "./streaming";
 export * from "./platform";
+export * from "./activityPresence";

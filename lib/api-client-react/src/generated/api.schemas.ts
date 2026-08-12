@@ -1307,6 +1307,72 @@ export interface AdminStats {
   bannedUsers: number;
 }
 
+export interface ActivityObservabilityPreferences {
+  enabled: boolean;
+}
+
+export interface ActivityObservabilityPreferencesInput {
+  enabled: boolean;
+}
+
+export type ActivityPresenceInputRouteKey = typeof ActivityPresenceInputRouteKey[keyof typeof ActivityPresenceInputRouteKey];
+
+
+export const ActivityPresenceInputRouteKey = {
+  live_home: 'live_home',
+  live_categories: 'live_categories',
+  live_category: 'live_category',
+  live_channel: 'live_channel',
+  watch_home: 'watch_home',
+  watch_detail: 'watch_detail',
+  clips_home: 'clips_home',
+  clip_detail: 'clip_detail',
+  cinema_catalog: 'cinema_catalog',
+  cinema_detail: 'cinema_detail',
+  creator_studio: 'creator_studio',
+  creator_wallet: 'creator_wallet',
+  creator_achievements: 'creator_achievements',
+  account_settings: 'account_settings',
+} as const;
+
+export type ActivityPresenceInputDeviceClass = typeof ActivityPresenceInputDeviceClass[keyof typeof ActivityPresenceInputDeviceClass];
+
+
+export const ActivityPresenceInputDeviceClass = {
+  desktop: 'desktop',
+  tablet: 'tablet',
+  mobile: 'mobile',
+  other: 'other',
+} as const;
+
+export interface ActivityPresenceInput {
+  routeKey: ActivityPresenceInputRouteKey;
+  deviceClass: ActivityPresenceInputDeviceClass;
+}
+
+export interface AdminUserActivityPresence {
+  routeKey: string;
+  deviceClass: string;
+  updatedAt: string;
+}
+
+export interface AdminUserDeviceSummary {
+  /** @nullable */
+  deviceName: string | null;
+  /** @nullable */
+  deviceOs: string | null;
+  /** @nullable */
+  deviceBrowser: string | null;
+  /** @nullable */
+  lastSeen: string | null;
+  loginCount: number;
+}
+
+export interface AdminUserActivityEvent {
+  action: string;
+  createdAt: string;
+}
+
 export type AdminUserRole = typeof AdminUserRole[keyof typeof AdminUserRole];
 
 
@@ -1323,6 +1389,15 @@ export interface AdminUser {
   role: AdminUserRole;
   banned: boolean;
   createdAt: string;
+}
+
+export interface AdminUserActivityDetail {
+  user: AdminUser;
+  activityObservabilityEnabled: boolean;
+  currentPresence: AdminUserActivityPresence | null;
+  devices: AdminUserDeviceSummary[];
+  activity: AdminUserActivityEvent[];
+  channels: ChannelSummary[];
 }
 
 export interface AdminUserUpdate {

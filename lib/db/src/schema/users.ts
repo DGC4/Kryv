@@ -15,6 +15,8 @@ export const usersTable = pgTable("users", {
   tosAcceptedAt: timestamp("tos_accepted_at", { withTimezone: true }),
   privacyAcceptedAt: timestamp("privacy_accepted_at", { withTimezone: true }),
   dataDeleteRequestedAt: timestamp("data_delete_requested_at", { withTimezone: true }),
+  // Off by default. When enabled, Kryv can retain a minimal in-app route-class and device-class presence record.
+  activityObservabilityEnabled: boolean("activity_observability_enabled").notNull().default(false),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

@@ -18,3 +18,37 @@
 *[class*="transition-"] {
   transition: inherit;
 }
+
+@keyframes kryv-category-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-5%, 4%, 0) scale(1.08); }
+}
+
+@keyframes kryv-category-drift-slow {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(7%, -5%, 0) scale(1.12); }
+}
+
+@keyframes kryv-category-orbit {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  50% { transform: rotate(8deg) translateY(-6px); }
+}
+
+@keyframes kryv-category-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+.kryv-category-drift { animation: kryv-category-drift 11s ease-in-out infinite; }
+.kryv-category-drift-slow { animation: kryv-category-drift-slow 17s ease-in-out infinite; }
+.kryv-category-orbit { animation: kryv-category-orbit 14s ease-in-out infinite; }
+.kryv-category-float { animation: kryv-category-float 6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kryv-category-drift,
+  .kryv-category-drift-slow,
+  .kryv-category-orbit,
+  .kryv-category-float {
+    animation: none;
+  }
+}

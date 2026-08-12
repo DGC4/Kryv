@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './activityObservabilityPreferences';
+export * from './activityObservabilityPreferencesInput';
+export * from './activityPresenceInput';
+export * from './activityPresenceInputDeviceClass';
+export * from './activityPresenceInputRouteKey';
 export * from './adBreak';
 export * from './adBreakInput';
 export * from './adBreakInputAction';
@@ -42,6 +47,10 @@ export * from './adminPayoutProfile';
 export * from './adminPayoutRequest';
 export * from './adminStats';
 export * from './adminUser';
+export * from './adminUserActivityDetail';
+export * from './adminUserActivityEvent';
+export * from './adminUserActivityPresence';
+export * from './adminUserDeviceSummary';
 export * from './adminUserRole';
 export * from './adminUserUpdate';
 export * from './category';

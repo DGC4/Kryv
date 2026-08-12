@@ -527,6 +527,81 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /me/activity-observability:
+    get:
+      operationId: getActivityObservabilityPreferences
+      tags: [users]
+      summary: Get the signed-in user's consent for minimized Kryv in-app activity visibility
+      responses:
+        "200":
+          description: Current activity-observability preference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityObservabilityPreferences"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      operationId: updateActivityObservabilityPreferences
+      tags: [users]
+      summary: Update the signed-in user's consent for minimized Kryv in-app activity visibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityObservabilityPreferencesInput"
+      responses:
+        "200":
+          description: Updated activity-observability preference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityObservabilityPreferences"
+        "400":
+          description: Invalid activity-observability preference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /me/activity-presence:
+    post:
+      operationId: reportActivityPresence
+      tags: [users]
+      summary: Record a consented, minimized Kryv in-app route class and device class
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityPresenceInput"
+      responses:
+        "204":
+          description: Presence accepted
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Activity observability has not been enabled by the user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /channels:
     get:
       operationId: listChannels
@@ -1796,6 +1871,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /admin/users/{id}/activity:
+    get:
+      operationId: getAdminUserActivity
+      tags: [admin]
+      summary: Owner-only minimized user activity detail with audited access
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: User activity detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserActivityDetail"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/channels:
     get:
       operationId: listAdminChannels
@@ -2887,6 +2992,78 @@ components:
         totalVideos: { type: integer }
         totalViews: { type: integer }
         bannedUsers: { type: integer }
+
+    ActivityObservabilityPreferences:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+
+    ActivityObservabilityPreferencesInput:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+
+    ActivityPresenceInput:
+      type: object
+      required: [routeKey, deviceClass]
+      properties:
+        routeKey:
+          type: string
+          enum: [live_home, live_categories, live_category, live_channel, watch_home, watch_detail, clips_home, clip_detail, cinema_catalog, cinema_detail, creator_studio, creator_wallet, creator_achievements, account_settings]
+        deviceClass:
+          type: string
+          enum: [desktop, tablet, mobile, other]
+
+    AdminUserActivityPresence:
+      type: object
+      required: [routeKey, deviceClass, updatedAt]
+      properties:
+        routeKey: { type: string }
+        deviceClass: { type: string }
+        updatedAt: { type: string, format: date-time }
+
+    AdminUserDeviceSummary:
+      type: object
+      required: [deviceName, deviceOs, deviceBrowser, lastSeen, loginCount]
+      properties:
+        deviceName: { type: ["string", "null"] }
+        deviceOs: { type: ["string", "null"] }
+        deviceBrowser: { type: ["string", "null"] }
+        lastSeen: { type: ["string", "null"], format: date-time }
+        loginCount: { type: integer }
+
+    AdminUserActivityEvent:
+      type: object
+      required: [action, createdAt]
+      properties:
+        action: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    AdminUserActivityDetail:
+      type: object
+      required: [user, activityObservabilityEnabled, currentPresence, devices, activity, channels]
+      properties:
+        user:
+          $ref: "#/components/schemas/AdminUser"
+        activityObservabilityEnabled: { type: boolean }
+        currentPresence:
+          anyOf:
+            - $ref: "#/components/schemas/AdminUserActivityPresence"
+            - type: "null"
+        devices:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUserDeviceSummary"
+        activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUserActivityEvent"
+        channels:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelSummary"
 
     AdminUser:
       type: object

@@ -5,6 +5,7 @@ import {
   db,
   followsTable,
   notificationPreferencesTable,
+  userActivityPresenceTable,
   usersTable,
   viewerProfilesTable,
 } from "@workspace/db";
@@ -14,6 +15,10 @@ import {
   DeleteViewerProfileParams,
   GetMeResponse,
   ListViewerProfilesResponse,
+  GetActivityObservabilityPreferencesResponse,
+  ReportActivityPresenceBody,
+  UpdateActivityObservabilityPreferencesBody,
+  UpdateActivityObservabilityPreferencesResponse,
   UpdateNotificationPreferencesBody,
   UpdateViewerProfileBody,
   UpdateViewerProfileParams,
@@ -216,6 +221,68 @@ router.get("/me/notification-preferences", requireAuth, async (req, res): Promis
     notifyOnClip: preference?.notifyOnClip ?? false,
     emailNotifications: preference?.emailNotifications ?? false,
   });
+});
+
+router.get("/me/activity-observability", requireAuth, async (req, res): Promise<void> => {
+  const [user] = await db
+    .select({ enabled: usersTable.activityObservabilityEnabled })
+    .from(usersTable)
+    .where(eq(usersTable.id, req.user!.userId));
+  res.json(GetActivityObservabilityPreferencesResponse.parse({ enabled: user?.enabled ?? false }));
+});
+
+router.put("/me/activity-observability", requireAuth, async (req, res): Promise<void> => {
+  const parsed = UpdateActivityObservabilityPreferencesBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const userId = req.user!.userId;
+  const [updated] = await db
+    .update(usersTable)
+    .set({ activityObservabilityEnabled: parsed.data.enabled })
+    .where(eq(usersTable.id, userId))
+    .returning({ enabled: usersTable.activityObservabilityEnabled });
+
+  if (!parsed.data.enabled) {
+    await db.delete(userActivityPresenceTable).where(eq(userActivityPresenceTable.userId, userId));
+  }
+
+  res.json(UpdateActivityObservabilityPreferencesResponse.parse({ enabled: updated?.enabled ?? false }));
+});
+
+router.post("/me/activity-presence", requireAuth, async (req, res): Promise<void> => {
+  const parsed = ReportActivityPresenceBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const userId = req.user!.userId;
+  const [user] = await db
+    .select({ enabled: usersTable.activityObservabilityEnabled })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId));
+
+  if (!user?.enabled) {
+    res.status(403).json({ error: "Activity visibility is disabled for this account." });
+    return;
+  }
+
+  const [existing] = await db
+    .select({ userId: userActivityPresenceTable.userId })
+    .from(userActivityPresenceTable)
+    .where(eq(userActivityPresenceTable.userId, userId));
+  const values = { routeKey: parsed.data.routeKey, deviceClass: parsed.data.deviceClass, updatedAt: new Date() };
+
+  if (existing) {
+    await db.update(userActivityPresenceTable).set(values).where(eq(userActivityPresenceTable.userId, userId));
+  } else {
+    await db.insert(userActivityPresenceTable).values({ userId, ...values });
+  }
+
+  res.status(204).end();
 });
 
 router.put("/me/notification-preferences", requireAuth, async (req, res): Promise<void> => {

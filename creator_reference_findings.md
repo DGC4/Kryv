@@ -61,3 +61,9 @@ The deployed Finance Command tab was opened under the authenticated owner accoun
 The authenticated production Creator Studio rendered **Revenue & Wallet** with zero BTC/LTC/ETH/DOGE balances, encrypted-destination setup copy, daily/weekly/monthly/manual cadence controls, payout activity, and a clear disabled launch gate. The panel correctly stated that no bank balance, fiat payout, conversion quote, invoice, payout request, address save, or preference update was performed during verification.
 
 The deployed **Creator Payout Ready** page rendered the four server-computed milestones with accurate progress for the authenticated creator: active channel setup, no qualifying 15-minute broadcast yet, no owner-approved payout destination, and no active payout hold. No creator data or financial state was changed.
+
+## Category discovery reference
+
+The public Kick browse view uses a discovery-first hierarchy: a recommended live-feed, a prominent category label beneath each stream, language and sort controls, and a dedicated Categories entry beside livestreams and clips. Its active examples include broad social, gaming, and gaming-adjacent categories such as IRL, Just Chatting, Slots & Casino, Old School RuneScape, Escape From Tarkov, and Chess. Kryv should adopt the discovery hierarchy and card readability, but use its own original category artwork and controlled taxonomy rather than copying branded visuals or categories wholesale.
+
+Twitch’s public directory reinforces a two-level model: permanent high-level navigation for Games, IRL, Music & DJs, Creative, and Esports; then a searchable, sortable category grid that can distinguish game, social, sports, and creative tags. Current examples visibly include IRL, Just Chatting, Minecraft, Pools/Hot Tubs/Beaches, EA Sports FC 26, and an event category. Kryv should use this approach for browseability while defining safer, platform-specific category names, imagery, and moderation policy.

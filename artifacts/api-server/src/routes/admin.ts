@@ -4,6 +4,9 @@ import {
   db,
   usersTable,
   channelsTable,
+  activityLogsTable,
+  deviceHistoryTable,
+  userActivityPresenceTable,
   videosTable,
   featureFlagsTable,
   creatorBalancesTable,
@@ -18,6 +21,8 @@ import {
   UpdateAdminUserParams,
   UpdateAdminUserBody,
   UpdateAdminUserResponse,
+  GetAdminUserActivityParams,
+  GetAdminUserActivityResponse,
   ListAdminChannelsResponse,
   DeleteAdminChannelParams,
   ListAdminVideosResponse,
@@ -550,6 +555,85 @@ router.patch(
       .returning();
 
     res.json(UpdateAdminUserResponse.parse(updated));
+  },
+);
+
+router.get(
+  "/admin/users/:id/activity",
+  requireOwner,
+  async (req, res): Promise<void> => {
+    const params = GetAdminUserActivityParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    const userId = Number(params.data.id);
+    if (!Number.isSafeInteger(userId) || userId < 1) {
+      res.status(400).json({ error: "Invalid user ID" });
+      return;
+    }
+
+    const [user] = await db
+      .select({
+        id: usersTable.id,
+        username: usersTable.username,
+        avatarUrl: usersTable.avatarUrl,
+        role: usersTable.role,
+        banned: usersTable.banned,
+        createdAt: usersTable.createdAt,
+        activityObservabilityEnabled: usersTable.activityObservabilityEnabled,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const [presence, devices, activity, channels] = await Promise.all([
+      db
+        .select({ routeKey: userActivityPresenceTable.routeKey, deviceClass: userActivityPresenceTable.deviceClass, updatedAt: userActivityPresenceTable.updatedAt })
+        .from(userActivityPresenceTable)
+        .where(eq(userActivityPresenceTable.userId, userId)),
+      db
+        .select({ deviceName: deviceHistoryTable.deviceName, deviceOs: deviceHistoryTable.deviceOs, deviceBrowser: deviceHistoryTable.deviceBrowser, lastSeen: deviceHistoryTable.lastSeen, loginCount: deviceHistoryTable.loginCount })
+        .from(deviceHistoryTable)
+        .where(eq(deviceHistoryTable.userId, userId))
+        .orderBy(desc(deviceHistoryTable.lastSeen))
+        .limit(8),
+      db
+        .select({ action: activityLogsTable.action, createdAt: activityLogsTable.createdAt })
+        .from(activityLogsTable)
+        .where(eq(activityLogsTable.userId, userId))
+        .orderBy(desc(activityLogsTable.createdAt))
+        .limit(30),
+      db.select().from(channelsTable).where(eq(channelsTable.ownerUserId, userId)),
+    ]);
+
+    await writeAuditLog(req, {
+      action: "admin.user_activity.view",
+      targetType: "user",
+      targetId: userId,
+      afterState: { activityObservabilityEnabled: user.activityObservabilityEnabled },
+    });
+
+    res.json(GetAdminUserActivityResponse.parse({
+      user: {
+        id: user.id,
+        username: user.username,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        banned: user.banned,
+        createdAt: user.createdAt,
+      },
+      activityObservabilityEnabled: user.activityObservabilityEnabled,
+      currentPresence: user.activityObservabilityEnabled && presence[0] ? presence[0] : null,
+      devices,
+      activity,
+      channels: await Promise.all(channels.map(toChannelSummary)),
+    }));
   },
 );
 

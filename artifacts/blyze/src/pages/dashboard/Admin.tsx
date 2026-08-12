@@ -5,6 +5,7 @@ import {
   useGetAdminStats,
   useListAdminUsers,
   useUpdateAdminUser,
+  useGetAdminUserActivity,
   useListAdminChannels,
   useDeleteAdminChannel,
   useListAdminVideos,
@@ -92,8 +93,12 @@ export default function DashboardAdmin() {
     query: { enabled: me?.role === 'owner' && tab === 'finance' },
   });
   const [selectedCinemaTitleId, setSelectedCinemaTitleId] = useState<number | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const cinemaDetailQuery = useGetAdminCinemaTitle(selectedCinemaTitleId ?? 0, {
     query: { enabled: me?.role === 'owner' && selectedCinemaTitleId !== null },
+  });
+  const userActivityQuery = useGetAdminUserActivity(String(selectedUserId ?? 0), {
+    query: { enabled: me?.role === 'owner' && selectedUserId !== null },
   });
   const [cinemaTitle, setCinemaTitle] = useState('');
   const [rightsReference, setRightsReference] = useState('');
@@ -382,6 +387,7 @@ export default function DashboardAdmin() {
 
       {/* Users table */}
       {tab === 'users' && (
+        <>
         <div className="rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur overflow-hidden">
           {usersLoading ? (
             <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
@@ -391,7 +397,7 @@ export default function DashboardAdmin() {
                 <tr className="text-left border-b border-white/[0.08] bg-white/[0.02]">
                   <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">User / ID</th>
                   <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Role</th>
-                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Security / IP</th>
+                  <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Security</th>
                   <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Joined</th>
                   <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest text-right">Action</th>
                 </tr>
@@ -423,11 +429,12 @@ export default function DashboardAdmin() {
                           ? <span className="text-red-400 font-black text-[10px] uppercase tracking-widest flex items-center gap-1"><ShieldAlert className="w-2.5 h-2.5" /> Banned</span>
                           : <span className="text-green-400/70 font-black text-[10px] uppercase tracking-widest flex items-center gap-1"><ShieldCheck className="w-2.5 h-2.5" /> Secure</span>
                         }
-                        <span className="text-[10px] text-white/30 font-mono">Last IP: 192.168.1.1 (Proxy)</span>
+                        <span className="text-[10px] text-white/30">Open activity detail for consent-aware Kryv history</span>
                       </div>
                     </td>
                     <td className="p-3 text-white/40 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td className="p-3 text-right">
+                      <div className="flex items-center justify-end gap-2"><Button size="sm" variant="secondary" onClick={() => setSelectedUserId(u.id)} className="text-xs"><Eye className="mr-1 h-3.5 w-3.5" /> View</Button>
                       {u.role !== 'owner' ? (
                         <Button
                           size="sm"
@@ -442,7 +449,7 @@ export default function DashboardAdmin() {
                         <span className="text-[10px] text-primary/50 font-bold uppercase tracking-wider flex items-center gap-1 justify-end">
                           <Lock className="w-3 h-3" /> Protected
                         </span>
-                      )}
+                      )}</div>
                     </td>
                   </tr>
                 ))}
@@ -453,6 +460,8 @@ export default function DashboardAdmin() {
             </table>
           )}
         </div>
+        {selectedUserId !== null && <section className="mt-5 rounded-2xl border border-primary/20 bg-[#0a0d14] p-5 shadow-2xl shadow-black/25"><div className="flex flex-col gap-4 border-b border-white/[0.08] pb-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Owner activity detail</p><h3 className="mt-1 text-xl font-black text-white">{userActivityQuery.data?.user.username || 'Loading user profile'}</h3><p className="mt-1 max-w-2xl text-xs leading-relaxed text-white/45">This panel shows consent-aware Kryv activity only. It never displays screen capture, typed content, private messages, payment information, wallet destinations, stream keys, camera or microphone data, or activity outside Kryv.</p></div><Button variant="secondary" size="sm" onClick={() => setSelectedUserId(null)}><XCircle className="mr-1 h-4 w-4" /> Close</Button></div>{userActivityQuery.isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : userActivityQuery.data ? <div className="mt-5 space-y-5"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><div className="rounded-xl border border-white/[0.08] bg-black/25 p-4"><p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Visibility consent</p><p className={`mt-2 text-sm font-black ${userActivityQuery.data.activityObservabilityEnabled ? 'text-emerald-300' : 'text-white/55'}`}>{userActivityQuery.data.activityObservabilityEnabled ? 'Enabled by user' : 'Not enabled'}</p></div><div className="rounded-xl border border-white/[0.08] bg-black/25 p-4"><p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Current Kryv state</p>{userActivityQuery.data.currentPresence ? <><p className="mt-2 text-sm font-black capitalize text-white">{userActivityQuery.data.currentPresence.routeKey.replaceAll('_', ' ')}</p><p className="mt-1 text-[11px] text-white/45">{userActivityQuery.data.currentPresence.deviceClass} · {new Date(userActivityQuery.data.currentPresence.updatedAt).toLocaleString()}</p></> : <p className="mt-2 text-sm font-black text-white/55">No current presence</p>}</div><div className="rounded-xl border border-white/[0.08] bg-black/25 p-4"><p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Creator channels</p><p className="mt-2 text-sm font-black text-white">{userActivityQuery.data.channels.length}</p><p className="mt-1 text-[11px] text-white/45">Owned channel records</p></div></div><div className="grid gap-5 lg:grid-cols-2"><section><div className="mb-3 flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /><h4 className="text-sm font-black text-white">Recent Kryv history</h4></div><div className="space-y-2">{userActivityQuery.data.activity.map((event, index) => <div key={`${event.action}-${event.createdAt}-${index}`} className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.07] bg-black/20 px-3 py-2.5"><span className="text-xs font-bold text-white/70">{event.action.replaceAll('.', ' ')}</span><span className="shrink-0 text-[10px] text-white/35">{new Date(event.createdAt).toLocaleString()}</span></div>)}{userActivityQuery.data.activity.length === 0 && <p className="rounded-xl border border-dashed border-white/10 p-4 text-xs text-white/40">No recorded Kryv activity is available for this user yet.</p>}</div></section><section><div className="mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-primary" /><h4 className="text-sm font-black text-white">Known sign-in devices</h4></div><div className="space-y-2">{userActivityQuery.data.devices.map((device, index) => <div key={`${device.deviceName}-${device.lastSeen}-${index}`} className="rounded-xl border border-white/[0.07] bg-black/20 p-3"><p className="text-xs font-bold text-white/75">{device.deviceName || 'Unidentified device'}</p><p className="mt-1 text-[10px] text-white/40">{[device.deviceOs, device.deviceBrowser].filter(Boolean).join(' · ') || 'Device detail unavailable'} · {device.loginCount} sign-ins</p><p className="mt-1 text-[10px] text-white/28">Last seen {device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'unavailable'}</p></div>)}{userActivityQuery.data.devices.length === 0 && <p className="rounded-xl border border-dashed border-white/10 p-4 text-xs text-white/40">No prior sign-in device summary is available.</p>}</div></section></div>{userActivityQuery.data.channels.length > 0 && <section><div className="mb-3 flex items-center gap-2"><Radio className="h-4 w-4 text-primary" /><h4 className="text-sm font-black text-white">Channel context</h4></div><div className="flex flex-wrap gap-2">{userActivityQuery.data.channels.map(channel => <span key={channel.id} className="rounded-lg border border-white/[0.08] bg-black/25 px-3 py-2 text-xs font-bold text-white/70">{channel.displayName}{channel.isLive ? <span className="ml-2 text-red-300">LIVE</span> : null}</span>)}</div></section>}</div> : <div className="rounded-xl border border-red-400/20 bg-red-400/[0.05] p-4 text-sm text-red-100/80">The activity detail could not be loaded. The owner action was not retried automatically.</div>}</section>}
+        </>
       )}
 
       {/* Channels table */}

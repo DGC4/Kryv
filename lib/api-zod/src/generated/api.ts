@@ -677,6 +677,37 @@ export const UpdateNotificationPreferencesResponse = zod.object({
 
 
 /**
+ * @summary Get the signed-in user's consent for minimized Kryv in-app activity visibility
+ */
+export const GetActivityObservabilityPreferencesResponse = zod.object({
+  "enabled": zod.boolean()
+})
+
+
+/**
+ * @summary Update the signed-in user's consent for minimized Kryv in-app activity visibility
+ */
+export const UpdateActivityObservabilityPreferencesBody = zod.object({
+  "enabled": zod.boolean()
+})
+
+export const UpdateActivityObservabilityPreferencesResponse = zod.object({
+  "enabled": zod.boolean()
+})
+
+
+/**
+ * @summary Record a consented, minimized Kryv in-app route class and device class
+ */
+export const ReportActivityPresenceBody = zod.object({
+  "routeKey": zod.enum(['live_home', 'live_categories', 'live_category', 'live_channel', 'watch_home', 'watch_detail', 'clips_home', 'clip_detail', 'cinema_catalog', 'cinema_detail', 'creator_studio', 'creator_wallet', 'creator_achievements', 'account_settings']),
+  "deviceClass": zod.enum(['desktop', 'tablet', 'mobile', 'other'])
+})
+
+export const ReportActivityPresenceResponse = zod.void()
+
+
+/**
  * @summary Browse channels, optionally filtered by category, live status, or search
  */
 export const ListChannelsQueryParams = zod.object({
@@ -1968,6 +1999,58 @@ export const UpdateAdminUserResponse = zod.object({
   "role": zod.enum(['user', 'owner']),
   "banned": zod.boolean(),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Owner-only minimized user activity detail with audited access
+ */
+export const GetAdminUserActivityParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetAdminUserActivityResponse = zod.object({
+  "user": zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['user', 'owner']),
+  "banned": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}),
+  "activityObservabilityEnabled": zod.boolean(),
+  "currentPresence": zod.union([zod.object({
+  "routeKey": zod.string(),
+  "deviceClass": zod.string(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "devices": zod.array(zod.object({
+  "deviceName": zod.string().nullable(),
+  "deviceOs": zod.string().nullable(),
+  "deviceBrowser": zod.string().nullable(),
+  "lastSeen": zod.coerce.date().nullable(),
+  "loginCount": zod.number()
+})),
+  "activity": zod.array(zod.object({
+  "action": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "channels": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
+}))
 })
 
 

@@ -13,6 +13,8 @@ import {
   useCreateChannelEngagementAction,
   useGetNotificationPreferences,
   useUpdateNotificationPreferences,
+  useGetActivityObservabilityPreferences,
+  useUpdateActivityObservabilityPreferences,
   useListCategories,
   useListVideos,
   useSearchKryv,
@@ -216,6 +218,8 @@ export default function DashboardLive() {
   const createCreatorPayoutRequest = useCreateCreatorPayoutRequest();
   const { data: savedNotificationPrefs } = useGetNotificationPreferences({ query: { enabled: activeTab === 'settings' } });
   const updateNotificationPrefs = useUpdateNotificationPreferences();
+  const { data: activityObservabilityPrefs } = useGetActivityObservabilityPreferences({ query: { enabled: activeTab === 'settings' } });
+  const updateActivityObservability = useUpdateActivityObservabilityPreferences();
   const { data: analytics, isLoading: analyticsLoading } = useGetChannelAnalytics(
     me?.channel?.id ?? 0,
     {
@@ -360,6 +364,19 @@ export default function DashboardLive() {
       {
         onSuccess: () => toast({ title: 'Notification preferences saved' }),
         onError: (err: any) => toast({ title: 'Unable to save notifications', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleUpdateActivityObservability = (enabled: boolean) => {
+    updateActivityObservability.mutate(
+      { data: { enabled } },
+      {
+        onSuccess: () => {
+          window.dispatchEvent(new Event('kryv:activity-observability-change'));
+          toast({ title: enabled ? 'Activity visibility enabled' : 'Activity visibility disabled', description: enabled ? 'Kryv may share a minimal in-app page category and device class with the owner team. No screen capture or typed content is collected.' : 'Your minimized in-app activity presence has been removed.' });
+        },
+        onError: (err: any) => toast({ title: 'Preference not saved', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
       },
     );
   };
@@ -993,11 +1010,14 @@ export default function DashboardLive() {
                     <button
                       type="button"
                       role="switch"
+                      aria-label="Followers-only chat"
                       aria-checked={chatFollowersOnly}
                       onClick={() => setChatFollowersOnly(value => !value)}
-                      className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${chatFollowersOnly ? 'bg-primary' : 'bg-white/15'}`}
+                      className={`group relative inline-flex h-8 w-[72px] shrink-0 items-center rounded-full border p-1 shadow-inner transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#101116] ${chatFollowersOnly ? 'border-primary/80 bg-primary/90' : 'border-white/15 bg-black/35 hover:border-white/30'}`}
                     >
-                      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${chatFollowersOnly ? 'translate-x-6' : 'translate-x-1'}`} />
+                      <span className={`absolute inset-y-0 left-0 flex items-center pl-2 text-[9px] font-black uppercase tracking-[0.12em] transition-opacity ${chatFollowersOnly ? 'opacity-0' : 'text-white/45 opacity-100'}`}>Off</span>
+                      <span className={`absolute inset-y-0 right-0 flex items-center pr-2 text-[9px] font-black uppercase tracking-[0.12em] transition-opacity ${chatFollowersOnly ? 'text-primary-foreground opacity-100' : 'opacity-0'}`}>On</span>
+                      <span className={`relative z-10 h-6 w-6 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.38)] transition-transform duration-200 ${chatFollowersOnly ? 'translate-x-10' : 'translate-x-0'}`} />
                     </button>
                   </div>
                   <div className="pt-4 border-t border-white/[0.07]">
@@ -1040,6 +1060,17 @@ export default function DashboardLive() {
                     { key: 'emailNotifications' as const, title: 'Email delivery', detail: 'Permit email notifications when Kryv delivery is configured.' },
                   ].map(({ key, title, detail }) => <label key={key} className="flex items-start justify-between gap-4 rounded-xl border border-white/[0.06] bg-black/15 p-3 cursor-pointer"><span><span className="block text-sm font-bold text-white">{title}</span><span className="mt-0.5 block text-xs text-white/40">{detail}</span></span><input type="checkbox" checked={notificationPrefs[key]} onChange={e => setNotificationPrefs(current => ({ ...current, [key]: e.target.checked }))} className="mt-1 h-4 w-4 shrink-0 accent-primary" /></label>)}
                   <Button type="button" onClick={handleSaveNotificationPreferences} disabled={updateNotificationPrefs.isPending} className="mt-1 font-bold rounded-xl">{updateNotificationPrefs.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : <><Bell className="w-4 h-4 mr-2" /> Save notification settings</>}</Button>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-lg font-black text-white mb-5 flex items-center gap-2"><Eye className="w-5 h-5 text-primary" />Activity visibility</h2>
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0"><p className="text-sm font-bold text-white">Share a minimized Kryv activity status</p><p className="mt-1 text-xs leading-relaxed text-white/40">When enabled, the owner team can see your current Kryv page category, device class, and recent activity history for platform support and safety. Kryv does not record your screen, camera, microphone, typed content, payment details, stream key, wallet destination, or anything outside Kryv.</p></div>
+                    <button type="button" role="switch" aria-label="Activity visibility" aria-checked={activityObservabilityPrefs?.enabled ?? false} disabled={updateActivityObservability.isPending} onClick={() => handleUpdateActivityObservability(!(activityObservabilityPrefs?.enabled ?? false))} className={`relative inline-flex h-8 w-[72px] shrink-0 items-center rounded-full border p-1 shadow-inner transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#101116] disabled:cursor-not-allowed disabled:opacity-50 ${(activityObservabilityPrefs?.enabled ?? false) ? 'border-primary/80 bg-primary/90' : 'border-white/15 bg-black/35 hover:border-white/30'}`}><span className={`absolute inset-y-0 left-0 flex items-center pl-2 text-[9px] font-black uppercase tracking-[0.12em] transition-opacity ${(activityObservabilityPrefs?.enabled ?? false) ? 'opacity-0' : 'text-white/45 opacity-100'}`}>Off</span><span className={`absolute inset-y-0 right-0 flex items-center pr-2 text-[9px] font-black uppercase tracking-[0.12em] transition-opacity ${(activityObservabilityPrefs?.enabled ?? false) ? 'text-primary-foreground opacity-100' : 'opacity-0'}`}>On</span><span className={`relative z-10 h-6 w-6 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.38)] transition-transform duration-200 ${(activityObservabilityPrefs?.enabled ?? false) ? 'translate-x-10' : 'translate-x-0'}`} /></button>
+                  </div>
+                  <p className="mt-4 rounded-xl border border-amber-300/15 bg-amber-300/[0.06] p-3 text-[11px] leading-relaxed text-amber-100/75">This setting is off by default. Turning it off immediately removes your active presence record; it does not enable visual session replay.</p>
                 </div>
               </div>
 

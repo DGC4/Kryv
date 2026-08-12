@@ -16,6 +16,7 @@ if (import.meta.env.VITE_API_URL) {
 import NotFound from '@/pages/not-found';
 import LiveHome from '@/pages/live/Home';
 import LiveCategory from '@/pages/live/Category';
+import LiveCategories from '@/pages/live/Categories';
 import LiveChannel from '@/pages/live/Channel';
 import WatchHome from '@/pages/watch/Home';
 import WatchDetail from '@/pages/watch/Detail';
@@ -56,6 +57,9 @@ function AppRoutes() {
 
       <Route path="/live">
         <Layout><LiveHome /></Layout>
+      </Route>
+      <Route path="/live/categories">
+        <Layout><LiveCategories /></Layout>
       </Route>
       <Route path="/live/categories/:slug">
         <Layout><LiveCategory /></Layout>

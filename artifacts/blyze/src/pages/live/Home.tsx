@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/lib/auth-store';
 import { useGetDiscoverSummary, useListCategories, useListFollowedLiveChannels } from '@workspace/api-client-react';
 import { ChannelCard } from '@/components/ChannelCard';
+import { LiveCategoryCover } from '@/components/LiveCategoryCover';
 import { Link } from 'wouter';
 import {
   ArrowUpRight,
@@ -14,14 +15,6 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-
-const CATEGORY_THEMES = [
-  'from-fuchsia-500/80 via-violet-500/35 to-black',
-  'from-cyan-500/80 via-blue-500/35 to-black',
-  'from-amber-400/80 via-orange-500/35 to-black',
-  'from-rose-500/80 via-red-500/35 to-black',
-  'from-emerald-500/80 via-teal-500/35 to-black',
-];
 
 function formatCount(value: number) {
   return value >= 1000 ? `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K` : value.toLocaleString();
@@ -123,9 +116,9 @@ export default function LiveHome() {
           <RailHeading eyebrow="Explore" title="Categories with a pulse" detail="Live communities and their viewer activity, ready to browse." icon={Clapperboard} action={<span className="hidden text-sm font-semibold text-white/40 sm:block">Ranked by live viewers</span>} />
           {orderedCategories.length > 0 ? (
             <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-5 xl:grid-cols-6">
-              {orderedCategories.map((category, index) => {
+              {orderedCategories.map(category => {
                 const isLive = category.liveChannelCount > 0;
-                return <Link key={category.id} href={`/live/categories/${category.slug}`} className="group w-[42vw] shrink-0 snap-start sm:w-auto sm:shrink"><article className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.04] shadow-lg transition-all duration-300 group-hover:-translate-y-1 group-hover:border-primary/50 group-hover:shadow-[0_14px_30px_rgba(0,0,0,0.42)]">{category.imageUrl ? <img src={category.imageUrl} alt={category.name} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <div className={`absolute inset-0 bg-gradient-to-br ${CATEGORY_THEMES[index % CATEGORY_THEMES.length]}`} />}<div className="absolute inset-0 bg-gradient-to-t from-black via-black/15 to-black/5" /><div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2">{isLive ? <span className="inline-flex items-center gap-1.5 rounded-full border border-red-400/35 bg-red-500/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-red-100 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-red-400" /> Live</span> : <span className="rounded-full border border-white/15 bg-black/35 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white/70 backdrop-blur">Explore</span>}<span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white/80 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"><ArrowUpRight className="h-3.5 w-3.5" /></span></div><div className="absolute inset-x-0 bottom-0 p-3 sm:p-4"><h3 className="truncate text-sm font-black text-white sm:text-base">{category.name}</h3><p className="mt-1 text-[11px] font-medium text-white/65">{isLive ? `${formatCount(category.viewerCount)} watching` : 'See what is next'}</p></div></article></Link>;
+                return <Link key={category.id} href={`/live/categories/${category.slug}`} className="group w-[42vw] shrink-0 snap-start sm:w-auto sm:shrink"><article className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#090c13] shadow-lg transition-all duration-300 group-hover:-translate-y-1 group-hover:border-primary/50 group-hover:shadow-[0_14px_30px_rgba(0,0,0,0.42)]"><LiveCategoryCover slug={category.slug} /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" /><div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2">{isLive ? <span className="inline-flex items-center gap-1.5 rounded-full border border-red-400/35 bg-red-500/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-red-100 backdrop-blur"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> Live</span> : <span className="rounded-full border border-white/15 bg-black/35 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white/70 backdrop-blur">Explore</span>}<span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white/80 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"><ArrowUpRight className="h-3.5 w-3.5" /></span></div><div className="absolute inset-x-0 bottom-0 p-3 sm:p-4"><h3 className="truncate text-sm font-black text-white sm:text-base">{category.name}</h3><p className="mt-1 text-[11px] font-medium text-white/65">{isLive ? `${formatCount(category.viewerCount)} watching` : 'See what is next'}</p></div></article></Link>;
               })}
             </div>
           ) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-5 py-10 text-center text-sm text-white/45">Categories are being prepared.</div>}

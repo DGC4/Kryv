@@ -20,6 +20,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ActivityObservabilityPreferences,
+  ActivityObservabilityPreferencesInput,
+  ActivityPresenceInput,
   AdBreak,
   AdBreakInput,
   AdDecision,
@@ -37,6 +40,7 @@ import type {
   AdminPayoutRequest,
   AdminStats,
   AdminUser,
+  AdminUserActivityDetail,
   AdminUserUpdate,
   Category,
   ChannelAnalytics,
@@ -1634,6 +1638,225 @@ export const useUpdateNotificationPreferences = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getUpdateNotificationPreferencesMutationOptions(options));
+    }
+
+export const getGetActivityObservabilityPreferencesUrl = () => {
+
+
+
+
+  return `/api/me/activity-observability`
+}
+
+/**
+ * @summary Get the signed-in user's consent for minimized Kryv in-app activity visibility
+ */
+export const getActivityObservabilityPreferences = async ( options?: RequestInit): Promise<ActivityObservabilityPreferences> => {
+
+  return customFetch<ActivityObservabilityPreferences>(getGetActivityObservabilityPreferencesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetActivityObservabilityPreferencesQueryKey = () => {
+    return [
+    `/api/me/activity-observability`
+    ] as const;
+    }
+
+
+export const getGetActivityObservabilityPreferencesQueryOptions = <TData = Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetActivityObservabilityPreferencesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActivityObservabilityPreferences>>> = ({ signal }) => getActivityObservabilityPreferences({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetActivityObservabilityPreferencesQueryResult = NonNullable<Awaited<ReturnType<typeof getActivityObservabilityPreferences>>>
+export type GetActivityObservabilityPreferencesQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get the signed-in user's consent for minimized Kryv in-app activity visibility
+ */
+
+export function useGetActivityObservabilityPreferences<TData = Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetActivityObservabilityPreferencesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateActivityObservabilityPreferencesUrl = () => {
+
+
+
+
+  return `/api/me/activity-observability`
+}
+
+/**
+ * @summary Update the signed-in user's consent for minimized Kryv in-app activity visibility
+ */
+export const updateActivityObservabilityPreferences = async (activityObservabilityPreferencesInput: ActivityObservabilityPreferencesInput, options?: RequestInit): Promise<ActivityObservabilityPreferences> => {
+
+  return customFetch<ActivityObservabilityPreferences>(getUpdateActivityObservabilityPreferencesUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(activityObservabilityPreferencesInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateActivityObservabilityPreferencesMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateActivityObservabilityPreferences>>, TError,{data: BodyType<ActivityObservabilityPreferencesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateActivityObservabilityPreferences>>, TError,{data: BodyType<ActivityObservabilityPreferencesInput>}, TContext> => {
+
+const mutationKey = ['updateActivityObservabilityPreferences'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateActivityObservabilityPreferences>>, {data: BodyType<ActivityObservabilityPreferencesInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateActivityObservabilityPreferences(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateActivityObservabilityPreferencesMutationResult = NonNullable<Awaited<ReturnType<typeof updateActivityObservabilityPreferences>>>
+    export type UpdateActivityObservabilityPreferencesMutationBody = BodyType<ActivityObservabilityPreferencesInput>
+    export type UpdateActivityObservabilityPreferencesMutationError = ErrorType<Error>
+
+    /**
+ * @summary Update the signed-in user's consent for minimized Kryv in-app activity visibility
+ */
+export const useUpdateActivityObservabilityPreferences = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateActivityObservabilityPreferences>>, TError,{data: BodyType<ActivityObservabilityPreferencesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateActivityObservabilityPreferences>>,
+        TError,
+        {data: BodyType<ActivityObservabilityPreferencesInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateActivityObservabilityPreferencesMutationOptions(options));
+    }
+
+export const getReportActivityPresenceUrl = () => {
+
+
+
+
+  return `/api/me/activity-presence`
+}
+
+/**
+ * @summary Record a consented, minimized Kryv in-app route class and device class
+ */
+export const reportActivityPresence = async (activityPresenceInput: ActivityPresenceInput, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getReportActivityPresenceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(activityPresenceInput)
+  }
+);}
+
+
+
+
+
+export const getReportActivityPresenceMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportActivityPresence>>, TError,{data: BodyType<ActivityPresenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportActivityPresence>>, TError,{data: BodyType<ActivityPresenceInput>}, TContext> => {
+
+const mutationKey = ['reportActivityPresence'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportActivityPresence>>, {data: BodyType<ActivityPresenceInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  reportActivityPresence(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportActivityPresenceMutationResult = NonNullable<Awaited<ReturnType<typeof reportActivityPresence>>>
+    export type ReportActivityPresenceMutationBody = BodyType<ActivityPresenceInput>
+    export type ReportActivityPresenceMutationError = ErrorType<Error>
+
+    /**
+ * @summary Record a consented, minimized Kryv in-app route class and device class
+ */
+export const useReportActivityPresence = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportActivityPresence>>, TError,{data: BodyType<ActivityPresenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reportActivityPresence>>,
+        TError,
+        {data: BodyType<ActivityPresenceInput>},
+        TContext
+      > => {
+      return useMutation(getReportActivityPresenceMutationOptions(options));
     }
 
 export const getListChannelsUrl = (params?: ListChannelsParams,) => {
@@ -4989,6 +5212,83 @@ export const useUpdateAdminUser = <TError = ErrorType<Error>,
       > => {
       return useMutation(getUpdateAdminUserMutationOptions(options));
     }
+
+export const getGetAdminUserActivityUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/users/${id}/activity`
+}
+
+/**
+ * @summary Owner-only minimized user activity detail with audited access
+ */
+export const getAdminUserActivity = async (id: string, options?: RequestInit): Promise<AdminUserActivityDetail> => {
+
+  return customFetch<AdminUserActivityDetail>(getGetAdminUserActivityUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminUserActivityQueryKey = (id: string,) => {
+    return [
+    `/api/admin/users/${id}/activity`
+    ] as const;
+    }
+
+
+export const getGetAdminUserActivityQueryOptions = <TData = Awaited<ReturnType<typeof getAdminUserActivity>>, TError = ErrorType<Error>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminUserActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminUserActivityQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminUserActivity>>> = ({ signal }) => getAdminUserActivity(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminUserActivity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminUserActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminUserActivity>>>
+export type GetAdminUserActivityQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Owner-only minimized user activity detail with audited access
+ */
+
+export function useGetAdminUserActivity<TData = Awaited<ReturnType<typeof getAdminUserActivity>>, TError = ErrorType<Error>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminUserActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminUserActivityQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListAdminChannelsUrl = () => {
 
