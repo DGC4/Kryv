@@ -791,15 +791,8 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
 
   const nextStatus = body.data.decision === "approved" ? "approved" : body.data.decision === "held" ? "held" : "rejected";
   if (body.data.decision === "approved") {
-    const [providerWithdrawalFlag] = await db
-      .select({ enabled: featureFlagsTable.enabled })
-      .from(featureFlagsTable)
-      .where(eq(featureFlagsTable.key, "provider_withdrawals"))
-      .limit(1);
-    if (!providerWithdrawalFlag?.enabled || process.env.PLISIO_WITHDRAWALS_ENABLED !== "true") {
-      res.status(409).json({ error: "Provider withdrawal execution is not active. Keep this request held until the provider, runtime, queue, and worker controls are live." });
-      return;
-    }
+    res.status(409).json({ error: "Provider withdrawal execution is hard-disabled. Keep this request held until the separately authorized production launch gate is complete." });
+    return;
   }
   const now = new Date();
   await db.transaction(async (txn) => {
