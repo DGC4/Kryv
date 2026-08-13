@@ -96,7 +96,7 @@ function formatDuration(seconds: number | null | undefined) {
 
 function StatusBadge({ live }: { live: boolean }) {
   return live ? (
-    <span className="inline-flex items-center gap-1.5 bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest animate-pulse">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-red-400">
       <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
       LIVE
     </span>
@@ -247,7 +247,7 @@ export default function DashboardLive() {
     { channelId: me?.channel?.id },
     { query: { enabled: Boolean(me?.channel && activeTab === 'content') } },
   );
-  const { data: studioMessages, refetch: refetchStudioMessages } = useListChannelMessages(
+  const { data: studioMessages, isFetching: isRefreshingStudioMessages, refetch: refetchStudioMessages } = useListChannelMessages(
     me?.channel?.id ?? 0,
     { query: { enabled: Boolean(me?.channel && activeTab === 'stream'), refetchInterval: activeTab === 'stream' ? 5000 : false } },
   );
@@ -932,7 +932,7 @@ export default function DashboardLive() {
               <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02]">
                 <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
                   <div className="flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /><h2 className="text-sm font-black text-white">Live chat</h2></div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Refreshes live</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{isRefreshingStudioMessages ? 'Refreshing via REST' : 'REST · every 5s'}</span>
                 </div>
                 <div className="max-h-60 min-h-36 space-y-3 overflow-y-auto px-4 py-3">
                   {studioMessages?.filter(message => !hiddenStudioMessageIds.has(message.id)).length ? studioMessages.filter(message => !hiddenStudioMessageIds.has(message.id)).map((message) => (
@@ -944,8 +944,8 @@ export default function DashboardLive() {
                   )) : <div className="flex min-h-28 flex-col items-center justify-center text-center"><MessageSquare className="h-6 w-6 text-white/15" /><p className="mt-2 text-xs font-medium text-white/35">Your live chat will appear here.</p></div>}
                 </div>
                 <form onSubmit={handleStudioChatSubmit} className="flex gap-2 border-t border-white/[0.07] p-3">
-                  <input value={studioChatMessage} onChange={(event) => setStudioChatMessage(event.target.value)} maxLength={500} placeholder="Send a message as the channel owner" className="min-w-0 flex-1 rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2 text-xs text-white outline-none transition-colors placeholder:text-white/25 focus:border-primary/60" />
-                  <Button type="submit" size="icon" disabled={createStudioMessage.isPending || !studioChatMessage.trim()} className="h-9 w-9 shrink-0 rounded-xl"><Send className="h-3.5 w-3.5" /></Button>
+                  <input value={studioChatMessage} onChange={(event) => setStudioChatMessage(event.target.value)} maxLength={500} placeholder="Send a message as the channel owner" aria-label="Send a message as the channel owner" disabled={createStudioMessage.isPending} className="min-w-0 flex-1 rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2 text-xs text-white outline-none transition-colors placeholder:text-white/25 focus:border-primary/60 disabled:cursor-wait disabled:opacity-70" />
+                  <Button type="submit" size="icon" disabled={createStudioMessage.isPending || !studioChatMessage.trim()} className="h-9 w-9 shrink-0 rounded-xl" aria-label="Send owner chat message">{createStudioMessage.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}</Button>
                 </form>
               </div>
 

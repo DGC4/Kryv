@@ -114,7 +114,9 @@ export default function LiveChannel() {
   const [channelReportReason, setChannelReportReason] = useState<'harassment' | 'hate_or_harm' | 'spam_or_scam' | 'sexual_content' | 'violence_or_threat' | 'other'>('other');
   const [channelReportDetails, setChannelReportDetails] = useState('');
   const [isSubmittingChannelReport, setIsSubmittingChannelReport] = useState(false);
+  const [hasUnreadChatMessages, setHasUnreadChatMessages] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  const previousMessageCountRef = useRef(0);
 
   // Theater mode is entirely client-side; Escape always returns the viewer to the standard live layout.
   useEffect(() => {
@@ -125,12 +127,36 @@ export default function LiveChannel() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Auto-scroll chat to bottom on new messages
+  // REST polling must not pull a reader away from older messages. New activity is surfaced
+  // with an explicit jump control; the active cadence remains visible in the chat header.
   useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    const scroller = chatScrollRef.current;
+    const currentMessageCount = messages?.length ?? 0;
+    const previousMessageCount = previousMessageCountRef.current;
+
+    if (!scroller) {
+      previousMessageCountRef.current = currentMessageCount;
+      return;
     }
+
+    const distanceFromLatest = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+    const isReadingLatest = distanceFromLatest < 40;
+    const hasNewMessages = currentMessageCount > previousMessageCount;
+
+    if (isReadingLatest || previousMessageCount === 0) {
+      scroller.scrollTop = scroller.scrollHeight;
+      setHasUnreadChatMessages(false);
+    } else if (hasNewMessages) {
+      setHasUnreadChatMessages(true);
+    }
+
+    previousMessageCountRef.current = currentMessageCount;
   }, [messages]);
+
+  useEffect(() => {
+    previousMessageCountRef.current = 0;
+    setHasUnreadChatMessages(false);
+  }, [channelId]);
 
   // Sync viewer count from channel data
   useEffect(() => {
@@ -180,11 +206,19 @@ export default function LiveChannel() {
       return;
     }
     createMessage.mutate(
-      { id: channelId, data: { message: chatInput } },
+      { id: channelId, data: { message: chatInput.trim() } },
       {
         onSuccess: () => {
           setChatInput('');
-          refetchMessages();
+          setHasUnreadChatMessages(false);
+          void refetchMessages();
+        },
+        onError: (err: any) => {
+          toast({
+            title: 'Message was not sent',
+            description: err?.body?.error || err?.message || 'Your message is still in the composer. Please try again.',
+            variant: 'destructive',
+          });
         },
       },
     );
@@ -673,17 +707,26 @@ export default function LiveChannel() {
       <aside aria-label="Stream chat" className={`fixed inset-x-0 bottom-0 z-40 flex min-h-0 flex-col overflow-hidden border-t border-white/10 bg-[#090b11]/[0.98] shadow-[0_-18px_48px_rgba(0,0,0,0.46)] backdrop-blur-xl ${chatCollapsed ? 'h-[var(--kryv-mobile-chat-collapsed-height)]' : 'h-[var(--kryv-mobile-chat-expanded-height)]'} sm:h-[40dvh] lg:sticky lg:top-0 lg:z-20 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:w-80 lg:shrink-0 lg:self-start lg:border-l lg:border-t-0 lg:bg-black/40 lg:shadow-none xl:w-96 ${theaterMode ? 'xl:fixed xl:inset-y-0 xl:right-0 xl:left-auto xl:z-40 xl:h-dvh xl:w-96 xl:border-l xl:border-t-0 xl:bg-[#090b11]/[0.98] xl:shadow-[-18px_0_48px_rgba(0,0,0,0.46)]' : ''}`}>
         <div className="flex items-center justify-between gap-3 border-b border-white/10 p-2 sm:p-4">
           <div className="min-w-0">
-            <h3 className="font-display font-bold text-white text-sm sm:text-base">Stream Chat</h3>
-            {(chatSettings?.slowModeSeconds || chatSettings?.followersOnly) ? (
-              <p className="text-[10px] text-white/40 mt-0.5 truncate">
-                {chatSettings.followersOnly ? 'Followers only' : ''}{chatSettings.followersOnly && chatSettings.slowModeSeconds ? ' · ' : ''}{chatSettings.slowModeSeconds ? `${chatSettings.slowModeSeconds}s slow mode` : ''}
-              </p>
-            ) : null}
+            <h3 className="font-display text-sm font-bold text-white sm:text-base">Stream chat</h3>
+            <p className="mt-0.5 truncate text-[10px] text-white/40">
+              {isRefreshingMessages ? 'Refreshing via REST…' : 'Updates via REST every 15 seconds'}
+              {(chatSettings?.slowModeSeconds || chatSettings?.followersOnly) ? ` · ${chatSettings.followersOnly ? 'Followers only' : ''}${chatSettings.followersOnly && chatSettings.slowModeSeconds ? ' · ' : ''}${chatSettings.slowModeSeconds ? `${chatSettings.slowModeSeconds}s slow mode` : ''}` : ''}
+            </p>
           </div>
           <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => setChatCollapsed((current) => !current)} className="inline-flex min-h-11 items-center gap-1 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[10px] font-black text-white/65 transition hover:border-primary/40 hover:text-primary sm:hidden" aria-expanded={!chatCollapsed} aria-label={chatCollapsed ? 'Expand stream chat' : 'Collapse stream chat'}>{chatCollapsed ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}{chatCollapsed ? 'Open' : 'Hide'}</button><button type="button" onClick={() => { void refetchMessages(); void refetchChannel(); }} disabled={isRefreshingMessages} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[10px] font-black text-white/50 transition hover:border-primary/40 hover:text-primary disabled:cursor-wait disabled:opacity-60" title="Refresh chat and stream status" aria-label="Refresh chat and stream status"><RefreshCw className={`h-3 w-3 ${isRefreshingMessages ? 'animate-spin' : ''}`} />Refresh</button>{channel.isOwner ? <Shield className="w-4 h-4 text-primary" /> : <Users className="w-4 h-4 text-muted-foreground" />}</div>
         </div>
 
-        <div className={`${chatCollapsed ? 'hidden' : 'flex-1'} overflow-y-auto p-2 sm:block sm:flex-1 sm:space-y-4 sm:p-4`} ref={chatScrollRef}>
+        <div className={`${chatCollapsed ? 'hidden' : 'relative flex-1 min-h-0'}`}>
+          <div
+            className="h-full overflow-y-auto p-2 sm:space-y-4 sm:p-4"
+            ref={chatScrollRef}
+            onScroll={(event) => {
+              const scroller = event.currentTarget;
+              if (scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 40) {
+                setHasUnreadChatMessages(false);
+              }
+            }}
+          >
           {messages?.map((msg) => (
             <div key={msg.id} className="text-xs sm:text-sm flex flex-col gap-0.5 group">
               <div className="flex items-center gap-1 min-w-0">
@@ -721,6 +764,19 @@ export default function LiveChannel() {
               <p className="mt-1 max-w-56 text-xs leading-relaxed text-white/35">Be the first to welcome the creator when chat is open.</p>
             </div>
           )}
+          </div>
+          {hasUnreadChatMessages && !chatCollapsed && (
+            <button
+              type="button"
+              onClick={() => {
+                if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+                setHasUnreadChatMessages(false);
+              }}
+              className="absolute bottom-3 left-1/2 z-10 inline-flex min-h-9 -translate-x-1/2 items-center gap-1.5 rounded-full border border-primary/35 bg-[#10151a] px-3 text-[11px] font-semibold text-primary shadow-lg transition hover:bg-primary hover:text-primary-foreground"
+            >
+              <ChevronDown className="h-3.5 w-3.5" /> New messages
+            </button>
+          )}
         </div>
 
         <div className={`${chatCollapsed ? 'hidden' : ''} border-t border-white/10 bg-black/20 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:block sm:p-4`}>
@@ -731,8 +787,10 @@ export default function LiveChannel() {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Send a message…"
+                aria-label="Send a chat message"
                 maxLength={500}
-                className="min-h-11 flex-1 rounded-lg border border-white/10 bg-white/5 px-2 text-xs text-white transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:px-3 sm:py-2 sm:text-sm"
+                disabled={createMessage.isPending}
+                className="min-h-11 flex-1 rounded-lg border border-white/10 bg-white/5 px-2 text-xs text-white transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-wait disabled:opacity-70 sm:px-3 sm:py-2 sm:text-sm"
               />
               <Button
                 type="submit"
@@ -740,7 +798,7 @@ export default function LiveChannel() {
                 className="min-h-11 shrink-0"
                 disabled={!chatInput.trim() || createMessage.isPending}
               >
-                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                {createMessage.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
               </Button>
             </form>
           ) : (
