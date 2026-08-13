@@ -1195,12 +1195,12 @@ export default function DashboardLive() {
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-white">Verified crypto settlement</p>
-                      <p className="mt-1 text-xs leading-relaxed text-white/40">Kryv creates a provider invoice first and only credits a creator balance after a signed payment callback confirms the transaction. Wallet withdrawal stays unavailable until the owner completes provider configuration, supported-coin policy, and payout controls.</p>
+                      <p className="mt-1 text-xs leading-relaxed text-white/40">Kryv creates a provider invoice first and only credits a creator balance after a signed payment callback confirms the transaction. Owner-approved crypto withdrawal controls are enabled; a payout still requires an approved encrypted destination, manual review, provider acceptance, and network confirmation.</p>
                     </div>
-                    <span className="shrink-0 rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-200">Activation pending</span>
+                    <span className="shrink-0 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-200">Owner-reviewed</span>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">{['Bitcoin', 'Litecoin', 'Ethereum', 'Dogecoin'].map(coin => <span key={coin} className="rounded-full border border-white/[0.09] bg-black/20 px-2.5 py-1 text-[10px] font-bold text-white/60">{coin}</span>)}</div>
-                  <p className="mt-4 rounded-xl border border-white/[0.06] bg-black/20 p-3 text-xs leading-relaxed text-white/40">This is a real settlement boundary—not a demo balance. Do not share a wallet address or expect a payout until the owner has activated and verified the crypto provider connection.</p>
+                  <p className="mt-4 rounded-xl border border-white/[0.06] bg-black/20 p-3 text-xs leading-relaxed text-white/40">This is a real settlement boundary—not a demo balance. Customer wallet custody and automatic scheduled payouts remain disabled. The first live tip and owner-approved payout still require provider-confirmed reconciliation before Kryv makes broader payment-performance claims.</p>
                 </div>
               </div>
 
