@@ -404,8 +404,8 @@ export default function LiveChannel() {
 
   if (!channel) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <p className="text-xl text-muted-foreground">Channel not found</p>
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center px-4 text-center">
+        <div><Radio className="mx-auto h-8 w-8 text-white/20" /><p className="mt-4 text-xl font-black text-white">Channel unavailable</p><p className="mt-2 max-w-md text-sm leading-relaxed text-white/45">This channel may have changed its URL or be temporarily unavailable.</p><div className="mt-5 flex flex-wrap justify-center gap-3"><Button type="button" variant="secondary" onClick={() => refetchChannel()}>Retry</Button><Link href="/live" className="inline-flex min-h-10 items-center rounded-xl border border-primary/35 bg-primary/10 px-4 text-sm font-black text-primary transition hover:bg-primary hover:text-primary-foreground">Explore Live</Link></div></div>
       </div>
     );
   }
