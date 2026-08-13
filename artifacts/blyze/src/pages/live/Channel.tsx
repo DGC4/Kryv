@@ -27,21 +27,22 @@ export default function LiveChannel() {
   const { channelSlugOrId } = useParams<{ channelSlugOrId: string }>();
   const { user } = useAuthStore();
   const isSignedIn = !!user;
+  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'rest'>('rest');
 
   const { data: channel, isLoading, refetch: refetchChannel } = useGetChannelBySlug(channelSlugOrId || '', {
-    query: { enabled: !!channelSlugOrId, refetchInterval: 15000 },
+    query: { enabled: !!channelSlugOrId, refetchInterval: realtimeStatus === 'connected' ? false : 15000 },
   });
 
   const channelId = channel?.id;
 
   const { data: messages, refetch: refetchMessages } = useListChannelMessages(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: 15000 },
+    query: { enabled: !!channelId, refetchInterval: realtimeStatus === 'connected' ? false : 15000 },
   });
   const { data: chatSettings } = useGetChannelChatSettings(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: 10000 },
+    query: { enabled: !!channelId, refetchInterval: realtimeStatus === 'connected' ? false : 10000 },
   });
   const { data: engagement, refetch: refetchEngagement } = useGetChannelEngagement(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: 10000 },
+    query: { enabled: !!channelId, refetchInterval: realtimeStatus === 'connected' ? false : 10000 },
   });
 
   const { toast } = useToast();
@@ -68,41 +69,63 @@ export default function LiveChannel() {
   const [cryptoCheckout, setCryptoCheckout] = useState<any | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  // Event-driven chat and live-state refresh. The websocket only carries server
-  // events; REST remains the authority for messages, moderation, and channel state.
+  // Event-driven chat and live-state refresh. REST stays authoritative for writes,
+  // moderation, and fallback reads; the socket only accelerates refreshes. A configured
+  // gateway reconnects with bounded backoff rather than leaving viewers on a stale pane.
   useEffect(() => {
     if (!channelId || typeof window === 'undefined') return;
-    const configuredUrl = import.meta.env.VITE_REALTIME_URL?.trim();
-    const fallbackUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
-    const websocketUrl = configuredUrl || fallbackUrl;
-    let closed = false;
-    let socket: WebSocket | null = null;
-
-    try {
-      socket = new WebSocket(websocketUrl, ['kryv.v1']);
-      socket.onopen = () => socket?.send(JSON.stringify({ type: 'subscribe', channelId }));
-      socket.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data) as { type?: string; channelId?: number };
-          if (message.channelId !== channelId) return;
-          if (message.type === 'chat.message.created' || message.type === 'chat.message.deleted') refetchMessages();
-          if (message.type === 'channel.moderation.updated') refetchMessages();
-          if (message.type === 'engagement.updated') refetchEngagement();
-          if (message.type === 'live.state.updated') refetchChannel();
-        } catch {
-          // Ignore malformed transport events; the REST fallback keeps state current.
-        }
-      };
-    } catch {
-      // Browser WebSocket construction can fail under restrictive network policies.
+    const websocketUrl = import.meta.env.VITE_REALTIME_URL?.trim();
+    if (!websocketUrl) {
+      setRealtimeStatus('rest');
+      return;
     }
 
-    return () => {
-      closed = true;
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'unsubscribe', channelId }));
+    let disposed = false;
+    let socket: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+
+    const scheduleReconnect = () => {
+      if (disposed) return;
+      setRealtimeStatus('rest');
+      const delay = Math.min(30000, 1000 * 2 ** Math.min(attempts++, 5));
+      reconnectTimer = setTimeout(connect, delay);
+    };
+
+    const connect = () => {
+      if (disposed) return;
+      setRealtimeStatus('connecting');
+      try {
+        socket = new WebSocket(websocketUrl, ['kryv.v1']);
+        socket.onopen = () => {
+          attempts = 0;
+          setRealtimeStatus('connected');
+          socket?.send(JSON.stringify({ type: 'subscribe', channelId }));
+        };
+        socket.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data) as { type?: string; channelId?: number };
+            if (message.channelId !== channelId) return;
+            if (message.type === 'chat.message.created' || message.type === 'chat.message.deleted' || message.type === 'channel.moderation.updated') refetchMessages();
+            if (message.type === 'engagement.updated') refetchEngagement();
+            if (message.type === 'live.state.updated') refetchChannel();
+          } catch {
+            // Malformed relay events never bypass REST authority.
+          }
+        };
+        socket.onclose = scheduleReconnect;
+        socket.onerror = () => socket?.close();
+      } catch {
+        scheduleReconnect();
       }
-      if (!closed || socket) socket?.close();
+    };
+
+    connect();
+    return () => {
+      disposed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'unsubscribe', channelId }));
+      socket?.close();
     };
   }, [channelId, refetchChannel, refetchEngagement, refetchMessages]);
 
@@ -519,7 +542,7 @@ export default function LiveChannel() {
               </p>
             ) : null}
           </div>
-          {channel.isOwner ? <Shield className="w-4 h-4 text-primary shrink-0" /> : <Users className="w-4 h-4 text-muted-foreground shrink-0" />}
+          <div className="flex items-center gap-2 shrink-0"><span className={`rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-wider ${realtimeStatus === 'connected' ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' : realtimeStatus === 'connecting' ? 'border-primary/25 bg-primary/10 text-primary' : 'border-white/[0.1] bg-white/[0.03] text-white/40'}`}>{realtimeStatus === 'connected' ? 'Live relay' : realtimeStatus === 'connecting' ? 'Connecting' : 'REST sync'}</span>{channel.isOwner ? <Shield className="w-4 h-4 text-primary" /> : <Users className="w-4 h-4 text-muted-foreground" />}</div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4" ref={chatScrollRef}>
