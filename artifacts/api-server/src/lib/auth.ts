@@ -6,6 +6,10 @@ import { db, usersTable } from "@workspace/db";
 // JWT_SECRET MUST be set in production (enforced in app.ts at startup).
 // The fallback is only used in local development (NODE_ENV !== 'production').
 const JWT_SECRET = process.env.JWT_SECRET || "kryv-dev-only-secret-do-not-use-in-production";
+// The dedicated realtime secret allows short-lived, gateway-scoped tokens without
+// rotating browser/API sessions. Existing user access tokens remain accepted during
+// the migration period so deployed clients do not lose realtime connectivity.
+const REALTIME_TOKEN_SECRET = process.env.KRYV_REALTIME_TOKEN_SECRET?.trim();
 
 export interface AuthPayload {
   userId: number;
@@ -33,6 +37,30 @@ export function verifyToken(token: string): AuthPayload | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Signs a short-lived realtime token with its dedicated secret when configured.
+ * The fallback preserves local development compatibility only.
+ */
+export function signRealtimeToken(payload: AuthPayload): string {
+  return jwt.sign(payload, REALTIME_TOKEN_SECRET || JWT_SECRET, { expiresIn: "2h" });
+}
+
+/**
+ * Verifies a dedicated realtime token first, then accepts an existing user access
+ * token during the staged client migration. Once clients issue realtime tokens,
+ * the fallback can be removed without rotating the primary API signing secret.
+ */
+export function verifyRealtimeToken(token: string): AuthPayload | null {
+  if (REALTIME_TOKEN_SECRET) {
+    try {
+      return jwt.verify(token, REALTIME_TOKEN_SECRET) as AuthPayload;
+    } catch {
+      // Continue to the existing user-session verification for backward compatibility.
+    }
+  }
+  return verifyToken(token);
 }
 
 /** Attaches `req.user` when a valid Bearer token is provided. */

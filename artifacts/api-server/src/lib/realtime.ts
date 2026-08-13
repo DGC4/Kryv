@@ -2,7 +2,7 @@ import Redis from "ioredis";
 import { logger } from "./logger";
 
 export type KryvRealtimeEvent = {
-  type: "chat.message.created" | "chat.message.deleted" | "channel.moderation.updated" | "live.state.updated" | "discover.invalidated";
+  type: "chat.message.created" | "chat.message.deleted" | "channel.moderation.updated" | "engagement.updated" | "live.state.updated" | "discover.invalidated";
   channelId: number;
   occurredAt: string;
   data: Record<string, unknown>;

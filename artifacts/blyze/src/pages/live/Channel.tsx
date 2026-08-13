@@ -84,6 +84,7 @@ export default function LiveChannel() {
           if (message.channelId !== channelId) return;
           if (message.type === 'chat.message.created' || message.type === 'chat.message.deleted') refetchMessages();
           if (message.type === 'channel.moderation.updated') refetchMessages();
+          if (message.type === 'engagement.updated') refetchEngagement();
           if (message.type === 'live.state.updated') refetchChannel();
         } catch {
           // Ignore malformed transport events; the REST fallback keeps state current.
@@ -100,7 +101,7 @@ export default function LiveChannel() {
       }
       if (!closed || socket) socket?.close();
     };
-  }, [channelId, refetchChannel, refetchMessages]);
+  }, [channelId, refetchChannel, refetchEngagement, refetchMessages]);
 
   // Auto-scroll chat to bottom on new messages
   useEffect(() => {

@@ -1,7 +1,7 @@
 import http from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { closeSharedState, getRealtimeSubscriber, realtimeRoom, type KryvRealtimeEvent } from "./lib/realtime";
-import { verifyToken } from "./lib/auth";
+import { verifyRealtimeToken } from "./lib/auth";
 import { logger } from "./lib/logger";
 
 const PORT = Number(process.env.PORT ?? 10000);
@@ -113,7 +113,7 @@ server.on("upgrade", (request, socket, head) => {
   }
 
   const token = readOptionalAuthToken(request.headers["sec-websocket-protocol"]);
-  const auth = token ? verifyToken(token) : null;
+  const auth = token ? verifyRealtimeToken(token) : null;
   gateway.handleUpgrade(request, socket, head, (client) => {
     (client as WebSocket & { kryvUserId?: number }).kryvUserId = auth?.userId;
     gateway.emit("connection", client, request);

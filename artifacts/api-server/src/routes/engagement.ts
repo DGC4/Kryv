@@ -18,6 +18,7 @@ import {
 } from "@workspace/db";
 import { attachUserId, requireAuth } from "../lib/auth";
 import { logActivity } from "../lib/tracking";
+import { publishRealtimeEvent } from "../lib/realtime";
 
 const router: IRouter = Router();
 const POINTS_COOLDOWN_SECONDS = 300;
@@ -131,6 +132,19 @@ router.post("/channels/:id/engagement/actions", requireAuth, async (req, res): P
 
   const channelId = params.data.id;
   const data = body.data;
+
+  // The event only invalidates client read models after a successful HTTP response;
+  // channel points, poll totals, and predictions remain authoritative in Postgres.
+  res.on("finish", () => {
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      publishRealtimeEvent({
+        type: "engagement.updated",
+        channelId,
+        occurredAt: new Date().toISOString(),
+        data: { action: data.action },
+      }).catch(() => undefined);
+    }
+  });
 
   if (data.action === "claim_points") {
     const [channel] = await db.select().from(channelsTable).where(eq(channelsTable.id, channelId));
