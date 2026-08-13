@@ -216,6 +216,7 @@ function toAdminPayoutRequest(row: any) {
 }
 
 async function isOperationalFeatureEnabled(key: string) {
+  if (HARD_DISABLED_OPERATIONAL_FLAGS.has(key)) return false;
   const [flag] = await db.select({ enabled: featureFlagsTable.enabled }).from(featureFlagsTable).where(eq(featureFlagsTable.key, key)).limit(1);
   return Boolean(flag?.enabled);
 }
@@ -230,8 +231,8 @@ async function getFinanceFlags() {
   return {
     cryptoCommerceEnabled: Boolean(flags.get("crypto_commerce")),
     payoutRequestsEnabled: Boolean(flags.get("creator_payout_requests")),
-    scheduledPayoutRequestsEnabled: Boolean(flags.get("scheduled_payout_requests")),
-    providerWithdrawalsEnabled: Boolean(flags.get("provider_withdrawals")),
+    scheduledPayoutRequestsEnabled: false,
+    providerWithdrawalsEnabled: false,
   };
 }
 
@@ -332,10 +333,10 @@ router.get("/admin/overview", requireOwner, async (_req, res): Promise<void> => 
       providerConfigured: isPlisioConfigured(),
       cryptoCommerceEnabled: Boolean(flagMap.get("crypto_commerce")),
       payoutRequestsEnabled: Boolean(flagMap.get("creator_payout_requests")),
-      scheduledPayoutRequestsEnabled: Boolean(flagMap.get("scheduled_payout_requests")),
-      providerWithdrawalsEnabled: Boolean(flagMap.get("provider_withdrawals")),
-      customerWalletCustodyEnabled: Boolean(flagMap.get("customer_wallet_custody")),
-      adsDeliveryEnabled: Boolean(flagMap.get("ads_delivery")),
+      scheduledPayoutRequestsEnabled: false,
+      providerWithdrawalsEnabled: false,
+      customerWalletCustodyEnabled: false,
+      adsDeliveryEnabled: false,
       pendingProfileReviews: pendingProfiles[0]?.count ?? 0,
       pendingPayoutReviews,
     },
