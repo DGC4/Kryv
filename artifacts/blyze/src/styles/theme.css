@@ -3,6 +3,8 @@
   --transition-duration: 0.3s;
   --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
   --kryv-header-height: 3.5rem;
+  --kryv-mobile-chat-expanded-height: clamp(18rem, 38dvh, 24rem);
+  --kryv-mobile-chat-collapsed-height: 3.75rem;
 }
 
 /* Smooth theme color transitions on key properties only */

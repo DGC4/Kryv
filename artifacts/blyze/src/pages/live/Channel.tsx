@@ -25,10 +25,11 @@ import { getApiUrl } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { usePageMetadata } from '@/hooks/use-page-metadata';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronRight, CircleDot, RefreshCw } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronDown, ChevronRight, ChevronUp, CircleDot, MoreHorizontal, RefreshCw } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 const CRYPTO_COINS = [
   { code: 'BTC', label: 'Bitcoin', mark: '₿', selectedClass: 'border-amber-300/70 bg-amber-300/15 text-amber-100' },
@@ -51,6 +52,8 @@ export default function LiveChannel() {
   const { user, token } = useAuthStore();
   const isSignedIn = !!user;
   const [theaterMode, setTheaterMode] = useState(false);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(false);
 
   const { data: channel, isLoading, refetch: refetchChannel } = useGetChannelBySlug(channelSlugOrId || '', {
     query: { enabled: !!channelSlugOrId, refetchInterval: 15000 },
@@ -462,7 +465,7 @@ export default function LiveChannel() {
         </aside>
       )}
       {/* Main Content: the player and action strip stay above secondary channel information. */}
-      <div className={`flex min-w-0 flex-col ${theaterMode ? 'h-full w-full shrink-0 overflow-hidden' : 'flex-1 pb-[44dvh] sm:pb-[40dvh] lg:pb-0'}`}>
+      <div className={`flex min-w-0 flex-col ${theaterMode ? 'h-full w-full shrink-0 overflow-hidden' : 'flex-1 sm:pb-[40dvh] lg:pb-0'} ${!theaterMode ? (chatCollapsed ? 'pb-[var(--kryv-mobile-chat-collapsed-height)]' : 'pb-[var(--kryv-mobile-chat-expanded-height)]') : ''}`}>
         {/* Video Player - Responsive */}
         <div className={`w-full bg-black relative ${theaterMode ? 'h-full' : 'aspect-video sm:aspect-video lg:flex-1'}`}>
           {channel.isLive && hlsSrc ? (
@@ -514,7 +517,7 @@ export default function LiveChannel() {
           <button
             type="button"
             onClick={() => setTheaterMode((current) => !current)}
-            className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-black/70 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur transition hover:border-primary/60 hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="absolute right-3 top-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-black/70 px-3 text-xs font-black text-white shadow-lg backdrop-blur transition hover:border-primary/60 hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-4 sm:top-4"
             aria-pressed={theaterMode}
             aria-label={theaterMode ? 'Exit theater mode' : 'Enter theater mode'}
           >
@@ -535,14 +538,31 @@ export default function LiveChannel() {
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] font-bold text-white/50"><span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" />{liveViewerCount.toLocaleString()} watching</span><span className="inline-flex items-center gap-1.5"><Tag className="h-3.5 w-3.5 text-primary" />{channel.categoryName || 'Uncategorized'}</span><span className="inline-flex items-center gap-1.5"><Languages className="h-3.5 w-3.5 text-primary" />English</span><span>{typeof channel.followerCount === 'number' ? `${channel.followerCount.toLocaleString()} followers` : 'Kryv creator channel'}</span></div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant={channel.isFollowing ? 'secondary' : 'default'} onClick={handleFollowToggle} disabled={follow.isPending || unfollow.isPending} className="h-9 rounded-lg px-3 text-xs font-black"><Heart className={`mr-1.5 h-3.5 w-3.5 ${channel.isFollowing ? 'fill-current' : ''}`} />{channel.isFollowing ? 'Following' : 'Follow'}</Button>
-              <Button variant="secondary" onClick={handleLiveAlertToggle} disabled={updateNotificationPreferences.isPending} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white" aria-label={notificationPreferences?.notifyOnLive ? 'Pause live alerts' : 'Enable live alerts'}>{notificationPreferences?.notifyOnLive ? <Bell className="mr-1.5 h-3.5 w-3.5 text-primary" /> : <BellOff className="mr-1.5 h-3.5 w-3.5" />}{notificationPreferences?.notifyOnLive ? 'Alerts on' : 'Alerts'}</Button>
-              <Button variant="secondary" onClick={() => { setSupportMode('tip'); setCryptoCheckout(null); setSupportOpen(true); }} className="h-9 rounded-lg border border-primary/30 bg-primary/[0.08] px-3 text-xs font-black text-primary hover:bg-primary/15 hover:text-white"><Wallet className="mr-1.5 h-3.5 w-3.5" />Gift crypto</Button>
-              <Button variant="secondary" onClick={() => { setSupportMode('subscription'); setCryptoCheckout(null); setSupportOpen(true); }} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white"><Heart className="mr-1.5 h-3.5 w-3.5" />Subscribe</Button>
-              {channel.isLive && <Button variant="secondary" onClick={handleLiveClip} disabled={createClip.isPending} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white">{createClip.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Scissors className="mr-1.5 h-3.5 w-3.5" />}Clip</Button>}
-              <Button variant="secondary" size="icon" onClick={handleShareChannel} className="h-9 w-9 rounded-lg border border-white/[0.1] text-white/70 hover:text-white" aria-label="Share this channel"><Share2 className="h-4 w-4" /></Button>
-              <Button variant="secondary" size="icon" onClick={() => isSignedIn ? setChannelReportOpen(true) : toast({ title: 'Sign in to report', description: 'You need to be signed in before reporting a channel.' })} className="h-9 w-9 rounded-lg border border-white/[0.1] text-white/50 hover:border-red-300/40 hover:text-red-200" aria-label="Report this channel"><Flag className="h-4 w-4" /></Button>
+            <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+              <Button variant={channel.isFollowing ? 'secondary' : 'default'} onClick={handleFollowToggle} disabled={follow.isPending || unfollow.isPending} className="min-h-11 rounded-lg px-3 text-xs font-black sm:h-9 sm:min-h-0"><Heart className={`mr-1.5 h-3.5 w-3.5 ${channel.isFollowing ? 'fill-current' : ''}`} />{channel.isFollowing ? 'Following' : 'Follow'}</Button>
+              <Button variant="secondary" onClick={() => { setSupportMode('tip'); setCryptoCheckout(null); setSupportOpen(true); }} className="min-h-11 rounded-lg border border-primary/30 bg-primary/[0.08] px-3 text-xs font-black text-primary hover:bg-primary/15 hover:text-white sm:hidden"><Wallet className="mr-1.5 h-3.5 w-3.5" />Support</Button>
+              <Sheet open={mobileActionsOpen} onOpenChange={setMobileActionsOpen}>
+                <SheetTrigger asChild><Button variant="secondary" className="min-h-11 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white sm:hidden"><MoreHorizontal className="mr-1.5 h-4 w-4" />More</Button></SheetTrigger>
+                <SheetContent side="bottom" className="max-h-[calc(100dvh-env(safe-area-inset-bottom))] overflow-y-auto rounded-t-3xl border-white/[0.12] bg-[#0b0e14] px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 text-white sm:hidden">
+                  <SheetHeader className="pr-10 text-left"><SheetTitle className="text-white">Channel actions</SheetTitle><SheetDescription className="text-white/55">More ways to follow, support, share, and manage this live room.</SheetDescription></SheetHeader>
+                  <div className="mt-6 grid gap-2">
+                    <Button variant="secondary" onClick={() => { setMobileActionsOpen(false); handleLiveAlertToggle(); }} disabled={updateNotificationPreferences.isPending} className="min-h-11 justify-start border border-white/[0.1] bg-white/[0.03] px-4 text-sm font-semibold text-white"><span>{notificationPreferences?.notifyOnLive ? <Bell className="mr-3 h-4 w-4 text-primary" /> : <BellOff className="mr-3 h-4 w-4 text-primary" />}</span>{notificationPreferences?.notifyOnLive ? 'Live alerts on' : 'Manage live alerts'}</Button>
+                    <Button variant="secondary" onClick={() => { setMobileActionsOpen(false); setSupportMode('subscription'); setCryptoCheckout(null); setSupportOpen(true); }} className="min-h-11 justify-start border border-white/[0.1] bg-white/[0.03] px-4 text-sm font-semibold text-white"><Heart className="mr-3 h-4 w-4 text-primary" />Subscribe with crypto</Button>
+                    {channel.isLive && <Button variant="secondary" onClick={() => { setMobileActionsOpen(false); handleLiveClip(); }} disabled={createClip.isPending} className="min-h-11 justify-start border border-white/[0.1] bg-white/[0.03] px-4 text-sm font-semibold text-white">{createClip.isPending ? <Loader2 className="mr-3 h-4 w-4 animate-spin text-primary" /> : <Scissors className="mr-3 h-4 w-4 text-primary" />}Create a 30-second clip</Button>}
+                    <Button variant="secondary" onClick={() => { setMobileActionsOpen(false); void handleShareChannel(); }} className="min-h-11 justify-start border border-white/[0.1] bg-white/[0.03] px-4 text-sm font-semibold text-white"><Share2 className="mr-3 h-4 w-4 text-primary" />Share channel</Button>
+                    <SheetClose asChild><Link href="/live" className="inline-flex min-h-11 items-center rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 text-sm font-semibold text-white transition hover:border-primary/45 hover:text-primary"><Radio className="mr-3 h-4 w-4 text-primary" />Live discovery and following</Link></SheetClose>
+                    <Button variant="secondary" onClick={() => { setMobileActionsOpen(false); isSignedIn ? setChannelReportOpen(true) : toast({ title: 'Sign in to report', description: 'You need to be signed in before reporting a channel.' }); }} className="min-h-11 justify-start border border-red-300/15 bg-red-500/[0.04] px-4 text-sm font-semibold text-red-100 hover:border-red-300/35 hover:bg-red-500/[0.1]"><Flag className="mr-3 h-4 w-4" />Report channel</Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <div className="hidden items-center gap-2 sm:flex sm:flex-wrap">
+                <Button variant="secondary" onClick={handleLiveAlertToggle} disabled={updateNotificationPreferences.isPending} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white" aria-label={notificationPreferences?.notifyOnLive ? 'Pause live alerts' : 'Enable live alerts'}>{notificationPreferences?.notifyOnLive ? <Bell className="mr-1.5 h-3.5 w-3.5 text-primary" /> : <BellOff className="mr-1.5 h-3.5 w-3.5" />}{notificationPreferences?.notifyOnLive ? 'Alerts on' : 'Alerts'}</Button>
+                <Button variant="secondary" onClick={() => { setSupportMode('tip'); setCryptoCheckout(null); setSupportOpen(true); }} className="h-9 rounded-lg border border-primary/30 bg-primary/[0.08] px-3 text-xs font-black text-primary hover:bg-primary/15 hover:text-white"><Wallet className="mr-1.5 h-3.5 w-3.5" />Gift crypto</Button>
+                <Button variant="secondary" onClick={() => { setSupportMode('subscription'); setCryptoCheckout(null); setSupportOpen(true); }} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white"><Heart className="mr-1.5 h-3.5 w-3.5" />Subscribe</Button>
+                {channel.isLive && <Button variant="secondary" onClick={handleLiveClip} disabled={createClip.isPending} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white">{createClip.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Scissors className="mr-1.5 h-3.5 w-3.5" />}Clip</Button>}
+                <Button variant="secondary" size="icon" onClick={() => void handleShareChannel()} className="h-9 w-9 rounded-lg border border-white/[0.1] text-white/70 hover:text-white" aria-label="Share this channel"><Share2 className="h-4 w-4" /></Button>
+                <Button variant="secondary" size="icon" onClick={() => isSignedIn ? setChannelReportOpen(true) : toast({ title: 'Sign in to report', description: 'You need to be signed in before reporting a channel.' })} className="h-9 w-9 rounded-lg border border-white/[0.1] text-white/50 hover:border-red-300/40 hover:text-red-200" aria-label="Report this channel"><Flag className="h-4 w-4" /></Button>
+              </div>
             </div>
           </div>
         </section>
@@ -552,7 +572,7 @@ export default function LiveChannel() {
           <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
             <DialogContent
               overlayClassName="bg-black/35 backdrop-blur-[1px]"
-              className="left-0 right-0 top-[30dvh] h-[70dvh] max-h-none w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-t-[1.5rem] border-white/10 bg-[#11131a]/[0.98] p-4 shadow-2xl sm:left-auto sm:right-4 sm:top-[5dvh] sm:h-[90dvh] sm:w-[min(34rem,calc(100vw-2rem))] sm:rounded-[1.5rem] sm:p-5"
+              className="bottom-0 left-0 right-0 top-auto h-auto max-h-[calc(100dvh-0.5rem-env(safe-area-inset-bottom))] w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-t-[1.5rem] border-white/10 bg-[#11131a]/[0.98] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl sm:bottom-auto sm:left-auto sm:right-4 sm:top-[5dvh] sm:max-h-[90dvh] sm:w-[min(34rem,calc(100vw-2rem))] sm:rounded-[1.5rem] sm:p-5"
             >
               <DialogTitle className="sr-only">Support {channel.displayName} with crypto</DialogTitle>
               <DialogDescription className="sr-only">Crypto-only support and subscription options. The stream remains available behind this panel.</DialogDescription>
@@ -582,14 +602,14 @@ export default function LiveChannel() {
                     <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black text-white">One-time crypto support</p><p className="mt-1 text-[11px] leading-relaxed text-white/45">Set a USD reference quote. The final invoice will show the exact {supportCoin} amount before you send anything.</p></div><span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-primary">{supportCoin}</span></div>
                     <label className="mt-3 block text-xs font-bold text-white/55">Support amount <span className="text-white/35">(USD quote)</span><span className="relative mt-1.5 block"><span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-black text-white/50">$</span><input type="number" min="0.01" step="0.01" value={supportAmount} onChange={event => setSupportAmount(event.target.value)} className="h-11 w-full rounded-xl border border-white/[0.1] bg-black/30 py-2 pl-7 pr-3 text-sm font-bold text-white outline-none focus:border-primary/60" /></span></label>
                     <label className="mt-3 block text-xs font-bold text-white/55">Optional message<input value={supportMessage} onChange={event => setSupportMessage(event.target.value)} maxLength={500} placeholder="Send a note with your support" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label>
-                    <Button type="button" onClick={handleCryptoSupport} disabled={createCryptoTip.isPending} className="mt-4 h-11 w-full rounded-xl font-black">{createCryptoTip.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wallet className="mr-2 h-4 w-4" />Show {supportCoin} payment instructions</>}</Button>
+                    <Button type="button" onClick={handleCryptoSupport} disabled={createCryptoTip.isPending} className="sticky bottom-0 mt-4 h-11 w-full rounded-xl font-black">{createCryptoTip.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wallet className="mr-2 h-4 w-4" />Show {supportCoin} payment instructions</>}</Button>
                   </section>
                 ) : (
                   <section className="mt-4 rounded-xl border border-white/[0.1] bg-black/25 p-3 sm:p-4">
                     <div><p className="text-xs font-black text-white">Channel membership</p><p className="mt-1 text-[11px] leading-relaxed text-white/45">Choose a level with a clear creator-support meaning. Each one creates a separate one-time crypto invoice; no card rails and no automatic renewal are used.</p></div>
                     <div className="mt-3 grid grid-cols-3 gap-2">{([1, 2, 3] as SubscriptionTier[]).map((tier) => { const detail = SUBSCRIPTION_TIERS[tier]; return <button key={tier} type="button" onClick={() => { setSubscriptionTier(tier); setCryptoCheckout(null); }} className={`min-h-24 rounded-xl border p-2.5 text-left transition ${subscriptionTier === tier ? detail.accent : 'border-white/[0.1] bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white'}`} aria-pressed={subscriptionTier === tier}><span className="block text-[10px] font-black uppercase tracking-wider">{detail.name}</span><span className="mt-1 block text-[11px] font-black">Crypto invoice</span><span className="mt-1 block text-[10px] leading-relaxed opacity-70">{detail.label}</span></button>; })}</div>
                     <div className={`mt-3 rounded-xl border p-3 ${selectedTier.accent}`}><p className="text-xs font-black">{selectedTier.label} · crypto-only checkout</p><p className="mt-1 text-[11px] leading-relaxed opacity-80">{selectedTier.detail}. Kryv will show the exact {supportCoin} invoice amount and client-borne checkout commission before payment.</p></div>
-                    <Button type="button" onClick={handleCryptoSubscription} disabled={createCryptoSubscription.isPending} className="mt-4 h-11 w-full rounded-xl font-black">{createCryptoSubscription.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Heart className="mr-2 h-4 w-4" />Start {selectedTier.name} crypto checkout</>}</Button>
+                    <Button type="button" onClick={handleCryptoSubscription} disabled={createCryptoSubscription.isPending} className="sticky bottom-0 mt-4 h-11 w-full rounded-xl font-black">{createCryptoSubscription.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Heart className="mr-2 h-4 w-4" />Start {selectedTier.name} crypto checkout</>}</Button>
                   </section>
                 )}
 
@@ -650,8 +670,8 @@ export default function LiveChannel() {
       </div>
 
       {/* Chat is always reachable: fixed above mobile content and sticky beside desktop content. */}
-      <aside aria-label="Stream chat" className={`fixed inset-x-0 bottom-0 z-40 flex h-[44dvh] min-h-64 flex-col overflow-hidden border-t border-white/10 bg-[#090b11]/[0.98] shadow-[0_-18px_48px_rgba(0,0,0,0.46)] backdrop-blur-xl sm:h-[40dvh] lg:sticky lg:top-0 lg:z-20 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:w-80 lg:shrink-0 lg:self-start lg:border-l lg:border-t-0 lg:bg-black/40 lg:shadow-none xl:w-96 ${theaterMode ? 'xl:fixed xl:inset-y-0 xl:right-0 xl:left-auto xl:z-40 xl:h-dvh xl:w-96 xl:border-l xl:border-t-0 xl:bg-[#090b11]/[0.98] xl:shadow-[-18px_0_48px_rgba(0,0,0,0.46)]' : ''}`}>
-        <div className="p-2 sm:p-4 border-b border-white/10 flex items-center justify-between gap-3">
+      <aside aria-label="Stream chat" className={`fixed inset-x-0 bottom-0 z-40 flex min-h-0 flex-col overflow-hidden border-t border-white/10 bg-[#090b11]/[0.98] shadow-[0_-18px_48px_rgba(0,0,0,0.46)] backdrop-blur-xl ${chatCollapsed ? 'h-[var(--kryv-mobile-chat-collapsed-height)]' : 'h-[var(--kryv-mobile-chat-expanded-height)]'} sm:h-[40dvh] lg:sticky lg:top-0 lg:z-20 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:w-80 lg:shrink-0 lg:self-start lg:border-l lg:border-t-0 lg:bg-black/40 lg:shadow-none xl:w-96 ${theaterMode ? 'xl:fixed xl:inset-y-0 xl:right-0 xl:left-auto xl:z-40 xl:h-dvh xl:w-96 xl:border-l xl:border-t-0 xl:bg-[#090b11]/[0.98] xl:shadow-[-18px_0_48px_rgba(0,0,0,0.46)]' : ''}`}>
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 p-2 sm:p-4">
           <div className="min-w-0">
             <h3 className="font-display font-bold text-white text-sm sm:text-base">Stream Chat</h3>
             {(chatSettings?.slowModeSeconds || chatSettings?.followersOnly) ? (
@@ -660,10 +680,10 @@ export default function LiveChannel() {
               </p>
             ) : null}
           </div>
-          <div className="flex items-center gap-2 shrink-0"><button type="button" onClick={() => { void refetchMessages(); void refetchChannel(); }} disabled={isRefreshingMessages} className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-2 py-1 text-[8px] font-black uppercase tracking-wider text-white/50 transition hover:border-primary/40 hover:text-primary disabled:cursor-wait disabled:opacity-60" title="Refresh chat and stream status" aria-label="Refresh chat and stream status"><RefreshCw className={`h-3 w-3 ${isRefreshingMessages ? 'animate-spin' : ''}`} />Refresh</button>{channel.isOwner ? <Shield className="w-4 h-4 text-primary" /> : <Users className="w-4 h-4 text-muted-foreground" />}</div>
+          <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => setChatCollapsed((current) => !current)} className="inline-flex min-h-11 items-center gap-1 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[10px] font-black text-white/65 transition hover:border-primary/40 hover:text-primary sm:hidden" aria-expanded={!chatCollapsed} aria-label={chatCollapsed ? 'Expand stream chat' : 'Collapse stream chat'}>{chatCollapsed ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}{chatCollapsed ? 'Open' : 'Hide'}</button><button type="button" onClick={() => { void refetchMessages(); void refetchChannel(); }} disabled={isRefreshingMessages} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[10px] font-black text-white/50 transition hover:border-primary/40 hover:text-primary disabled:cursor-wait disabled:opacity-60" title="Refresh chat and stream status" aria-label="Refresh chat and stream status"><RefreshCw className={`h-3 w-3 ${isRefreshingMessages ? 'animate-spin' : ''}`} />Refresh</button>{channel.isOwner ? <Shield className="w-4 h-4 text-primary" /> : <Users className="w-4 h-4 text-muted-foreground" />}</div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4" ref={chatScrollRef}>
+        <div className={`${chatCollapsed ? 'hidden' : 'flex-1'} overflow-y-auto p-2 sm:block sm:flex-1 sm:space-y-4 sm:p-4`} ref={chatScrollRef}>
           {messages?.map((msg) => (
             <div key={msg.id} className="text-xs sm:text-sm flex flex-col gap-0.5 group">
               <div className="flex items-center gap-1 min-w-0">
@@ -703,7 +723,7 @@ export default function LiveChannel() {
           )}
         </div>
 
-        <div className="p-2 sm:p-4 border-t border-white/10 bg-black/20">
+        <div className={`${chatCollapsed ? 'hidden' : ''} border-t border-white/10 bg-black/20 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:block sm:p-4`}>
           {isSignedIn ? (
             <form onSubmit={handleSendMessage} className="flex gap-1 sm:gap-2">
               <input
@@ -712,12 +732,12 @@ export default function LiveChannel() {
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Send a message…"
                 maxLength={500}
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                className="min-h-11 flex-1 rounded-lg border border-white/10 bg-white/5 px-2 text-xs text-white transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:px-3 sm:py-2 sm:text-sm"
               />
               <Button
                 type="submit"
                 size="sm"
-                className="shrink-0"
+                className="min-h-11 shrink-0"
                 disabled={!chatInput.trim() || createMessage.isPending}
               >
                 <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
