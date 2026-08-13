@@ -539,7 +539,7 @@ export default function DashboardAdmin() {
             </div>
           </div>
 
-          {financeOverviewQuery.isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div> : (
+          {financeOverviewQuery.isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div> : financeOverviewQuery.isError ? <div className="rounded-2xl border border-red-300/20 bg-red-400/[0.05] p-5 text-sm text-red-100"><p className="font-black">Finance overview is temporarily unavailable</p><p className="mt-1 leading-relaxed text-red-100/70">Kryv cannot safely present creator liabilities, payout queue totals, or provider configuration state while the authoritative overview is unavailable.</p><Button type="button" variant="outline" onClick={() => financeOverviewQuery.refetch()} className="mt-4 border-red-200/25 bg-red-200/[0.08] font-black text-red-50 hover:bg-red-200/[0.14] hover:text-red-50">Retry Finance Command</Button></div> : (
             <>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Profile reviews" value={financeOverviewQuery.data?.pendingProfileReviews ?? 0} icon={ShieldCheck} accent />
