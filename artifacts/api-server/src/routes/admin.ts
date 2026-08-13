@@ -937,6 +937,10 @@ router.get("/admin/ads/overview", requireOwner, async (_req, res): Promise<void>
 });
 
 router.post("/admin/ads/campaigns", requireOwner, async (req, res): Promise<void> => {
+  if (!await isOperationalFeatureEnabled("ads_delivery")) {
+    res.status(409).json({ error: "Advertising campaign creation is unavailable while ad delivery is hard-disabled." });
+    return;
+  }
   const body = CreateAdminAdCampaignBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -967,6 +971,10 @@ router.post("/admin/ads/campaigns", requireOwner, async (req, res): Promise<void
 });
 
 router.post("/admin/ads/campaigns/:id/funding-invoice", requireOwner, async (req, res): Promise<void> => {
+  if (!await isOperationalFeatureEnabled("ads_delivery")) {
+    res.status(409).json({ error: "Advertising funding invoices are unavailable while ad delivery is hard-disabled." });
+    return;
+  }
   const params = AdCampaignIdParams.safeParse(req.params);
   const body = CreateAdminAdFundingInvoiceBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -1047,6 +1055,10 @@ router.post("/admin/ads/campaigns/:id/funding-invoice", requireOwner, async (req
 });
 
 router.post("/admin/ads/campaigns/:id/approve", requireOwner, async (req, res): Promise<void> => {
+  if (!await isOperationalFeatureEnabled("ads_delivery")) {
+    res.status(409).json({ error: "Advertising campaign approval is unavailable while ad delivery is hard-disabled." });
+    return;
+  }
   const params = AdCampaignIdParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
