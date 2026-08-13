@@ -44,6 +44,7 @@ import {
   ListAdminChannelsQueryParams,
   ListAdminChannelsResponse,
   DeleteAdminChannelParams,
+  ListAdminVideosQueryParams,
   ListAdminVideosResponse,
   DeleteAdminVideoParams,
   ListAdminFeatureFlagsResponse,
@@ -1448,13 +1449,28 @@ router.delete(
   },
 );
 
-router.get("/admin/videos", requireOwner, async (_req, res): Promise<void> => {
-  const rows = await db.select().from(videosTable);
-  const results = await Promise.all(rows.map(async (video) => ({
+router.get("/admin/videos", requireOwner, async (req, res): Promise<void> => {
+  const query = ListAdminVideosQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const q = query.data.q?.trim();
+  const filter = q ? ilike(videosTable.title, `%${q}%`) : undefined;
+  const [rows, countRows] = await Promise.all([
+    db.select().from(videosTable).where(filter).orderBy(desc(videosTable.createdAt), desc(videosTable.id)).limit(query.data.limit).offset(query.data.offset),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(videosTable).where(filter),
+  ]);
+  const items = await Promise.all(rows.map(async (video) => ({
     ...(await toVideoSummary(video)),
     rightsAttestedAt: video.rightsAttestedAt?.toISOString() ?? null,
   })));
-  res.json(ListAdminVideosResponse.parse(results));
+  res.json(ListAdminVideosResponse.parse({
+    items,
+    total: countRows[0]?.count ?? 0,
+    limit: query.data.limit,
+    offset: query.data.offset,
+  }));
 });
 
 router.delete(

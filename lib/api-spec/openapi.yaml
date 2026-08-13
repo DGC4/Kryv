@@ -262,16 +262,27 @@ paths:
     get:
       operationId: listAdminCinemaTitles
       tags: [admin]
-      summary: List owner-managed Cinema titles and their publishing state
+      summary: Bounded owner-managed Cinema title registry with server-side title and slug search
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string, minLength: 1, maxLength: 100 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: Cinema title drafts and published records
+          description: Bounded Cinema title drafts and published records
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AdminCinemaTitle"
+                $ref: "#/components/schemas/AdminCinemaTitlePage"
         "401": { description: Not authenticated }
         "403": { description: Owner access required }
     post:
@@ -2576,16 +2587,27 @@ paths:
     get:
       operationId: listAdminVideos
       tags: [admin]
-      summary: Owner-only video list
+      summary: Bounded owner-only Watch moderation registry with server-side title search
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string, minLength: 1, maxLength: 100 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: Videos
+          description: Bounded Watch moderation records
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AdminVideo"
+                $ref: "#/components/schemas/AdminVideoPage"
         "403":
           description: Not an owner
           content:
@@ -3176,6 +3198,18 @@ components:
               type: ["string", "null"]
               format: date-time
 
+    AdminVideoPage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminVideo"
+        total: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1 }
+        offset: { type: integer, minimum: 0 }
+
     VideoDetail:
       allOf:
         - $ref: "#/components/schemas/VideoSummary"
@@ -3450,6 +3484,18 @@ components:
         backdropUrl: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    AdminCinemaTitlePage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCinemaTitle"
+        total: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1 }
+        offset: { type: integer, minimum: 0 }
 
     AdminCinemaTitleInput:
       type: object

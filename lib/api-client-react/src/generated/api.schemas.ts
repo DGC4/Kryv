@@ -641,6 +641,16 @@ export type AdminVideo = VideoSummary & ({
   rightsAttestedAt: string | null;
 });
 
+export interface AdminVideoPage {
+  items: AdminVideo[];
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 1 */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
 export type VideoDetail = VideoSummary & ({
   /** @nullable */
   description: string | null;
@@ -998,6 +1008,16 @@ export interface AdminCinemaTitle {
   backdropUrl?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AdminCinemaTitlePage {
+  items: AdminCinemaTitle[];
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 1 */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
 }
 
 export type AdminCinemaTitleInputMaturityLevel = typeof AdminCinemaTitleInputMaturityLevel[keyof typeof AdminCinemaTitleInputMaturityLevel];
@@ -2284,6 +2304,23 @@ export const GetAdDecisionSurface = {
   clip: 'clip',
 } as const;
 
+export type ListAdminCinemaTitlesParams = {
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
 export type ListCategoriesParams = {
 kind?: ListCategoriesKind;
 };
@@ -2388,6 +2425,23 @@ export type ListAdminChannelsParams = {
 /**
  * @minLength 1
  * @maxLength 80
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type ListAdminVideosParams = {
+/**
+ * @minLength 1
+ * @maxLength 100
  */
 q?: string;
 /**

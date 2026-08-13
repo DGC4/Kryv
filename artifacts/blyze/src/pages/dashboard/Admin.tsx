@@ -89,8 +89,14 @@ export default function DashboardAdmin() {
   const [adminChannelSearch, setAdminChannelSearch] = useState('');
   const [adminUserOffset, setAdminUserOffset] = useState(0);
   const [adminChannelOffset, setAdminChannelOffset] = useState(0);
+  const [adminVideoSearch, setAdminVideoSearch] = useState('');
+  const [adminCinemaSearch, setAdminCinemaSearch] = useState('');
+  const [adminVideoOffset, setAdminVideoOffset] = useState(0);
+  const [adminCinemaOffset, setAdminCinemaOffset] = useState(0);
   const normalizedUserSearch = adminUserSearch.trim();
   const normalizedChannelSearch = adminChannelSearch.trim();
+  const normalizedVideoSearch = adminVideoSearch.trim();
+  const normalizedCinemaSearch = adminCinemaSearch.trim();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -116,12 +122,18 @@ export default function DashboardAdmin() {
     { limit: 100, offset: 0 },
     { query: { enabled: me?.role === 'owner' && tab === 'cinema' } },
   );
-  const { data: videos, isLoading: videosLoading } = useListAdminVideos({
-    query: { enabled: me?.role === 'owner' && tab === 'videos' },
-  });
-  const { data: cinemaTitles, isLoading: cinemaTitlesLoading } = useListAdminCinemaTitles({
-    query: { enabled: me?.role === 'owner' && tab === 'cinema' },
-  });
+  const videoRegistryQuery = useListAdminVideos(
+    { q: normalizedVideoSearch || undefined, limit: 30, offset: adminVideoOffset },
+    { query: { enabled: me?.role === 'owner' && tab === 'videos' } },
+  );
+  const cinemaTitleRegistryQuery = useListAdminCinemaTitles(
+    { q: normalizedCinemaSearch || undefined, limit: 30, offset: adminCinemaOffset },
+    { query: { enabled: me?.role === 'owner' && tab === 'cinema' } },
+  );
+  const videos = videoRegistryQuery.data?.items;
+  const videosLoading = videoRegistryQuery.isLoading;
+  const cinemaTitles = cinemaTitleRegistryQuery.data?.items;
+  const cinemaTitlesLoading = cinemaTitleRegistryQuery.isLoading;
   const { data: featureFlags, isLoading: featureFlagsLoading } = useListAdminFeatureFlags({
     query: { enabled: me?.role === 'owner' && tab === 'operations' },
   });
@@ -801,8 +813,8 @@ export default function DashboardAdmin() {
 
           <div className="grid gap-5 xl:grid-cols-[0.82fr_1.45fr]">
             <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-black/30">
-              <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3"><div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">Catalog queue</p><h3 className="text-sm font-black text-white">Titles awaiting owner action</h3></div><span className="rounded-full bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-white/50">{cinemaTitles?.length ?? 0}</span></div>
-              {cinemaTitlesLoading ? <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div> : <div className="max-h-[660px] divide-y divide-white/[0.06] overflow-y-auto">{cinemaTitles?.map(title => <button key={title.id} type="button" onClick={() => setSelectedCinemaTitleId(title.id)} className={`w-full px-4 py-4 text-left transition-colors hover:bg-white/[0.04] ${selectedCinemaTitleId === title.id ? 'bg-primary/[0.09]' : ''}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-black text-white">{title.title}</p><p className="mt-1 truncate font-mono text-[10px] text-white/30">/{title.slug}</p></div><span className={`shrink-0 rounded-md border px-2 py-1 text-[9px] font-black uppercase tracking-wider ${title.publishState === 'published' ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200' : title.publishState === 'review' ? 'border-sky-400/25 bg-sky-400/10 text-sky-200' : 'border-amber-400/25 bg-amber-400/10 text-amber-200'}`}>{title.publishState}</span></div><div className="mt-3 flex items-center justify-between text-[10px] font-semibold text-white/38"><span>{title.maturityLevel} audience</span><span>Updated {new Date(title.updatedAt).toLocaleDateString()}</span></div></button>)}{cinemaTitles?.length === 0 && <div className="p-8 text-center text-sm text-white/35">No Cinema drafts yet.</div>}</div>}
+              <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3"><div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">Catalog queue</p><h3 className="text-sm font-black text-white">Titles awaiting owner action</h3></div><span className="shrink-0 rounded-full bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-white/50">{cinemaTitleRegistryQuery.data?.total ?? 0}</span></div><div className="border-b border-white/[0.08] p-3"><input value={adminCinemaSearch} onChange={event => { setAdminCinemaSearch(event.target.value); setAdminCinemaOffset(0); }} maxLength={100} placeholder="Search title or slug" className="h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" aria-label="Search Cinema title registry" /></div>
+              {cinemaTitlesLoading ? <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div> : <><div className="max-h-[600px] divide-y divide-white/[0.06] overflow-y-auto">{cinemaTitles?.map(title => <button key={title.id} type="button" onClick={() => setSelectedCinemaTitleId(title.id)} className={`w-full px-4 py-4 text-left transition-colors hover:bg-white/[0.04] ${selectedCinemaTitleId === title.id ? 'bg-primary/[0.09]' : ''}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-black text-white">{title.title}</p><p className="mt-1 truncate font-mono text-[10px] text-white/30">/{title.slug}</p></div><span className={`shrink-0 rounded-md border px-2 py-1 text-[9px] font-black uppercase tracking-wider ${title.publishState === 'published' ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200' : title.publishState === 'review' ? 'border-sky-400/25 bg-sky-400/10 text-sky-200' : 'border-amber-400/25 bg-amber-400/10 text-amber-200'}`}>{title.publishState}</span></div><div className="mt-3 flex items-center justify-between text-[10px] font-semibold text-white/38"><span>{title.maturityLevel} audience</span><span>Updated {new Date(title.updatedAt).toLocaleDateString()}</span></div></button>)}{cinemaTitles?.length === 0 && <div className="p-8 text-center text-sm text-white/35">{normalizedCinemaSearch ? 'No Cinema titles match this search.' : 'No Cinema drafts yet.'}</div>}</div>{cinemaTitleRegistryQuery.data && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] px-4 py-3 text-xs text-white/45"><span>{cinemaTitleRegistryQuery.data.total ? `${cinemaTitleRegistryQuery.data.offset + 1}–${Math.min(cinemaTitleRegistryQuery.data.offset + cinemaTitleRegistryQuery.data.items.length, cinemaTitleRegistryQuery.data.total)} of ${cinemaTitleRegistryQuery.data.total} titles` : 'No titles'}</span><div className="flex gap-2"><Button type="button" size="sm" variant="secondary" disabled={adminCinemaOffset === 0} onClick={() => setAdminCinemaOffset(Math.max(0, adminCinemaOffset - 30))}>Previous</Button><Button type="button" size="sm" variant="secondary" disabled={adminCinemaOffset + cinemaTitleRegistryQuery.data.items.length >= cinemaTitleRegistryQuery.data.total} onClick={() => setAdminCinemaOffset(adminCinemaOffset + 30)}>Next</Button></div></div>}</>}
             </section>
 
             <section className="min-h-[430px] overflow-hidden rounded-2xl border border-white/[0.08] bg-black/30">
@@ -824,12 +836,7 @@ export default function DashboardAdmin() {
       {/* Videos table */}
       {tab === 'videos' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-white/40 uppercase tracking-widest">Watch sources &amp; Cinema assets</h3>
-            <Button onClick={handleAddOriginal} size="sm" className="bg-primary text-primary-foreground font-black text-[10px] h-8 rounded-lg uppercase tracking-widest">
-              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Cinema Original
-            </Button>
-          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-black uppercase tracking-widest text-white/40">Watch sources &amp; Cinema assets</h3><p className="mt-1 text-xs text-white/35">Server-searched moderation inventory with official-source rights evidence.</p></div><Button onClick={handleAddOriginal} size="sm" className="w-fit bg-primary text-primary-foreground font-black text-[10px] h-8 rounded-lg uppercase tracking-widest"><Plus className="w-3.5 h-3.5 mr-1.5" /> Add Cinema Original</Button></div><input value={adminVideoSearch} onChange={event => { setAdminVideoSearch(event.target.value); setAdminVideoOffset(0); }} maxLength={100} placeholder="Search Watch title" className="h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" aria-label="Search Watch moderation registry" />
           <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur">
             {videosLoading ? (
               <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
@@ -879,7 +886,7 @@ export default function DashboardAdmin() {
                 </tbody>
               </table>
             )}
-          </div>
+          </div>{videoRegistryQuery.data && <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-white/45"><span>{videoRegistryQuery.data.total ? `${videoRegistryQuery.data.offset + 1}–${Math.min(videoRegistryQuery.data.offset + videoRegistryQuery.data.items.length, videoRegistryQuery.data.total)} of ${videoRegistryQuery.data.total} videos` : 'No videos'}</span><div className="flex gap-2"><Button type="button" size="sm" variant="secondary" disabled={adminVideoOffset === 0} onClick={() => setAdminVideoOffset(Math.max(0, adminVideoOffset - 30))}>Previous</Button><Button type="button" size="sm" variant="secondary" disabled={adminVideoOffset + videoRegistryQuery.data.items.length >= videoRegistryQuery.data.total} onClick={() => setAdminVideoOffset(adminVideoOffset + 30)}>Next</Button></div></div>}
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte, isNull, or } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, isNull, or, sql } from "drizzle-orm";
 import {
   auditLogsTable,
   channelsTable,
@@ -27,6 +27,7 @@ import {
   CreateAdminCinemaTitleResponse,
   GetAdminCinemaTitleParams,
   GetAdminCinemaTitleResponse,
+  ListAdminCinemaTitlesQueryParams,
   ListAdminCinemaTitlesResponse,
   UpdateAdminCinemaTitleBody,
   UpdateAdminCinemaTitleParams,
@@ -163,9 +164,24 @@ async function getTitleDetail(title: CinemaTitleRow) {
   };
 }
 
-router.get("/admin/cinema/titles", requireOwner, async (_req, res): Promise<void> => {
-  const titles = await db.select().from(cinemaTitlesTable).orderBy(desc(cinemaTitlesTable.updatedAt));
-  res.json(ListAdminCinemaTitlesResponse.parse(titles.map(toTitle)));
+router.get("/admin/cinema/titles", requireOwner, async (req, res): Promise<void> => {
+  const query = ListAdminCinemaTitlesQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const q = query.data.q?.trim();
+  const filter = q ? or(ilike(cinemaTitlesTable.title, `%${q}%`), ilike(cinemaTitlesTable.slug, `%${q}%`)) : undefined;
+  const [titles, countRows] = await Promise.all([
+    db.select().from(cinemaTitlesTable).where(filter).orderBy(desc(cinemaTitlesTable.updatedAt), desc(cinemaTitlesTable.id)).limit(query.data.limit).offset(query.data.offset),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(cinemaTitlesTable).where(filter),
+  ]);
+  res.json(ListAdminCinemaTitlesResponse.parse({
+    items: titles.map(toTitle),
+    total: countRows[0]?.count ?? 0,
+    limit: query.data.limit,
+    offset: query.data.offset,
+  }));
 });
 
 router.post("/admin/cinema/titles", requireOwner, async (req, res): Promise<void> => {

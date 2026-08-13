@@ -40,6 +40,7 @@ import type {
   AdminCinemaTitle,
   AdminCinemaTitleDetail,
   AdminCinemaTitleInput,
+  AdminCinemaTitlePage,
   AdminCinemaTitleUpdate,
   AdminCinemaUploadSession,
   AdminCinemaUploadSessionInput,
@@ -59,7 +60,7 @@ import type {
   AdminUserActivityDetail,
   AdminUserPage,
   AdminUserUpdate,
-  AdminVideo,
+  AdminVideoPage,
   Category,
   ChannelAnalytics,
   ChannelChatSettings,
@@ -106,8 +107,10 @@ import type {
   GetNotificationInboxParams,
   HealthStatus,
   ListAdminChannelsParams,
+  ListAdminCinemaTitlesParams,
   ListAdminModerationCasesParams,
   ListAdminUsersParams,
+  ListAdminVideosParams,
   ListCategoriesParams,
   ListChannelsParams,
   ListClipsParams,
@@ -767,20 +770,27 @@ export const useCreateChannelAdBreak = <TError = ErrorType<Error>,
       return useMutation(getCreateChannelAdBreakMutationOptions(options));
     }
 
-export const getListAdminCinemaTitlesUrl = () => {
+export const getListAdminCinemaTitlesUrl = (params?: ListAdminCinemaTitlesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/cinema/titles`
+  return stringifiedParams.length > 0 ? `/api/admin/cinema/titles?${stringifiedParams}` : `/api/admin/cinema/titles`
 }
 
 /**
- * @summary List owner-managed Cinema titles and their publishing state
+ * @summary Bounded owner-managed Cinema title registry with server-side title and slug search
  */
-export const listAdminCinemaTitles = async ( options?: RequestInit): Promise<AdminCinemaTitle[]> => {
+export const listAdminCinemaTitles = async (params?: ListAdminCinemaTitlesParams, options?: RequestInit): Promise<AdminCinemaTitlePage> => {
 
-  return customFetch<AdminCinemaTitle[]>(getListAdminCinemaTitlesUrl(),
+  return customFetch<AdminCinemaTitlePage>(getListAdminCinemaTitlesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -793,23 +803,23 @@ export const listAdminCinemaTitles = async ( options?: RequestInit): Promise<Adm
 
 
 
-export const getListAdminCinemaTitlesQueryKey = () => {
+export const getListAdminCinemaTitlesQueryKey = (params?: ListAdminCinemaTitlesParams,) => {
     return [
-    `/api/admin/cinema/titles`
+    `/api/admin/cinema/titles`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAdminCinemaTitlesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminCinemaTitlesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError = ErrorType<void>>(params?: ListAdminCinemaTitlesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAdminCinemaTitlesQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAdminCinemaTitlesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminCinemaTitles>>> = ({ signal }) => listAdminCinemaTitles({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminCinemaTitles>>> = ({ signal }) => listAdminCinemaTitles(params, { signal, ...requestOptions });
 
 
 
@@ -823,15 +833,15 @@ export type ListAdminCinemaTitlesQueryError = ErrorType<void>
 
 
 /**
- * @summary List owner-managed Cinema titles and their publishing state
+ * @summary Bounded owner-managed Cinema title registry with server-side title and slug search
  */
 
 export function useListAdminCinemaTitles<TData = Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminCinemaTitlesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAdminCinemaTitlesQueryOptions(options)
+  const queryOptions = getListAdminCinemaTitlesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -7363,20 +7373,27 @@ export const useDeleteAdminChannel = <TError = ErrorType<Error>,
       return useMutation(getDeleteAdminChannelMutationOptions(options));
     }
 
-export const getListAdminVideosUrl = () => {
+export const getListAdminVideosUrl = (params?: ListAdminVideosParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/videos`
+  return stringifiedParams.length > 0 ? `/api/admin/videos?${stringifiedParams}` : `/api/admin/videos`
 }
 
 /**
- * @summary Owner-only video list
+ * @summary Bounded owner-only Watch moderation registry with server-side title search
  */
-export const listAdminVideos = async ( options?: RequestInit): Promise<AdminVideo[]> => {
+export const listAdminVideos = async (params?: ListAdminVideosParams, options?: RequestInit): Promise<AdminVideoPage> => {
 
-  return customFetch<AdminVideo[]>(getListAdminVideosUrl(),
+  return customFetch<AdminVideoPage>(getListAdminVideosUrl(params),
   {
     ...options,
     method: 'GET'
@@ -7389,23 +7406,23 @@ export const listAdminVideos = async ( options?: RequestInit): Promise<AdminVide
 
 
 
-export const getListAdminVideosQueryKey = () => {
+export const getListAdminVideosQueryKey = (params?: ListAdminVideosParams,) => {
     return [
-    `/api/admin/videos`
+    `/api/admin/videos`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAdminVideosQueryOptions = <TData = Awaited<ReturnType<typeof listAdminVideos>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminVideosQueryOptions = <TData = Awaited<ReturnType<typeof listAdminVideos>>, TError = ErrorType<Error>>(params?: ListAdminVideosParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAdminVideosQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAdminVideosQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminVideos>>> = ({ signal }) => listAdminVideos({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminVideos>>> = ({ signal }) => listAdminVideos(params, { signal, ...requestOptions });
 
 
 
@@ -7419,15 +7436,15 @@ export type ListAdminVideosQueryError = ErrorType<Error>
 
 
 /**
- * @summary Owner-only video list
+ * @summary Bounded owner-only Watch moderation registry with server-side title search
  */
 
 export function useListAdminVideos<TData = Awaited<ReturnType<typeof listAdminVideos>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminVideosParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAdminVideosQueryOptions(options)
+  const queryOptions = getListAdminVideosQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

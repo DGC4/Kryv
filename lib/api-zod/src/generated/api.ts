@@ -200,9 +200,33 @@ export const CreateChannelAdBreakResponse = zod.object({
 
 
 /**
- * @summary List owner-managed Cinema titles and their publishing state
+ * @summary Bounded owner-managed Cinema title registry with server-side title and slug search
  */
-export const ListAdminCinemaTitlesResponseItem = zod.object({
+export const listAdminCinemaTitlesQueryQMax = 100;
+
+export const listAdminCinemaTitlesQueryLimitDefault = 30;
+export const listAdminCinemaTitlesQueryLimitMax = 100;
+
+export const listAdminCinemaTitlesQueryOffsetDefault = 0;
+export const listAdminCinemaTitlesQueryOffsetMin = 0;
+
+
+
+export const ListAdminCinemaTitlesQueryParams = zod.object({
+  "q": zod.coerce.string().min(1).max(listAdminCinemaTitlesQueryQMax).optional(),
+  "limit": zod.coerce.number().min(1).max(listAdminCinemaTitlesQueryLimitMax).default(listAdminCinemaTitlesQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminCinemaTitlesQueryOffsetMin).default(listAdminCinemaTitlesQueryOffsetDefault)
+})
+
+export const listAdminCinemaTitlesResponseTotalMin = 0;
+
+
+export const listAdminCinemaTitlesResponseOffsetMin = 0;
+
+
+
+export const ListAdminCinemaTitlesResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "slug": zod.string(),
   "title": zod.string(),
@@ -215,8 +239,11 @@ export const ListAdminCinemaTitlesResponseItem = zod.object({
   "backdropUrl": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
+})),
+  "total": zod.number().min(listAdminCinemaTitlesResponseTotalMin),
+  "limit": zod.number().min(1),
+  "offset": zod.number().min(listAdminCinemaTitlesResponseOffsetMin)
 })
-export const ListAdminCinemaTitlesResponse = zod.array(ListAdminCinemaTitlesResponseItem)
 
 
 /**
@@ -3074,9 +3101,33 @@ export const DeleteAdminChannelResponse = zod.void()
 
 
 /**
- * @summary Owner-only video list
+ * @summary Bounded owner-only Watch moderation registry with server-side title search
  */
-export const ListAdminVideosResponseItem = zod.object({
+export const listAdminVideosQueryQMax = 100;
+
+export const listAdminVideosQueryLimitDefault = 30;
+export const listAdminVideosQueryLimitMax = 100;
+
+export const listAdminVideosQueryOffsetDefault = 0;
+export const listAdminVideosQueryOffsetMin = 0;
+
+
+
+export const ListAdminVideosQueryParams = zod.object({
+  "q": zod.coerce.string().min(1).max(listAdminVideosQueryQMax).optional(),
+  "limit": zod.coerce.number().min(1).max(listAdminVideosQueryLimitMax).default(listAdminVideosQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminVideosQueryOffsetMin).default(listAdminVideosQueryOffsetDefault)
+})
+
+export const listAdminVideosResponseTotalMin = 0;
+
+
+export const listAdminVideosResponseOffsetMin = 0;
+
+
+
+export const ListAdminVideosResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
@@ -3098,8 +3149,11 @@ export const ListAdminVideosResponseItem = zod.object({
   "createdAt": zod.coerce.date()
 }).and(zod.object({
   "rightsAttestedAt": zod.coerce.date().nullable().describe('Owner-only timestamp recording the creator\'s official-source rights attestation. Null for FastPix uploads.')
-}))
-export const ListAdminVideosResponse = zod.array(ListAdminVideosResponseItem)
+}))),
+  "total": zod.number().min(listAdminVideosResponseTotalMin),
+  "limit": zod.number().min(1),
+  "offset": zod.number().min(listAdminVideosResponseOffsetMin)
+})
 
 
 /**
