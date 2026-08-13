@@ -39,8 +39,8 @@ try {
       "adDeliveryRuntimeEnabled",
     ];
     for (const capability of hardDisabledCapabilities) {
-      if (health?.capabilities?.[capability] === true) {
-        fail(`${capability} is active; it must remain disabled until its separate production launch gate is complete`);
+      if (health?.capabilities?.[capability] !== false) {
+        fail(`${capability} is not explicitly reported disabled; the deployed health capability must be false until its separate production launch gate is complete`);
       }
     }
 
