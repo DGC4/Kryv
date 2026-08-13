@@ -2801,6 +2801,7 @@ components:
           durationSeconds,
           viewCount,
           channelId,
+          channelSlug,
           channelName,
           channelAvatarUrl,
           categoryId,
@@ -2825,6 +2826,7 @@ components:
         durationSeconds: { type: ["integer", "null"] }
         viewCount: { type: integer }
         channelId: { type: integer }
+        channelSlug: { type: string }
         channelName: { type: string }
         channelAvatarUrl: { type: ["string", "null"] }
         categoryId: { type: ["integer", "null"] }

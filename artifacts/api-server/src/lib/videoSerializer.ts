@@ -26,6 +26,7 @@ export async function toVideoSummary(video: Video) {
     durationSeconds: video.durationSeconds,
     viewCount: video.viewCount,
     channelId: video.channelId,
+    channelSlug: channel?.slug ?? "unknown",
     channelName: channel?.displayName ?? "Unknown",
     channelAvatarUrl: channel?.avatarUrl ?? null,
     categoryId: video.categoryId,

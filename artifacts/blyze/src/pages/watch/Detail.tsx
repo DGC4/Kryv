@@ -1,27 +1,71 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, Link } from 'wouter';
-import { useCreateClip, useGetVideo } from '@workspace/api-client-react';
+import {
+  getGetChannelEngagementQueryKey,
+  useCreateChannelEngagementAction,
+  useGetChannelEngagement,
+  useCreateClip,
+  useGetVideo,
+  useListVideos,
+} from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Eye, Share2, ThumbsUp, Clapperboard } from 'lucide-react';
+import {
+  Award,
+  Check,
+  ChevronRight,
+  Clapperboard,
+  Eye,
+  Film,
+  Loader2,
+  MessageSquareText,
+  Play,
+  Radio,
+  Share2,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
+function formatDuration(value: number | null) {
+  if (!value) return null;
+  const minutes = Math.floor(value / 60);
+  const seconds = value % 60;
+  return minutes ? `${minutes}:${String(seconds).padStart(2, '0')}` : `0:${String(seconds).padStart(2, '0')}`;
+}
+
 export default function WatchDetail() {
   const { id } = useParams<{ id: string }>();
   const videoId = parseInt(id || '0', 10);
-  
-  const { data: video, isLoading } = useGetVideo(videoId, {
-    query: { enabled: !!videoId }
+  const { data: video, isLoading } = useGetVideo(videoId, { query: { enabled: !!videoId } });
+  const { data: allUploads = [] } = useListVideos({ contentType: 'upload' }, { query: { enabled: !!videoId } });
+  const channelEngagement = useGetChannelEngagement(video?.channelId ?? 0, {
+    query: { enabled: Boolean(video?.channelId), refetchInterval: 15000 },
   });
+  const engagementAction = useCreateChannelEngagementAction();
   const createClip = useCreateClip();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [clipTitle, setClipTitle] = useState('');
   const [clipStart, setClipStart] = useState(0);
   const [clipEnd, setClipEnd] = useState(30);
 
-  const requestClip = (e: React.FormEvent) => {
-    e.preventDefault();
+  const recommendations = useMemo(() => {
+    if (!video) return [];
+    return allUploads
+      .filter((candidate) => candidate.id !== video.id && candidate.playbackId && candidate.uploadStatus === 'ready')
+      .sort((left, right) => {
+        const leftScore = (left.channelId === video.channelId ? 2 : 0) + (left.categoryId === video.categoryId ? 1 : 0);
+        const rightScore = (right.channelId === video.channelId ? 2 : 0) + (right.categoryId === video.categoryId ? 1 : 0);
+        return rightScore - leftScore || right.viewCount - left.viewCount;
+      })
+      .slice(0, 6);
+  }, [allUploads, video]);
+
+  const requestClip = (event: React.FormEvent) => {
+    event.preventDefault();
     if (!video || !clipTitle.trim()) return;
     createClip.mutate(
       { videoId: video.id, startTime: clipStart, endTime: clipEnd, title: clipTitle.trim() },
@@ -35,122 +79,76 @@ export default function WatchDetail() {
     );
   };
 
+  const shareVideo = async () => {
+    if (!video) return;
+    const url = new URL(`/watch/${video.id}`, window.location.origin).toString();
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: 'Watch link copied', description: 'Share it with someone who should see this release.' });
+    } catch {
+      toast({ title: 'Copy unavailable', description: url, variant: 'destructive' });
+    }
+  };
+
+  const refreshEngagement = () => {
+    if (!video) return;
+    queryClient.invalidateQueries({ queryKey: getGetChannelEngagementQueryKey(video.channelId) });
+  };
+
+  const claimPoints = () => {
+    if (!video) return;
+    engagementAction.mutate({ id: video.channelId, data: { action: 'claim_points' } }, {
+      onSuccess: (result) => {
+        refreshEngagement();
+        toast({ title: result.awarded ? `+${result.awarded} channel points` : 'Points checked in', description: result.awarded ? 'Your channel point balance is updated.' : 'No points are available to claim right now.' });
+      },
+      onError: (err: any) => toast({ title: 'Point claim unavailable', description: err?.body?.error || err?.message || 'Sign in and try again when this channel is eligible.', variant: 'destructive' }),
+    });
+  };
+
+  const votePoll = (pollId: number, choiceId: number) => {
+    if (!video) return;
+    engagementAction.mutate({ id: video.channelId, data: { action: 'vote_poll', pollId, choiceId } }, {
+      onSuccess: () => { refreshEngagement(); toast({ title: 'Vote recorded' }); },
+      onError: (err: any) => toast({ title: 'Vote unavailable', description: err?.body?.error || err?.message || 'Sign in and try again while the poll is open.', variant: 'destructive' }),
+    });
+  };
+
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   if (!video) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <p className="text-xl text-muted-foreground">Video not found</p>
-      </div>
-    );
+    return <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><div className="text-center"><Film className="mx-auto h-8 w-8 text-white/20" /><p className="mt-4 text-xl font-black text-white">Video unavailable</p><Link href="/watch" className="mt-4 inline-flex text-sm font-black text-primary hover:text-white">Return to Watch <ChevronRight className="ml-1 h-4 w-4" /></Link></div></div>;
   }
 
+  const engagement = channelEngagement.data;
+  const activePoll = engagement?.activePoll;
+  const duration = formatDuration(video.durationSeconds);
+
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-5 sm:py-8 relative z-10">
-      <div className="relative mb-4 aspect-video overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl sm:mb-6 sm:rounded-2xl">
-        {video.playbackId ? (
-          <HlsPlayer
-            src={`https://stream.fastpix.com/${video.playbackId}.m3u8`}
-            poster={video.thumbnailUrl || undefined}
-            className="w-full h-full"
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-black/80">
-            <div className="text-center space-y-4">
-              <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
-              <h3 className="text-xl font-bold text-white">Video is processing</h3>
-              <p className="text-muted-foreground">It will be available to watch shortly.</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1 min-w-0">
-          <h1 className="mb-2 text-xl font-black leading-tight text-white sm:text-2xl">
-            {video.title}
-          </h1>
-          
-          <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-white/10">
-            <Link href={`/live/${video.channelId}`} className="flex items-center gap-3 group">
-              <div className="w-12 h-12 rounded-full bg-white/10 overflow-hidden shrink-0 border border-white/10">
-                {video.channelAvatarUrl ? (
-                  <img src={video.channelAvatarUrl} alt={video.channelName} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary/20 text-primary text-xl font-bold">
-                    {video.channelName?.[0]}
-                  </div>
-                )}
-              </div>
-              <div>
-                <h3 className="text-white font-bold text-lg group-hover:text-primary transition-colors">
-                  {video.channelName}
-                </h3>
-              </div>
-            </Link>
-
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-              <Button variant="secondary" aria-label="Like this video" className="h-10 gap-2 rounded-full px-3 sm:px-4">
-                <ThumbsUp className="w-4 h-4" />
-                <span className="hidden sm:inline">Like</span>
-              </Button>
-              <Button variant="secondary" aria-label="Share this video" className="h-10 gap-2 rounded-full px-3 sm:px-4">
-                <Share2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Share</span>
-              </Button>
-              {video.isOwner && video.playbackId && (
-                <Button variant="secondary" aria-label="Create a native clip" className="h-10 gap-2 rounded-full border border-primary/30 px-3 text-primary hover:text-primary sm:px-4" onClick={() => { setClipTitle(`${video.title} · Clip`); setClipStart(0); setClipEnd(Math.min(video.durationSeconds || 30, 30)); }}>
-                  <Clapperboard className="w-4 h-4" />
-                  <span className="hidden sm:inline">Make Clip</span>
-                </Button>
-              )}
-            </div>
+    <div className="relative z-10 mx-auto max-w-[1600px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
+        <div className="min-w-0">
+          <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/[0.1] bg-black shadow-2xl sm:rounded-3xl">
+            {video.playbackId ? <HlsPlayer src={`https://stream.fastpix.com/${video.playbackId}.m3u8`} poster={video.thumbnailUrl || undefined} className="h-full w-full" /> : <div className="flex h-full w-full flex-col items-center justify-center bg-[radial-gradient(circle_at_center,rgba(91,70,255,0.16),transparent_45%),#050609] px-5 text-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /><h3 className="mt-4 text-xl font-black text-white">Video is processing</h3><p className="mt-2 max-w-md text-sm leading-relaxed text-white/50">This upload does not have a playable source yet. Kryv will make it available after media processing is complete.</p></div>}
           </div>
 
-          {video.isOwner && clipTitle && (
-            <form onSubmit={requestClip} className="mt-6 p-4 sm:p-5 rounded-xl bg-primary/[0.06] border border-primary/20 space-y-4">
-              <div className="flex items-center gap-2"><Clapperboard className="w-4 h-4 text-primary" /><h3 className="font-black text-white text-sm">Create a native clip</h3></div>
-              <p className="text-xs text-white/45 leading-relaxed">Select a segment up to three minutes. Kryv prepares it as a new playable asset before publishing it.</p>
-              <input value={clipTitle} onChange={e => setClipTitle(e.target.value)} maxLength={100} placeholder="Clip title" className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" />
-              <div className="grid grid-cols-2 gap-3">
-                <label className="text-xs font-bold text-white/55">Start (seconds)<input type="number" min={0} max={Math.max(0, (video.durationSeconds || 0) - 1)} value={clipStart} onChange={e => setClipStart(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /></label>
-                <label className="text-xs font-bold text-white/55">End (seconds)<input type="number" min={1} max={video.durationSeconds || undefined} value={clipEnd} onChange={e => setClipEnd(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /></label>
-              </div>
-              <div className="flex flex-wrap gap-2"><Button type="submit" disabled={createClip.isPending || clipEnd <= clipStart} className="font-bold">{createClip.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…</> : <><Clapperboard className="w-4 h-4 mr-2" /> Create Clip</>}</Button><Button type="button" variant="ghost" onClick={() => setClipTitle('')} className="text-white/50">Cancel</Button></div>
-            </form>
-          )}
-
-          <div className="mt-6 p-4 rounded-xl bg-white/5 border border-white/5">
-            <div className="flex items-center gap-4 text-sm font-medium text-white mb-2">
-              <span>{video.viewCount.toLocaleString()} views</span>
-              <span>{formatDistanceToNow(new Date(video.createdAt), { addSuffix: true })}</span>
-              {video.categoryName && (
-                <span className="px-2 py-0.5 rounded-full bg-white/10 text-xs">{video.categoryName}</span>
-              )}
-            </div>
-            {video.description && (
-              <p className="text-white/90 whitespace-pre-wrap mt-4 text-sm leading-relaxed">
-                {video.description}
-              </p>
-            )}
+          <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 sm:mt-5 sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2 text-primary"><span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em]"><Play className="h-3.5 w-3.5 fill-current" /> Kryv Watch</span>{video.categoryName && <span className="rounded-full border border-white/[0.1] bg-black/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/55">{video.categoryName}</span>}</div><h1 className="mt-2 text-xl font-black leading-tight text-white sm:text-3xl">{video.title}</h1><div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-white/45"><span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-primary" />{video.viewCount.toLocaleString()} views</span><span>{formatDistanceToNow(new Date(video.createdAt), { addSuffix: true })}</span>{duration && <span>{duration}</span>}</div></div><div className="flex flex-wrap gap-2"><Button type="button" variant="secondary" onClick={shareVideo} aria-label="Copy Watch link" className="h-10 gap-2 rounded-xl px-3 sm:px-4"><Share2 className="h-4 w-4" /><span>Share</span></Button>{video.isOwner && video.playbackId && <Button type="button" variant="secondary" aria-label="Create a native clip" className="h-10 gap-2 rounded-xl border border-primary/30 px-3 text-primary hover:text-primary sm:px-4" onClick={() => { setClipTitle(`${video.title} · Clip`); setClipStart(0); setClipEnd(Math.min(video.durationSeconds || 30, 30)); }}><Clapperboard className="h-4 w-4" /><span className="hidden sm:inline">Make Clip</span></Button>}</div></div>
           </div>
+
+          <section className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><Link href={`/profile/${video.channelSlug}`} className="group flex min-w-0 items-center gap-3"><div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-primary/15">{video.channelAvatarUrl ? <img src={video.channelAvatarUrl} alt={video.channelName} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-lg font-black text-primary">{video.channelName?.[0]}</span>}</div><div className="min-w-0"><p className="truncate text-base font-black text-white transition group-hover:text-primary">{video.channelName}</p><p className="mt-0.5 text-xs text-white/40">Creator profile · releases, live room, and curated credits</p></div></Link><Link href={`/live/${video.channelSlug}`} className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-3 text-sm font-black text-primary transition hover:bg-primary hover:text-primary-foreground"><Radio className="h-4 w-4" /> Visit live room</Link></div>{video.description && <p className="mt-5 border-t border-white/[0.07] pt-5 text-sm leading-relaxed text-white/70 whitespace-pre-wrap">{video.description}</p>}</section>
+
+          {video.isOwner && clipTitle && <form onSubmit={requestClip} className="mt-5 space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 sm:p-5"><div className="flex items-center gap-2"><Clapperboard className="h-4 w-4 text-primary" /><h3 className="text-sm font-black text-white">Create a native clip</h3></div><p className="text-xs leading-relaxed text-white/45">Select a segment up to three minutes. Kryv prepares it as a new playable asset before publishing it.</p><input value={clipTitle} onChange={event => setClipTitle(event.target.value)} maxLength={100} placeholder="Clip title" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /><div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold text-white/55">Start (seconds)<input type="number" min={0} max={Math.max(0, (video.durationSeconds || 0) - 1)} value={clipStart} onChange={event => setClipStart(Number(event.target.value))} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /></label><label className="text-xs font-bold text-white/55">End (seconds)<input type="number" min={1} max={video.durationSeconds || undefined} value={clipEnd} onChange={event => setClipEnd(Number(event.target.value))} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-primary/60" /></label></div><div className="flex flex-wrap gap-2"><Button type="submit" disabled={createClip.isPending || clipEnd <= clipStart} className="font-bold">{createClip.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</> : <><Clapperboard className="mr-2 h-4 w-4" /> Create Clip</>}</Button><Button type="button" variant="ghost" onClick={() => setClipTitle('')} className="text-white/50">Cancel</Button></div></form>}
         </div>
 
-        {/* Up next / recommendations could go here */}
-        <div className="w-full lg:w-[350px] shrink-0 space-y-4 hidden lg:block">
-          <h3 className="font-bold text-white font-display">More to watch</h3>
-          {/* We'd fetch more videos here, skipping for now to focus on main paths */}
-          <div className="p-8 text-center text-sm text-muted-foreground border border-white/5 rounded-xl bg-white/5">
-            Recommendations coming soon
-          </div>
-        </div>
-      </div>
+        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start"><section className="rounded-2xl border border-primary/18 bg-primary/[0.045] p-4"><div className="flex items-center justify-between gap-3"><div><div className="flex items-center gap-2 text-primary"><Sparkles className="h-4 w-4" /><span className="text-[10px] font-black uppercase tracking-[0.16em]">Channel engagement</span></div><p className="mt-2 text-sm font-black text-white">{engagement?.pointsEnabled ? `${engagement.pointsBalance?.toLocaleString() ?? 0} channel points` : 'No active point program'}</p></div>{engagement?.pointsEnabled && <Button type="button" size="sm" onClick={claimPoints} disabled={engagementAction.isPending} className="h-9 shrink-0 text-xs font-black">{engagementAction.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Award className="mr-1.5 h-3.5 w-3.5" /> Claim</>}</Button>}</div><p className="mt-2 text-xs leading-relaxed text-white/45">Channel-level participation carries across live broadcasts and on-demand viewing when the creator has enabled it.</p></section>
+
+          {activePoll && <section className="rounded-2xl border border-white/[0.08] bg-black/25 p-4"><div className="flex items-center gap-2"><MessageSquareText className="h-4 w-4 text-primary" /><h2 className="text-sm font-black text-white">Live community poll</h2></div><p className="mt-3 text-sm font-bold text-white/80">{activePoll.title}</p><div className="mt-3 space-y-2">{activePoll.choices.map(choice => <button key={choice.id} type="button" onClick={() => votePoll(activePoll.id, choice.id)} disabled={engagementAction.isPending} className="flex min-h-10 w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-left text-xs font-bold text-white/70 transition hover:border-primary/45 hover:bg-primary/[0.07] hover:text-white"><span>{choice.title}</span><span className="text-white/35">{choice.votes} votes</span></button>)}</div></section>}
+
+          <section className="rounded-2xl border border-white/[0.08] bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><div><div className="flex items-center gap-2"><Users className="h-4 w-4 text-primary" /><h2 className="text-sm font-black text-white">More to watch</h2></div><p className="mt-1 text-xs text-white/40">Ready creator uploads from Kryv Watch.</p></div><Link href="/watch" className="text-xs font-black text-primary hover:text-white">Browse</Link></div><div className="mt-4 space-y-3">{recommendations.map(candidate => <Link key={candidate.id} href={`/watch/${candidate.id}`} className="group flex gap-3"><div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.04]">{candidate.thumbnailUrl ? <img src={candidate.thumbnailUrl} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <Film className="absolute inset-0 m-auto h-5 w-5 text-white/20" />}{formatDuration(candidate.durationSeconds) && <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 py-0.5 text-[9px] font-bold text-white">{formatDuration(candidate.durationSeconds)}</span>}</div><div className="min-w-0"><p className="line-clamp-2 text-xs font-black leading-snug text-white transition group-hover:text-primary">{candidate.title}</p><p className="mt-1 truncate text-[10px] text-white/42">{candidate.channelName} · {candidate.viewCount.toLocaleString()} views</p></div></Link>)}{recommendations.length === 0 && <div className="rounded-xl border border-dashed border-white/[0.12] p-4 text-center text-xs leading-relaxed text-white/40">More ready uploads will appear here as creators publish them.</div>}</div></section></aside>
+      </section>
     </div>
   );
 }

@@ -30,6 +30,7 @@ export interface VideoSummary {
   durationSeconds: number | null;
   viewCount: number;
   channelId: number;
+  channelSlug: string;
   channelName: string;
   /** @nullable */
   channelAvatarUrl: string | null;
