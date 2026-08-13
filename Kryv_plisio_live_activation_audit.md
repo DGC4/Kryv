@@ -287,3 +287,11 @@ The frontend production build passed. Render deployed the revision successfully,
 ### Current Phase A gate state
 
 Production flags were rechecked after the chat release: `crypto_commerce`, `creator_payout_requests`, and `provider_withdrawals` are enabled. `ads_delivery`, `customer_wallet_custody`, and `scheduled_payout_requests` remain disabled. The active 95/5 policy remains configured, but no retained signed provider callback, completed tip, payment event, creator-balance movement, or platform-revenue movement exists in production. An owner-reported payment that was subsequently deleted cannot serve as reconciliation evidence. A new completed payment whose provider record and signed callback remain retained is required before settlement or payout reconciliation is marked proven.
+
+## Creator broadcast-setup workflow repair
+
+On **2026-08-13 EDT**, revision `d3d5b1a` (`fix: focus creator broadcast setup`) was built and deployed successfully. The authenticated production Creator Dashboard was verified at `/dashboard/live`: selecting **Open broadcast setup** now keeps the creator in the Stream Manager and scrolls directly to the existing Stream Credentials panel containing the RTMPS server URL and masked stream key. The action shows the correct next-step guidance rather than leaving the creator on an unrelated dashboard section.
+
+The deployed dashboard retained its existing safety surfaces during verification: masked stream credentials, explicit rotation control, offline preview state, local-only browser camera/microphone preflight, creator chat with delete/timeout/ban controls, engagement management tabs, and the OBS handoff guide. No stream key was rotated, stream settings changed, camera permission requested, chat message sent, payment initiated, or payout action performed.
+
+> This release improves the creator workflow only. It does not change the free-tier topology, the REST fallback for production chat, crypto settlement evidence, customer wallet custody, scheduled payout requests, or advertising-delivery gating.
