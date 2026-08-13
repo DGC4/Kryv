@@ -73,6 +73,10 @@ async function requireCryptoCommerceReadiness(_req: Request, res: Response, next
   }
 }
 
+// Customer wallet custody is intentionally hard-disabled until its separate
+// authorization, reconciliation, and support-control launch is complete.
+const CUSTOMER_WALLET_RUNTIME_ENABLED = false;
+
 function configuredSubscriptionAmount(tier: number) {
   const value = process.env[`KRYV_CRYPTO_SUB_TIER_${tier}_USD`]?.trim();
   if (!value || !/^\d+(\.\d{1,2})?$/.test(value) || Number(value) <= 0) {
@@ -82,6 +86,9 @@ function configuredSubscriptionAmount(tier: number) {
 }
 
 async function assertCustomerWalletCustodyEnabled() {
+  if (!CUSTOMER_WALLET_RUNTIME_ENABLED) {
+    throw new WalletPaymentError("Kryv Wallet is not active yet. Deposit and wallet-payment controls remain disabled until the custody launch gate is complete.", 403);
+  }
   const [flag] = await db
     .select({ enabled: featureFlagsTable.enabled })
     .from(featureFlagsTable)
