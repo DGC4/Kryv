@@ -2,6 +2,20 @@ import { create } from 'zustand';
 
 type Theme = 'cyan' | 'pink' | 'green' | 'purple' | 'orange';
 const THEMES: Theme[] = ['cyan', 'pink', 'green', 'purple', 'orange'];
+const THEME_STORAGE_KEY = 'kryv-theme';
+
+function resolveInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'cyan';
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+  return THEMES.includes(stored as Theme) ? stored as Theme : 'cyan';
+}
+
+function applyTheme(theme: Theme) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.classList.add('dark');
+  window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+}
 
 interface ThemeStore {
   theme: Theme;
@@ -10,23 +24,17 @@ interface ThemeStore {
 }
 
 export const useThemeStore = create<ThemeStore>((set, get) => ({
-  theme: 'cyan',
+  theme: resolveInitialTheme(),
   cycleTheme: () => {
-    const currentTheme = get().theme;
-    const currentIndex = THEMES.indexOf(currentTheme);
-    const nextIndex = (currentIndex + 1) % THEMES.length;
-    const nextTheme = THEMES[nextIndex];
+    const currentIndex = THEMES.indexOf(get().theme);
+    const nextTheme = THEMES[(currentIndex + 1) % THEMES.length];
     set({ theme: nextTheme });
-    document.documentElement.setAttribute('data-theme', nextTheme);
+    applyTheme(nextTheme);
   },
   setTheme: (theme) => {
     set({ theme });
-    document.documentElement.setAttribute('data-theme', theme);
-  }
+    applyTheme(theme);
+  },
 }));
 
-// Setup initial theme
-if (typeof document !== 'undefined') {
-  document.documentElement.setAttribute('data-theme', 'cyan');
-  document.documentElement.classList.add('dark');
-}
+if (typeof document !== 'undefined') applyTheme(resolveInitialTheme());

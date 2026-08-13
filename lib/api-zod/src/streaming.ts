@@ -14,6 +14,12 @@ export const CryptoCheckoutResponse = z.object({
   status: z.literal("pending"),
   selectedCurrency: CryptoCurrency.nullable(),
   expiresAt: z.date().nullable(),
+  paymentAddress: z.string().min(10).max(256).nullable().optional(),
+  qrCodeDataUrl: z.string().max(2_000_000).nullable().optional(),
+  invoiceAmount: z.string().regex(/^\d+(\.\d{1,8})?$/).nullable().optional(),
+  invoiceCommission: z.string().regex(/^\d+(\.\d{1,8})?$/).nullable().optional(),
+  invoiceTotal: z.string().regex(/^\d+(\.\d{1,8})?$/).nullable().optional(),
+  providerFeePaidBy: z.literal("client").optional(),
 });
 
 // Legacy route exports retain their established names, but now represent an

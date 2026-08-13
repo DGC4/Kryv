@@ -114,7 +114,7 @@ export function Header() {
               {/* User menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button onClick={cycleTheme} className="w-8 h-8 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
+                  <button className="w-8 h-8 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
                     {user?.avatarUrl
                       ? <img src={user.avatarUrl} alt={user.username || ''} className="w-full h-full object-cover" />
                       : <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">{user?.username?.[0]?.toUpperCase()}</div>
