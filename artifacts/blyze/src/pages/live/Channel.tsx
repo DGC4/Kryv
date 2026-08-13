@@ -37,9 +37,9 @@ const CRYPTO_COINS = [
 ] as const;
 
 const SUBSCRIPTION_TIERS = {
-  1: { name: 'Tier 1', label: 'Supporter', quote: '$6.99', detail: 'Base channel membership', accent: 'border-cyan-300/70 bg-cyan-300/15 text-cyan-50' },
-  2: { name: 'Tier 2', label: 'Backer', quote: '$14.99', detail: 'Higher creator-support level', accent: 'border-violet-300/70 bg-violet-300/15 text-violet-50' },
-  3: { name: 'Tier 3', label: 'Patron', quote: '$24.99', detail: 'Highest creator-support level', accent: 'border-amber-300/70 bg-amber-300/15 text-amber-50' },
+  1: { name: 'Tier 1', label: 'Supporter', detail: 'Base channel membership', accent: 'border-cyan-300/70 bg-cyan-300/15 text-cyan-50' },
+  2: { name: 'Tier 2', label: 'Backer', detail: 'Higher creator-support level', accent: 'border-violet-300/70 bg-violet-300/15 text-violet-50' },
+  3: { name: 'Tier 3', label: 'Patron', detail: 'Highest creator-support level', accent: 'border-amber-300/70 bg-amber-300/15 text-amber-50' },
 } as const;
 
 type CryptoCoin = (typeof CRYPTO_COINS)[number]['code'];
@@ -580,9 +580,9 @@ export default function LiveChannel() {
                 ) : (
                   <section className="mt-4 rounded-xl border border-white/[0.1] bg-black/25 p-3 sm:p-4">
                     <div><p className="text-xs font-black text-white">Channel membership</p><p className="mt-1 text-[11px] leading-relaxed text-white/45">Choose a level with a clear creator-support meaning. Each one creates a separate one-time crypto invoice; no card rails and no automatic renewal are used.</p></div>
-                    <div className="mt-3 grid grid-cols-3 gap-2">{([1, 2, 3] as SubscriptionTier[]).map((tier) => { const detail = SUBSCRIPTION_TIERS[tier]; return <button key={tier} type="button" onClick={() => { setSubscriptionTier(tier); setCryptoCheckout(null); }} className={`min-h-24 rounded-xl border p-2.5 text-left transition ${subscriptionTier === tier ? detail.accent : 'border-white/[0.1] bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white'}`} aria-pressed={subscriptionTier === tier}><span className="block text-[10px] font-black uppercase tracking-wider">{detail.name}</span><span className="mt-1 block text-sm font-black">{detail.quote}</span><span className="mt-1 block text-[10px] leading-relaxed opacity-70">{detail.label}</span></button>; })}</div>
-                    <div className={`mt-3 rounded-xl border p-3 ${selectedTier.accent}`}><p className="text-xs font-black">{selectedTier.label} · {selectedTier.quote}</p><p className="mt-1 text-[11px] leading-relaxed opacity-80">{selectedTier.detail}. Kryv will show the exact {supportCoin} invoice amount and client-borne checkout commission before payment.</p></div>
-                    <Button type="button" onClick={handleCryptoSubscription} disabled={createCryptoSubscription.isPending} className="mt-4 h-11 w-full rounded-xl font-black">{createCryptoSubscription.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Heart className="mr-2 h-4 w-4" />Start {selectedTier.name} {selectedTier.quote} crypto checkout</>}</Button>
+                    <div className="mt-3 grid grid-cols-3 gap-2">{([1, 2, 3] as SubscriptionTier[]).map((tier) => { const detail = SUBSCRIPTION_TIERS[tier]; return <button key={tier} type="button" onClick={() => { setSubscriptionTier(tier); setCryptoCheckout(null); }} className={`min-h-24 rounded-xl border p-2.5 text-left transition ${subscriptionTier === tier ? detail.accent : 'border-white/[0.1] bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white'}`} aria-pressed={subscriptionTier === tier}><span className="block text-[10px] font-black uppercase tracking-wider">{detail.name}</span><span className="mt-1 block text-[11px] font-black">Crypto invoice</span><span className="mt-1 block text-[10px] leading-relaxed opacity-70">{detail.label}</span></button>; })}</div>
+                    <div className={`mt-3 rounded-xl border p-3 ${selectedTier.accent}`}><p className="text-xs font-black">{selectedTier.label} · crypto-only checkout</p><p className="mt-1 text-[11px] leading-relaxed opacity-80">{selectedTier.detail}. Kryv will show the exact {supportCoin} invoice amount and client-borne checkout commission before payment.</p></div>
+                    <Button type="button" onClick={handleCryptoSubscription} disabled={createCryptoSubscription.isPending} className="mt-4 h-11 w-full rounded-xl font-black">{createCryptoSubscription.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Heart className="mr-2 h-4 w-4" />Start {selectedTier.name} crypto checkout</>}</Button>
                   </section>
                 )}
 
