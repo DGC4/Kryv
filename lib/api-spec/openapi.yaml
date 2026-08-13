@@ -2326,6 +2326,8 @@ components:
             - type: "null"
           description: Provider-confirmed total amount the customer must send in the selected cryptocurrency.
         providerFeePaidBy: { type: string, enum: [client] }
+        creatorShareBps: { type: integer, minimum: 0, maximum: 10000, description: Creator share in basis points under the active Kryv settlement policy. }
+        platformFeeBps: { type: integer, minimum: 0, maximum: 10000, description: Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission. }
 
     CryptoSubscriptionInput:
       type: object

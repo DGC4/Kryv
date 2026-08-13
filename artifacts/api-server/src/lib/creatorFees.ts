@@ -1,6 +1,17 @@
 const CRYPTO_DECIMALS = 8;
 const ATOMIC_SCALE = 10n ** BigInt(CRYPTO_DECIMALS);
 
+/** Kryv's published creator economics: creators receive 95% and Kryv retains 5%. */
+export const KRYV_PLATFORM_FEE_BPS = 500;
+export const KRYV_CREATOR_SHARE_BPS = 10_000 - KRYV_PLATFORM_FEE_BPS;
+
+export function creatorShareBps(platformFeeBps: number) {
+  if (!Number.isInteger(platformFeeBps) || platformFeeBps < 0 || platformFeeBps > 10_000) {
+    throw new Error("The active platform fee policy must be an integer between 0 and 10,000 basis points.");
+  }
+  return 10_000 - platformFeeBps;
+}
+
 export type CreatorFeeQuote = {
   grossAmount: string;
   platformFeeAmount: string;

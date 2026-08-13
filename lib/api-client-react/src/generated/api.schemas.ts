@@ -305,6 +305,18 @@ export interface CryptoCheckout {
   /** Provider-confirmed total amount the customer must send in the selected cryptocurrency. */
   invoiceTotal?: string | null;
   providerFeePaidBy?: CryptoCheckoutProviderFeePaidBy;
+  /**
+     * Creator share in basis points under the active Kryv settlement policy.
+     * @minimum 0
+     * @maximum 10000
+     */
+  creatorShareBps?: number;
+  /**
+     * Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.
+     * @minimum 0
+     * @maximum 10000
+     */
+  platformFeeBps?: number;
 }
 
 export interface CryptoSubscriptionInput {

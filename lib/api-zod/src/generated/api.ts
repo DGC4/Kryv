@@ -1147,6 +1147,14 @@ export const CreateCryptoSubscriptionBody = zod.object({
   "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional()
 })
 
+export const createCryptoSubscriptionResponseCreatorShareBpsMin = 0;
+export const createCryptoSubscriptionResponseCreatorShareBpsMax = 10000;
+
+export const createCryptoSubscriptionResponsePlatformFeeBpsMin = 0;
+export const createCryptoSubscriptionResponsePlatformFeeBpsMax = 10000;
+
+
+
 export const CreateCryptoSubscriptionResponse = zod.object({
   "paymentIntentId": zod.number(),
   "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
@@ -1159,7 +1167,9 @@ export const CreateCryptoSubscriptionResponse = zod.object({
   "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
   "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
   "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
-  "providerFeePaidBy": zod.enum(['client']).optional()
+  "providerFeePaidBy": zod.enum(['client']).optional(),
+  "creatorShareBps": zod.number().min(createCryptoSubscriptionResponseCreatorShareBpsMin).max(createCryptoSubscriptionResponseCreatorShareBpsMax).optional().describe('Creator share in basis points under the active Kryv settlement policy.'),
+  "platformFeeBps": zod.number().min(createCryptoSubscriptionResponsePlatformFeeBpsMin).max(createCryptoSubscriptionResponsePlatformFeeBpsMax).optional().describe('Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.')
 })
 
 
@@ -1183,6 +1193,14 @@ export const CreateCryptoTipBody = zod.object({
   "message": zod.string().max(createCryptoTipBodyMessageMax).optional()
 })
 
+export const createCryptoTipResponseCreatorShareBpsMin = 0;
+export const createCryptoTipResponseCreatorShareBpsMax = 10000;
+
+export const createCryptoTipResponsePlatformFeeBpsMin = 0;
+export const createCryptoTipResponsePlatformFeeBpsMax = 10000;
+
+
+
 export const CreateCryptoTipResponse = zod.object({
   "paymentIntentId": zod.number(),
   "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
@@ -1195,7 +1213,9 @@ export const CreateCryptoTipResponse = zod.object({
   "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
   "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
   "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
-  "providerFeePaidBy": zod.enum(['client']).optional()
+  "providerFeePaidBy": zod.enum(['client']).optional(),
+  "creatorShareBps": zod.number().min(createCryptoTipResponseCreatorShareBpsMin).max(createCryptoTipResponseCreatorShareBpsMax).optional().describe('Creator share in basis points under the active Kryv settlement policy.'),
+  "platformFeeBps": zod.number().min(createCryptoTipResponsePlatformFeeBpsMin).max(createCryptoTipResponsePlatformFeeBpsMax).optional().describe('Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.')
 })
 
 

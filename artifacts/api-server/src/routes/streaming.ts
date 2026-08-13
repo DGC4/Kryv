@@ -25,7 +25,7 @@ import {
   CreateWalletTipResponse,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
-import { compareCryptoAmounts, normalizeCryptoAmount, quoteCreatorPlatformFee } from "../lib/creatorFees";
+import { compareCryptoAmounts, KRYV_PLATFORM_FEE_BPS, normalizeCryptoAmount, quoteCreatorPlatformFee } from "../lib/creatorFees";
 import { logActivity } from "../lib/tracking";
 import {
   createPlisioInvoice,
@@ -103,7 +103,7 @@ async function quoteWalletTipFee(txn: any, grossAmount: string) {
     .orderBy(desc(creatorFeePoliciesTable.version))
     .limit(1);
   return {
-    ...quoteCreatorPlatformFee(grossAmount, policy?.platformFeeBps ?? 0),
+    ...quoteCreatorPlatformFee(grossAmount, policy?.platformFeeBps ?? KRYV_PLATFORM_FEE_BPS),
     feePolicyId: policy?.id ?? null,
     feePolicyVersion: policy?.version ?? null,
   };

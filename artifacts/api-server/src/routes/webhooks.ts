@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, desc, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 import { cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
-import { addCryptoAmounts, compareCryptoAmounts, normalizeCryptoAmount, quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
+import { addCryptoAmounts, compareCryptoAmounts, KRYV_PLATFORM_FEE_BPS, normalizeCryptoAmount, quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
 import { enqueueDurableJob } from "../lib/jobs";
 import { deleteSharedKey, publishRealtimeEvent } from "../lib/realtime";
 import { logger } from "../lib/logger";
@@ -47,7 +47,9 @@ async function quoteActiveSettlementFee(txn: any, paymentKind: "subscription" | 
     .orderBy(desc(creatorFeePoliciesTable.version))
     .limit(1);
 
-  const quote = quoteCreatorPlatformFee(grossAmount, policy?.platformFeeBps ?? 0);
+  // The migration seeds versioned policies; this default protects the public 95/5
+  // economics if a newly provisioned environment has not seeded policy rows yet.
+  const quote = quoteCreatorPlatformFee(grossAmount, policy?.platformFeeBps ?? KRYV_PLATFORM_FEE_BPS);
   return { ...quote, feePolicyId: policy?.id ?? null, feePolicyVersion: policy?.version ?? null };
 }
 

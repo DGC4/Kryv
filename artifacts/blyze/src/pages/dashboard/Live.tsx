@@ -1207,6 +1207,12 @@ export default function DashboardLive() {
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Creator settlement</p>
                 <h2 className="mt-1 text-2xl font-black text-white">Revenue &amp; Wallet</h2>
                 <p className="mt-1 max-w-2xl text-xs leading-relaxed text-white/45">Your creator balance is crypto-only. USD figures are reference values—not a conversion quote, bank balance, or fiat payout.</p>
+                <div className="mt-4 grid max-w-2xl gap-2 sm:grid-cols-3">
+                  <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[0.06] px-3 py-2"><p className="text-[9px] font-black uppercase tracking-widest text-emerald-200/70">Creator share</p><p className="mt-1 text-sm font-black text-emerald-100">95%</p></div>
+                  <div className="rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2"><p className="text-[9px] font-black uppercase tracking-widest text-primary/70">Kryv platform share</p><p className="mt-1 text-sm font-black text-white">5%</p></div>
+                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2"><p className="text-[9px] font-black uppercase tracking-widest text-white/35">Checkout commission</p><p className="mt-1 text-[11px] font-bold leading-snug text-white/70">Paid separately by the supporter</p></div>
+                </div>
+                <p className="mt-3 max-w-2xl text-[11px] leading-relaxed text-white/35">The 95/5 split applies to the provider-confirmed crypto subtotal for eligible subscriptions and tips. Provider checkout commission is separately disclosed to the supporter and does not reduce your advertised creator share.</p>
               </div>
               <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${creatorFinanceQuery.data?.payoutRequestsEnabled ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' : 'border-amber-300/20 bg-amber-300/10 text-amber-100'}`}>{creatorFinanceQuery.data?.payoutRequestsEnabled ? 'Payout requests enabled' : 'Payout launch controlled'}</span>
             </div>

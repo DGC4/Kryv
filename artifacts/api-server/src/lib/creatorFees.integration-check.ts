@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { addCryptoAmounts, compareCryptoAmounts, normalizeCryptoAmount, quoteCreatorPlatformFee } from "./creatorFees";
+import { addCryptoAmounts, compareCryptoAmounts, creatorShareBps, KRYV_CREATOR_SHARE_BPS, KRYV_PLATFORM_FEE_BPS, normalizeCryptoAmount, quoteCreatorPlatformFee } from "./creatorFees";
 
 const zeroFee = quoteCreatorPlatformFee("1.25", 0);
 assert.deepEqual(zeroFee, {
@@ -9,12 +9,16 @@ assert.deepEqual(zeroFee, {
   platformFeeBps: 0,
 });
 
-const standardFee = quoteCreatorPlatformFee("0.12345678", 500);
+assert.equal(KRYV_PLATFORM_FEE_BPS, 500);
+assert.equal(KRYV_CREATOR_SHARE_BPS, 9_500);
+assert.equal(creatorShareBps(KRYV_PLATFORM_FEE_BPS), KRYV_CREATOR_SHARE_BPS);
+
+const standardFee = quoteCreatorPlatformFee("0.12345678", KRYV_PLATFORM_FEE_BPS);
 assert.deepEqual(standardFee, {
   grossAmount: "0.12345678",
   platformFeeAmount: "0.00617283",
   creatorNetAmount: "0.11728395",
-  platformFeeBps: 500,
+  platformFeeBps: KRYV_PLATFORM_FEE_BPS,
 });
 
 assert.throws(() => quoteCreatorPlatformFee("0.01", 10_001));
@@ -28,9 +32,9 @@ assert.equal(compareCryptoAmounts("0.12530862", "0.12530863"), -1);
 
 // Customer-wallet-funded tips use the same fixed-point fee allocator. The debit,
 // platform movement, and creator credit must partition the customer balance exactly.
-const walletTip = quoteCreatorPlatformFee("0.12345678", 500);
+const walletTip = quoteCreatorPlatformFee("0.12345678", KRYV_PLATFORM_FEE_BPS);
 assert.equal(addCryptoAmounts(walletTip.platformFeeAmount, walletTip.creatorNetAmount), walletTip.grossAmount);
 assert.equal(compareCryptoAmounts("0.12345678", walletTip.grossAmount), 0);
 assert.equal(normalizeCryptoAmount("0.12345678"), walletTip.grossAmount);
 
-console.log("creator fee allocator, provider-total, and customer-wallet settlement checks passed");
+console.log("creator 95/5 fee allocator, provider-total, and customer-wallet settlement checks passed");
