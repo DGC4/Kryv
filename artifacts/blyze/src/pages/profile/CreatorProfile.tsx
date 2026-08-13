@@ -1,4 +1,4 @@
-import { useGetCreatorProfile } from '@workspace/api-client-react';
+import { useFollowChannel, useGetCreatorProfile, useGetMe, useUnfollowChannel } from '@workspace/api-client-react';
 import {
   ArrowUpRight,
   CalendarDays,
@@ -13,12 +13,14 @@ import {
   Radio,
   Tv2,
   Users,
+  UserPlus,
   Youtube,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'wouter';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { VideoCard } from '@/components/VideoCard';
+import { useToast } from '@/hooks/use-toast';
 
 type ProfileTab = 'about' | 'live' | 'watch' | 'cinema';
 
@@ -35,9 +37,13 @@ function formatDuration(value: number | null) {
 
 export default function CreatorProfile() {
   const { slug } = useParams<{ slug: string }>();
-  const { data: profile, isLoading, isError } = useGetCreatorProfile(slug || '', {
+  const { data: profile, isLoading, isError, refetch } = useGetCreatorProfile(slug || '', {
     query: { enabled: Boolean(slug), refetchInterval: 15000 },
   });
+  const { data: me } = useGetMe();
+  const followChannel = useFollowChannel();
+  const unfollowChannel = useUnfollowChannel();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<ProfileTab>('about');
 
   if (isLoading) {
@@ -49,6 +55,17 @@ export default function CreatorProfile() {
   }
 
   const { channel, live, watch, cinemaCredits } = profile;
+  const isFollowPending = followChannel.isPending || unfollowChannel.isPending;
+  const handleFollow = () => {
+    const mutation = channel.isFollowing ? unfollowChannel : followChannel;
+    mutation.mutate({ id: channel.id }, {
+      onSuccess: () => {
+        void refetch();
+        toast({ title: channel.isFollowing ? `Unfollowed ${channel.displayName}` : `Following ${channel.displayName}`, description: channel.isFollowing ? 'This channel has been removed from your followed creators.' : 'Live broadcasts from this creator will appear in your followed channels.' });
+      },
+      onError: (error: any) => toast({ title: 'Follow action unavailable', description: error?.body?.error || error?.message || 'The channel relationship could not be updated.', variant: 'destructive' }),
+    });
+  };
   const tabs: Array<{ id: ProfileTab; label: string; count?: number }> = [
     { id: 'about', label: 'About' },
     { id: 'live', label: 'Live', count: live.recentStreams.length || undefined },
@@ -75,7 +92,7 @@ export default function CreatorProfile() {
             </div>
             <div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5 sm:gap-2"><p className="truncate text-xl font-black tracking-tight text-white sm:text-3xl">{channel.displayName}</p>{Number(channel.ownerUserId) === 1 && <GoldenDBadge />}</div><div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-bold text-white/55"><span className={`inline-flex items-center gap-1.5 ${live.isLive ? 'text-red-200' : 'text-white/45'}`}><CircleDot className={`h-3.5 w-3.5 ${live.isLive ? 'text-red-400' : 'text-white/35'}`} />{live.isLive ? 'Live now' : 'Offline'}</span><span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" />{channel.followerCount.toLocaleString()} followers</span>{channel.categoryName && <span>{channel.categoryName}</span>}</div></div>
           </div>
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><Link href={`/live/${channel.slug}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-center text-sm font-black text-primary-foreground transition hover:bg-primary/90 sm:px-4"><Radio className="h-4 w-4" /> <span className="truncate">{live.isLive ? 'Watch live' : 'Channel'}</span></Link><Link href="/watch" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-black/25 px-3 text-center text-sm font-black text-white/75 transition hover:border-primary/45 hover:text-white sm:px-4"><Tv2 className="h-4 w-4" /> <span className="truncate">Watch</span></Link></div>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><Link href={`/live/${channel.slug}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-center text-sm font-black text-primary-foreground transition hover:bg-primary/90 sm:px-4"><Radio className="h-4 w-4" /> <span className="truncate">{live.isLive ? 'Watch live' : 'Channel'}</span></Link>{!channel.isOwner && (me ? <button type="button" onClick={handleFollow} disabled={isFollowPending} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-center text-sm font-black transition disabled:cursor-wait disabled:opacity-60 sm:px-4 ${channel.isFollowing ? 'border-primary/45 bg-primary/10 text-primary hover:bg-primary/20' : 'border-white/[0.12] bg-black/25 text-white/75 hover:border-primary/45 hover:text-white'}`}>{isFollowPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} <span className="truncate">{channel.isFollowing ? 'Following' : 'Follow'}</span></button> : <Link href="/sign-in" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-black/25 px-3 text-center text-sm font-black text-white/75 transition hover:border-primary/45 hover:text-white sm:px-4"><UserPlus className="h-4 w-4" /> <span className="truncate">Follow</span></Link>)}<Link href="/watch" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-black/25 px-3 text-center text-sm font-black text-white/75 transition hover:border-primary/45 hover:text-white sm:px-4"><Tv2 className="h-4 w-4" /> <span className="truncate">Watch</span></Link></div>
         </div>
       </section>
 
