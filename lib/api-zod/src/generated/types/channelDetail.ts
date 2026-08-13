@@ -10,6 +10,14 @@ import type { ChannelSummary } from './channelSummary';
 export type ChannelDetail = ChannelSummary & ({
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  websiteUrl: string | null;
+  /** @nullable */
+  youtubeUrl: string | null;
+  /** @nullable */
+  instagramUrl: string | null;
+  /** @nullable */
+  xUrl: string | null;
   isFollowing: boolean;
   isSubscribed: boolean;
   isOwner: boolean;

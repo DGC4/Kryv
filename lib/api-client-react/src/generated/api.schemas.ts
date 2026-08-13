@@ -69,12 +69,150 @@ export interface ChannelSummary {
 export type ChannelDetail = ChannelSummary & ({
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  websiteUrl: string | null;
+  /** @nullable */
+  youtubeUrl: string | null;
+  /** @nullable */
+  instagramUrl: string | null;
+  /** @nullable */
+  xUrl: string | null;
   isFollowing: boolean;
   isSubscribed: boolean;
   isOwner: boolean;
   ownerUserId: number;
   createdAt: string;
 });
+
+export interface CreatorProfileStream {
+  id: number;
+  /** @nullable */
+  title: string | null;
+  startedAt: string;
+  /** @nullable */
+  endedAt: string | null;
+  /** @nullable */
+  durationSeconds: number | null;
+}
+
+export interface CreatorProfileLive {
+  isLive: boolean;
+  /** @nullable */
+  streamTitle: string | null;
+  viewerCount: number;
+  /** @nullable */
+  categoryName: string | null;
+  recentStreams: CreatorProfileStream[];
+}
+
+export type VideoSummaryContentType = typeof VideoSummaryContentType[keyof typeof VideoSummaryContentType];
+
+
+export const VideoSummaryContentType = {
+  upload: 'upload',
+  original: 'original',
+} as const;
+
+export type VideoSummaryUploadStatus = typeof VideoSummaryUploadStatus[keyof typeof VideoSummaryUploadStatus];
+
+
+export const VideoSummaryUploadStatus = {
+  waiting: 'waiting',
+  processing: 'processing',
+  ready: 'ready',
+  errored: 'errored',
+} as const;
+
+export interface VideoSummary {
+  id: number;
+  title: string;
+  /**
+     * Landscape 16:9 thumbnail — used in Kryv Watch grids
+     * @nullable
+     */
+  thumbnailUrl: string | null;
+  /**
+     * Portrait 2:3 poster — used in Kryv Cinema rows
+     * @nullable
+     */
+  posterUrl: string | null;
+  /**
+     * Wide cinematic backdrop — used in Kryv Cinema hero banners
+     * @nullable
+     */
+  backdropUrl: string | null;
+  /** @nullable */
+  durationSeconds: number | null;
+  viewCount: number;
+  channelId: number;
+  channelName: string;
+  /** @nullable */
+  channelAvatarUrl: string | null;
+  /** @nullable */
+  categoryId: number | null;
+  /** @nullable */
+  categoryName: string | null;
+  contentType: VideoSummaryContentType;
+  /**
+     * FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.
+     * @nullable
+     */
+  playbackId: string | null;
+  uploadStatus: VideoSummaryUploadStatus;
+  createdAt: string;
+}
+
+export type CinemaTitleMaturityLevel = typeof CinemaTitleMaturityLevel[keyof typeof CinemaTitleMaturityLevel];
+
+
+export const CinemaTitleMaturityLevel = {
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
+} as const;
+
+export type CinemaTitleEntitlementType = typeof CinemaTitleEntitlementType[keyof typeof CinemaTitleEntitlementType];
+
+
+export const CinemaTitleEntitlementType = {
+  free: 'free',
+  subscription: 'subscription',
+  rental: 'rental',
+  purchase: 'purchase',
+} as const;
+
+export interface CinemaTitle {
+  id: number;
+  slug: string;
+  title: string;
+  /** @nullable */
+  synopsis: string | null;
+  maturityLevel: CinemaTitleMaturityLevel;
+  genres: string[];
+  /** @nullable */
+  posterUrl: string | null;
+  /** @nullable */
+  backdropUrl: string | null;
+  /** @nullable */
+  runtimeSeconds: number | null;
+  featurePlaybackId: string;
+  /** @nullable */
+  trailerPlaybackId: string | null;
+  entitlementType: CinemaTitleEntitlementType;
+  /** @nullable */
+  publishedAt: string | null;
+}
+
+export type CreatorCinemaCredit = CinemaTitle & {
+  role: string;
+};
+
+export interface CreatorProfile {
+  channel: ChannelDetail;
+  live: CreatorProfileLive;
+  watch: VideoSummary[];
+  cinemaCredits: CreatorCinemaCredit[];
+}
 
 export interface ChannelInput {
   /**
@@ -95,6 +233,26 @@ export interface ChannelUpdate {
   displayName?: string;
   /** @maxLength 500 */
   description?: string;
+  /**
+     * @nullable
+     * @pattern ^https://.+
+     */
+  websiteUrl?: string | null;
+  /**
+     * @nullable
+     * @pattern ^https://(www\\.)?(youtube\\.com|youtu\\.be)/.+
+     */
+  youtubeUrl?: string | null;
+  /**
+     * @nullable
+     * @pattern ^https://(www\\.)?instagram\\.com/.+
+     */
+  instagramUrl?: string | null;
+  /**
+     * @nullable
+     * @pattern ^https://(www\\.)?(x\\.com|twitter\\.com)/.+
+     */
+  xUrl?: string | null;
   avatarUrl?: string;
   bannerUrl?: string;
   categoryId?: number;
@@ -157,63 +315,6 @@ export interface NotificationPreferencesInput {
   notifyOnUpload: boolean;
   notifyOnClip: boolean;
   emailNotifications: boolean;
-}
-
-export type VideoSummaryContentType = typeof VideoSummaryContentType[keyof typeof VideoSummaryContentType];
-
-
-export const VideoSummaryContentType = {
-  upload: 'upload',
-  original: 'original',
-} as const;
-
-export type VideoSummaryUploadStatus = typeof VideoSummaryUploadStatus[keyof typeof VideoSummaryUploadStatus];
-
-
-export const VideoSummaryUploadStatus = {
-  waiting: 'waiting',
-  processing: 'processing',
-  ready: 'ready',
-  errored: 'errored',
-} as const;
-
-export interface VideoSummary {
-  id: number;
-  title: string;
-  /**
-     * Landscape 16:9 thumbnail — used in Kryv Watch grids
-     * @nullable
-     */
-  thumbnailUrl: string | null;
-  /**
-     * Portrait 2:3 poster — used in Kryv Cinema rows
-     * @nullable
-     */
-  posterUrl: string | null;
-  /**
-     * Wide cinematic backdrop — used in Kryv Cinema hero banners
-     * @nullable
-     */
-  backdropUrl: string | null;
-  /** @nullable */
-  durationSeconds: number | null;
-  viewCount: number;
-  channelId: number;
-  channelName: string;
-  /** @nullable */
-  channelAvatarUrl: string | null;
-  /** @nullable */
-  categoryId: number | null;
-  /** @nullable */
-  categoryName: string | null;
-  contentType: VideoSummaryContentType;
-  /**
-     * FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.
-     * @nullable
-     */
-  playbackId: string | null;
-  uploadStatus: VideoSummaryUploadStatus;
-  createdAt: string;
 }
 
 export type ClipSummaryProcessingStatus = typeof ClipSummaryProcessingStatus[keyof typeof ClipSummaryProcessingStatus];
@@ -520,47 +621,6 @@ export interface VideoUpdate {
   /** @maxLength 5000 */
   description?: string;
   categoryId?: number;
-}
-
-export type CinemaTitleMaturityLevel = typeof CinemaTitleMaturityLevel[keyof typeof CinemaTitleMaturityLevel];
-
-
-export const CinemaTitleMaturityLevel = {
-  kids: 'kids',
-  standard: 'standard',
-  mature: 'mature',
-} as const;
-
-export type CinemaTitleEntitlementType = typeof CinemaTitleEntitlementType[keyof typeof CinemaTitleEntitlementType];
-
-
-export const CinemaTitleEntitlementType = {
-  free: 'free',
-  subscription: 'subscription',
-  rental: 'rental',
-  purchase: 'purchase',
-} as const;
-
-export interface CinemaTitle {
-  id: number;
-  slug: string;
-  title: string;
-  /** @nullable */
-  synopsis: string | null;
-  maturityLevel: CinemaTitleMaturityLevel;
-  genres: string[];
-  /** @nullable */
-  posterUrl: string | null;
-  /** @nullable */
-  backdropUrl: string | null;
-  /** @nullable */
-  runtimeSeconds: number | null;
-  featurePlaybackId: string;
-  /** @nullable */
-  trailerPlaybackId: string | null;
-  entitlementType: CinemaTitleEntitlementType;
-  /** @nullable */
-  publishedAt: string | null;
 }
 
 export interface CinemaRow {
@@ -958,6 +1018,17 @@ export interface AdminCinemaActivity {
   createdAt: string;
 }
 
+export interface AdminCinemaCredit {
+  id: number;
+  cinemaTitleId: number;
+  channelId: number;
+  channelSlug: string;
+  channelDisplayName: string;
+  role: string;
+  displayOrder: number;
+  createdAt: string;
+}
+
 export type AdminCinemaTitleDetail = AdminCinemaTitle & ({
   /** @nullable */
   releaseYear: number | null;
@@ -974,9 +1045,25 @@ export type AdminCinemaTitleDetail = AdminCinemaTitle & ({
   publishedAt: string | null;
   assets: AdminCinemaAssetDetail[];
   rightsWindows: AdminCinemaRightsWindow[];
+  credits: AdminCinemaCredit[];
   readiness: AdminCinemaReadiness;
   activity: AdminCinemaActivity[];
 });
+
+export interface AdminCinemaCreditInput {
+  /** @minimum 1 */
+  channelId: number;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  role: string;
+  /**
+     * @minimum -100000
+     * @maximum 100000
+     */
+  displayOrder?: number;
+}
 
 export type AdminCinemaTitleUpdateMaturityLevel = typeof AdminCinemaTitleUpdateMaturityLevel[keyof typeof AdminCinemaTitleUpdateMaturityLevel];
 

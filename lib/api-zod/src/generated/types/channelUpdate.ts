@@ -14,6 +14,26 @@ export interface ChannelUpdate {
   displayName?: string;
   /** @maxLength 500 */
   description?: string;
+  /**
+     * @nullable
+     * @pattern ^https://.+
+     */
+  websiteUrl?: string | null;
+  /**
+     * @nullable
+     * @pattern ^https://(www\\.)?(youtube\\.com|youtu\\.be)/.+
+     */
+  youtubeUrl?: string | null;
+  /**
+     * @nullable
+     * @pattern ^https://(www\\.)?instagram\\.com/.+
+     */
+  instagramUrl?: string | null;
+  /**
+     * @nullable
+     * @pattern ^https://(www\\.)?(x\\.com|twitter\\.com)/.+
+     */
+  xUrl?: string | null;
   avatarUrl?: string;
   bannerUrl?: string;
   categoryId?: number;

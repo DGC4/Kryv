@@ -120,6 +120,22 @@ export const cinemaRightsWindowsTable = pgTable("cinema_rights_windows", {
   titleWindowIdx: index("cinema_rights_windows_title_start_idx").on(table.cinemaTitleId, table.startsAt),
 }));
 
+// Public creator filmography is a curated credit relationship. Cinema titles stay
+// owner-controlled; this table never grants a creator publication or asset-upload rights.
+export const cinemaCreditsTable = pgTable("cinema_credits", {
+  id: serial("id").primaryKey(),
+  cinemaTitleId: integer("cinema_title_id").notNull().references(() => cinemaTitlesTable.id, { onDelete: "cascade" }),
+  channelId: integer("channel_id").notNull().references(() => channelsTable.id, { onDelete: "cascade" }),
+  role: text("role").notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdByUserId: integer("created_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  titleChannelRoleUnique: uniqueIndex("cinema_credits_title_channel_role_unique").on(table.cinemaTitleId, table.channelId, table.role),
+  channelCreditIdx: index("cinema_credits_channel_order_idx").on(table.channelId, table.displayOrder, table.createdAt),
+  titleCreditIdx: index("cinema_credits_title_order_idx").on(table.cinemaTitleId, table.displayOrder, table.createdAt),
+}));
+
 // ─── Creator access and reviewable moderation work ─────────────────────────────
 export const channelRolesTable = pgTable("channel_roles", {
   id: serial("id").primaryKey(),

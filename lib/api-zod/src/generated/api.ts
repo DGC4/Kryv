@@ -380,6 +380,16 @@ export const GetAdminCinemaTitleResponse = zod.object({
   "endsAt": zod.coerce.date().nullable(),
   "createdAt": zod.coerce.date()
 })),
+  "credits": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "role": zod.string(),
+  "displayOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})),
   "readiness": zod.object({
   "hasReadyFeature": zod.boolean(),
   "hasActiveRightsWindow": zod.boolean(),
@@ -488,6 +498,16 @@ export const UpdateAdminCinemaTitleResponse = zod.object({
   "endsAt": zod.coerce.date().nullable(),
   "createdAt": zod.coerce.date()
 })),
+  "credits": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "role": zod.string(),
+  "displayOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})),
   "readiness": zod.object({
   "hasReadyFeature": zod.boolean(),
   "hasActiveRightsWindow": zod.boolean(),
@@ -537,6 +557,50 @@ export const CreateAdminCinemaRightsWindowResponse = zod.object({
   "endsAt": zod.coerce.date().nullable(),
   "createdAt": zod.coerce.date()
 })
+
+
+/**
+ * @summary Attach a creator channel credit to an owner-managed Cinema title
+ */
+export const CreateAdminCinemaCreditParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const createAdminCinemaCreditBodyRoleMax = 80;
+
+export const createAdminCinemaCreditBodyDisplayOrderMin = -100000;
+export const createAdminCinemaCreditBodyDisplayOrderMax = 100000;
+
+
+
+export const CreateAdminCinemaCreditBody = zod.object({
+  "channelId": zod.number().min(1),
+  "role": zod.string().min(1).max(createAdminCinemaCreditBodyRoleMax),
+  "displayOrder": zod.number().min(createAdminCinemaCreditBodyDisplayOrderMin).max(createAdminCinemaCreditBodyDisplayOrderMax).optional()
+})
+
+export const CreateAdminCinemaCreditResponse = zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "role": zod.string(),
+  "displayOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove a creator credit from an owner-managed Cinema title
+ */
+export const DeleteAdminCinemaCreditParams = zod.object({
+  "id": zod.coerce.number(),
+  "creditId": zod.coerce.number()
+})
+
+export const DeleteAdminCinemaCreditResponse = zod.void()
 
 
 /**
@@ -810,6 +874,92 @@ export const CreateChannelResponse = zod.object({
 
 
 /**
+ * @summary Get a public creator profile with live state, Watch uploads, and curated Cinema credits
+ */
+export const GetCreatorProfileParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetCreatorProfileResponse = zod.object({
+  "channel": zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
+  "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "ownerUserId": zod.number(),
+  "createdAt": zod.coerce.date()
+})),
+  "live": zod.object({
+  "isLive": zod.boolean(),
+  "streamTitle": zod.string().nullable(),
+  "viewerCount": zod.number(),
+  "categoryName": zod.string().nullable(),
+  "recentStreams": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string().nullable(),
+  "startedAt": zod.coerce.date(),
+  "endedAt": zod.coerce.date().nullable(),
+  "durationSeconds": zod.number().nullable()
+}))
+}),
+  "watch": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+})),
+  "cinemaCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string(),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
+}).and(zod.object({
+  "role": zod.string()
+})))
+})
+
+
+/**
  * @summary Get a single channel's detail
  */
 export const GetChannelParams = zod.object({
@@ -856,6 +1006,10 @@ export const updateChannelBodyDisplayNameMax = 60;
 
 export const updateChannelBodyDescriptionMax = 500;
 
+export const updateChannelBodyWebsiteUrlRegExp = new RegExp('^https://.+');
+export const updateChannelBodyYoutubeUrlRegExp = new RegExp('^https://(www\\\\.)?(youtube\\\\.com|youtu\\\\.be)/.+');
+export const updateChannelBodyInstagramUrlRegExp = new RegExp('^https://(www\\\\.)?instagram\\\\.com/.+');
+export const updateChannelBodyXUrlRegExp = new RegExp('^https://(www\\\\.)?(x\\\\.com|twitter\\\\.com)/.+');
 export const updateChannelBodyStreamTitleMax = 140;
 
 
@@ -863,10 +1017,10 @@ export const updateChannelBodyStreamTitleMax = 140;
 export const UpdateChannelBody = zod.object({
   "displayName": zod.string().min(1).max(updateChannelBodyDisplayNameMax).optional(),
   "description": zod.string().max(updateChannelBodyDescriptionMax).optional(),
-  "websiteUrl": zod.string().url().regex(/^https:\/\/.+/).nullable().optional(),
-  "youtubeUrl": zod.string().url().regex(/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+/).nullable().optional(),
-  "instagramUrl": zod.string().url().regex(/^https:\/\/(www\.)?instagram\.com\/.+/).nullable().optional(),
-  "xUrl": zod.string().url().regex(/^https:\/\/(www\.)?(x\.com|twitter\.com)\/.+/).nullable().optional(),
+  "websiteUrl": zod.string().url().regex(updateChannelBodyWebsiteUrlRegExp).nullish(),
+  "youtubeUrl": zod.string().url().regex(updateChannelBodyYoutubeUrlRegExp).nullish(),
+  "instagramUrl": zod.string().url().regex(updateChannelBodyInstagramUrlRegExp).nullish(),
+  "xUrl": zod.string().url().regex(updateChannelBodyXUrlRegExp).nullish(),
   "avatarUrl": zod.string().optional(),
   "bannerUrl": zod.string().optional(),
   "categoryId": zod.number().optional(),

@@ -31,6 +31,8 @@ import type {
   AdminAdsOverview,
   AdminCinemaAsset,
   AdminCinemaAssetInput,
+  AdminCinemaCredit,
+  AdminCinemaCreditInput,
   AdminCinemaRightsWindow,
   AdminCinemaRightsWindowInput,
   AdminCinemaTitle,
@@ -79,6 +81,7 @@ import type {
   CreatorPayoutPreference,
   CreatorPayoutProfile,
   CreatorPayoutRequest,
+  CreatorProfile,
   CryptoCheckout,
   CryptoSubscriptionInput,
   CryptoTipInput,
@@ -1259,6 +1262,151 @@ export const useCreateAdminCinemaRightsWindow = <TError = ErrorType<void>,
       return useMutation(getCreateAdminCinemaRightsWindowMutationOptions(options));
     }
 
+export const getCreateAdminCinemaCreditUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/cinema/titles/${id}/credits`
+}
+
+/**
+ * @summary Attach a creator channel credit to an owner-managed Cinema title
+ */
+export const createAdminCinemaCredit = async (id: number,
+    adminCinemaCreditInput: AdminCinemaCreditInput, options?: RequestInit): Promise<AdminCinemaCredit> => {
+
+  return customFetch<AdminCinemaCredit>(getCreateAdminCinemaCreditUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminCinemaCreditInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminCinemaCreditMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaCredit>>, TError,{id: number;data: BodyType<AdminCinemaCreditInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaCredit>>, TError,{id: number;data: BodyType<AdminCinemaCreditInput>}, TContext> => {
+
+const mutationKey = ['createAdminCinemaCredit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminCinemaCredit>>, {id: number;data: BodyType<AdminCinemaCreditInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createAdminCinemaCredit(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminCinemaCreditMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminCinemaCredit>>>
+    export type CreateAdminCinemaCreditMutationBody = BodyType<AdminCinemaCreditInput>
+    export type CreateAdminCinemaCreditMutationError = ErrorType<void>
+
+    /**
+ * @summary Attach a creator channel credit to an owner-managed Cinema title
+ */
+export const useCreateAdminCinemaCredit = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCinemaCredit>>, TError,{id: number;data: BodyType<AdminCinemaCreditInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminCinemaCredit>>,
+        TError,
+        {id: number;data: BodyType<AdminCinemaCreditInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminCinemaCreditMutationOptions(options));
+    }
+
+export const getDeleteAdminCinemaCreditUrl = (id: number,
+    creditId: number,) => {
+
+
+
+
+  return `/api/admin/cinema/titles/${id}/credits/${creditId}`
+}
+
+/**
+ * @summary Remove a creator credit from an owner-managed Cinema title
+ */
+export const deleteAdminCinemaCredit = async (id: number,
+    creditId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteAdminCinemaCreditUrl(id,creditId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAdminCinemaCreditMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminCinemaCredit>>, TError,{id: number;creditId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminCinemaCredit>>, TError,{id: number;creditId: number}, TContext> => {
+
+const mutationKey = ['deleteAdminCinemaCredit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminCinemaCredit>>, {id: number;creditId: number}> = (props) => {
+          const {id,creditId} = props ?? {};
+
+          return  deleteAdminCinemaCredit(id,creditId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminCinemaCreditMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminCinemaCredit>>>
+
+    export type DeleteAdminCinemaCreditMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove a creator credit from an owner-managed Cinema title
+ */
+export const useDeleteAdminCinemaCredit = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminCinemaCredit>>, TError,{id: number;creditId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminCinemaCredit>>,
+        TError,
+        {id: number;creditId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteAdminCinemaCreditMutationOptions(options));
+    }
+
 export const getListCategoriesUrl = (params?: ListCategoriesParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -2102,6 +2250,83 @@ export const useCreateChannel = <TError = ErrorType<Error>,
       > => {
       return useMutation(getCreateChannelMutationOptions(options));
     }
+
+export const getGetCreatorProfileUrl = (slug: string,) => {
+
+
+
+
+  return `/api/profiles/${slug}`
+}
+
+/**
+ * @summary Get a public creator profile with live state, Watch uploads, and curated Cinema credits
+ */
+export const getCreatorProfile = async (slug: string, options?: RequestInit): Promise<CreatorProfile> => {
+
+  return customFetch<CreatorProfile>(getGetCreatorProfileUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCreatorProfileQueryKey = (slug: string,) => {
+    return [
+    `/api/profiles/${slug}`
+    ] as const;
+    }
+
+
+export const getGetCreatorProfileQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorProfile>>, TError = ErrorType<Error>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCreatorProfileQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCreatorProfile>>> = ({ signal }) => getCreatorProfile(slug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: slug !== null && slug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCreatorProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCreatorProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getCreatorProfile>>>
+export type GetCreatorProfileQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get a public creator profile with live state, Watch uploads, and curated Cinema credits
+ */
+
+export function useGetCreatorProfile<TData = Awaited<ReturnType<typeof getCreatorProfile>>, TError = ErrorType<Error>>(
+ slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCreatorProfileQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetChannelUrl = (id: number,) => {
 

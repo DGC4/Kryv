@@ -427,6 +427,55 @@ paths:
         "403": { description: Owner access required }
         "404": { description: Cinema title not found }
 
+  /admin/cinema/titles/{id}/credits:
+    post:
+      operationId: createAdminCinemaCredit
+      tags: [admin]
+      summary: Attach a creator channel credit to an owner-managed Cinema title
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCinemaCreditInput"
+      responses:
+        "201":
+          description: Creator credit attached to Cinema title
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCinemaCredit"
+        "400": { description: Invalid Cinema credit input }
+        "401": { description: Not authenticated }
+        "403": { description: Owner access required }
+        "404": { description: Cinema title or creator channel not found }
+        "409": { description: This creator already has the same role on this title }
+
+  /admin/cinema/titles/{id}/credits/{creditId}:
+    delete:
+      operationId: deleteAdminCinemaCredit
+      tags: [admin]
+      summary: Remove a creator credit from an owner-managed Cinema title
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: creditId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Creator credit removed }
+        "401": { description: Not authenticated }
+        "403": { description: Owner access required }
+        "404": { description: Cinema credit not found }
+
   /categories:
     get:
       operationId: listCategories
@@ -691,6 +740,31 @@ paths:
                 $ref: "#/components/schemas/Error"
         "409":
           description: User already has a channel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /profiles/{slug}:
+    get:
+      operationId: getCreatorProfile
+      tags: [profiles]
+      summary: Get a public creator profile with live state, Watch uploads, and curated Cinema credits
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public creator profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorProfile"
+        "404":
+          description: Channel not found
           content:
             application/json:
               schema:
@@ -2347,6 +2421,54 @@ components:
             ownerUserId: { type: integer }
             createdAt: { type: string, format: date-time }
 
+    CreatorProfile:
+      type: object
+      required: [channel, live, watch, cinemaCredits]
+      properties:
+        channel:
+          $ref: "#/components/schemas/ChannelDetail"
+        live:
+          $ref: "#/components/schemas/CreatorProfileLive"
+        watch:
+          type: array
+          items:
+            $ref: "#/components/schemas/VideoSummary"
+        cinemaCredits:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreatorCinemaCredit"
+
+    CreatorProfileLive:
+      type: object
+      required: [isLive, streamTitle, viewerCount, categoryName, recentStreams]
+      properties:
+        isLive: { type: boolean }
+        streamTitle: { type: ["string", "null"] }
+        viewerCount: { type: integer }
+        categoryName: { type: ["string", "null"] }
+        recentStreams:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreatorProfileStream"
+
+    CreatorProfileStream:
+      type: object
+      required: [id, title, startedAt, endedAt, durationSeconds]
+      properties:
+        id: { type: integer }
+        title: { type: ["string", "null"] }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: ["string", "null"], format: date-time }
+        durationSeconds: { type: ["integer", "null"] }
+
+    CreatorCinemaCredit:
+      allOf:
+        - $ref: "#/components/schemas/CinemaTitle"
+        - type: object
+          required: [role]
+          properties:
+            role: { type: string }
+
     ChannelInput:
       type: object
       required: [displayName]
@@ -3021,7 +3143,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/AdminCinemaTitle"
         - type: object
-          required: [releaseYear, runtimeSeconds, contentRating, genres, castMembers, crew, logoUrl, publishedAt, assets, rightsWindows, readiness, activity]
+          required: [releaseYear, runtimeSeconds, contentRating, genres, castMembers, crew, logoUrl, publishedAt, assets, rightsWindows, credits, readiness, activity]
           properties:
             releaseYear: { type: ["integer", "null"] }
             runtimeSeconds: { type: ["integer", "null"] }
@@ -3043,10 +3165,34 @@ components:
             rightsWindows:
               type: array
               items: { $ref: "#/components/schemas/AdminCinemaRightsWindow" }
+            credits:
+              type: array
+              items: { $ref: "#/components/schemas/AdminCinemaCredit" }
             readiness: { $ref: "#/components/schemas/AdminCinemaReadiness" }
             activity:
               type: array
               items: { $ref: "#/components/schemas/AdminCinemaActivity" }
+
+    AdminCinemaCredit:
+      type: object
+      required: [id, cinemaTitleId, channelId, channelSlug, channelDisplayName, role, displayOrder, createdAt]
+      properties:
+        id: { type: integer }
+        cinemaTitleId: { type: integer }
+        channelId: { type: integer }
+        channelSlug: { type: string }
+        channelDisplayName: { type: string }
+        role: { type: string }
+        displayOrder: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    AdminCinemaCreditInput:
+      type: object
+      required: [channelId, role]
+      properties:
+        channelId: { type: integer, minimum: 1 }
+        role: { type: string, minLength: 1, maxLength: 80 }
+        displayOrder: { type: integer, minimum: -100000, maximum: 100000 }
 
     AdminCinemaTitleUpdate:
       type: object

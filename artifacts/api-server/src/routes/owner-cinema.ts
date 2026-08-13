@@ -2,12 +2,18 @@ import { Router, type IRouter } from "express";
 import { and, desc, eq, gte, isNull, or } from "drizzle-orm";
 import {
   auditLogsTable,
+  channelsTable,
+  cinemaCreditsTable,
   cinemaRightsWindowsTable,
   cinemaTitleAssetsTable,
   cinemaTitlesTable,
   db,
 } from "@workspace/db";
 import {
+  CreateAdminCinemaCreditBody,
+  CreateAdminCinemaCreditParams,
+  CreateAdminCinemaCreditResponse,
+  DeleteAdminCinemaCreditParams,
   CreateAdminCinemaAssetBody,
   CreateAdminCinemaAssetParams,
   CreateAdminCinemaAssetResponse,
@@ -87,13 +93,29 @@ function toRightsWindow(row: CinemaRightsWindowRow) {
   };
 }
 
+function toCredit(row: {
+  credit: typeof cinemaCreditsTable.$inferSelect;
+  channel: typeof channelsTable.$inferSelect;
+}) {
+  return {
+    id: row.credit.id,
+    cinemaTitleId: row.credit.cinemaTitleId,
+    channelId: row.credit.channelId,
+    channelSlug: row.channel.slug,
+    channelDisplayName: row.channel.displayName,
+    role: row.credit.role,
+    displayOrder: row.credit.displayOrder,
+    createdAt: row.credit.createdAt,
+  };
+}
+
 async function findTitle(id: number) {
   const [title] = await db.select().from(cinemaTitlesTable).where(eq(cinemaTitlesTable.id, id)).limit(1);
   return title;
 }
 
 async function getTitleDetail(title: CinemaTitleRow) {
-  const [assets, rightsWindows, activity] = await Promise.all([
+  const [assets, rightsWindows, activity, credits] = await Promise.all([
     db.select().from(cinemaTitleAssetsTable).where(eq(cinemaTitleAssetsTable.cinemaTitleId, title.id)).orderBy(desc(cinemaTitleAssetsTable.updatedAt)),
     db.select().from(cinemaRightsWindowsTable).where(eq(cinemaRightsWindowsTable.cinemaTitleId, title.id)).orderBy(desc(cinemaRightsWindowsTable.startsAt)),
     db.select({
@@ -104,6 +126,11 @@ async function getTitleDetail(title: CinemaTitleRow) {
       reason: auditLogsTable.reason,
       createdAt: auditLogsTable.createdAt,
     }).from(auditLogsTable).where(and(eq(auditLogsTable.targetType, "cinema_title"), eq(auditLogsTable.targetId, String(title.id)))).orderBy(desc(auditLogsTable.createdAt)).limit(20),
+    db.select({ credit: cinemaCreditsTable, channel: channelsTable })
+      .from(cinemaCreditsTable)
+      .innerJoin(channelsTable, eq(cinemaCreditsTable.channelId, channelsTable.id))
+      .where(eq(cinemaCreditsTable.cinemaTitleId, title.id))
+      .orderBy(cinemaCreditsTable.displayOrder, cinemaCreditsTable.createdAt),
   ]);
 
   const now = new Date();
@@ -125,6 +152,7 @@ async function getTitleDetail(title: CinemaTitleRow) {
     publishedAt: title.publishedAt,
     assets: assets.map(toAsset),
     rightsWindows: rightsWindows.map(toRightsWindow),
+    credits: credits.map(toCredit),
     readiness: {
       hasReadyFeature,
       hasActiveRightsWindow,
@@ -318,6 +346,84 @@ router.post("/admin/cinema/titles/:id/assets", requireOwner, async (req, res): P
   }).returning();
   await writeAuditLog(req, { action: "cinema.asset.approved", targetType: "cinema_title", targetId: title.id, afterState: { assetId: asset.id, assetKind: asset.assetKind, fastpixMediaId: asset.fastpixMediaId } });
   res.status(201).json(CreateAdminCinemaAssetResponse.parse(toAsset(asset)));
+});
+
+router.post("/admin/cinema/titles/:id/credits", requireOwner, async (req, res): Promise<void> => {
+  const params = CreateAdminCinemaCreditParams.safeParse(req.params);
+  const parsed = CreateAdminCinemaCreditBody.safeParse(req.body);
+  if (!params.success || !parsed.success) {
+    res.status(400).json({ error: !params.success ? params.error.message : parsed.error.message });
+    return;
+  }
+
+  const title = await findTitle(params.data.id);
+  if (!title) {
+    res.status(404).json({ error: "Cinema title not found" });
+    return;
+  }
+
+  const [channel] = await db.select().from(channelsTable).where(eq(channelsTable.id, parsed.data.channelId)).limit(1);
+  if (!channel) {
+    res.status(404).json({ error: "Creator channel not found" });
+    return;
+  }
+
+  const role = parsed.data.role.trim();
+  if (!role) {
+    res.status(400).json({ error: "A credit role is required" });
+    return;
+  }
+
+  try {
+    const [credit] = await db.insert(cinemaCreditsTable).values({
+      cinemaTitleId: title.id,
+      channelId: channel.id,
+      role,
+      displayOrder: parsed.data.displayOrder ?? 0,
+      createdByUserId: req.user!.userId,
+    }).returning();
+    if (!credit) throw new Error("Unable to create Cinema credit.");
+
+    await writeAuditLog(req, {
+      action: "cinema.credit.created",
+      targetType: "cinema_title",
+      targetId: title.id,
+      afterState: { creditId: credit.id, channelId: channel.id, role: credit.role, displayOrder: credit.displayOrder },
+    });
+    res.status(201).json(CreateAdminCinemaCreditResponse.parse(toCredit({ credit, channel })));
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") {
+      res.status(409).json({ error: "This creator already has that role on this Cinema title." });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.delete("/admin/cinema/titles/:id/credits/:creditId", requireOwner, async (req, res): Promise<void> => {
+  const params = DeleteAdminCinemaCreditParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [credit] = await db.select().from(cinemaCreditsTable).where(and(
+    eq(cinemaCreditsTable.id, params.data.creditId),
+    eq(cinemaCreditsTable.cinemaTitleId, params.data.id),
+  )).limit(1);
+  if (!credit) {
+    res.status(404).json({ error: "Cinema credit not found" });
+    return;
+  }
+
+  await db.delete(cinemaCreditsTable).where(eq(cinemaCreditsTable.id, credit.id));
+  await writeAuditLog(req, {
+    action: "cinema.credit.deleted",
+    targetType: "cinema_title",
+    targetId: credit.cinemaTitleId,
+    beforeState: { creditId: credit.id, channelId: credit.channelId, role: credit.role, displayOrder: credit.displayOrder },
+  });
+  res.sendStatus(204);
 });
 
 export default router;

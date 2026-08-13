@@ -7,6 +7,7 @@
  */
 import type { AdminCinemaActivity } from './adminCinemaActivity';
 import type { AdminCinemaAssetDetail } from './adminCinemaAssetDetail';
+import type { AdminCinemaCredit } from './adminCinemaCredit';
 import type { AdminCinemaReadiness } from './adminCinemaReadiness';
 import type { AdminCinemaRightsWindow } from './adminCinemaRightsWindow';
 import type { AdminCinemaTitle } from './adminCinemaTitle';
@@ -27,6 +28,7 @@ export type AdminCinemaTitleDetail = AdminCinemaTitle & ({
   publishedAt: Date | null;
   assets: AdminCinemaAssetDetail[];
   rightsWindows: AdminCinemaRightsWindow[];
+  credits: AdminCinemaCredit[];
   readiness: AdminCinemaReadiness;
   activity: AdminCinemaActivity[];
 });
