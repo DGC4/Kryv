@@ -20,15 +20,17 @@ import {
 import { useAuthStore } from '@/lib/auth-store';
 import { useToast } from '@/hooks/use-toast';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2 } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 
 export default function LiveChannel() {
   const { channelSlugOrId } = useParams<{ channelSlugOrId: string }>();
   const { user } = useAuthStore();
   const isSignedIn = !!user;
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'rest'>('rest');
+  const [theaterMode, setTheaterMode] = useState(false);
 
   const { data: channel, isLoading, refetch: refetchChannel } = useGetChannelBySlug(channelSlugOrId || '', {
     query: { enabled: !!channelSlugOrId, refetchInterval: realtimeStatus === 'connected' ? false : 15000 },
@@ -131,6 +133,15 @@ export default function LiveChannel() {
       socket?.close();
     };
   }, [channelId, refetchChannel, refetchEngagement, refetchMessages]);
+
+  // Theater mode is entirely client-side; Escape always returns the viewer to the standard live layout.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setTheaterMode(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Auto-scroll chat to bottom on new messages
   useEffect(() => {
@@ -258,7 +269,11 @@ export default function LiveChannel() {
           setCryptoCheckout(checkout);
           return;
         }
-        window.location.assign(checkout.invoiceUrl);
+        toast({
+          title: 'Secure payment instructions are unavailable',
+          description: 'Kryv will not navigate you away from the live stream. Please try again when the provider can return the exact crypto payment details.',
+          variant: 'destructive',
+        });
       },
       onError: (err: any) => toast({ title: 'Crypto support is unavailable', description: err?.body?.error || err?.message || 'The creator invoice could not be started. Please try again later.', variant: 'destructive' }),
     });
@@ -276,7 +291,11 @@ export default function LiveChannel() {
           setCryptoCheckout(checkout);
           return;
         }
-        window.location.assign(checkout.invoiceUrl);
+        toast({
+          title: 'Secure payment instructions are unavailable',
+          description: 'Kryv will not navigate you away from the live stream. Please try again when the provider can return the exact crypto payment details.',
+          variant: 'destructive',
+        });
       },
       onError: (err: any) => toast({ title: 'Crypto subscription is unavailable', description: err?.body?.error || err?.message || 'The subscription invoice could not be started. Please try again later.', variant: 'destructive' }),
     });
@@ -382,11 +401,11 @@ export default function LiveChannel() {
     : null;
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col lg:flex-row overflow-hidden bg-background relative z-10">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <div className={`flex flex-1 min-h-0 flex-col overflow-hidden bg-background relative z-10 ${theaterMode ? 'lg:block' : 'lg:flex-row'}`}>
+      {/* Main Content: remains a stable viewing surface; only standard mode scrolls below the fold. */}
+      <div className={`flex min-w-0 flex-col ${theaterMode ? 'h-full w-full shrink-0 overflow-hidden' : 'flex-1 overflow-y-auto'}`}>
         {/* Video Player - Responsive */}
-        <div className="w-full bg-black aspect-video sm:aspect-video lg:flex-1 relative">
+        <div className={`w-full bg-black relative ${theaterMode ? 'h-full' : 'aspect-video sm:aspect-video lg:flex-1'}`}>
           {channel.isLive && hlsSrc ? (
             <HlsPlayer
               src={hlsSrc}
@@ -433,6 +452,16 @@ export default function LiveChannel() {
               </span>
             </div>
           )}
+          <button
+            type="button"
+            onClick={() => setTheaterMode((current) => !current)}
+            className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-black/70 px-3 py-2 text-xs font-black text-white shadow-lg backdrop-blur transition hover:border-primary/60 hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            aria-pressed={theaterMode}
+            aria-label={theaterMode ? 'Exit theater mode' : 'Enter theater mode'}
+          >
+            {theaterMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            {theaterMode ? 'Exit theater' : 'Theater mode'}
+          </button>
         </div>
 
         <div className="p-6 md:p-8">
@@ -467,6 +496,12 @@ export default function LiveChannel() {
                     </>
                   )}
                 </div>
+                <p className="text-xs font-medium text-white/45">
+                  {typeof channel.followerCount === 'number' ? `${channel.followerCount.toLocaleString()} followers` : 'Kryv creator channel'}
+                </p>
+                {channel.description && (
+                  <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/60 line-clamp-2">{channel.description}</p>
+                )}
               </div>
             </div>
 
@@ -486,7 +521,7 @@ export default function LiveChannel() {
                   Clip
                 </Button>
               )}
-              <Button variant="secondary" onClick={() => setSupportOpen(open => !open)} className="font-bold border border-primary/25 text-primary hover:text-primary">
+              <Button variant="secondary" onClick={() => setSupportOpen(true)} className="font-bold border border-primary/25 text-primary hover:text-primary">
                 <Wallet className="w-4 h-4 mr-2" />
                 Support
               </Button>
@@ -496,8 +531,14 @@ export default function LiveChannel() {
             </div>
           </div>
 
-          {supportOpen && (
-            <section className="mt-6 rounded-2xl border border-primary/25 bg-primary/[0.055] p-4 sm:p-5">
+          <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
+            <DialogContent
+              overlayClassName="bg-black/35 backdrop-blur-[1px]"
+              className="left-0 right-0 top-[30dvh] h-[70dvh] max-h-none w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-t-[1.5rem] border-white/10 bg-[#11131a]/[0.98] p-4 shadow-2xl sm:left-auto sm:right-4 sm:top-[5dvh] sm:h-[90dvh] sm:w-[min(34rem,calc(100vw-2rem))] sm:rounded-[1.5rem] sm:p-5"
+            >
+              <DialogTitle className="sr-only">Support {channel.displayName} with crypto</DialogTitle>
+              <DialogDescription className="sr-only">Crypto-only support and subscription options. The stream remains available behind this panel.</DialogDescription>
+              <section className="rounded-[1.35rem] border border-primary/25 bg-primary/[0.055] p-4 shadow-2xl sm:p-5">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2 text-primary"><Wallet className="h-4 w-4" /><h3 className="text-sm font-black">Crypto support</h3></div><p className="mt-1 text-xs leading-relaxed text-white/50">Choose BTC, LTC, ETH, or DOGE. Kryv opens a secure crypto invoice; the USD amount is only a price quote, never a card or fiat checkout.</p></div><span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white/50">Crypto only</span></div>
               <div className="mt-4 grid gap-2 sm:grid-cols-3"><div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[0.06] px-3 py-2"><p className="text-[9px] font-black uppercase tracking-widest text-emerald-200/70">Creator receives</p><p className="mt-1 text-sm font-black text-emerald-100">95%</p></div><div className="rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2"><p className="text-[9px] font-black uppercase tracking-widest text-primary/70">Kryv retains</p><p className="mt-1 text-sm font-black text-white">5%</p></div><div className="rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2"><p className="text-[9px] font-black uppercase tracking-widest text-white/35">Checkout commission</p><p className="mt-1 text-[11px] font-bold text-white/70">Paid separately by you</p></div></div>
               <p className="mt-3 text-[11px] leading-relaxed text-white/40">The 95/5 split applies to the provider-confirmed crypto subtotal for eligible subscriptions and tips. The checkout commission is shown separately before payment and never reduces the advertised creator share.</p>
@@ -509,11 +550,12 @@ export default function LiveChannel() {
               {cryptoCheckout && (
                 <section className="mt-4 overflow-hidden rounded-2xl border border-primary/30 bg-black/35 p-4 sm:p-5" aria-label="Crypto payment instructions">
                   <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-black text-white">Complete your Kryv crypto checkout</p><p className="mt-1 text-xs leading-relaxed text-white/45">Scan the QR code or send the exact amount below. Kryv confirms payment only after network confirmation.</p></div><button type="button" onClick={() => setCryptoCheckout(null)} className="rounded-lg p-1 text-white/35 transition hover:bg-white/[0.08] hover:text-white" aria-label="Close payment instructions"><X className="h-4 w-4" /></button></div>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)]"><div className="mx-auto rounded-xl bg-white p-2"><img src={cryptoCheckout.qrCodeDataUrl} alt="Crypto payment QR code" className="h-40 w-40 sm:h-44 sm:w-44" /></div><div className="min-w-0 space-y-3"><div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3"><p className="text-[10px] font-black uppercase tracking-wider text-white/35">Send exactly</p><p className="mt-1 break-all font-mono text-sm font-bold text-primary">{cryptoCheckout.invoiceTotal} {cryptoCheckout.selectedCurrency || supportCoin}</p>{cryptoCheckout.invoiceCommission && <p className="mt-1 text-[11px] text-white/40">Includes the separately disclosed client-borne checkout fee of {cryptoCheckout.invoiceCommission} {cryptoCheckout.selectedCurrency || supportCoin}. The creator share is calculated from the confirmed crypto subtotal, not this fee.</p>}</div><div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3"><p className="text-[10px] font-black uppercase tracking-wider text-white/35">Payment address</p><p className="mt-1 break-all font-mono text-xs text-white/75">{cryptoCheckout.paymentAddress}</p><button type="button" onClick={() => { navigator.clipboard.writeText(cryptoCheckout.paymentAddress); toast({ title: 'Payment address copied' }); }} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-white"><Copy className="h-3.5 w-3.5" /> Copy address</button></div><Button type="button" variant="secondary" onClick={() => window.location.assign(cryptoCheckout.invoiceUrl)} className="w-full border border-white/10 text-white hover:text-white">Open secure checkout</Button></div></div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)]"><div className="mx-auto rounded-xl bg-white p-2"><img src={cryptoCheckout.qrCodeDataUrl} alt="Crypto payment QR code" className="h-40 w-40 sm:h-44 sm:w-44" /></div><div className="min-w-0 space-y-3"><div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3"><p className="text-[10px] font-black uppercase tracking-wider text-white/35">Send exactly</p><p className="mt-1 break-all font-mono text-sm font-bold text-primary">{cryptoCheckout.invoiceTotal} {cryptoCheckout.selectedCurrency || supportCoin}</p>{cryptoCheckout.invoiceCommission && <p className="mt-1 text-[11px] text-white/40">Includes the separately disclosed client-borne checkout fee of {cryptoCheckout.invoiceCommission} {cryptoCheckout.selectedCurrency || supportCoin}. The creator share is calculated from the confirmed crypto subtotal, not this fee.</p>}</div><div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3"><p className="text-[10px] font-black uppercase tracking-wider text-white/35">Payment address</p><p className="mt-1 break-all font-mono text-xs text-white/75">{cryptoCheckout.paymentAddress}</p><button type="button" onClick={() => { navigator.clipboard.writeText(cryptoCheckout.paymentAddress); toast({ title: 'Payment address copied' }); }} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-white"><Copy className="h-3.5 w-3.5" /> Copy address</button></div><Button type="button" variant="secondary" onClick={() => window.open(cryptoCheckout.invoiceUrl, '_blank', 'noopener,noreferrer')} className="w-full border border-white/10 text-white hover:text-white">Open secure checkout in a new tab</Button></div></div>
                 </section>
               )}
-            </section>
-          )}
+              </section>
+            </DialogContent>
+          </Dialog>
 
           {(engagement?.pointsEnabled || engagement?.activePoll || engagement?.activePrediction) && (
             <section className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
@@ -540,12 +582,6 @@ export default function LiveChannel() {
             </section>
           )}
 
-          {channel.description && (
-            <div className="mt-8 p-6 bg-white/5 border border-white/5 rounded-xl">
-              <h3 className="font-bold text-white mb-2">About {channel.displayName}</h3>
-              <p className="text-muted-foreground whitespace-pre-wrap">{channel.description}</p>
-            </div>
-          )}
         </div>
       </div>
 
