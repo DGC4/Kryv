@@ -12,6 +12,7 @@ import {
   useGetChannelEngagement,
   useCreateChannelEngagementAction,
   useCreateCryptoTip,
+  useCreateCryptoSubscription,
   useCreateWalletTip,
   useCreateClip,
 } from '@workspace/api-client-react';
@@ -51,6 +52,7 @@ export default function LiveChannel() {
   const moderateMessage = useCreateChannelModerationAction();
   const engagementAction = useCreateChannelEngagementAction();
   const createCryptoTip = useCreateCryptoTip();
+  const createCryptoSubscription = useCreateCryptoSubscription();
   const createWalletTip = useCreateWalletTip();
   const createClip = useCreateClip();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -62,6 +64,7 @@ export default function LiveChannel() {
   const [supportCoin, setSupportCoin] = useState<'BTC' | 'LTC' | 'ETH' | 'DOGE'>('BTC');
   const [supportMessage, setSupportMessage] = useState('');
   const [supportSource, setSupportSource] = useState<'invoice' | 'wallet'>('invoice');
+  const [subscriptionTier, setSubscriptionTier] = useState<1 | 2 | 3>(1);
   const [cryptoCheckout, setCryptoCheckout] = useState<any | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -232,6 +235,24 @@ export default function LiveChannel() {
         window.location.assign(checkout.invoiceUrl);
       },
       onError: (err: any) => toast({ title: 'Crypto support is unavailable', description: err?.body?.error || err?.message || 'The creator invoice could not be started. Please try again later.', variant: 'destructive' }),
+    });
+  };
+
+  const handleCryptoSubscription = () => {
+    if (!channelId) return;
+    if (!isSignedIn) {
+      toast({ title: 'Sign in to subscribe', description: 'You need to be signed in before starting a crypto subscription invoice.' });
+      return;
+    }
+    createCryptoSubscription.mutate({ id: channelId, data: { tier: subscriptionTier, cryptoCurrency: supportCoin } }, {
+      onSuccess: (checkout) => {
+        if (checkout.qrCodeDataUrl && checkout.paymentAddress && checkout.invoiceTotal) {
+          setCryptoCheckout(checkout);
+          return;
+        }
+        window.location.assign(checkout.invoiceUrl);
+      },
+      onError: (err: any) => toast({ title: 'Crypto subscription is unavailable', description: err?.body?.error || err?.message || 'The subscription invoice could not be started. Please try again later.', variant: 'destructive' }),
     });
   };
 
@@ -437,13 +458,14 @@ export default function LiveChannel() {
           {supportOpen && (
             <section className="mt-6 rounded-2xl border border-primary/25 bg-primary/[0.055] p-4 sm:p-5">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2 text-primary"><Wallet className="h-4 w-4" /><h3 className="text-sm font-black">Crypto support</h3></div><p className="mt-1 text-xs leading-relaxed text-white/50">Choose BTC, LTC, ETH, or DOGE. Kryv opens a secure crypto invoice; the USD amount is only a price quote, never a card or fiat checkout.</p></div><span className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white/50">Crypto only</span></div>
-              <div className="mt-4 flex rounded-xl border border-white/[0.1] bg-black/25 p-1 text-xs font-bold"><button type="button" onClick={() => setSupportSource('invoice')} className={`flex-1 rounded-lg px-3 py-2 transition ${supportSource === 'invoice' ? 'bg-primary text-primary-foreground' : 'text-white/55 hover:text-white'}`}>Direct crypto</button><button type="button" onClick={() => setSupportSource('wallet')} className={`flex-1 rounded-lg px-3 py-2 transition ${supportSource === 'wallet' ? 'bg-primary text-primary-foreground' : 'text-white/55 hover:text-white'}`}>Kryv Wallet</button></div>
+              <div className="mt-4 flex rounded-xl border border-white/[0.1] bg-black/25 p-1 text-xs font-bold"><button type="button" onClick={() => setSupportSource('invoice')} className={`flex-1 rounded-lg px-3 py-2 transition ${supportSource === 'invoice' ? 'bg-primary text-primary-foreground' : 'text-white/55 hover:text-white'}`}>Direct crypto</button><button type="button" disabled title="Customer wallet custody is not active" className="flex-1 cursor-not-allowed rounded-lg px-3 py-2 text-white/25">Kryv Wallet · Coming soon</button></div>
               <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><label className="text-xs font-bold text-white/55">{supportSource === 'wallet' ? `Support amount (${supportCoin})` : 'Support amount (USD quote)'}<input type="number" min={supportSource === 'wallet' ? '0.00000001' : '0.01'} step={supportSource === 'wallet' ? '0.00000001' : '0.01'} value={supportAmount} onChange={event => setSupportAmount(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label><label className="text-xs font-bold text-white/55">Pay with<select value={supportCoin} onChange={event => setSupportCoin(event.target.value as typeof supportCoin)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="BTC">Bitcoin (BTC)</option><option value="LTC">Litecoin (LTC)</option><option value="ETH">Ethereum (ETH)</option><option value="DOGE">Dogecoin (DOGE)</option></select></label><div className="flex items-end"><Button onClick={supportSource === 'wallet' ? handleWalletSupport : handleCryptoSupport} disabled={supportSource === 'wallet' ? createWalletTip.isPending : createCryptoTip.isPending} className="h-10 w-full rounded-xl font-black">{(supportSource === 'wallet' ? createWalletTip.isPending : createCryptoTip.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wallet className="mr-2 h-4 w-4" /> {supportSource === 'wallet' ? 'Support now' : 'Continue'}</>}</Button></div></div>
+              <section className="mt-4 rounded-xl border border-white/[0.1] bg-black/25 p-3 sm:p-4"><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-black text-white">Channel subscription</p><p className="mt-1 text-[11px] leading-relaxed text-white/45">Choose a channel tier, then Kryv will show the provider-confirmed crypto amount before you pay. No fiat checkout is used.</p></div><span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-primary">Crypto only</span></div><div className="mt-3 grid grid-cols-3 gap-2">{([1, 2, 3] as const).map((tier) => <button key={tier} type="button" onClick={() => setSubscriptionTier(tier)} className={`rounded-lg border px-2 py-2 text-left transition ${subscriptionTier === tier ? 'border-primary bg-primary/15 text-white' : 'border-white/[0.1] bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white'}`}><span className="block text-[10px] font-black uppercase tracking-wider">Tier {tier}</span><span className="mt-1 block text-[10px] text-white/45">Exact crypto quote</span></button>)}</div><Button type="button" onClick={handleCryptoSubscription} disabled={createCryptoSubscription.isPending} className="mt-3 h-10 w-full rounded-xl font-black">{createCryptoSubscription.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Heart className="mr-2 h-4 w-4" /> Subscribe with crypto</>}</Button></section>
               <label className="mt-3 block text-xs font-bold text-white/55">Optional message<input value={supportMessage} onChange={event => setSupportMessage(event.target.value)} maxLength={500} placeholder="Send a note with your support" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label>
               <p className="mt-3 text-[11px] leading-relaxed text-white/42">{supportSource === 'wallet' ? 'Kryv Wallet support debits only your confirmed crypto balance and writes matching customer, creator, and platform ledger movements in one completed transaction.' : 'A creator balance changes only after Kryv verifies a signed settlement confirmation. No wallet private key or seed phrase is requested by Kryv.'}</p>
               {cryptoCheckout && (
                 <section className="mt-4 overflow-hidden rounded-2xl border border-primary/30 bg-black/35 p-4 sm:p-5" aria-label="Crypto payment instructions">
-                  <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-black text-white">Complete your crypto support</p><p className="mt-1 text-xs leading-relaxed text-white/45">Scan the QR code or send the exact amount below. Kryv confirms payment only after network confirmation.</p></div><button type="button" onClick={() => setCryptoCheckout(null)} className="rounded-lg p-1 text-white/35 transition hover:bg-white/[0.08] hover:text-white" aria-label="Close payment instructions"><X className="h-4 w-4" /></button></div>
+                  <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-black text-white">Complete your Kryv crypto checkout</p><p className="mt-1 text-xs leading-relaxed text-white/45">Scan the QR code or send the exact amount below. Kryv confirms payment only after network confirmation.</p></div><button type="button" onClick={() => setCryptoCheckout(null)} className="rounded-lg p-1 text-white/35 transition hover:bg-white/[0.08] hover:text-white" aria-label="Close payment instructions"><X className="h-4 w-4" /></button></div>
                   <div className="mt-4 grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)]"><div className="mx-auto rounded-xl bg-white p-2"><img src={cryptoCheckout.qrCodeDataUrl} alt="Crypto payment QR code" className="h-40 w-40 sm:h-44 sm:w-44" /></div><div className="min-w-0 space-y-3"><div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3"><p className="text-[10px] font-black uppercase tracking-wider text-white/35">Send exactly</p><p className="mt-1 break-all font-mono text-sm font-bold text-primary">{cryptoCheckout.invoiceTotal} {cryptoCheckout.selectedCurrency || supportCoin}</p>{cryptoCheckout.invoiceCommission && <p className="mt-1 text-[11px] text-white/40">Includes the provider&apos;s client-borne checkout fee of {cryptoCheckout.invoiceCommission} {cryptoCheckout.selectedCurrency || supportCoin}.</p>}</div><div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3"><p className="text-[10px] font-black uppercase tracking-wider text-white/35">Payment address</p><p className="mt-1 break-all font-mono text-xs text-white/75">{cryptoCheckout.paymentAddress}</p><button type="button" onClick={() => { navigator.clipboard.writeText(cryptoCheckout.paymentAddress); toast({ title: 'Payment address copied' }); }} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-white"><Copy className="h-3.5 w-3.5" /> Copy address</button></div><Button type="button" variant="secondary" onClick={() => window.location.assign(cryptoCheckout.invoiceUrl)} className="w-full border border-white/10 text-white hover:text-white">Open secure checkout</Button></div></div>
                 </section>
               )}

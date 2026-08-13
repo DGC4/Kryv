@@ -231,7 +231,25 @@ app.use("/api", webhooksRouter);
 app.use("/api", routes);
 
 // ── Health check ──────────────────────────────────────────────────────────────
-app.get("/health", (_req, res) => res.json({ status: "ok" }));
+// The response deliberately exposes deployment capability only, never secrets or
+// wallet data. Uptime checks can distinguish an API that is alive from a topology
+// that still relies on local fallbacks while Redis, realtime, and worker services
+// are not deployed.
+app.get("/health", (_req, res) => {
+  const cacheConfigured = Boolean(process.env.KRYV_CACHE_REDIS_URL?.trim());
+  const queueConfigured = Boolean(process.env.KRYV_QUEUE_REDIS_URL?.trim());
+  const realtimeConfigured = Boolean(process.env.KRYV_REALTIME_TOKEN_SECRET?.trim());
+  res.json({
+    status: "ok",
+    mode: cacheConfigured && queueConfigured ? "distributed" : "free-tier-fallback",
+    capabilities: {
+      sharedCache: cacheConfigured,
+      durableQueue: queueConfigured,
+      realtimeTokenIssuer: realtimeConfigured,
+      providerWithdrawalsRuntimeEnabled: process.env.PLISIO_WITHDRAWALS_ENABLED === "true",
+    },
+  });
+});
 
 // ── Serve frontend in production ──────────────────────────────────────────────
 const possibleDistPaths = [
