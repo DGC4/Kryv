@@ -1670,6 +1670,31 @@ export const CreateChannelChatReportResponse = zod.object({
 
 
 /**
+ * @summary Report a public creator channel for owner safety review
+ */
+export const CreateChannelSafetyReportParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createChannelSafetyReportBodyDetailsMax = 500;
+
+
+
+export const CreateChannelSafetyReportBody = zod.object({
+  "reason": zod.enum(['harassment', 'hate_or_harm', 'spam_or_scam', 'sexual_content', 'violence_or_threat', 'impersonation', 'other']),
+  "details": zod.string().max(createChannelSafetyReportBodyDetailsMax).optional()
+})
+
+export const CreateChannelSafetyReportResponse = zod.object({
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "subjectUserId": zod.number(),
+  "status": zod.enum(['open']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Browse public, ready-to-play Kryv clips
  */
 export const ListClipsQueryParams = zod.object({

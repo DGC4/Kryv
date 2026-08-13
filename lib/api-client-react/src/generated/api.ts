@@ -68,6 +68,8 @@ import type {
   ChannelInput,
   ChannelModerationActionInput,
   ChannelModerationActionResult,
+  ChannelSafetyReport,
+  ChannelSafetyReportInput,
   ChannelSummary,
   ChannelUpdate,
   ChatMessage,
@@ -3956,6 +3958,78 @@ export const useCreateChannelChatReport = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getCreateChannelChatReportMutationOptions(options));
+    }
+
+export const getCreateChannelSafetyReportUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/channel-reports`
+}
+
+/**
+ * @summary Report a public creator channel for owner safety review
+ */
+export const createChannelSafetyReport = async (id: number,
+    channelSafetyReportInput: ChannelSafetyReportInput, options?: RequestInit): Promise<ChannelSafetyReport> => {
+
+  return customFetch<ChannelSafetyReport>(getCreateChannelSafetyReportUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(channelSafetyReportInput)
+  }
+);}
+
+
+
+
+
+export const getCreateChannelSafetyReportMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelSafetyReport>>, TError,{id: number;data: BodyType<ChannelSafetyReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChannelSafetyReport>>, TError,{id: number;data: BodyType<ChannelSafetyReportInput>}, TContext> => {
+
+const mutationKey = ['createChannelSafetyReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChannelSafetyReport>>, {id: number;data: BodyType<ChannelSafetyReportInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createChannelSafetyReport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChannelSafetyReportMutationResult = NonNullable<Awaited<ReturnType<typeof createChannelSafetyReport>>>
+    export type CreateChannelSafetyReportMutationBody = BodyType<ChannelSafetyReportInput>
+    export type CreateChannelSafetyReportMutationError = ErrorType<Error>
+
+    /**
+ * @summary Report a public creator channel for owner safety review
+ */
+export const useCreateChannelSafetyReport = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelSafetyReport>>, TError,{id: number;data: BodyType<ChannelSafetyReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createChannelSafetyReport>>,
+        TError,
+        {id: number;data: BodyType<ChannelSafetyReportInput>},
+        TContext
+      > => {
+      return useMutation(getCreateChannelSafetyReportMutationOptions(options));
     }
 
 export const getListClipsUrl = (params?: ListClipsParams,) => {

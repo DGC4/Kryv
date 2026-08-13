@@ -846,6 +846,40 @@ export interface ChatReport {
   createdAt: string;
 }
 
+export type ChannelSafetyReportInputReason = typeof ChannelSafetyReportInputReason[keyof typeof ChannelSafetyReportInputReason];
+
+
+export const ChannelSafetyReportInputReason = {
+  harassment: 'harassment',
+  hate_or_harm: 'hate_or_harm',
+  spam_or_scam: 'spam_or_scam',
+  sexual_content: 'sexual_content',
+  violence_or_threat: 'violence_or_threat',
+  impersonation: 'impersonation',
+  other: 'other',
+} as const;
+
+export interface ChannelSafetyReportInput {
+  reason: ChannelSafetyReportInputReason;
+  /** @maxLength 500 */
+  details?: string;
+}
+
+export type ChannelSafetyReportStatus = typeof ChannelSafetyReportStatus[keyof typeof ChannelSafetyReportStatus];
+
+
+export const ChannelSafetyReportStatus = {
+  open: 'open',
+} as const;
+
+export interface ChannelSafetyReport {
+  id: number;
+  channelId: number;
+  subjectUserId: number;
+  status: ChannelSafetyReportStatus;
+  createdAt: string;
+}
+
 export type AdminModerationCaseStatus = typeof AdminModerationCaseStatus[keyof typeof AdminModerationCaseStatus];
 
 

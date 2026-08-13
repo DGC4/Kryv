@@ -1,5 +1,4 @@
 import { Router, type IRouter } from "express";
-import { z } from "zod";
 import { and, asc, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import {
   channelBansTable,
@@ -23,6 +22,9 @@ import {
   CreateChannelChatReportBody,
   CreateChannelChatReportParams,
   CreateChannelChatReportResponse,
+  CreateChannelSafetyReportBody,
+  CreateChannelSafetyReportParams,
+  CreateChannelSafetyReportResponse,
   GetChannelChatSettingsParams,
   GetChannelChatSettingsResponse,
   ListChannelMessagesParams,
@@ -38,11 +40,6 @@ import { logActivity } from "../lib/tracking";
 import { writeAuditLog } from "../lib/operations";
 
 const router: IRouter = Router();
-
-const CreateChannelSafetyReportBody = z.object({
-  reason: z.enum(["harassment", "hate_or_harm", "spam_or_scam", "sexual_content", "violence_or_threat", "other"]),
-  details: z.string().trim().min(1).max(1000).optional(),
-});
 
 function messageListCacheKey(channelId: number) {
   return `kryv:chat:messages:${channelId}`;
@@ -506,7 +503,7 @@ router.post(
   "/channels/:id/channel-reports",
   requireAuth,
   async (req, res): Promise<void> => {
-    const params = CreateChannelChatReportParams.safeParse(req.params);
+    const params = CreateChannelSafetyReportParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
       return;
@@ -561,13 +558,13 @@ router.post(
     });
     logActivity(req, "channel_reported", { channelId: channel.id, caseId: caseRecord.id, reason: body.data.reason }).catch(() => undefined);
 
-    res.status(201).json({
+    res.status(201).json(CreateChannelSafetyReportResponse.parse({
       id: caseRecord.id,
       channelId: channel.id,
       subjectUserId: channel.ownerUserId,
       status: "open",
-      createdAt: caseRecord.createdAt,
-    });
+      createdAt: caseRecord.createdAt.toISOString(),
+    }));
   },
 );
 

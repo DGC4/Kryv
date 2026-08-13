@@ -1470,6 +1470,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /channels/{id}/channel-reports:
+    post:
+      operationId: createChannelSafetyReport
+      tags: [moderation]
+      summary: Report a public creator channel for owner safety review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelSafetyReportInput"
+      responses:
+        "201":
+          description: Channel report recorded for review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelSafetyReport"
+        "400":
+          description: Invalid report input or own channel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /clips:
     get:
       operationId: listClips
@@ -3199,6 +3242,25 @@ components:
         id: { type: integer }
         channelId: { type: integer }
         messageId: { type: integer }
+        subjectUserId: { type: integer }
+        status: { type: string, enum: [open] }
+        createdAt: { type: string, format: date-time }
+
+    ChannelSafetyReportInput:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          enum: [harassment, hate_or_harm, spam_or_scam, sexual_content, violence_or_threat, impersonation, other]
+        details: { type: string, maxLength: 500 }
+
+    ChannelSafetyReport:
+      type: object
+      required: [id, channelId, subjectUserId, status, createdAt]
+      properties:
+        id: { type: integer }
+        channelId: { type: integer }
         subjectUserId: { type: integer }
         status: { type: string, enum: [open] }
         createdAt: { type: string, format: date-time }
