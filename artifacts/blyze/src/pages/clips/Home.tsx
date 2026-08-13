@@ -10,7 +10,7 @@ function formatDuration(seconds: number | null) {
 }
 
 export default function ClipsHome() {
-  const { data: clips, isLoading } = useListClips();
+  const { data: clips, isLoading, isError, refetch: refetchClips } = useListClips();
 
   return (
     <main className="min-h-screen bg-[#080808] text-white">
@@ -38,6 +38,8 @@ export default function ClipsHome() {
 
         {isLoading ? (
           <div className="min-h-64 flex items-center justify-center"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>
+        ) : isError ? (
+          <div className="min-h-72 rounded-2xl border border-red-300/20 bg-red-400/[0.05] flex flex-col items-center justify-center px-6 text-center"><Clapperboard className="w-7 h-7 text-red-200/70" /><h3 className="mt-4 font-black text-red-100">Clips are temporarily unavailable</h3><p className="max-w-sm mt-2 text-sm leading-relaxed text-red-100/70">Kryv cannot safely show a partial clip feed while the published inventory is unavailable.</p><button type="button" onClick={() => refetchClips()} className="mt-5 inline-flex min-h-10 items-center rounded-xl border border-red-200/25 bg-red-200/[0.08] px-4 text-sm font-black text-red-50 transition hover:bg-red-200/[0.14]">Retry Clips</button></div>
         ) : clips?.length ? (
           <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {clips.map((clip) => (
