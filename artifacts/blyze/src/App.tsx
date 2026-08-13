@@ -32,6 +32,7 @@ import CustomerWallet from '@/pages/wallet/Wallet';
 import Privacy from '@/pages/legal/Privacy';
 import Terms from '@/pages/legal/Terms';
 import CreatorEconomics from '@/pages/legal/CreatorEconomics';
+import Safety from '@/pages/legal/Safety';
 import SignInPage from '@/pages/auth/SignIn';
 import SignUpPage from '@/pages/auth/SignUp';
 
@@ -128,6 +129,9 @@ function AppRoutes() {
       </Route>
       <Route path="/creator-economics">
         <Layout><CreatorEconomics /></Layout>
+      </Route>
+      <Route path="/safety">
+        <Layout><Safety /></Layout>
       </Route>
 
       <Route>
