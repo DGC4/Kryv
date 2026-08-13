@@ -718,6 +718,21 @@ export const SearchKryvResponse = zod.object({
   "processingStatus": zod.enum(['processing', 'ready', 'errored']),
   "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
   "createdAt": zod.coerce.date()
+})),
+  "cinema": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string(),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
 }))
 })
 
@@ -2270,6 +2285,45 @@ export const GetAdminCommandOverviewResponse = zod.object({
 
 
 /**
+ * @summary Owner-only connected platform analytics from recorded stream, chat, subscription, and immutable revenue data
+ */
+export const getAdminAnalyticsQueryRangeDaysDefault = 7;
+
+export const GetAdminAnalyticsQueryParams = zod.object({
+  "rangeDays": zod.union([zod.literal(1),zod.literal(7),zod.literal(30)]).default(getAdminAnalyticsQueryRangeDaysDefault)
+})
+
+export const GetAdminAnalyticsResponse = zod.object({
+  "rangeDays": zod.union([zod.literal(1),zod.literal(7),zod.literal(30)]),
+  "summary": zod.object({
+  "streamSessions": zod.number(),
+  "streamSeconds": zod.number(),
+  "chatMessages": zod.number(),
+  "activeCreators": zod.number(),
+  "activeSubscriptions": zod.number()
+}),
+  "activity": zod.array(zod.object({
+  "bucket": zod.coerce.date(),
+  "streamSessions": zod.number(),
+  "chatMessages": zod.number()
+})),
+  "topCreators": zod.array(zod.object({
+  "channelId": zod.number(),
+  "channelDisplayName": zod.string(),
+  "streamSessions": zod.number(),
+  "streamSeconds": zod.number(),
+  "chatMessages": zod.number()
+})),
+  "revenueByAsset": zod.array(zod.object({
+  "currency": zod.string(),
+  "grossAmount": zod.string(),
+  "platformFeeAmount": zod.string(),
+  "creatorNetAmount": zod.string()
+}))
+})
+
+
+/**
  * @summary Owner-only finance command overview with asset liabilities and controlled-launch status
  */
 export const GetAdminFinanceOverviewResponse = zod.object({
@@ -2289,6 +2343,46 @@ export const GetAdminFinanceOverviewResponse = zod.object({
   "scheduledPayoutRequestsEnabled": zod.boolean(),
   "providerWithdrawalsEnabled": zod.boolean(),
   "providerConfigured": zod.boolean()
+})
+
+
+/**
+ * @summary Owner-only recent immutable revenue, creator-balance, and sanitized payment-event activity
+ */
+export const GetAdminFinanceLedgerResponse = zod.object({
+  "platformRevenue": zod.array(zod.object({
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "channelDisplayName": zod.string(),
+  "currency": zod.string(),
+  "paymentKind": zod.string(),
+  "grossAmount": zod.string(),
+  "platformFeeAmount": zod.string(),
+  "creatorNetAmount": zod.string(),
+  "sourceType": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "creatorBalanceMovements": zod.array(zod.object({
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "channelDisplayName": zod.string(),
+  "currency": zod.string(),
+  "movementType": zod.string(),
+  "availableDelta": zod.string(),
+  "heldDelta": zod.string(),
+  "pendingDelta": zod.string(),
+  "sourceType": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "paymentEvents": zod.array(zod.object({
+  "id": zod.number(),
+  "provider": zod.string(),
+  "eventType": zod.string(),
+  "processingStatus": zod.string(),
+  "errorCode": zod.string().nullable(),
+  "processedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+}))
 })
 
 

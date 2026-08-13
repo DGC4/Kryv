@@ -7,6 +7,7 @@ import { toChannelSummary } from "../lib/channelSerializer";
 import { toVideoSummary } from "../lib/videoSerializer";
 import { getFastPixViewerCount } from "../lib/fastpix";
 import { readSharedJson, writeSharedJson } from "../lib/realtime";
+import { getPublishedCinemaTitles } from "../lib/cinemaCatalog";
 
 const router: IRouter = Router();
 const DISCOVER_SUMMARY_CACHE_KEY = "kryv:discover:summary:v1";
@@ -118,15 +119,18 @@ router.get("/search", async (req, res): Promise<void> => {
   }
   const pattern = `%${term}%`;
 
-  const [channels, videos, clips] = await Promise.all([
+  const [channels, videos, clips, cinemaCatalog] = await Promise.all([
     db.select().from(channelsTable).where(or(ilike(channelsTable.displayName, pattern), ilike(channelsTable.slug, pattern), ilike(channelsTable.streamTitle, pattern))).orderBy(desc(channelsTable.isLive), desc(channelsTable.viewerCount)).limit(8),
     db.select().from(videosTable).where(and(eq(videosTable.uploadStatus, "ready"), ilike(videosTable.title, pattern))).orderBy(desc(videosTable.createdAt)).limit(8),
     db.select({ clip: clipsTable, channel: { id: channelsTable.id, displayName: channelsTable.displayName, slug: channelsTable.slug } }).from(clipsTable).innerJoin(channelsTable, eq(clipsTable.channelId, channelsTable.id)).where(and(eq(clipsTable.isPublished, true), eq(clipsTable.processingStatus, "ready"), ilike(clipsTable.title, pattern))).orderBy(desc(clipsTable.createdAt)).limit(8),
+    getPublishedCinemaTitles(),
   ]);
+  const cinema = cinemaCatalog.filter((title) => title.title.toLowerCase().includes(term) || title.synopsis?.toLowerCase().includes(term)).slice(0, 8);
 
   res.json({
     channels: await Promise.all(channels.map(toChannelSummary)),
     videos: await Promise.all(videos.map(toVideoSummary)),
+    cinema,
     clips: clips.map(({ clip, channel }) => ({
       id: clip.id,
       title: clip.title,

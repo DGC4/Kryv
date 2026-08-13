@@ -696,15 +696,15 @@ export default function DashboardLive() {
       </aside>
 
       {/* ── Main content area ── */}
-      <div className="flex-1 overflow-auto">
+      <div className="min-w-0 flex-1">
 
         {/* Top bar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-black/10 sticky top-0 z-20 backdrop-blur">
+        <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] bg-black/90 px-4 py-3 backdrop-blur sm:px-5 sm:py-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-black text-white">Creator Dashboard</h1>
+            <h1 className="text-base font-black text-white sm:text-lg">Creator Dashboard</h1>
             <StatusBadge live={isLive} />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             {location?.resolved && (
               <div className="hidden sm:flex items-center gap-1.5 text-xs text-white/40">
                 <MapPin className="w-3 h-3 text-primary" />
@@ -713,19 +713,19 @@ export default function DashboardLive() {
             )}
             <Button
               onClick={handleGoLive}
-              className={`h-9 px-5 font-black text-xs rounded-full transition-all ${
+              className={`h-11 px-3 text-xs font-black transition-all sm:px-5 ${
                 credentials
                   ? 'bg-red-600 hover:bg-red-500 text-white shadow-[0_0_16px_rgba(239,68,68,0.4)]'
                   : 'bg-white/[0.06] text-white/40 border border-white/[0.08] cursor-default'
               }`}
             >
               <Radio className="w-3.5 h-3.5 mr-1.5" />
-              {isLive ? 'View live channel' : 'Open broadcast setup'}
+              <span className="sm:hidden">{isLive ? 'View live' : 'Setup'}</span><span className="hidden sm:inline">{isLive ? 'View live channel' : 'Open broadcast setup'}</span>
             </Button>
           </div>
         </div>
 
-        <div className="lg:hidden border-b border-white/[0.06] bg-black/15 px-3 py-2 overflow-x-auto">
+        <div className="lg:hidden overflow-x-auto border-b border-white/[0.06] bg-black/35 px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex min-w-max gap-1">
             {([
               { id: 'stream', label: 'Stream', icon: LayoutDashboard },
@@ -740,7 +740,8 @@ export default function DashboardLive() {
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
-                className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors ${activeTab === id ? 'bg-primary/15 text-primary' : 'text-white/45 hover:bg-white/[0.05] hover:text-white'}`}
+                aria-current={activeTab === id ? 'page' : undefined}
+                className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors ${activeTab === id ? 'bg-primary/15 text-primary' : 'text-white/45 hover:bg-white/[0.05] hover:text-white'}`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 {label}

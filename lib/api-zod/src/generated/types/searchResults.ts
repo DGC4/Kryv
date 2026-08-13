@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ChannelSummary } from './channelSummary';
+import type { CinemaTitle } from './cinemaTitle';
 import type { ClipSummary } from './clipSummary';
 import type { VideoSummary } from './videoSummary';
 
@@ -13,4 +14,5 @@ export interface SearchResults {
   channels: ChannelSummary[];
   videos: VideoSummary[];
   clips: ClipSummary[];
+  cinema: CinemaTitle[];
 }

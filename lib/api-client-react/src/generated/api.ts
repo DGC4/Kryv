@@ -29,6 +29,7 @@ import type {
   AdminAdCampaign,
   AdminAdFundingInvoice,
   AdminAdsOverview,
+  AdminAnalytics,
   AdminCinemaAsset,
   AdminCinemaAssetInput,
   AdminCinemaCredit,
@@ -43,6 +44,7 @@ import type {
   AdminCinemaUploadSessionInput,
   AdminCommandOverview,
   AdminFeatureFlag,
+  AdminFinanceLedger,
   AdminFinanceOverview,
   AdminModerationCase,
   AdminPayoutProfile,
@@ -92,6 +94,7 @@ import type {
   DiscoverSummary,
   Error,
   GetAdDecisionParams,
+  GetAdminAnalyticsParams,
   HealthStatus,
   ListAdminModerationCasesParams,
   ListCategoriesParams,
@@ -5304,6 +5307,90 @@ export function useGetAdminCommandOverview<TData = Awaited<ReturnType<typeof get
 
 
 
+export const getGetAdminAnalyticsUrl = (params?: GetAdminAnalyticsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/analytics?${stringifiedParams}` : `/api/admin/analytics`
+}
+
+/**
+ * @summary Owner-only connected platform analytics from recorded stream, chat, subscription, and immutable revenue data
+ */
+export const getAdminAnalytics = async (params?: GetAdminAnalyticsParams, options?: RequestInit): Promise<AdminAnalytics> => {
+
+  return customFetch<AdminAnalytics>(getGetAdminAnalyticsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminAnalyticsQueryKey = (params?: GetAdminAnalyticsParams,) => {
+    return [
+    `/api/admin/analytics`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAnalytics>>, TError = ErrorType<void>>(params?: GetAdminAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminAnalyticsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAnalytics>>> = ({ signal }) => getAdminAnalytics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAnalytics>>>
+export type GetAdminAnalyticsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only connected platform analytics from recorded stream, chat, subscription, and immutable revenue data
+ */
+
+export function useGetAdminAnalytics<TData = Awaited<ReturnType<typeof getAdminAnalytics>>, TError = ErrorType<void>>(
+ params?: GetAdminAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminAnalyticsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetAdminFinanceOverviewUrl = () => {
 
 
@@ -5369,6 +5456,83 @@ export function useGetAdminFinanceOverview<TData = Awaited<ReturnType<typeof get
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminFinanceOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminFinanceLedgerUrl = () => {
+
+
+
+
+  return `/api/admin/finance/ledger`
+}
+
+/**
+ * @summary Owner-only recent immutable revenue, creator-balance, and sanitized payment-event activity
+ */
+export const getAdminFinanceLedger = async ( options?: RequestInit): Promise<AdminFinanceLedger> => {
+
+  return customFetch<AdminFinanceLedger>(getGetAdminFinanceLedgerUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminFinanceLedgerQueryKey = () => {
+    return [
+    `/api/admin/finance/ledger`
+    ] as const;
+    }
+
+
+export const getGetAdminFinanceLedgerQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminFinanceLedgerQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminFinanceLedger>>> = ({ signal }) => getAdminFinanceLedger({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminFinanceLedgerQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminFinanceLedger>>>
+export type GetAdminFinanceLedgerQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only recent immutable revenue, creator-balance, and sanitized payment-event activity
+ */
+
+export function useGetAdminFinanceLedger<TData = Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminFinanceLedgerQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

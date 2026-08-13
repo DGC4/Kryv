@@ -369,6 +369,7 @@ export interface SearchResults {
   channels: ChannelSummary[];
   videos: VideoSummary[];
   clips: ClipSummary[];
+  cinema: CinemaTitle[];
 }
 
 export type CryptoCurrency = typeof CryptoCurrency[keyof typeof CryptoCurrency];
@@ -1635,6 +1636,50 @@ export interface AdminFinanceAssetLiability {
   rateUpdatedAt: string | null;
 }
 
+export type AdminFinanceLedgerPlatformRevenueItem = {
+  id: number;
+  channelId: number;
+  channelDisplayName: string;
+  currency: string;
+  paymentKind: string;
+  grossAmount: string;
+  platformFeeAmount: string;
+  creatorNetAmount: string;
+  sourceType: string;
+  createdAt: string;
+};
+
+export type AdminFinanceLedgerCreatorBalanceMovementsItem = {
+  id: number;
+  channelId: number;
+  channelDisplayName: string;
+  currency: string;
+  movementType: string;
+  availableDelta: string;
+  heldDelta: string;
+  pendingDelta: string;
+  sourceType: string;
+  createdAt: string;
+};
+
+export type AdminFinanceLedgerPaymentEventsItem = {
+  id: number;
+  provider: string;
+  eventType: string;
+  processingStatus: string;
+  /** @nullable */
+  errorCode: string | null;
+  /** @nullable */
+  processedAt: string | null;
+  createdAt: string;
+};
+
+export interface AdminFinanceLedger {
+  platformRevenue: AdminFinanceLedgerPlatformRevenueItem[];
+  creatorBalanceMovements: AdminFinanceLedgerCreatorBalanceMovementsItem[];
+  paymentEvents: AdminFinanceLedgerPaymentEventsItem[];
+}
+
 export interface AdminFinanceOverview {
   assetLiabilities: AdminFinanceAssetLiability[];
   pendingProfileReviews: number;
@@ -1856,6 +1901,52 @@ export interface AdminAdFundingInvoice {
   /** @nullable */
   invoiceTotal: string | null;
   providerFeePaidBy: AdminAdFundingInvoiceProviderFeePaidBy;
+}
+
+export type AdminAnalyticsRangeDays = typeof AdminAnalyticsRangeDays[keyof typeof AdminAnalyticsRangeDays];
+
+
+export const AdminAnalyticsRangeDays = {
+  NUMBER_1: 1,
+  NUMBER_7: 7,
+  NUMBER_30: 30,
+} as const;
+
+export type AdminAnalyticsSummary = {
+  streamSessions: number;
+  streamSeconds: number;
+  chatMessages: number;
+  activeCreators: number;
+  activeSubscriptions: number;
+};
+
+export type AdminAnalyticsActivityItem = {
+  bucket: string;
+  streamSessions: number;
+  chatMessages: number;
+};
+
+export type AdminAnalyticsTopCreatorsItem = {
+  channelId: number;
+  channelDisplayName: string;
+  streamSessions: number;
+  streamSeconds: number;
+  chatMessages: number;
+};
+
+export type AdminAnalyticsRevenueByAssetItem = {
+  currency: string;
+  grossAmount: string;
+  platformFeeAmount: string;
+  creatorNetAmount: string;
+};
+
+export interface AdminAnalytics {
+  rangeDays: AdminAnalyticsRangeDays;
+  summary: AdminAnalyticsSummary;
+  activity: AdminAnalyticsActivityItem[];
+  topCreators: AdminAnalyticsTopCreatorsItem[];
+  revenueByAsset: AdminAnalyticsRevenueByAssetItem[];
 }
 
 export type AdminCommandOverviewPlatform = {
@@ -2099,5 +2190,18 @@ export const ListAdminModerationCasesStatus = {
   open: 'open',
   resolved: 'resolved',
   dismissed: 'dismissed',
+} as const;
+
+export type GetAdminAnalyticsParams = {
+rangeDays?: GetAdminAnalyticsRangeDays;
+};
+
+export type GetAdminAnalyticsRangeDays = typeof GetAdminAnalyticsRangeDays[keyof typeof GetAdminAnalyticsRangeDays];
+
+
+export const GetAdminAnalyticsRangeDays = {
+  NUMBER_1: 1,
+  NUMBER_7: 7,
+  NUMBER_30: 30,
 } as const;
 

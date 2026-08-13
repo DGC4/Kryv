@@ -1901,6 +1901,26 @@ paths:
                 $ref: "#/components/schemas/AdminCommandOverview"
         "403": { description: Not an owner }
 
+  /admin/analytics:
+    get:
+      operationId: getAdminAnalytics
+      tags: [admin]
+      summary: Owner-only connected platform analytics from recorded stream, chat, subscription, and immutable revenue data
+      parameters:
+        - name: rangeDays
+          in: query
+          required: false
+          schema: { type: integer, enum: [1, 7, 30], default: 7 }
+      responses:
+        "200":
+          description: Time-bounded owner analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnalytics"
+        "400": { description: Invalid time range }
+        "403": { description: Not an owner }
+
   /admin/finance/overview:
     get:
       operationId: getAdminFinanceOverview
@@ -1913,6 +1933,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminFinanceOverview"
+        "403": { description: Not an owner }
+
+  /admin/finance/ledger:
+    get:
+      operationId: getAdminFinanceLedger
+      tags: [admin-finance]
+      summary: Owner-only recent immutable revenue, creator-balance, and sanitized payment-event activity
+      responses:
+        "200":
+          description: Finance ledger activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminFinanceLedger"
         "403": { description: Not an owner }
 
   /admin/finance/payout-profiles:
@@ -2584,7 +2618,7 @@ components:
 
     SearchResults:
       type: object
-      required: [channels, videos, clips]
+      required: [channels, videos, clips, cinema]
       properties:
         channels:
           type: array
@@ -2595,6 +2629,9 @@ components:
         clips:
           type: array
           items: { $ref: "#/components/schemas/ClipSummary" }
+        cinema:
+          type: array
+          items: { $ref: "#/components/schemas/CinemaTitle" }
 
     CryptoCurrency:
       type: string
@@ -3584,6 +3621,56 @@ components:
         priceUsd: { type: ["string", "null"] }
         rateUpdatedAt: { type: ["string", "null"], format: date-time }
 
+    AdminFinanceLedger:
+      type: object
+      required: [platformRevenue, creatorBalanceMovements, paymentEvents]
+      properties:
+        platformRevenue:
+          type: array
+          items:
+            type: object
+            required: [id, channelId, channelDisplayName, currency, paymentKind, grossAmount, platformFeeAmount, creatorNetAmount, sourceType, createdAt]
+            properties:
+              id: { type: integer }
+              channelId: { type: integer }
+              channelDisplayName: { type: string }
+              currency: { type: string }
+              paymentKind: { type: string }
+              grossAmount: { type: string }
+              platformFeeAmount: { type: string }
+              creatorNetAmount: { type: string }
+              sourceType: { type: string }
+              createdAt: { type: string, format: date-time }
+        creatorBalanceMovements:
+          type: array
+          items:
+            type: object
+            required: [id, channelId, channelDisplayName, currency, movementType, availableDelta, heldDelta, pendingDelta, sourceType, createdAt]
+            properties:
+              id: { type: integer }
+              channelId: { type: integer }
+              channelDisplayName: { type: string }
+              currency: { type: string }
+              movementType: { type: string }
+              availableDelta: { type: string }
+              heldDelta: { type: string }
+              pendingDelta: { type: string }
+              sourceType: { type: string }
+              createdAt: { type: string, format: date-time }
+        paymentEvents:
+          type: array
+          items:
+            type: object
+            required: [id, provider, eventType, processingStatus, errorCode, processedAt, createdAt]
+            properties:
+              id: { type: integer }
+              provider: { type: string }
+              eventType: { type: string }
+              processingStatus: { type: string }
+              errorCode: { type: ["string", "null"] }
+              processedAt: { type: ["string", "null"], format: date-time }
+              createdAt: { type: string, format: date-time }
+
     AdminFinanceOverview:
       type: object
       required: [assetLiabilities, pendingProfileReviews, requestedPayouts, cryptoCommerceEnabled, payoutRequestsEnabled, scheduledPayoutRequestsEnabled, providerWithdrawalsEnabled, providerConfigured]
@@ -3726,6 +3813,51 @@ components:
         invoiceCommission: { type: ["string", "null"] }
         invoiceTotal: { type: ["string", "null"] }
         providerFeePaidBy: { type: string, enum: [client] }
+
+    AdminAnalytics:
+      type: object
+      required: [rangeDays, summary, activity, topCreators, revenueByAsset]
+      properties:
+        rangeDays: { type: integer, enum: [1, 7, 30] }
+        summary:
+          type: object
+          required: [streamSessions, streamSeconds, chatMessages, activeCreators, activeSubscriptions]
+          properties:
+            streamSessions: { type: integer }
+            streamSeconds: { type: integer }
+            chatMessages: { type: integer }
+            activeCreators: { type: integer }
+            activeSubscriptions: { type: integer }
+        activity:
+          type: array
+          items:
+            type: object
+            required: [bucket, streamSessions, chatMessages]
+            properties:
+              bucket: { type: string, format: date }
+              streamSessions: { type: integer }
+              chatMessages: { type: integer }
+        topCreators:
+          type: array
+          items:
+            type: object
+            required: [channelId, channelDisplayName, streamSessions, streamSeconds, chatMessages]
+            properties:
+              channelId: { type: integer }
+              channelDisplayName: { type: string }
+              streamSessions: { type: integer }
+              streamSeconds: { type: integer }
+              chatMessages: { type: integer }
+        revenueByAsset:
+          type: array
+          items:
+            type: object
+            required: [currency, grossAmount, platformFeeAmount, creatorNetAmount]
+            properties:
+              currency: { type: string }
+              grossAmount: { type: string }
+              platformFeeAmount: { type: string }
+              creatorNetAmount: { type: string }
 
     AdminCommandOverview:
       type: object

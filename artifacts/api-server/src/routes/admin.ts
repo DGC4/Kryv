@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   db,
@@ -10,8 +10,8 @@ import {
   userActivityPresenceTable,
   videosTable,
   featureFlagsTable,
-  creatorBalancesTable,
   creatorBalanceMovementsTable,
+  creatorBalancesTable,
   creatorPayoutProfilesTable,
   payoutRequestsTable,
   payoutApprovalsTable,
@@ -20,11 +20,18 @@ import {
   adRevenueMovementsTable,
   cinemaTitlesTable,
   moderationCasesTable,
+  paymentEventsTable,
   paymentIntentsTable,
+  chatMessagesTable,
+  streamSessionsTable,
+  subscriptionsTable,
   platformRevenueMovementsTable,
 } from "@workspace/db";
 import {
+  GetAdminAnalyticsQueryParams,
+  GetAdminAnalyticsResponse,
   GetAdminCommandOverviewResponse,
+  GetAdminFinanceLedgerResponse,
   GetAdminStatsResponse,
   ListAdminUsersResponse,
   UpdateAdminUserParams,
@@ -331,6 +338,130 @@ router.get("/admin/overview", requireOwner, async (_req, res): Promise<void> => 
     })),
     payoutStatusCounts: payoutStatuses.map((row) => ({ status: row.status, count: row.count })),
     safety: { openCases: openCases[0]?.count ?? 0 },
+  }));
+});
+
+router.get("/admin/analytics", requireOwner, async (req, res): Promise<void> => {
+  const params = GetAdminAnalyticsQueryParams.safeParse(req.query);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const rangeDays = params.data.rangeDays ?? 7;
+  const periodStart = new Date();
+  periodStart.setDate(periodStart.getDate() - rangeDays);
+
+  const [streamSummary, chatSummary, activeSubscriptions, dailyStreams, dailyChats, topCreators, revenueByAsset] = await Promise.all([
+    db.select({
+      streamSessions: sql<number>`count(*)`.mapWith(Number),
+      streamSeconds: sql<number>`coalesce(sum(coalesce(${streamSessionsTable.durationSeconds}, extract(epoch from (coalesce(${streamSessionsTable.endedAt}, now()) - ${streamSessionsTable.startedAt}))::int)), 0)`.mapWith(Number),
+      activeCreators: sql<number>`count(distinct ${streamSessionsTable.channelId})`.mapWith(Number),
+    }).from(streamSessionsTable).where(gte(streamSessionsTable.startedAt, periodStart)),
+    db.select({ chatMessages: sql<number>`count(*)`.mapWith(Number) }).from(chatMessagesTable).where(gte(chatMessagesTable.createdAt, periodStart)),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(subscriptionsTable).where(eq(subscriptionsTable.status, "active")),
+    db.select({
+      bucket: sql<string>`to_char(date_trunc('day', ${streamSessionsTable.startedAt}), 'YYYY-MM-DD')`,
+      streamSessions: sql<number>`count(*)`.mapWith(Number),
+    }).from(streamSessionsTable).where(gte(streamSessionsTable.startedAt, periodStart)).groupBy(sql`date_trunc('day', ${streamSessionsTable.startedAt})`).orderBy(sql`date_trunc('day', ${streamSessionsTable.startedAt})`),
+    db.select({
+      bucket: sql<string>`to_char(date_trunc('day', ${chatMessagesTable.createdAt}), 'YYYY-MM-DD')`,
+      chatMessages: sql<number>`count(*)`.mapWith(Number),
+    }).from(chatMessagesTable).where(gte(chatMessagesTable.createdAt, periodStart)).groupBy(sql`date_trunc('day', ${chatMessagesTable.createdAt})`).orderBy(sql`date_trunc('day', ${chatMessagesTable.createdAt})`),
+    db.select({
+      channelId: streamSessionsTable.channelId,
+      channelDisplayName: channelsTable.displayName,
+      streamSessions: sql<number>`count(*)`.mapWith(Number),
+      streamSeconds: sql<number>`coalesce(sum(coalesce(${streamSessionsTable.durationSeconds}, extract(epoch from (coalesce(${streamSessionsTable.endedAt}, now()) - ${streamSessionsTable.startedAt}))::int)), 0)`.mapWith(Number),
+      chatMessages: sql<number>`coalesce(sum(${streamSessionsTable.totalChatMessages}), 0)`.mapWith(Number),
+    }).from(streamSessionsTable).innerJoin(channelsTable, eq(streamSessionsTable.channelId, channelsTable.id)).where(gte(streamSessionsTable.startedAt, periodStart)).groupBy(streamSessionsTable.channelId, channelsTable.displayName).orderBy(desc(sql`count(*)`)).limit(8),
+    db.select({
+      currency: platformRevenueMovementsTable.currency,
+      grossAmount: sql<string>`coalesce(sum(${platformRevenueMovementsTable.grossAmount}), 0)::text`,
+      platformFeeAmount: sql<string>`coalesce(sum(${platformRevenueMovementsTable.platformFeeAmount}), 0)::text`,
+      creatorNetAmount: sql<string>`coalesce(sum(${platformRevenueMovementsTable.creatorNetAmount}), 0)::text`,
+    }).from(platformRevenueMovementsTable).where(gte(platformRevenueMovementsTable.createdAt, periodStart)).groupBy(platformRevenueMovementsTable.currency),
+  ]);
+  const chatByBucket = new Map(dailyChats.map((row) => [row.bucket, row.chatMessages]));
+  const streamByBucket = new Map(dailyStreams.map((row) => [row.bucket, row.streamSessions]));
+  const buckets = [...new Set([...streamByBucket.keys(), ...chatByBucket.keys()])].sort();
+
+  res.json(GetAdminAnalyticsResponse.parse({
+    rangeDays,
+    summary: {
+      streamSessions: streamSummary[0]?.streamSessions ?? 0,
+      streamSeconds: streamSummary[0]?.streamSeconds ?? 0,
+      chatMessages: chatSummary[0]?.chatMessages ?? 0,
+      activeCreators: streamSummary[0]?.activeCreators ?? 0,
+      activeSubscriptions: activeSubscriptions[0]?.count ?? 0,
+    },
+    activity: buckets.map((bucket) => ({ bucket, streamSessions: streamByBucket.get(bucket) ?? 0, chatMessages: chatByBucket.get(bucket) ?? 0 })),
+    topCreators: topCreators.map((creator) => ({ ...creator })),
+    revenueByAsset: revenueByAsset.map((asset) => ({
+      currency: asset.currency,
+      grossAmount: toDecimalString(asset.grossAmount),
+      platformFeeAmount: toDecimalString(asset.platformFeeAmount),
+      creatorNetAmount: toDecimalString(asset.creatorNetAmount),
+    })),
+  }));
+});
+
+router.get("/admin/finance/ledger", requireOwner, async (_req, res): Promise<void> => {
+  const [platformRevenue, creatorBalanceMovements, paymentEvents] = await Promise.all([
+    db.select({
+      id: platformRevenueMovementsTable.id,
+      channelId: platformRevenueMovementsTable.channelId,
+      channelDisplayName: channelsTable.displayName,
+      currency: platformRevenueMovementsTable.currency,
+      paymentKind: platformRevenueMovementsTable.paymentKind,
+      grossAmount: platformRevenueMovementsTable.grossAmount,
+      platformFeeAmount: platformRevenueMovementsTable.platformFeeAmount,
+      creatorNetAmount: platformRevenueMovementsTable.creatorNetAmount,
+      sourceType: platformRevenueMovementsTable.sourceType,
+      createdAt: platformRevenueMovementsTable.createdAt,
+    }).from(platformRevenueMovementsTable).innerJoin(channelsTable, eq(platformRevenueMovementsTable.channelId, channelsTable.id)).orderBy(desc(platformRevenueMovementsTable.createdAt)).limit(30),
+    db.select({
+      id: creatorBalanceMovementsTable.id,
+      channelId: creatorBalanceMovementsTable.channelId,
+      channelDisplayName: channelsTable.displayName,
+      currency: creatorBalanceMovementsTable.currency,
+      movementType: creatorBalanceMovementsTable.movementType,
+      availableDelta: creatorBalanceMovementsTable.availableDelta,
+      heldDelta: creatorBalanceMovementsTable.heldDelta,
+      pendingDelta: creatorBalanceMovementsTable.pendingDelta,
+      sourceType: creatorBalanceMovementsTable.sourceType,
+      createdAt: creatorBalanceMovementsTable.createdAt,
+    }).from(creatorBalanceMovementsTable).innerJoin(channelsTable, eq(creatorBalanceMovementsTable.channelId, channelsTable.id)).orderBy(desc(creatorBalanceMovementsTable.createdAt)).limit(30),
+    db.select({
+      id: paymentEventsTable.id,
+      provider: paymentEventsTable.provider,
+      eventType: paymentEventsTable.eventType,
+      processingStatus: paymentEventsTable.processingStatus,
+      errorCode: paymentEventsTable.errorCode,
+      processedAt: paymentEventsTable.processedAt,
+      createdAt: paymentEventsTable.createdAt,
+    }).from(paymentEventsTable).orderBy(desc(paymentEventsTable.createdAt)).limit(30),
+  ]);
+
+  res.json(GetAdminFinanceLedgerResponse.parse({
+    platformRevenue: platformRevenue.map((movement) => ({
+      ...movement,
+      grossAmount: toDecimalString(movement.grossAmount),
+      platformFeeAmount: toDecimalString(movement.platformFeeAmount),
+      creatorNetAmount: toDecimalString(movement.creatorNetAmount),
+      createdAt: movement.createdAt.toISOString(),
+    })),
+    creatorBalanceMovements: creatorBalanceMovements.map((movement) => ({
+      ...movement,
+      availableDelta: toDecimalString(movement.availableDelta),
+      heldDelta: toDecimalString(movement.heldDelta),
+      pendingDelta: toDecimalString(movement.pendingDelta),
+      createdAt: movement.createdAt.toISOString(),
+    })),
+    paymentEvents: paymentEvents.map((event) => ({
+      ...event,
+      processedAt: event.processedAt?.toISOString() ?? null,
+      createdAt: event.createdAt.toISOString(),
+    })),
   }));
 });
 
