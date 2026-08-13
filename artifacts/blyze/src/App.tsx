@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { Component, lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -54,9 +54,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+class RouteLoadBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <div className="flex min-h-screen items-center justify-center bg-[#080808] px-4 text-center text-white"><div className="max-w-md rounded-2xl border border-red-300/20 bg-red-400/[0.05] p-6"><h1 className="text-lg font-black text-white">Kryv needs a quick refresh</h1><p className="mt-2 text-sm leading-relaxed text-white/55">A page update could not finish loading. Your account and active payment state were not changed.</p><button type="button" onClick={() => window.location.reload()} className="mt-5 min-h-11 rounded-xl bg-primary px-4 text-sm font-black text-primary-foreground">Refresh Kryv</button></div></div>;
+    }
+    return this.props.children;
+  }
+}
+
 function AppRoutes() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#080808] text-white"><div className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-5 py-4 text-sm font-bold text-white/65"><span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" /> Loading Kryv…</div></div>}>
+    <RouteLoadBoundary><Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#080808] text-white"><div className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-5 py-4 text-sm font-bold text-white/65"><span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" /> Loading Kryv…</div></div>}>
     <Switch>
       <Route path="/" component={HomeRedirect} />
       
@@ -149,7 +164,7 @@ function AppRoutes() {
         <Layout><NotFound /></Layout>
       </Route>
     </Switch>
-    </Suspense>
+    </Suspense></RouteLoadBoundary>
   );
 }
 
