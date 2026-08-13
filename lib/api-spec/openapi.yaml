@@ -3064,7 +3064,7 @@ components:
 
     CinemaTitle:
       type: object
-      required: [id, slug, title, synopsis, maturityLevel, genres, posterUrl, backdropUrl, runtimeSeconds, featurePlaybackId, trailerPlaybackId, entitlementType, publishedAt]
+      required: [id, slug, title, synopsis, maturityLevel, genres, posterUrl, backdropUrl, runtimeSeconds, featurePlaybackId, playbackAvailable, playbackBlockedReason, trailerPlaybackId, entitlementType, publishedAt]
       properties:
         id: { type: integer }
         slug: { type: string }
@@ -3077,7 +3077,9 @@ components:
         posterUrl: { type: ["string", "null"] }
         backdropUrl: { type: ["string", "null"] }
         runtimeSeconds: { type: ["integer", "null"] }
-        featurePlaybackId: { type: string }
+        featurePlaybackId: { type: ["string", "null"], description: Feature playback identifier, returned only when viewing is currently permitted }
+        playbackAvailable: { type: boolean }
+        playbackBlockedReason: { type: ["string", "null"], description: Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled }
         trailerPlaybackId: { type: ["string", "null"] }
         entitlementType: { type: string, enum: [free, subscription, rental, purchase] }
         publishedAt: { type: ["string", "null"], format: date-time }

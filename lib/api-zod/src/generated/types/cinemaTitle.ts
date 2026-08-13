@@ -22,7 +22,17 @@ export interface CinemaTitle {
   backdropUrl: string | null;
   /** @nullable */
   runtimeSeconds: number | null;
-  featurePlaybackId: string;
+  /**
+     * Feature playback identifier
+     * @nullable
+     */
+  featurePlaybackId: string | null;
+  playbackAvailable: boolean;
+  /**
+     * Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled
+     * @nullable
+     */
+  playbackBlockedReason: string | null;
   /** @nullable */
   trailerPlaybackId: string | null;
   entitlementType: CinemaTitleEntitlementType;

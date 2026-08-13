@@ -26,13 +26,13 @@ function RowScroller({ children }: { children: React.ReactNode }) {
 }
 
 function CinemaTitleCard({ video, index }: { video: CinemaTitle; index: number }) {
-  const assetReady = Boolean(video.featurePlaybackId);
+  const playbackAvailable = video.playbackAvailable;
   return (
     <Link href={`/cinema/${video.id}`} className="group relative w-[142px] shrink-0 snap-start sm:w-[174px] lg:w-[196px]">
       <article className="relative aspect-[2/3] overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.04] shadow-lg transition-all duration-300 group-hover:z-10 group-hover:-translate-y-2 group-hover:scale-[1.04] group-hover:border-primary/55 group-hover:shadow-2xl group-focus-visible:z-10 group-focus-visible:-translate-y-2 group-focus-visible:scale-[1.04]">
         {video.posterUrl ? <img src={video.posterUrl} alt={video.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <div className={`absolute inset-0 flex items-end bg-gradient-to-br ${GENRE_THEMES[index % GENRE_THEMES.length]} p-3`}><span className="text-sm font-black text-white/90">{video.title}</span></div>}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/15 to-transparent" />
-        <div className="absolute left-2.5 top-2.5"><span className={`rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] backdrop-blur ${assetReady ? 'border-emerald-300/30 bg-emerald-400/15 text-emerald-100' : 'border-white/15 bg-black/35 text-white/75'}`}>{assetReady ? 'Media ready' : 'Catalog'}</span></div>
+        <div className="absolute left-2.5 top-2.5"><span className={`rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] backdrop-blur ${playbackAvailable ? 'border-emerald-300/30 bg-emerald-400/15 text-emerald-100' : 'border-white/15 bg-black/35 text-white/75'}`}>{playbackAvailable ? 'Watch now' : 'Catalog preview'}</span></div>
         <div className="absolute inset-x-0 bottom-0 p-3 transition-transform duration-300 group-hover:translate-y-0 sm:translate-y-6"><h3 className="truncate text-sm font-black text-white">{video.title}</h3><p className="mt-1 truncate text-[10px] font-semibold text-white/65">{video.genres[0] || 'Kryv Cinema'} · {formatRuntime(video.runtimeSeconds)}</p><div className="mt-3 flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"><span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-black"><Play className="h-3.5 w-3.5 fill-current" /></span><span className="text-[10px] font-black text-white">View title</span></div></div>
       </article>
     </Link>

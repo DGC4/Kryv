@@ -30,7 +30,9 @@ export type PublicCinemaTitle = {
   posterUrl: string | null;
   backdropUrl: string | null;
   runtimeSeconds: number | null;
-  featurePlaybackId: string;
+  featurePlaybackId: string | null;
+  playbackAvailable: boolean;
+  playbackBlockedReason: string | null;
   trailerPlaybackId: string | null;
   entitlementType: "free" | "subscription" | "rental" | "purchase";
   publishedAt: Date | null;
@@ -69,6 +71,11 @@ export function toPublicCinemaTitle(
     && Boolean(asset.fastpixPlaybackId)
   ));
 
+  const playbackAvailable = entitlement.entitlementType === "free";
+  const playbackBlockedReason = playbackAvailable
+    ? null
+    : "This title is published in the catalog, but its subscription, rental, or purchase access flow is not available yet.";
+
   return {
     id: title.id,
     slug: title.slug,
@@ -79,7 +86,9 @@ export function toPublicCinemaTitle(
     posterUrl: title.posterUrl,
     backdropUrl: title.backdropUrl,
     runtimeSeconds: title.runtimeSeconds ?? feature.durationSeconds,
-    featurePlaybackId: feature.fastpixPlaybackId,
+    featurePlaybackId: playbackAvailable ? feature.fastpixPlaybackId : null,
+    playbackAvailable,
+    playbackBlockedReason,
     trailerPlaybackId: trailer?.fastpixPlaybackId ?? null,
     entitlementType: entitlement.entitlementType as PublicCinemaTitle["entitlementType"],
     publishedAt: title.publishedAt,
