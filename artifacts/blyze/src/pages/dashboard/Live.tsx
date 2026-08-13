@@ -165,10 +165,11 @@ function getInitialDashboardTab(): DashTab {
 
 export default function DashboardLive() {
   const [, navigate] = useLocation();
-  // FastPix sends stream state by webhook; refresh the persisted state so the OBS preview
-  // changes to live without the creator reloading the dashboard.
+  const [activeTab, setActiveTab] = useState<DashTab>(getInitialDashboardTab);
+  // FastPix sends stream state by webhook; keep the Stream Manager responsive while
+  // avoiding the same high-frequency account request on every dashboard workspace.
   const { data: me, isLoading: meLoading, refetch: refetchMe } = useGetMe({
-    query: { refetchInterval: 5000 },
+    query: { refetchInterval: activeTab === 'stream' ? 5000 : 30000 },
   });
   const createChannel = useCreateChannel();
   const updateChannel = useUpdateChannel();
@@ -189,7 +190,6 @@ export default function DashboardLive() {
   const [streamTitle, setStreamTitle] = useState('');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
-  const [activeTab, setActiveTab] = useState<DashTab>(getInitialDashboardTab);
   const [payoutCurrency, setPayoutCurrency] = useState<'BTC' | 'LTC' | 'ETH' | 'DOGE'>('BTC');
   const [payoutAddress, setPayoutAddress] = useState('');
   const [payoutCadence, setPayoutCadence] = useState<'manual' | 'daily' | 'weekly' | 'monthly'>('manual');
