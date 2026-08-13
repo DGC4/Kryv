@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import Hls from 'hls.js';
+import type Hls from 'hls.js';
 
 interface HlsPlayerProps {
   src: string;
@@ -51,39 +51,45 @@ export default function HlsPlayer({ src, autoPlay, muted, className, poster, liv
       if (autoPlay) video.play().catch(() => undefined);
     };
 
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: live,
-        startPosition: live ? -1 : undefined,
-        // These values tell hls.js to join a live manifest near the provider
-        // edge, then recover naturally if buffering/network drift occurs.
-        liveSyncDurationCount: live ? 2 : undefined,
-        liveMaxLatencyDurationCount: live ? 6 : undefined,
-        maxLiveSyncPlaybackRate: live ? 1.5 : 1,
-        backBufferLength: live ? 30 : undefined,
-      });
-      hlsRef.current = hls;
-      hls.loadSource(src);
-      hls.attachMedia(video);
+    let cancelled = false;
+    const hasNativeHls = Boolean(video.canPlayType('application/vnd.apple.mpegurl'));
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (autoPlay) video.play().catch(() => undefined);
-      });
-      // The live synchronization position is finalized after level details
-      // arrive, not merely when the manifest shell is parsed.
-      hls.on(Hls.Events.LEVEL_UPDATED, runInitialLiveSync);
-      video.addEventListener('loadedmetadata', handleNativeMetadata);
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    if (hasNativeHls) {
       // Native HLS (Safari/iOS) needs an explicit seek to the end of the
       // provider's active window; otherwise a DVR-enabled manifest can reopen
-      // at an earlier segment.
+      // at an earlier segment. Do not download hls.js for this native path.
       video.src = src;
       video.addEventListener('loadedmetadata', handleNativeMetadata);
       video.addEventListener('canplay', runInitialLiveSync, { once: true });
+    } else {
+      void import('hls.js').then(({ default: HlsModule }) => {
+        if (cancelled || !HlsModule.isSupported()) return;
+        const hls = new HlsModule({
+          enableWorker: true,
+          lowLatencyMode: live,
+          startPosition: live ? -1 : undefined,
+          // These values tell hls.js to join a live manifest near the provider
+          // edge, then recover naturally if buffering/network drift occurs.
+          liveSyncDurationCount: live ? 2 : undefined,
+          liveMaxLatencyDurationCount: live ? 6 : undefined,
+          maxLiveSyncPlaybackRate: live ? 1.5 : 1,
+          backBufferLength: live ? 30 : undefined,
+        });
+        hlsRef.current = hls;
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        hls.on(HlsModule.Events.MANIFEST_PARSED, () => {
+          if (autoPlay) video.play().catch(() => undefined);
+        });
+        // The live synchronization position is finalized after level details
+        // arrive, not merely when the manifest shell is parsed.
+        hls.on(HlsModule.Events.LEVEL_UPDATED, runInitialLiveSync);
+        video.addEventListener('loadedmetadata', handleNativeMetadata);
+      }).catch(() => undefined);
     }
 
     return () => {
+      cancelled = true;
       video.removeEventListener('loadedmetadata', handleNativeMetadata);
       hlsRef.current?.destroy();
       hlsRef.current = null;
