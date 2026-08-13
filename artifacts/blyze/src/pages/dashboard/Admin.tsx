@@ -546,7 +546,7 @@ export default function DashboardAdmin() {
   }
 
   return (
-    <div className="relative z-10 max-w-6xl mx-auto px-4 py-8">
+    <div className="relative z-10 mx-auto w-full min-w-0 max-w-6xl px-4 py-8">
 
       {/* Header */}
       <div className="flex items-start gap-4 mb-8">
