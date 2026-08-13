@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import {
   useGetMe,
   useCreateChannel,
@@ -711,6 +711,7 @@ export default function DashboardLive() {
                 <span>{[location.city, location.region].filter(Boolean).join(', ') || location.country}</span>
               </div>
             )}
+            <Link href="/dashboard/watch" className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 text-xs font-black text-white/70 transition hover:border-primary/45 hover:text-primary sm:px-4"><Library className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Watch studio</span></Link>
             <Button
               onClick={handleGoLive}
               className={`h-11 px-3 text-xs font-black transition-all sm:px-5 ${
