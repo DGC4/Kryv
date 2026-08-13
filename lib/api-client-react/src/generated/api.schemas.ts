@@ -2088,6 +2088,13 @@ export type AdminAnalyticsTopCreatorsItem = {
   chatMessages: number;
 };
 
+export type AdminAnalyticsTopWatchVideosItem = {
+  videoId: number;
+  videoTitle: string;
+  channelDisplayName: string;
+  recordedViewerCount: number;
+};
+
 export type AdminAnalyticsRevenueByAssetItem = {
   currency: string;
   grossAmount: string;
@@ -2100,6 +2107,8 @@ export interface AdminAnalytics {
   summary: AdminAnalyticsSummary;
   activity: AdminAnalyticsActivityItem[];
   topCreators: AdminAnalyticsTopCreatorsItem[];
+  /** Titles ranked by recorded Watch-history rows whose latest recorded activity falls within the selected range; this is not a total-play or watch-time metric. */
+  topWatchVideos: AdminAnalyticsTopWatchVideosItem[];
   revenueByAsset: AdminAnalyticsRevenueByAssetItem[];
 }
 

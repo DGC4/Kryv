@@ -4215,7 +4215,7 @@ components:
 
     AdminAnalytics:
       type: object
-      required: [rangeDays, summary, activity, topCreators, revenueByAsset]
+      required: [rangeDays, summary, activity, topCreators, topWatchVideos, revenueByAsset]
       properties:
         rangeDays: { type: integer, enum: [1, 7, 30] }
         summary:
@@ -4247,6 +4247,17 @@ components:
               streamSessions: { type: integer }
               streamSeconds: { type: integer }
               chatMessages: { type: integer }
+        topWatchVideos:
+          description: Titles ranked by recorded Watch-history rows whose latest recorded activity falls within the selected range; this is not a total-play or watch-time metric.
+          type: array
+          items:
+            type: object
+            required: [videoId, videoTitle, channelDisplayName, recordedViewerCount]
+            properties:
+              videoId: { type: integer }
+              videoTitle: { type: string }
+              channelDisplayName: { type: string }
+              recordedViewerCount: { type: integer }
         revenueByAsset:
           type: array
           items:

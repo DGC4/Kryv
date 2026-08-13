@@ -2436,6 +2436,12 @@ export const GetAdminAnalyticsResponse = zod.object({
   "streamSeconds": zod.number(),
   "chatMessages": zod.number()
 })),
+  "topWatchVideos": zod.array(zod.object({
+  "videoId": zod.number(),
+  "videoTitle": zod.string(),
+  "channelDisplayName": zod.string(),
+  "recordedViewerCount": zod.number()
+})).describe('Titles ranked by recorded Watch-history rows whose latest recorded activity falls within the selected range; this is not a total-play or watch-time metric.'),
   "revenueByAsset": zod.array(zod.object({
   "currency": zod.string(),
   "grossAmount": zod.string(),

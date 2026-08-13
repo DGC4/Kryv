@@ -27,6 +27,7 @@ import {
   streamSessionsTable,
   subscriptionsTable,
   platformRevenueMovementsTable,
+  watchHistoryTable,
 } from "@workspace/db";
 import {
   GetAdminAnalyticsQueryParams,
@@ -369,7 +370,7 @@ router.get("/admin/analytics", requireOwner, async (req, res): Promise<void> => 
   const periodStart = new Date();
   periodStart.setDate(periodStart.getDate() - rangeDays);
 
-  const [streamSummary, chatSummary, activeSubscriptions, dailyStreams, dailyChats, topCreators, revenueByAsset] = await Promise.all([
+  const [streamSummary, chatSummary, activeSubscriptions, dailyStreams, dailyChats, topCreators, revenueByAsset, topWatchVideos] = await Promise.all([
     db.select({
       streamSessions: sql<number>`count(*)`.mapWith(Number),
       streamSeconds: sql<number>`coalesce(sum(coalesce(${streamSessionsTable.durationSeconds}, extract(epoch from (coalesce(${streamSessionsTable.endedAt}, now()) - ${streamSessionsTable.startedAt}))::int)), 0)`.mapWith(Number),
@@ -398,6 +399,18 @@ router.get("/admin/analytics", requireOwner, async (req, res): Promise<void> => 
       platformFeeAmount: sql<string>`coalesce(sum(${platformRevenueMovementsTable.platformFeeAmount}), 0)::text`,
       creatorNetAmount: sql<string>`coalesce(sum(${platformRevenueMovementsTable.creatorNetAmount}), 0)::text`,
     }).from(platformRevenueMovementsTable).where(gte(platformRevenueMovementsTable.createdAt, periodStart)).groupBy(platformRevenueMovementsTable.currency),
+    db.select({
+      videoId: watchHistoryTable.videoId,
+      videoTitle: videosTable.title,
+      channelDisplayName: channelsTable.displayName,
+      recordedViewerCount: sql<number>`count(*)`.mapWith(Number),
+    }).from(watchHistoryTable)
+      .innerJoin(videosTable, eq(watchHistoryTable.videoId, videosTable.id))
+      .innerJoin(channelsTable, eq(videosTable.channelId, channelsTable.id))
+      .where(gte(watchHistoryTable.watchedAt, periodStart))
+      .groupBy(watchHistoryTable.videoId, videosTable.title, channelsTable.displayName)
+      .orderBy(desc(sql`count(*)`), desc(videosTable.id))
+      .limit(8),
   ]);
   const chatByBucket = new Map(dailyChats.map((row) => [row.bucket, row.chatMessages]));
   const streamByBucket = new Map(dailyStreams.map((row) => [row.bucket, row.streamSessions]));
@@ -414,6 +427,7 @@ router.get("/admin/analytics", requireOwner, async (req, res): Promise<void> => 
     },
     activity: buckets.map((bucket) => ({ bucket, streamSessions: streamByBucket.get(bucket) ?? 0, chatMessages: chatByBucket.get(bucket) ?? 0 })),
     topCreators: topCreators.map((creator) => ({ ...creator })),
+    topWatchVideos: topWatchVideos.map((video) => ({ ...video })),
     revenueByAsset: revenueByAsset.map((asset) => ({
       currency: asset.currency,
       grossAmount: toDecimalString(asset.grossAmount),

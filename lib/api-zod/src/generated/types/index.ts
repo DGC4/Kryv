@@ -37,6 +37,7 @@ export * from './adminAnalyticsRangeDays';
 export * from './adminAnalyticsRevenueByAssetItem';
 export * from './adminAnalyticsSummary';
 export * from './adminAnalyticsTopCreatorsItem';
+export * from './adminAnalyticsTopWatchVideosItem';
 export * from './adminChannelPage';
 export * from './adminCinemaActivity';
 export * from './adminCinemaAsset';

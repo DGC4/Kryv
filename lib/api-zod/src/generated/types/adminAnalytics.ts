@@ -10,11 +10,14 @@ import type { AdminAnalyticsRangeDays } from './adminAnalyticsRangeDays';
 import type { AdminAnalyticsRevenueByAssetItem } from './adminAnalyticsRevenueByAssetItem';
 import type { AdminAnalyticsSummary } from './adminAnalyticsSummary';
 import type { AdminAnalyticsTopCreatorsItem } from './adminAnalyticsTopCreatorsItem';
+import type { AdminAnalyticsTopWatchVideosItem } from './adminAnalyticsTopWatchVideosItem';
 
 export interface AdminAnalytics {
   rangeDays: AdminAnalyticsRangeDays;
   summary: AdminAnalyticsSummary;
   activity: AdminAnalyticsActivityItem[];
   topCreators: AdminAnalyticsTopCreatorsItem[];
+  /** Titles ranked by recorded Watch-history rows whose latest recorded activity falls within the selected range; this is not a total-play or watch-time metric. */
+  topWatchVideos: AdminAnalyticsTopWatchVideosItem[];
   revenueByAsset: AdminAnalyticsRevenueByAssetItem[];
 }
