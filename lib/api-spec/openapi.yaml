@@ -1695,7 +1695,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CinemaTitle"
+                $ref: "#/components/schemas/CinemaTitleDetail"
         "404": { description: Cinema title is unavailable }
 
   /cinema/home:
@@ -2898,6 +2898,27 @@ components:
         trailerPlaybackId: { type: ["string", "null"] }
         entitlementType: { type: string, enum: [free, subscription, rental, purchase] }
         publishedAt: { type: ["string", "null"], format: date-time }
+
+    CinemaCredit:
+      type: object
+      required: [channelId, channelSlug, channelDisplayName, channelAvatarUrl, role]
+      properties:
+        channelId: { type: integer }
+        channelSlug: { type: string }
+        channelDisplayName: { type: string }
+        channelAvatarUrl: { type: ["string", "null"] }
+        role: { type: string }
+
+    CinemaTitleDetail:
+      allOf:
+        - $ref: "#/components/schemas/CinemaTitle"
+        - type: object
+          required: [credits]
+          properties:
+            credits:
+              type: array
+              items:
+                $ref: "#/components/schemas/CinemaCredit"
 
     CinemaRow:
       type: object

@@ -69,7 +69,7 @@ import type {
   ChatReport,
   ChatReportInput,
   CinemaHome,
-  CinemaTitle,
+  CinemaTitleDetail,
   ClipInput,
   ClipSummary,
   CreateAdminAdCampaignInput,
@@ -4411,9 +4411,9 @@ export const getGetCinemaTitleUrl = (id: number,) => {
 /**
  * @summary Retrieve a published and rights-cleared Cinema title for viewer playback
  */
-export const getCinemaTitle = async (id: number, options?: RequestInit): Promise<CinemaTitle> => {
+export const getCinemaTitle = async (id: number, options?: RequestInit): Promise<CinemaTitleDetail> => {
 
-  return customFetch<CinemaTitle>(getGetCinemaTitleUrl(id),
+  return customFetch<CinemaTitleDetail>(getGetCinemaTitleUrl(id),
   {
     ...options,
     method: 'GET'

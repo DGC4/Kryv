@@ -1858,7 +1858,15 @@ export const GetCinemaTitleResponse = zod.object({
   "trailerPlaybackId": zod.string().nullable(),
   "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
   "publishedAt": zod.coerce.date().nullable()
-})
+}).and(zod.object({
+  "credits": zod.array(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "role": zod.string()
+}))
+}))
 
 
 /**

@@ -6,7 +6,7 @@ import {
   GetCinemaTitleParams,
   GetCinemaTitleResponse,
 } from "@workspace/api-zod";
-import { getPublishedCinemaTitles } from "../lib/cinemaCatalog";
+import { getPublishedCinemaTitleDetail, getPublishedCinemaTitles } from "../lib/cinemaCatalog";
 
 const router: IRouter = Router();
 
@@ -36,7 +36,7 @@ router.get("/cinema/titles/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const title = (await getPublishedCinemaTitles()).find((item) => item.id === parsed.data.id);
+  const title = await getPublishedCinemaTitleDetail(parsed.data.id);
   if (!title) {
     res.status(404).json({ error: "Cinema title is unavailable" });
     return;

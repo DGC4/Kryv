@@ -1,5 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import {
+  channelsTable,
+  cinemaCreditsTable,
   cinemaRightsWindowsTable,
   cinemaTitleAssetsTable,
   cinemaTitlesTable,
@@ -9,6 +11,14 @@ import {
 type CinemaTitleRow = typeof cinemaTitlesTable.$inferSelect;
 type CinemaAssetRow = typeof cinemaTitleAssetsTable.$inferSelect;
 type CinemaRightsWindowRow = typeof cinemaRightsWindowsTable.$inferSelect;
+
+export type CinemaCredit = {
+  channelId: number;
+  channelSlug: string;
+  channelDisplayName: string;
+  channelAvatarUrl: string | null;
+  role: string;
+};
 
 export type PublicCinemaTitle = {
   id: number;
@@ -73,6 +83,29 @@ export function toPublicCinemaTitle(
     trailerPlaybackId: trailer?.fastpixPlaybackId ?? null,
     entitlementType: entitlement.entitlementType as PublicCinemaTitle["entitlementType"],
     publishedAt: title.publishedAt,
+  };
+}
+
+export async function getPublishedCinemaTitleDetail(id: number): Promise<(PublicCinemaTitle & { credits: CinemaCredit[] }) | null> {
+  const [title, creditRows] = await Promise.all([
+    getPublishedCinemaTitles().then((titles) => titles.find((item) => item.id === id) ?? null),
+    db.select({ credit: cinemaCreditsTable, channel: channelsTable })
+      .from(cinemaCreditsTable)
+      .innerJoin(channelsTable, eq(cinemaCreditsTable.channelId, channelsTable.id))
+      .where(eq(cinemaCreditsTable.cinemaTitleId, id))
+      .orderBy(cinemaCreditsTable.displayOrder, cinemaCreditsTable.createdAt),
+  ]);
+  if (!title) return null;
+
+  return {
+    ...title,
+    credits: creditRows.map(({ credit, channel }) => ({
+      channelId: channel.id,
+      channelSlug: channel.slug,
+      channelDisplayName: channel.displayName,
+      channelAvatarUrl: channel.avatarUrl,
+      role: credit.role,
+    })),
   };
 }
 

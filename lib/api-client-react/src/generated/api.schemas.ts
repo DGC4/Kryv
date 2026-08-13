@@ -624,6 +624,19 @@ export interface VideoUpdate {
   categoryId?: number;
 }
 
+export interface CinemaCredit {
+  channelId: number;
+  channelSlug: string;
+  channelDisplayName: string;
+  /** @nullable */
+  channelAvatarUrl: string | null;
+  role: string;
+}
+
+export type CinemaTitleDetail = CinemaTitle & {
+  credits: CinemaCredit[];
+};
+
 export interface CinemaRow {
   title: string;
   items: CinemaTitle[];
