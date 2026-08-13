@@ -36,6 +36,16 @@ const liveStreamStatusCache = new Map<string, { value: any; expiresAt: number }>
 const VIEWER_COUNT_CACHE_TTL_MS = 10_000;
 const LIVE_STREAM_STATUS_CACHE_TTL_MS = 4_000;
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function asNonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
 /**
  * Fetch the FastPix near-real-time viewer count with a short server-side cache.
  * This lets public listings refresh frequently without multiplying FastPix API calls
@@ -89,8 +99,6 @@ export async function createFastPixLiveStream(channelId: number) {
       maxResolution: "1080p",
       reconnectWindow: 60,
       mediaPolicy: "public",
-      // Persist concluded broadcasts for the existing VOD and clipping workflow.
-      enableRecording: true,
       // Kryv's standard live experience joins the current broadcast edge. Rewind
       // is a separate product capability, not the default behavior for every
       // viewer session, so a new live stream should not open in a DVR window.
@@ -209,22 +217,29 @@ async function createFastPixClipFromInput(input: {
     }),
   });
 
-  const payload = await response.json().catch(() => null);
+  const payload = await response.json().catch(() => null) as unknown;
+  const payloadRecord = asRecord(payload);
   if (!response.ok) {
-    const detail = payload?.error?.message ?? payload?.message ?? `HTTP ${response.status}`;
+    const errorRecord = asRecord(payloadRecord?.error);
+    const detail = asNonEmptyString(errorRecord?.message)
+      ?? asNonEmptyString(payloadRecord?.message)
+      ?? `HTTP ${response.status}`;
     throw new Error(`FastPix clip request failed: ${detail}`);
   }
 
-  const media = payload?.data ?? payload;
-  const mediaId = media?.id;
+  const media = asRecord(payloadRecord?.data) ?? payloadRecord;
+  const mediaId = asNonEmptyString(media?.id);
   if (!mediaId) {
     throw new Error("FastPix clip request returned no media ID.");
   }
+  const firstPlayback = Array.isArray(media?.playbackIds)
+    ? asRecord(media.playbackIds[0])
+    : null;
 
   return {
-    fastpixMediaId: mediaId as string,
-    fastpixPlaybackId: (media.playbackIds?.[0]?.id ?? null) as string | null,
-    thumbnailUrl: (media.thumbnail ?? null) as string | null,
+    fastpixMediaId: mediaId,
+    fastpixPlaybackId: asNonEmptyString(firstPlayback?.id),
+    thumbnailUrl: asNonEmptyString(media?.thumbnail),
   };
 }
 

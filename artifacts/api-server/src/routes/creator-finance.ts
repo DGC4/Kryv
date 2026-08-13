@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { Router, type IRouter } from "express";
 import { and, desc, eq, sql } from "drizzle-orm";
 import {
@@ -18,7 +19,7 @@ import {
   SaveCreatorPayoutProfileBody,
   SaveCreatorPayoutProfileResponse,
 } from "@workspace/api-zod";
-import { getPlisioAssetSnapshots, isSupportedKryvCryptoCode } from "../lib/plisio";
+import { getPlisioAssetSnapshots, isSupportedKryvCryptoCode, type KryvCryptoCode } from "../lib/plisio";
 import { requireAuth } from "../lib/auth";
 import { writeAuditLog } from "../lib/operations";
 
@@ -226,24 +227,23 @@ router.get("/creator/finance", async (req, res): Promise<void> => {
     ]);
 
     const profiles = profileRows.map(toProfile);
-    const snapshots = await getPlisioAssetSnapshots().catch(() => []);
-    const snapshotByCurrency = new Map(snapshots.map((snapshot) => [snapshot.currency, snapshot]));
+    const snapshots = await getPlisioAssetSnapshots().catch((): Awaited<ReturnType<typeof getPlisioAssetSnapshots>> => []);
+    const snapshotByCurrency = new Map<KryvCryptoCode, Awaited<ReturnType<typeof getPlisioAssetSnapshots>>[number]>(snapshots.map((snapshot) => [snapshot.currency, snapshot] as const));
     const achievements = await getAchievements(channel.id, profiles);
     const payload = {
       channelId: channel.id,
-      balances: balanceRows
-        .filter((balance) => isSupportedKryvCryptoCode(balance.currency))
-        .map((balance) => {
-          const snapshot = snapshotByCurrency.get(balance.currency);
-          return {
-            currency: balance.currency,
-            pendingAmount: toDecimalString(balance.pendingAmount),
-            availableAmount: toDecimalString(balance.availableAmount),
-            heldAmount: toDecimalString(balance.heldAmount),
-            usdReferenceValue: referenceUsdValue(balance.availableAmount, snapshot?.priceUsd),
-            rateUpdatedAt: snapshot?.fetchedAt ?? null,
-          };
-        }),
+      balances: balanceRows.flatMap((balance) => {
+        if (!isSupportedKryvCryptoCode(balance.currency)) return [];
+        const snapshot = snapshotByCurrency.get(balance.currency);
+        return [{
+          currency: balance.currency,
+          pendingAmount: toDecimalString(balance.pendingAmount),
+          availableAmount: toDecimalString(balance.availableAmount),
+          heldAmount: toDecimalString(balance.heldAmount),
+          usdReferenceValue: referenceUsdValue(balance.availableAmount, snapshot?.priceUsd),
+          rateUpdatedAt: snapshot?.fetchedAt ?? null,
+        }];
+      }),
       payoutProfiles: profiles,
       payoutPreference: {
         cadence: "manual" as const,

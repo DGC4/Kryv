@@ -222,7 +222,7 @@ router.post("/admin/cinema/titles/:id/upload-sessions", requireOwner, async (req
   const params = CreateAdminCinemaUploadSessionParams.safeParse(req.params);
   const parsed = CreateAdminCinemaUploadSessionBody.safeParse(req.body);
   if (!params.success || !parsed.success) {
-    res.status(400).json({ error: !params.success ? params.error.message : parsed.error.message });
+    res.status(400).json({ error: !params.success ? params.error.message : parsed.error?.message ?? "Invalid request body" });
     return;
   }
 
@@ -276,7 +276,7 @@ router.get("/admin/cinema/titles/:id", requireOwner, async (req, res): Promise<v
 router.patch("/admin/cinema/titles/:id", requireOwner, async (req, res): Promise<void> => {
   const params = UpdateAdminCinemaTitleParams.safeParse(req.params);
   const parsed = UpdateAdminCinemaTitleBody.safeParse(req.body);
-  if (!params.success || !parsed.success) { res.status(400).json({ error: !params.success ? params.error.message : parsed.error.message }); return; }
+  if (!params.success || !parsed.success) { res.status(400).json({ error: !params.success ? params.error.message : parsed.error?.message ?? "Invalid request body" }); return; }
   const title = await findTitle(params.data.id);
   if (!title) { res.status(404).json({ error: "Cinema title not found" }); return; }
 
@@ -324,7 +324,7 @@ router.patch("/admin/cinema/titles/:id", requireOwner, async (req, res): Promise
 router.post("/admin/cinema/titles/:id/rights-windows", requireOwner, async (req, res): Promise<void> => {
   const params = CreateAdminCinemaRightsWindowParams.safeParse(req.params);
   const parsed = CreateAdminCinemaRightsWindowBody.safeParse(req.body);
-  if (!params.success || !parsed.success) { res.status(400).json({ error: !params.success ? params.error.message : parsed.error.message }); return; }
+  if (!params.success || !parsed.success) { res.status(400).json({ error: !params.success ? params.error.message : parsed.error?.message ?? "Invalid request body" }); return; }
   const title = await findTitle(params.data.id);
   if (!title) { res.status(404).json({ error: "Cinema title not found" }); return; }
   const value = parsed.data;
@@ -346,7 +346,7 @@ router.post("/admin/cinema/titles/:id/rights-windows", requireOwner, async (req,
 router.post("/admin/cinema/titles/:id/assets", requireOwner, async (req, res): Promise<void> => {
   const params = CreateAdminCinemaAssetParams.safeParse(req.params);
   const parsed = CreateAdminCinemaAssetBody.safeParse(req.body);
-  if (!params.success || !parsed.success) { res.status(400).json({ error: !params.success ? params.error.message : parsed.error.message }); return; }
+  if (!params.success || !parsed.success) { res.status(400).json({ error: !params.success ? params.error.message : parsed.error?.message ?? "Invalid request body" }); return; }
   const title = await findTitle(params.data.id);
   if (!title) { res.status(404).json({ error: "Cinema title not found" }); return; }
   const [asset] = await db.insert(cinemaTitleAssetsTable).values({
@@ -368,7 +368,7 @@ router.post("/admin/cinema/titles/:id/credits", requireOwner, async (req, res): 
   const params = CreateAdminCinemaCreditParams.safeParse(req.params);
   const parsed = CreateAdminCinemaCreditBody.safeParse(req.body);
   if (!params.success || !parsed.success) {
-    res.status(400).json({ error: !params.success ? params.error.message : parsed.error.message });
+    res.status(400).json({ error: !params.success ? params.error.message : parsed.error?.message ?? "Invalid request body" });
     return;
   }
 

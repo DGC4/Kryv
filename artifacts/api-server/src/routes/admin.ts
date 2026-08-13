@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   db,
@@ -78,8 +78,6 @@ import { toChannelSummary } from "../lib/channelSerializer";
 import { toVideoSummary } from "../lib/videoSerializer";
 import { writeAuditLog } from "../lib/operations";
 import { createPlisioInvoice, getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode, type KryvCryptoCode } from "../lib/plisio";
-import { enqueueDurableJob } from "../lib/jobs";
-import { executeOwnerApprovedPayout } from "../lib/payoutExecution";
 
 const HARD_DISABLED_OPERATIONAL_FLAGS = new Set([
   "customer_wallet_custody",
@@ -265,7 +263,7 @@ router.post("/admin/moderation/cases/:id/review", requireOwner, async (req, res)
   const params = ReviewAdminModerationCaseParams.safeParse(req.params);
   const body = ReviewAdminModerationCaseBody.safeParse(req.body);
   if (!params.success || !body.success) {
-    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    res.status(400).json({ error: params.success ? body.error?.message ?? "Invalid request body" : params.error.message });
     return;
   }
   const [current] = await db.select().from(moderationCasesTable).where(eq(moderationCasesTable.id, params.data.id)).limit(1);
@@ -656,25 +654,24 @@ router.get("/admin/finance/overview", requireOwner, async (_req, res): Promise<v
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(creatorPayoutProfilesTable).where(eq(creatorPayoutProfilesTable.reviewStatus, "pending")),
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(payoutRequestsTable).where(inArray(payoutRequestsTable.status, ["requested", "held"])),
     getFinanceFlags(),
-    getPlisioAssetSnapshots().catch(() => []),
+    getPlisioAssetSnapshots().catch((): Awaited<ReturnType<typeof getPlisioAssetSnapshots>> => []),
   ]);
-  const snapshotByCurrency = new Map(snapshots.map((snapshot) => [snapshot.currency, snapshot]));
+  const snapshotByCurrency = new Map<KryvCryptoCode, Awaited<ReturnType<typeof getPlisioAssetSnapshots>>[number]>(snapshots.map((snapshot) => [snapshot.currency, snapshot] as const));
 
   res.json(GetAdminFinanceOverviewResponse.parse({
-    assetLiabilities: liabilityRows
-      .filter((row) => isSupportedKryvCryptoCode(row.currency))
-      .map((row) => {
-        const snapshot = snapshotByCurrency.get(row.currency);
-        return {
-          currency: row.currency,
-          pendingAmount: row.pendingAmount,
-          availableAmount: row.availableAmount,
-          heldAmount: row.heldAmount,
-          providerTreasuryBalance: snapshot?.treasuryBalance ?? null,
-          priceUsd: snapshot?.priceUsd ?? null,
-          rateUpdatedAt: snapshot?.fetchedAt ?? null,
-        };
-      }),
+    assetLiabilities: liabilityRows.flatMap((row) => {
+      if (!isSupportedKryvCryptoCode(row.currency)) return [];
+      const snapshot = snapshotByCurrency.get(row.currency);
+      return [{
+        currency: row.currency,
+        pendingAmount: row.pendingAmount,
+        availableAmount: row.availableAmount,
+        heldAmount: row.heldAmount,
+        providerTreasuryBalance: snapshot?.treasuryBalance ?? null,
+        priceUsd: snapshot?.priceUsd ?? null,
+        rateUpdatedAt: snapshot?.fetchedAt ?? null,
+      }];
+    }),
     pendingProfileReviews: profileReview[0]?.count ?? 0,
     requestedPayouts: payoutReview[0]?.count ?? 0,
     ...flags,
@@ -708,7 +705,7 @@ router.post("/admin/finance/payout-profiles/:id/review", requireOwner, async (re
   const params = ReviewAdminPayoutProfileParams.safeParse(req.params);
   const body = ReviewAdminPayoutProfileBody.safeParse(req.body);
   if (!params.success || !body.success) {
-    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    res.status(400).json({ error: params.success ? body.error?.message ?? "Invalid request body" : params.error.message });
     return;
   }
   const [before] = await db
@@ -810,7 +807,7 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
   const params = ReviewAdminPayoutRequestParams.safeParse(req.params);
   const body = ReviewAdminPayoutRequestBody.safeParse(req.body);
   if (!params.success || !body.success) {
-    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    res.status(400).json({ error: params.success ? body.error?.message ?? "Invalid request body" : params.error.message });
     return;
   }
   const [before] = await db
@@ -852,11 +849,11 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
     return;
   }
 
-  const nextStatus = body.data.decision === "approved" ? "approved" : body.data.decision === "held" ? "held" : "rejected";
   if (body.data.decision === "approved") {
     res.status(409).json({ error: "Provider withdrawal execution is hard-disabled. Keep this request held until the separately authorized production launch gate is complete." });
     return;
   }
+  const nextStatus = body.data.decision === "held" ? "held" : "rejected";
   const now = new Date();
   await db.transaction(async (txn) => {
     if (body.data.decision === "rejected") {
@@ -900,31 +897,6 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
     });
   });
 
-  let executionQueued = true;
-  let executionPath: "queue" | "inline" = "queue";
-  let executionFailure: unknown = null;
-  if (body.data.decision === "approved") {
-    executionQueued = await enqueueDurableJob({
-      id: `payout.execute:${before.id}`,
-      type: "payout.request",
-      occurredAt: now.toISOString(),
-      payload: { payoutRequestId: before.id },
-    });
-    if (!executionQueued) {
-      // Free-tier deployments do not have Redis or a persistent worker. Run the
-      // exact same guarded executor synchronously after owner approval rather than
-      // pretending a queued withdrawal will be delivered. The executor claims the
-      // request before it contacts Plisio, so an ambiguous provider response stays
-      // in `executing` for reconciliation instead of being submitted twice.
-      executionPath = "inline";
-      try {
-        await executeOwnerApprovedPayout(before.id);
-      } catch (error) {
-        executionFailure = error;
-      }
-    }
-  }
-
   const [after] = await db
     .select({
       id: payoutRequestsTable.id,
@@ -955,19 +927,10 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
     action: `owner_payout_request.${body.data.decision}`,
     targetType: "payout_request",
     targetId: String(before.id),
-    reason: executionFailure
-      ? "The guarded inline provider execution did not complete; inspect the recorded payout status before any retry."
-      : body.data.reason ?? (body.data.decision === "approved" ? `Provider execution accepted through ${executionPath}.` : null),
+    reason: body.data.reason ?? null,
     beforeState: toAdminPayoutRequest(before),
     afterState: toAdminPayoutRequest(after!),
   });
-  if (executionFailure) {
-    res.status(502).json({
-      error: "The provider payout did not complete. Kryv retained the authoritative payout status for reconciliation; do not re-approve or retry until it is reviewed.",
-      payout: ReviewAdminPayoutRequestResponse.parse(toAdminPayoutRequest(after!)),
-    });
-    return;
-  }
   res.json(ReviewAdminPayoutRequestResponse.parse(toAdminPayoutRequest(after!)));
 });
 
@@ -1041,7 +1004,7 @@ router.post("/admin/ads/campaigns/:id/funding-invoice", requireOwner, async (req
   const params = AdCampaignIdParams.safeParse(req.params);
   const body = CreateAdminAdFundingInvoiceBody.safeParse(req.body);
   if (!params.success || !body.success) {
-    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    res.status(400).json({ error: params.success ? body.error?.message ?? "Invalid request body" : params.error.message });
     return;
   }
   if (!isPlisioConfigured()) {
@@ -1132,7 +1095,7 @@ router.post("/admin/ads/campaigns/:id/approve", requireOwner, async (req, res): 
     res.status(404).json({ error: "Advertising campaign not found." });
     return;
   }
-  if (campaign.endsAt <= new Date()) {
+  if (!campaign.endsAt || campaign.endsAt <= new Date()) {
     res.status(409).json({ error: "An expired campaign cannot be approved for delivery." });
     return;
   }
@@ -1171,7 +1134,7 @@ router.patch("/admin/feature-flags/:key", requireOwner, async (req, res): Promis
   const params = UpdateAdminFeatureFlagParams.safeParse(req.params);
   const body = UpdateAdminFeatureFlagBody.safeParse(req.body);
   if (!params.success || !body.success) {
-    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    res.status(400).json({ error: params.success ? body.error?.message ?? "Invalid request body" : params.error.message });
     return;
   }
 

@@ -381,8 +381,8 @@ export function verifyPlisioJsonCallback(payload: Record<string, unknown>) {
     return false;
   }
 
+  const receivedHash = payload.verify_hash;
   const orderedPayload = { ...payload };
-  const receivedHash = orderedPayload.verify_hash;
   delete orderedPayload.verify_hash;
   const expectedHash = crypto.createHmac("sha1", secretKey).update(JSON.stringify(orderedPayload)).digest("hex");
   return constantTimeEqual(expectedHash, receivedHash);

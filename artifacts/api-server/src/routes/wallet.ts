@@ -18,6 +18,7 @@ import {
   getPlisioAssetSnapshots,
   isPlisioConfigured,
   isSupportedKryvCryptoCode,
+  type KryvCryptoCode,
   PlisioNotConfiguredError,
 } from "../lib/plisio";
 import { requireAuth } from "../lib/auth";
@@ -81,24 +82,23 @@ router.get("/wallet", async (req, res): Promise<void> => {
       db.select().from(customerWalletBalancesTable).where(eq(customerWalletBalancesTable.userId, req.user!.userId)),
       db.select().from(customerWalletDepositAddressesTable).where(eq(customerWalletDepositAddressesTable.userId, req.user!.userId)),
       db.select().from(customerWalletMovementsTable).where(eq(customerWalletMovementsTable.userId, req.user!.userId)).orderBy(desc(customerWalletMovementsTable.createdAt)).limit(30),
-      getPlisioAssetSnapshots().catch(() => []),
+      getPlisioAssetSnapshots().catch((): Awaited<ReturnType<typeof getPlisioAssetSnapshots>> => []),
       isWalletCustodyEnabled(),
     ]);
-    const snapshotByCurrency = new Map(snapshots.map((snapshot) => [snapshot.currency, snapshot]));
+    const snapshotByCurrency = new Map<KryvCryptoCode, Awaited<ReturnType<typeof getPlisioAssetSnapshots>>[number]>(snapshots.map((snapshot) => [snapshot.currency, snapshot] as const));
     const payload = {
-      balances: balances
-        .filter((balance) => isSupportedKryvCryptoCode(balance.currency))
-        .map((balance) => {
-          const snapshot = snapshotByCurrency.get(balance.currency);
-          return {
-            currency: balance.currency,
-            pendingAmount: decimal(balance.pendingAmount),
-            availableAmount: decimal(balance.availableAmount),
-            heldAmount: decimal(balance.heldAmount),
-            usdReferenceValue: referenceUsdValue(balance.availableAmount, snapshot?.priceUsd),
-            rateUpdatedAt: snapshot?.fetchedAt ?? null,
-          };
-        }),
+      balances: balances.flatMap((balance) => {
+        if (!isSupportedKryvCryptoCode(balance.currency)) return [];
+        const snapshot = snapshotByCurrency.get(balance.currency);
+        return [{
+          currency: balance.currency,
+          pendingAmount: decimal(balance.pendingAmount),
+          availableAmount: decimal(balance.availableAmount),
+          heldAmount: decimal(balance.heldAmount),
+          usdReferenceValue: referenceUsdValue(balance.availableAmount, snapshot?.priceUsd),
+          rateUpdatedAt: snapshot?.fetchedAt ?? null,
+        }];
+      }),
       depositAddresses: addresses
         .filter((address) => isSupportedKryvCryptoCode(address.currency))
         .map(toDepositAddress),

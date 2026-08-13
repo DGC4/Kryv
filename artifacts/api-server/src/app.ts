@@ -5,7 +5,7 @@ import fs from "fs";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit, { MemoryStore, type Options, type Store } from "express-rate-limit";
-import { RedisStore } from "rate-limit-redis";
+import { RedisStore, type RedisReply } from "rate-limit-redis";
 import cookieParser from "cookie-parser";
 import routes from "./routes";
 import webhooksRouter from "./routes/webhooks";
@@ -144,7 +144,7 @@ function sharedRateLimitStore(prefix: string): Store | undefined {
   if (!client) return undefined;
   const shared = new RedisStore({
     prefix,
-    sendCommand: (...args: string[]) => client.call(...args),
+    sendCommand: (...args: string[]): Promise<RedisReply> => client.call(...(args as [string, ...string[]])) as Promise<RedisReply>,
   });
   return new ResilientRateLimitStore(shared, prefix);
 }

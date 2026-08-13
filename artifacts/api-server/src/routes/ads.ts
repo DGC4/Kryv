@@ -158,7 +158,7 @@ router.post("/channels/:id/ad-breaks", requireAuth, async (req, res): Promise<vo
   const params = CreateChannelAdBreakParams.safeParse(req.params);
   const parsed = CreateChannelAdBreakBody.safeParse(req.body);
   if (!params.success || !parsed.success) {
-    res.status(400).json({ error: !params.success ? params.error.message : parsed.error.message });
+    res.status(400).json({ error: !params.success ? params.error.message : parsed.error?.message ?? "Invalid request body" });
     return;
   }
   if (!(await adDeliveryEnabled())) {

@@ -79,7 +79,7 @@ router.post("/clips/:id/reports", requireAuth, async (req, res): Promise<void> =
   const params = CreateClipSafetyReportParams.safeParse(req.params);
   const body = CreateClipSafetyReportBody.safeParse(req.body);
   if (!params.success || !body.success) {
-    res.status(400).json({ error: !params.success ? params.error.message : body.error.message });
+    res.status(400).json({ error: !params.success ? params.error.message : body.error?.message ?? "Invalid request body" });
     return;
   }
 

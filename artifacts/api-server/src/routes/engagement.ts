@@ -84,15 +84,15 @@ router.get("/channels/:id/engagement", attachUserId, async (req, res): Promise<v
     return;
   }
 
-  let [activePoll] = await db
+  let activePoll: typeof pollsTable.$inferSelect | null = (await db
     .select()
     .from(pollsTable)
     .where(and(eq(pollsTable.channelId, channel.id), eq(pollsTable.status, "active")))
     .orderBy(desc(pollsTable.startedAt))
-    .limit(1);
+    .limit(1))[0] ?? null;
   if (activePoll && activePoll.startedAt.getTime() + activePoll.durationSeconds * 1000 <= Date.now()) {
     await db.update(pollsTable).set({ status: "ended", endedAt: new Date() }).where(eq(pollsTable.id, activePoll.id));
-    activePoll = undefined;
+    activePoll = null;
   }
   const pollChoices = activePoll
     ? await db.select().from(pollChoicesTable).where(eq(pollChoicesTable.pollId, activePoll.id))
@@ -126,7 +126,7 @@ router.post("/channels/:id/engagement/actions", requireAuth, async (req, res): P
   const params = channelParams.safeParse(req.params);
   const body = actionBody.safeParse(req.body);
   if (!params.success || !body.success) {
-    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    res.status(400).json({ error: params.success ? body.error?.message ?? "Invalid request body" : params.error.message });
     return;
   }
 
@@ -308,7 +308,8 @@ router.post("/channels/:id/engagement/actions", requireAuth, async (req, res): P
   }
 
   if (data.action === "enter_prediction") {
-    if (!data.predictionId || !data.outcomeId || !data.channelPoints) { res.status(400).json({ error: "Prediction, outcome, and point amount are required." }); return; }
+    const channelPoints = data.channelPoints;
+    if (!data.predictionId || !data.outcomeId || !channelPoints) { res.status(400).json({ error: "Prediction, outcome, and point amount are required." }); return; }
     try {
       await db.transaction(async (tx) => {
         const [prediction] = await tx.select().from(predictionsTable).where(and(eq(predictionsTable.id, data.predictionId!), eq(predictionsTable.channelId, channelId), eq(predictionsTable.status, "active")));
@@ -318,11 +319,11 @@ router.post("/channels/:id/engagement/actions", requireAuth, async (req, res): P
           await tx.update(predictionsTable).set({ status: "locked", lockedAt: new Date() }).where(eq(predictionsTable.id, prediction.id));
           throw new Error("Prediction entries are locked");
         }
-        const [points] = await tx.update(channelPointsTable).set({ balance: sql`${channelPointsTable.balance} - ${data.channelPoints}` }).where(and(eq(channelPointsTable.channelId, channelId), eq(channelPointsTable.userId, userId), gte(channelPointsTable.balance, data.channelPoints))).returning();
+        const [points] = await tx.update(channelPointsTable).set({ balance: sql`${channelPointsTable.balance} - ${channelPoints}` }).where(and(eq(channelPointsTable.channelId, channelId), eq(channelPointsTable.userId, userId), gte(channelPointsTable.balance, channelPoints))).returning();
         if (!points) throw new Error("Insufficient channel points");
-        const inserted = await tx.insert(predictionEntriesTable).values({ predictionId: prediction.id, outcomeId: outcome.id, userId, channelPointsUsed: data.channelPoints }).onConflictDoNothing().returning({ id: predictionEntriesTable.id });
+        const inserted = await tx.insert(predictionEntriesTable).values({ predictionId: prediction.id, outcomeId: outcome.id, userId, channelPointsUsed: channelPoints }).onConflictDoNothing().returning({ id: predictionEntriesTable.id });
         if (!inserted.length) throw new Error("You have already entered this prediction");
-        await tx.update(predictionOutcomesTable).set({ channelPoints: sql`${predictionOutcomesTable.channelPoints} + ${data.channelPoints}`, users: sql`${predictionOutcomesTable.users} + 1` }).where(eq(predictionOutcomesTable.id, outcome.id));
+        await tx.update(predictionOutcomesTable).set({ channelPoints: sql`${predictionOutcomesTable.channelPoints} + ${channelPoints}`, users: sql`${predictionOutcomesTable.users} + 1` }).where(eq(predictionOutcomesTable.id, outcome.id));
       });
       res.json({ action: data.action, status: "entered" });
     } catch (error) {

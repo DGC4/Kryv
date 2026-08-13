@@ -137,7 +137,7 @@ router.patch("/me/profiles/:id", requireAuth, async (req, res): Promise<void> =>
   const params = UpdateViewerProfileParams.safeParse(req.params);
   const parsed = UpdateViewerProfileBody.safeParse(req.body);
   if (!params.success || !parsed.success) {
-    res.status(400).json({ error: !params.success ? params.error.message : parsed.error.message });
+    res.status(400).json({ error: !params.success ? params.error.message : parsed.error?.message ?? "Invalid request body" });
     return;
   }
 
