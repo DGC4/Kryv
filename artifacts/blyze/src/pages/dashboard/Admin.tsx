@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Redirect } from 'wouter';
+import { Link, Redirect } from 'wouter';
 import {
   useGetMe,
   useGetAdminAnalytics,
@@ -128,6 +128,12 @@ export default function DashboardAdmin() {
   });
   const [selectedCinemaTitleId, setSelectedCinemaTitleId] = useState<number | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [adminUserSearch, setAdminUserSearch] = useState('');
+  const [adminChannelSearch, setAdminChannelSearch] = useState('');
+  const normalizedUserSearch = adminUserSearch.trim().toLowerCase();
+  const normalizedChannelSearch = adminChannelSearch.trim().toLowerCase();
+  const filteredUsers = users?.filter((user) => !normalizedUserSearch || user.username.toLowerCase().includes(normalizedUserSearch) || user.role.toLowerCase().includes(normalizedUserSearch));
+  const filteredChannels = channels?.filter((channel) => !normalizedChannelSearch || channel.displayName.toLowerCase().includes(normalizedChannelSearch) || channel.slug.toLowerCase().includes(normalizedChannelSearch) || channel.categoryName?.toLowerCase().includes(normalizedChannelSearch));
   const cinemaDetailQuery = useGetAdminCinemaTitle(selectedCinemaTitleId ?? 0, {
     query: { enabled: me?.role === 'owner' && selectedCinemaTitleId !== null },
   });
@@ -605,7 +611,8 @@ export default function DashboardAdmin() {
       {/* Users table */}
       {tab === 'users' && (
         <>
-        <div className="rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur overflow-hidden">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-black text-white">Users and creator accounts</h2><p className="mt-1 text-xs text-white/40">Search existing authorized user records, then open consent-aware Kryv activity detail or take a reviewed account action.</p></div><label className="relative block sm:w-72"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" /><input value={adminUserSearch} onChange={(event) => setAdminUserSearch(event.target.value)} maxLength={80} placeholder="Search username or role" className="h-11 w-full rounded-xl border border-white/[0.1] bg-black/30 py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-primary/60" /></label></div>
+        <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur">
           {usersLoading ? (
             <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
           ) : (
@@ -620,7 +627,7 @@ export default function DashboardAdmin() {
                 </tr>
               </thead>
               <tbody>
-                {users?.map((u) => (
+                {filteredUsers?.map((u) => (
                   <tr key={u.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
                     <td className="p-3">
                       <div className="flex flex-col">
@@ -670,8 +677,8 @@ export default function DashboardAdmin() {
                     </td>
                   </tr>
                 ))}
-                {users?.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-white/30">No users yet.</td></tr>
+                {filteredUsers?.length === 0 && (
+                  <tr><td colSpan={5} className="p-8 text-center text-white/30">{normalizedUserSearch ? 'No user records match this search.' : 'No users yet.'}</td></tr>
                 )}
               </tbody>
             </table>
@@ -683,7 +690,7 @@ export default function DashboardAdmin() {
 
       {/* Channels table */}
       {tab === 'channels' && (
-        <div className="rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur overflow-hidden">
+        <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-black text-white">Creator channels</h2><p className="mt-1 text-xs text-white/40">Search active and offline creator channels, open public profiles, or use existing owner removal controls.</p></div><label className="relative block sm:w-72"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" /><input value={adminChannelSearch} onChange={(event) => setAdminChannelSearch(event.target.value)} maxLength={80} placeholder="Search channel or category" className="h-11 w-full rounded-xl border border-white/[0.1] bg-black/30 py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-primary/60" /></label></div><div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur">
           {channelsLoading ? (
             <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
           ) : (
@@ -698,9 +705,9 @@ export default function DashboardAdmin() {
                 </tr>
               </thead>
               <tbody>
-                {channels?.map((c) => (
+                {filteredChannels?.map((c) => (
                   <tr key={c.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
-                    <td className="p-3 text-white font-semibold">{c.displayName}</td>
+                      <td className="p-3"><Link href={`/profile/${c.slug}`} className="font-semibold text-white hover:text-primary">{c.displayName}</Link><p className="mt-1 font-mono text-[10px] text-white/30">/{c.slug}</p></td>
                     <td className="p-3 text-white/40 text-xs">{c.categoryName ?? '—'}</td>
                     <td className="p-3">
                       {c.isLive
@@ -716,13 +723,13 @@ export default function DashboardAdmin() {
                     </td>
                   </tr>
                 ))}
-                {channels?.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-white/30">No channels yet.</td></tr>
+                {filteredChannels?.length === 0 && (
+                  <tr><td colSpan={5} className="p-8 text-center text-white/30">{normalizedChannelSearch ? 'No channels match this search.' : 'No channels yet.'}</td></tr>
                 )}
               </tbody>
             </table>
           )}
-        </div>
+        </div></div>
       )}
 
       {tab === 'cinema' && (
