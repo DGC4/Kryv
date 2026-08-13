@@ -115,14 +115,10 @@ function AppRoutes() {
       </Route>
 
       <Route path="/cinema">
-        <ProtectedRoute>
-          <Layout><CinemaHome /></Layout>
-        </ProtectedRoute>
+        <Layout><CinemaHome /></Layout>
       </Route>
       <Route path="/cinema/:id">
-        <ProtectedRoute>
-          <Layout><CinemaDetail /></Layout>
-        </ProtectedRoute>
+        <Layout><CinemaDetail /></Layout>
       </Route>
 
       <Route path="/wallet">
