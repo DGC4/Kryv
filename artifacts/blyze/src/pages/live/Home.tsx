@@ -36,10 +36,10 @@ function RailHeading({ eyebrow, title, detail, icon: Icon, action }: { eyebrow: 
 
 export default function LiveHome() {
   const { user } = useAuthStore();
-  const { data: discover, isLoading: discoverLoading } = useGetDiscoverSummary({
+  const { data: discover, isLoading: discoverLoading, isError: discoverError, refetch: refetchDiscover } = useGetDiscoverSummary({
     query: { refetchInterval: 10000 },
   });
-  const { data: categories, isLoading: categoriesLoading } = useListCategories(
+  const { data: categories, isLoading: categoriesLoading, isError: categoriesError, refetch: refetchCategories } = useListCategories(
     { kind: 'live_game' },
     { query: { refetchInterval: 10000 } },
   );
@@ -50,6 +50,10 @@ export default function LiveHome() {
 
   if (discoverLoading || categoriesLoading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
+  if (discoverError || categoriesError) {
+    return <div className="flex min-h-[60vh] items-center justify-center px-4 text-center"><div><Radio className="mx-auto h-8 w-8 text-red-200/70" /><h1 className="mt-4 text-2xl font-black text-red-100">Live discovery is temporarily unavailable</h1><p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-red-100/70">Kryv cannot safely show partial viewer activity or category data while live discovery is unavailable.</p><button type="button" onClick={() => { void Promise.all([refetchDiscover(), refetchCategories()]); }} className="mt-5 inline-flex min-h-10 items-center rounded-xl border border-red-200/25 bg-red-200/[0.08] px-4 text-sm font-black text-red-50 transition hover:bg-red-200/[0.14]">Retry Live discovery</button></div></div>;
   }
 
   const liveChannels = discover?.featuredChannels ?? [];
