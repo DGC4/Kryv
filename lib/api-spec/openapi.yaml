@@ -1314,6 +1314,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /channels/{id}/reports:
+    post:
+      operationId: createChannelChatReport
+      tags: [chat]
+      summary: Report a chat message for channel-owner and owner review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatReportInput"
+      responses:
+        "201":
+          description: Report recorded for review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatReport"
+        "400":
+          description: Invalid report input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Channel or chat message not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /clips:
     get:
       operationId: listClips
@@ -1721,6 +1764,54 @@ paths:
                 items:
                   $ref: "#/components/schemas/CreatorAchievement"
         "403": { description: Creator channel is required }
+
+  /admin/moderation/cases:
+    get:
+      operationId: listAdminModerationCases
+      tags: [admin]
+      summary: List open and resolved viewer safety reports for owner review
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [open, resolved, dismissed] }
+      responses:
+        "200":
+          description: Moderation cases ordered by newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminModerationCase"
+        "403": { description: Not an owner }
+
+  /admin/moderation/cases/{id}/review:
+    post:
+      operationId: reviewAdminModerationCase
+      tags: [admin]
+      summary: Resolve or dismiss a viewer safety report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewAdminModerationCaseInput"
+      responses:
+        "200":
+          description: Updated moderation case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminModerationCase"
+        "400": { description: Invalid review input }
+        "403": { description: Not an owner }
+        "404": { description: Moderation case not found }
 
   /admin/finance/overview:
     get:
@@ -2752,6 +2843,54 @@ components:
       required: [message]
       properties:
         message: { type: string, minLength: 1, maxLength: 500 }
+
+    ChatReportInput:
+      type: object
+      required: [messageId, reason]
+      properties:
+        messageId: { type: integer, minimum: 1 }
+        reason:
+          type: string
+          enum: [harassment, hate_or_harm, spam_or_scam, sexual_content, violence_or_threat, other]
+        details: { type: string, maxLength: 500 }
+
+    ChatReport:
+      type: object
+      required: [id, channelId, messageId, subjectUserId, status, createdAt]
+      properties:
+        id: { type: integer }
+        channelId: { type: integer }
+        messageId: { type: integer }
+        subjectUserId: { type: integer }
+        status: { type: string, enum: [open] }
+        createdAt: { type: string, format: date-time }
+
+    AdminModerationCase:
+      type: object
+      required: [id, channelId, reporterUserId, subjectUserId, caseType, status, summary, evidence, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        channelId: { type: ["integer", "null"] }
+        reporterUserId: { type: ["integer", "null"] }
+        subjectUserId: { type: ["integer", "null"] }
+        reporterUsername: { type: ["string", "null"] }
+        subjectUsername: { type: ["string", "null"] }
+        caseType: { type: string }
+        status: { type: string, enum: [open, resolved, dismissed] }
+        summary: { type: ["string", "null"] }
+        evidence:
+          type: array
+          items: { type: object, additionalProperties: true }
+        resolution: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ReviewAdminModerationCaseInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [resolved, dismissed] }
+        resolution: { type: string, minLength: 1, maxLength: 1000 }
 
     AdminCinemaTitle:
       type: object

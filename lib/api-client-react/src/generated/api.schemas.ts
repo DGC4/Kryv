@@ -657,6 +657,93 @@ export interface ChatMessageInput {
   message: string;
 }
 
+export type ChatReportInputReason = typeof ChatReportInputReason[keyof typeof ChatReportInputReason];
+
+
+export const ChatReportInputReason = {
+  harassment: 'harassment',
+  hate_or_harm: 'hate_or_harm',
+  spam_or_scam: 'spam_or_scam',
+  sexual_content: 'sexual_content',
+  violence_or_threat: 'violence_or_threat',
+  other: 'other',
+} as const;
+
+export interface ChatReportInput {
+  /** @minimum 1 */
+  messageId: number;
+  reason: ChatReportInputReason;
+  /** @maxLength 500 */
+  details?: string;
+}
+
+export type ChatReportStatus = typeof ChatReportStatus[keyof typeof ChatReportStatus];
+
+
+export const ChatReportStatus = {
+  open: 'open',
+} as const;
+
+export interface ChatReport {
+  id: number;
+  channelId: number;
+  messageId: number;
+  subjectUserId: number;
+  status: ChatReportStatus;
+  createdAt: string;
+}
+
+export type AdminModerationCaseStatus = typeof AdminModerationCaseStatus[keyof typeof AdminModerationCaseStatus];
+
+
+export const AdminModerationCaseStatus = {
+  open: 'open',
+  resolved: 'resolved',
+  dismissed: 'dismissed',
+} as const;
+
+export type AdminModerationCaseEvidenceItem = { [key: string]: unknown };
+
+export interface AdminModerationCase {
+  id: number;
+  /** @nullable */
+  channelId: number | null;
+  /** @nullable */
+  reporterUserId: number | null;
+  /** @nullable */
+  subjectUserId: number | null;
+  /** @nullable */
+  reporterUsername?: string | null;
+  /** @nullable */
+  subjectUsername?: string | null;
+  caseType: string;
+  status: AdminModerationCaseStatus;
+  /** @nullable */
+  summary: string | null;
+  evidence: AdminModerationCaseEvidenceItem[];
+  /** @nullable */
+  resolution?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ReviewAdminModerationCaseInputDecision = typeof ReviewAdminModerationCaseInputDecision[keyof typeof ReviewAdminModerationCaseInputDecision];
+
+
+export const ReviewAdminModerationCaseInputDecision = {
+  resolved: 'resolved',
+  dismissed: 'dismissed',
+} as const;
+
+export interface ReviewAdminModerationCaseInput {
+  decision: ReviewAdminModerationCaseInputDecision;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  resolution?: string;
+}
+
 export type AdminCinemaTitlePublishState = typeof AdminCinemaTitlePublishState[keyof typeof AdminCinemaTitlePublishState];
 
 
@@ -1801,5 +1888,18 @@ export type ListVideosContentType = typeof ListVideosContentType[keyof typeof Li
 export const ListVideosContentType = {
   upload: 'upload',
   original: 'original',
+} as const;
+
+export type ListAdminModerationCasesParams = {
+status?: ListAdminModerationCasesStatus;
+};
+
+export type ListAdminModerationCasesStatus = typeof ListAdminModerationCasesStatus[keyof typeof ListAdminModerationCasesStatus];
+
+
+export const ListAdminModerationCasesStatus = {
+  open: 'open',
+  resolved: 'resolved',
+  dismissed: 'dismissed',
 } as const;
 

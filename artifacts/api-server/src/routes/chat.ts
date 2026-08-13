@@ -8,6 +8,7 @@ import {
   db,
   followsTable,
   moderatorsTable,
+  moderationCasesTable,
   streamSessionsTable,
   usersTable,
 } from "@workspace/db";
@@ -18,6 +19,9 @@ import {
   CreateChannelModerationActionBody,
   CreateChannelModerationActionParams,
   CreateChannelModerationActionResponse,
+  CreateChannelChatReportBody,
+  CreateChannelChatReportParams,
+  CreateChannelChatReportResponse,
   GetChannelChatSettingsParams,
   GetChannelChatSettingsResponse,
   ListChannelMessagesParams,
@@ -30,6 +34,7 @@ import { requireAuth } from "../lib/auth";
 import { enqueueDurableJob } from "../lib/jobs";
 import { deleteSharedKey, getSharedStateClient, publishRealtimeEvent, readSharedJson, writeSharedJson } from "../lib/realtime";
 import { logActivity } from "../lib/tracking";
+import { writeAuditLog } from "../lib/operations";
 
 const router: IRouter = Router();
 
@@ -409,6 +414,85 @@ router.post(
         expiresAt,
       }),
     );
+  },
+);
+
+router.post(
+  "/channels/:id/reports",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const params = CreateChannelChatReportParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const body = CreateChannelChatReportBody.safeParse(req.body);
+    if (!body.success) {
+      res.status(400).json({ error: body.error.message });
+      return;
+    }
+
+    const [channel] = await db
+      .select({ id: channelsTable.id })
+      .from(channelsTable)
+      .where(eq(channelsTable.id, params.data.id))
+      .limit(1);
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found." });
+      return;
+    }
+
+    const [message] = await db
+      .select({ id: chatMessagesTable.id, userId: chatMessagesTable.userId, message: chatMessagesTable.message, createdAt: chatMessagesTable.createdAt })
+      .from(chatMessagesTable)
+      .where(and(eq(chatMessagesTable.id, body.data.messageId), eq(chatMessagesTable.channelId, channel.id), isNull(chatMessagesTable.deletedAt)))
+      .limit(1);
+    if (!message) {
+      res.status(404).json({ error: "Chat message not found or no longer available for reporting." });
+      return;
+    }
+    if (message.userId === req.user!.userId) {
+      res.status(400).json({ error: "You cannot report your own chat message." });
+      return;
+    }
+
+    const details = body.data.details?.trim() || null;
+    const [caseRecord] = await db
+      .insert(moderationCasesTable)
+      .values({
+        channelId: channel.id,
+        reporterUserId: req.user!.userId,
+        subjectUserId: message.userId,
+        caseType: "chat_message_report",
+        status: "open",
+        summary: details ? `Viewer report: ${body.data.reason} — ${details}` : `Viewer report: ${body.data.reason}`,
+        evidence: [{
+          kind: "chat_message",
+          messageId: message.id,
+          message: message.message.slice(0, 500),
+          createdAt: message.createdAt.toISOString(),
+          reason: body.data.reason,
+        }],
+      })
+      .returning();
+
+    await writeAuditLog(req, {
+      action: "chat_message_reported",
+      targetType: "moderation_case",
+      targetId: caseRecord.id,
+      reason: body.data.reason,
+      afterState: { channelId: channel.id, messageId: message.id, subjectUserId: message.userId, status: "open" },
+    });
+    logActivity(req, "chat_message_reported", { channelId: channel.id, messageId: message.id, caseId: caseRecord.id, reason: body.data.reason }).catch(() => undefined);
+
+    res.status(201).json(CreateChannelChatReportResponse.parse({
+      id: caseRecord.id,
+      channelId: channel.id,
+      messageId: message.id,
+      subjectUserId: message.userId,
+      status: "open",
+      createdAt: caseRecord.createdAt,
+    }));
   },
 );
 

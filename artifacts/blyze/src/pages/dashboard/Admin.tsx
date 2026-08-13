@@ -38,6 +38,8 @@ import {
   getGetAdminFinanceOverviewQueryKey,
   getListAdminPayoutProfilesQueryKey,
   getListAdminPayoutRequestsQueryKey,
+  useListAdminModerationCases,
+  useReviewAdminModerationCase,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -48,7 +50,7 @@ import {
 import { GoldenDBadge, UserBadge } from '@/components/brand/BrandIdentity';
 import { useToast } from '@/hooks/use-toast';
 
-type Tab = 'users' | 'channels' | 'videos' | 'cinema' | 'finance' | 'ads' | 'operations';
+type Tab = 'users' | 'channels' | 'videos' | 'cinema' | 'finance' | 'ads' | 'safety' | 'operations';
 
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: boolean }) {
   return (
@@ -100,6 +102,9 @@ export default function DashboardAdmin() {
   const adsOverviewQuery = useGetAdminAdsOverview({
     query: { enabled: me?.role === 'owner' && tab === 'ads', refetchInterval: tab === 'ads' ? 15000 : false },
   });
+  const moderationCasesQuery = useListAdminModerationCases({ status: 'open' }, {
+    query: { enabled: me?.role === 'owner' && tab === 'safety', refetchInterval: tab === 'safety' ? 15000 : false },
+  });
   const [selectedCinemaTitleId, setSelectedCinemaTitleId] = useState<number | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const cinemaDetailQuery = useGetAdminCinemaTitle(selectedCinemaTitleId ?? 0, {
@@ -144,6 +149,7 @@ export default function DashboardAdmin() {
   const createAdminAdCampaign = useCreateAdminAdCampaign();
   const createAdminAdFundingInvoice = useCreateAdminAdFundingInvoice();
   const approveAdminAdCampaign = useApproveAdminAdCampaign();
+  const reviewAdminModerationCase = useReviewAdminModerationCase();
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
@@ -236,6 +242,14 @@ export default function DashboardAdmin() {
     reviewAdminPayoutRequest.mutate({ id, data: { decision } }, {
       onSuccess: () => { refreshFinanceCommand(); toast({ title: `Payout ${decision}`, description: decision === 'approved' ? 'No provider withdrawal was sent.' : undefined }); },
       onError: (err: any) => toast({ title: 'Payout review blocked', description: err?.body?.error || err?.message || 'Review could not be recorded.', variant: 'destructive' }),
+    });
+  };
+
+  const reviewModerationCase = (id: number, decision: 'resolved' | 'dismissed') => {
+    if (!confirm(`${decision === 'resolved' ? 'Resolve' : 'Dismiss'} this safety report? This review is final and recorded in Kryv's audit ledger.`)) return;
+    reviewAdminModerationCase.mutate({ id, data: { decision } }, {
+      onSuccess: () => { moderationCasesQuery.refetch(); toast({ title: `Safety report ${decision}`, description: 'The report review was recorded without altering the original evidence.' }); },
+      onError: (err: any) => toast({ title: 'Safety review blocked', description: err?.body?.error || err?.message || 'Review could not be recorded.', variant: 'destructive' }),
     });
   };
 
@@ -410,7 +424,7 @@ export default function DashboardAdmin() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-white/[0.08] mb-5">
-        {(['users', 'channels', 'videos', 'cinema', 'finance', 'ads', 'operations'] as Tab[]).map((t) => (
+        {(['users', 'channels', 'videos', 'cinema', 'finance', 'ads', 'safety', 'operations'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -475,6 +489,13 @@ export default function DashboardAdmin() {
           <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><h3 className="text-sm font-black text-white">Campaign command queue</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Approval never bypasses funding, creative, rule, consent, or ad-delivery kill-switch checks.</p></div><Button type="button" variant="secondary" size="sm" onClick={() => refreshAdsCommand()} disabled={adsOverviewQuery.isFetching} className="w-fit font-black">{adsOverviewQuery.isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}</Button></div><div className="mt-4 space-y-3">{adsOverviewQuery.isLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : adsOverviewQuery.data?.campaigns.length ? adsOverviewQuery.data.campaigns.map((campaign) => <article key={campaign.id} className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><h4 className="text-sm font-black text-white">{campaign.name}</h4><span className="rounded-full bg-primary/10 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-primary">{campaign.fundingMode}</span><span className="rounded-full bg-white/[0.07] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white/55">{campaign.status}</span></div><p className="mt-1 text-xs text-white/40">{campaign.advertiserName ?? 'Kryv house campaign'} · ends {campaign.endsAt ? new Date(campaign.endsAt).toLocaleString() : 'not scheduled'}</p><p className="mt-2 text-[11px] text-white/35">Funding: <b className="text-white/65">{campaign.fundingStatus.replaceAll('_', ' ')}</b> · creator allocation: <b className="text-white/65">{(campaign.creatorShareBps / 100).toFixed(2)}%</b>{campaign.budgetAmount ? ` · USD reference ${campaign.budgetAmount}` : ''}</p></div><div className="flex shrink-0 flex-wrap gap-2">{campaign.fundingMode === 'paid' && !['funded', 'invoice_pending'].includes(campaign.fundingStatus) && <Button size="sm" disabled={createAdminAdFundingInvoice.isPending} onClick={() => createAdvertisingFundingInvoice(campaign.id)} className="h-8 text-[10px] font-black">{createAdminAdFundingInvoice.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Create crypto invoice'}</Button>}{campaign.status !== 'active' && (campaign.fundingMode === 'promotional' || campaign.fundingStatus === 'funded') && <Button size="sm" variant="secondary" disabled={approveAdminAdCampaign.isPending} onClick={() => approveAdvertisingCampaign(campaign.id, campaign.name)} className="h-8 text-[10px] font-black">Approve delivery</Button>}</div></div></article>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-5 text-xs text-white/35">No campaigns have been drafted. Start with a short, owner-approved promotional flight rather than opening delivery globally.</p>}</div></div>
 
           <div className="grid gap-3 lg:grid-cols-3">{Object.entries(adsOverviewQuery.data?.policy ?? {}).map(([key, value]) => <div key={key} className="rounded-xl border border-white/[0.08] bg-black/25 p-4"><p className="text-[10px] font-black uppercase tracking-widest text-primary">{key.replace(/([A-Z])/g, ' $1')}</p><p className="mt-2 text-xs leading-relaxed text-white/45">{value}</p></div>)}</div>
+        </section>
+      )}
+
+      {tab === 'safety' && (
+        <section className="space-y-5">
+          <div className="rounded-2xl border border-red-300/20 bg-red-400/[0.045] p-5 sm:p-6"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2 text-red-200"><ShieldAlert className="h-5 w-5" /><h2 className="text-lg font-black">Trust &amp; Safety Queue</h2></div><p className="mt-1 max-w-3xl text-sm leading-relaxed text-white/50">Viewer reports preserve the reported message, selected reason, reporter identity, and immutable audit correlation. Resolve or dismiss only after reviewing the captured evidence; a completed decision is not overwritten.</p></div><div className="rounded-full border border-white/[0.1] bg-black/25 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/55">{moderationCasesQuery.data?.length ?? 0} open</div></div></div>
+          {moderationCasesQuery.isLoading ? <div className="flex justify-center py-14"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div> : moderationCasesQuery.data?.length ? <div className="space-y-3">{moderationCasesQuery.data.map((moderationCase) => <article key={moderationCase.id} className="rounded-2xl border border-white/[0.08] bg-black/25 p-4 sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-black text-white">{moderationCase.caseType.replaceAll('_', ' ')}</h3><span className="rounded-full bg-red-400/10 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-red-200">{moderationCase.status}</span></div><p className="mt-2 text-xs leading-relaxed text-white/60">{moderationCase.summary ?? 'No reporter detail was supplied.'}</p><div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-bold uppercase tracking-wider text-white/35"><span>Case #{moderationCase.id}</span><span>Channel {moderationCase.channelId ?? 'not retained'}</span><span>Subject {moderationCase.subjectUsername ?? `user #${moderationCase.subjectUserId ?? 'unknown'}`}</span><span>Reported {new Date(moderationCase.createdAt).toLocaleString()}</span></div></div><div className="grid shrink-0 grid-cols-2 gap-2 sm:w-48"><Button size="sm" className="h-8 text-[10px] font-black" disabled={reviewAdminModerationCase.isPending} onClick={() => reviewModerationCase(moderationCase.id, 'resolved')}><CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Resolve</Button><Button size="sm" variant="secondary" className="h-8 text-[10px] font-black" disabled={reviewAdminModerationCase.isPending} onClick={() => reviewModerationCase(moderationCase.id, 'dismissed')}><XCircle className="mr-1 h-3.5 w-3.5" /> Dismiss</Button></div></div></article>)}</div> : <div className="rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.015] p-8 text-center text-sm text-white/40">No open viewer safety reports. New reports from live chat will appear here for owner review.</div>}
         </section>
       )}
 

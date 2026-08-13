@@ -41,6 +41,7 @@ import type {
   AdminCinemaUploadSessionInput,
   AdminFeatureFlag,
   AdminFinanceOverview,
+  AdminModerationCase,
   AdminPayoutProfile,
   AdminPayoutRequest,
   AdminStats,
@@ -63,6 +64,8 @@ import type {
   ChannelUpdate,
   ChatMessage,
   ChatMessageInput,
+  ChatReport,
+  ChatReportInput,
   CinemaHome,
   CinemaTitle,
   ClipInput,
@@ -85,6 +88,7 @@ import type {
   Error,
   GetAdDecisionParams,
   HealthStatus,
+  ListAdminModerationCasesParams,
   ListCategoriesParams,
   ListChannelsParams,
   ListClipsParams,
@@ -92,6 +96,7 @@ import type {
   Me,
   NotificationPreferences,
   NotificationPreferencesInput,
+  ReviewAdminModerationCaseInput,
   ReviewPayoutProfileInput,
   ReviewPayoutRequestInput,
   SaveCreatorPayoutProfileInput,
@@ -3491,6 +3496,78 @@ export const useCreateChannelMessage = <TError = ErrorType<Error>,
       return useMutation(getCreateChannelMessageMutationOptions(options));
     }
 
+export const getCreateChannelChatReportUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/reports`
+}
+
+/**
+ * @summary Report a chat message for channel-owner and owner review
+ */
+export const createChannelChatReport = async (id: number,
+    chatReportInput: ChatReportInput, options?: RequestInit): Promise<ChatReport> => {
+
+  return customFetch<ChatReport>(getCreateChannelChatReportUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(chatReportInput)
+  }
+);}
+
+
+
+
+
+export const getCreateChannelChatReportMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelChatReport>>, TError,{id: number;data: BodyType<ChatReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChannelChatReport>>, TError,{id: number;data: BodyType<ChatReportInput>}, TContext> => {
+
+const mutationKey = ['createChannelChatReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChannelChatReport>>, {id: number;data: BodyType<ChatReportInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createChannelChatReport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChannelChatReportMutationResult = NonNullable<Awaited<ReturnType<typeof createChannelChatReport>>>
+    export type CreateChannelChatReportMutationBody = BodyType<ChatReportInput>
+    export type CreateChannelChatReportMutationError = ErrorType<Error>
+
+    /**
+ * @summary Report a chat message for channel-owner and owner review
+ */
+export const useCreateChannelChatReport = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChannelChatReport>>, TError,{id: number;data: BodyType<ChatReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createChannelChatReport>>,
+        TError,
+        {id: number;data: BodyType<ChatReportInput>},
+        TContext
+      > => {
+      return useMutation(getCreateChannelChatReportMutationOptions(options));
+    }
+
 export const getListClipsUrl = (params?: ListClipsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -4766,6 +4843,162 @@ export function useGetCreatorAchievements<TData = Awaited<ReturnType<typeof getC
 
 
 
+
+export const getListAdminModerationCasesUrl = (params?: ListAdminModerationCasesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/moderation/cases?${stringifiedParams}` : `/api/admin/moderation/cases`
+}
+
+/**
+ * @summary List open and resolved viewer safety reports for owner review
+ */
+export const listAdminModerationCases = async (params?: ListAdminModerationCasesParams, options?: RequestInit): Promise<AdminModerationCase[]> => {
+
+  return customFetch<AdminModerationCase[]>(getListAdminModerationCasesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminModerationCasesQueryKey = (params?: ListAdminModerationCasesParams,) => {
+    return [
+    `/api/admin/moderation/cases`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminModerationCasesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminModerationCases>>, TError = ErrorType<void>>(params?: ListAdminModerationCasesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminModerationCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminModerationCasesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminModerationCases>>> = ({ signal }) => listAdminModerationCases(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminModerationCases>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminModerationCasesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminModerationCases>>>
+export type ListAdminModerationCasesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List open and resolved viewer safety reports for owner review
+ */
+
+export function useListAdminModerationCases<TData = Awaited<ReturnType<typeof listAdminModerationCases>>, TError = ErrorType<void>>(
+ params?: ListAdminModerationCasesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminModerationCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminModerationCasesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewAdminModerationCaseUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/moderation/cases/${id}/review`
+}
+
+/**
+ * @summary Resolve or dismiss a viewer safety report
+ */
+export const reviewAdminModerationCase = async (id: number,
+    reviewAdminModerationCaseInput: ReviewAdminModerationCaseInput, options?: RequestInit): Promise<AdminModerationCase> => {
+
+  return customFetch<AdminModerationCase>(getReviewAdminModerationCaseUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reviewAdminModerationCaseInput)
+  }
+);}
+
+
+
+
+
+export const getReviewAdminModerationCaseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAdminModerationCase>>, TError,{id: number;data: BodyType<ReviewAdminModerationCaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewAdminModerationCase>>, TError,{id: number;data: BodyType<ReviewAdminModerationCaseInput>}, TContext> => {
+
+const mutationKey = ['reviewAdminModerationCase'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewAdminModerationCase>>, {id: number;data: BodyType<ReviewAdminModerationCaseInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewAdminModerationCase(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewAdminModerationCaseMutationResult = NonNullable<Awaited<ReturnType<typeof reviewAdminModerationCase>>>
+    export type ReviewAdminModerationCaseMutationBody = BodyType<ReviewAdminModerationCaseInput>
+    export type ReviewAdminModerationCaseMutationError = ErrorType<void>
+
+    /**
+ * @summary Resolve or dismiss a viewer safety report
+ */
+export const useReviewAdminModerationCase = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAdminModerationCase>>, TError,{id: number;data: BodyType<ReviewAdminModerationCaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewAdminModerationCase>>,
+        TError,
+        {id: number;data: BodyType<ReviewAdminModerationCaseInput>},
+        TContext
+      > => {
+      return useMutation(getReviewAdminModerationCaseMutationOptions(options));
+    }
 
 export const getGetAdminFinanceOverviewUrl = () => {
 

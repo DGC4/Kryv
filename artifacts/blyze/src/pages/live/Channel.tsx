@@ -15,11 +15,12 @@ import {
   useCreateCryptoSubscription,
   useCreateWalletTip,
   useCreateClip,
+  useCreateChannelChatReport,
 } from '@workspace/api-client-react';
 import { useAuthStore } from '@/lib/auth-store';
 import { useToast } from '@/hooks/use-toast';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 
@@ -56,6 +57,7 @@ export default function LiveChannel() {
   const createCryptoSubscription = useCreateCryptoSubscription();
   const createWalletTip = useCreateWalletTip();
   const createClip = useCreateClip();
+  const createChatReport = useCreateChannelChatReport();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [chatInput, setChatInput] = useState('');
@@ -67,6 +69,7 @@ export default function LiveChannel() {
   const [supportSource, setSupportSource] = useState<'invoice' | 'wallet'>('invoice');
   const [subscriptionTier, setSubscriptionTier] = useState<1 | 2 | 3>(1);
   const [cryptoCheckout, setCryptoCheckout] = useState<any | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ id: number; username: string } | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Event-driven chat and live-state refresh. REST stays authoritative for writes,
@@ -324,6 +327,21 @@ export default function LiveChannel() {
     });
   };
 
+  const handleReportMessage = (reason: 'harassment' | 'hate_or_harm' | 'spam_or_scam' | 'sexual_content' | 'violence_or_threat' | 'other') => {
+    if (!channelId || !reportTarget) return;
+    if (!isSignedIn) {
+      toast({ title: 'Sign in to report', description: 'You need to be signed in before reporting a chat message.' });
+      return;
+    }
+    createChatReport.mutate({ id: channelId, data: { messageId: reportTarget.id, reason } }, {
+      onSuccess: () => {
+        setReportTarget(null);
+        toast({ title: 'Report received', description: 'Kryv recorded this message for channel and platform safety review.' });
+      },
+      onError: (err: any) => toast({ title: 'Report could not be sent', description: err?.body?.error || err?.message || 'Try again in a moment.', variant: 'destructive' }),
+    });
+  };
+
   const handleFollowToggle = () => {
     if (!isSignedIn) {
       // Prompt user to sign in
@@ -566,8 +584,14 @@ export default function LiveChannel() {
                     </button>
                   </div>
                 )}
+                {!channel.isOwner && Number(msg.userId) !== Number(user?.id) && (
+                  <button type="button" title="Report message" onClick={() => setReportTarget({ id: msg.id, username: msg.username })} className="ml-auto rounded p-1 text-white/25 opacity-100 transition-colors hover:bg-red-400/10 hover:text-red-300 sm:opacity-0 sm:group-hover:opacity-100"><Flag className="h-3 w-3" /></button>
+                )}
               </div>
               <span className="text-white/90 break-words text-xs sm:text-sm">{msg.message}</span>
+              {reportTarget?.id === msg.id && (
+                <div className="mt-2 rounded-lg border border-red-300/15 bg-red-400/[0.06] p-2.5"><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-black uppercase tracking-wider text-red-100/75">Report {reportTarget.username}&apos;s message</p><button type="button" onClick={() => setReportTarget(null)} className="rounded p-0.5 text-white/35 hover:text-white"><X className="h-3 w-3" /></button></div><p className="mt-1 text-[11px] leading-relaxed text-white/45">Choose the closest reason. Reports are recorded for safety review.</p><div className="mt-2 flex flex-wrap gap-1.5">{([{ key: 'harassment', label: 'Harassment' }, { key: 'hate_or_harm', label: 'Hate / harm' }, { key: 'spam_or_scam', label: 'Spam / scam' }, { key: 'sexual_content', label: 'Sexual' }, { key: 'violence_or_threat', label: 'Threat' }, { key: 'other', label: 'Other' }] as const).map((option) => <button key={option.key} type="button" disabled={createChatReport.isPending} onClick={() => handleReportMessage(option.key)} className="rounded-md border border-white/[0.1] bg-black/20 px-2 py-1 text-[10px] font-bold text-white/70 transition-colors hover:border-red-300/35 hover:text-red-100 disabled:opacity-40">{option.label}</button>)}</div></div>
+              )}
             </div>
           ))}
           {(!messages || messages.length === 0) && (

@@ -105,3 +105,26 @@ The owner should also review whether the free-tier single-process path remains p
 Kryv does not currently provide customer crypto custody, scheduled creator payouts, fiat cards, Stripe, a global realtime relay, ad-network demand, automatic advertising creator revenue allocation, multi-CDN control, KYC/tax automation, or guaranteed uninterrupted free-tier infrastructure. Do not represent those capabilities as active until their specific readiness gates are implemented and verified.
 
 The platform may display USD as a reference for consumers and advertisers, but actual settlement, creator liabilities, campaign funding, and withdrawals remain crypto-denominated and provider-confirmed.
+
+## 7. Repeatable deployment-readiness check
+
+Run the following command after every production deployment and before an owner begins a controlled payout or enables an advertiser flight:
+
+```bash
+pnpm run verify:production-readiness
+```
+
+The command performs a **read-only** request to the deployed `/health` endpoint. It verifies an `ok` service status and the expected provider-withdrawal runtime state. It never creates an invoice, changes a feature flag, calls the withdrawal provider, or writes a database record.
+
+| Command mode | Meaning | Expected result on the present topology |
+| --- | --- | --- |
+| `pnpm run verify:production-readiness` | Confirms the public runtime health contract and documents any free-tier boundary. | Passes only when health is `ok` and provider withdrawals report the expected runtime state. |
+| `REQUIRE_DURABLE_TOPOLOGY=true pnpm run verify:production-readiness` | Enforces an always-on, queue-backed deployment requirement. | Intentionally fails while Kryv reports `free-tier-fallback`. This is a deployment gate, not an outage. |
+
+> **Operator rule:** A passing free-tier readiness check does not prove stable egress, Redis, durable jobs, an isolated worker, or continuously available callback reception. Those claims require the strict topology gate to pass after the corresponding infrastructure is deployed.
+
+## 8. Viewer safety report review
+
+Authenticated viewers may report an eligible live-chat message with a bounded reason. Kryv captures the message identifier, preserved message content, reason, reporter, subject, and audit correlation in a durable moderation case. The owner reviews open cases in **Owner Console → Safety** and chooses **Resolve** or **Dismiss** once.
+
+A safety case is not silently overwritten. The original evidence remains attached to the review record, and the owner decision is written to the audit ledger. This workflow is a reporting and review control; it does not replace emergency moderation actions such as deleting a message, timing out an account, or banning a user.

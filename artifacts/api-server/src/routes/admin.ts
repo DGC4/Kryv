@@ -18,6 +18,7 @@ import {
   adCampaignsTable,
   adCampaignFundingsTable,
   adRevenueMovementsTable,
+  moderationCasesTable,
 } from "@workspace/db";
 import {
   GetAdminStatsResponse,
@@ -44,6 +45,11 @@ import {
   ReviewAdminPayoutRequestParams,
   ReviewAdminPayoutRequestBody,
   ReviewAdminPayoutRequestResponse,
+  ListAdminModerationCasesQueryParams,
+  ListAdminModerationCasesResponse,
+  ReviewAdminModerationCaseParams,
+  ReviewAdminModerationCaseBody,
+  ReviewAdminModerationCaseResponse,
 } from "@workspace/api-zod";
 import { requireOwner } from "../lib/auth";
 import { toChannelSummary } from "../lib/channelSerializer";
@@ -73,6 +79,24 @@ function toAdminFeatureFlag(row: { key: string; enabled: boolean; description: s
 
 function toDecimalString(value: unknown) {
   return typeof value === "string" ? value : String(value ?? "0");
+}
+
+function toAdminModerationCase(row: typeof moderationCasesTable.$inferSelect) {
+  return {
+    id: row.id,
+    channelId: row.channelId,
+    reporterUserId: row.reporterUserId,
+    subjectUserId: row.subjectUserId,
+    reporterUsername: null,
+    subjectUsername: null,
+    caseType: row.caseType,
+    status: row.status as "open" | "resolved" | "dismissed",
+    summary: row.summary,
+    evidence: Array.isArray(row.evidence) ? row.evidence : [],
+    resolution: row.resolution,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
 }
 
 const CryptoCode = z.enum(["BTC", "LTC", "ETH", "DOGE"]);
@@ -191,6 +215,55 @@ async function getFinanceFlags() {
 }
 
 const router: IRouter = Router();
+
+router.get("/admin/moderation/cases", requireOwner, async (req, res): Promise<void> => {
+  const query = ListAdminModerationCasesQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const rows = await db
+    .select()
+    .from(moderationCasesTable)
+    .where(query.data.status ? eq(moderationCasesTable.status, query.data.status) : undefined)
+    .orderBy(desc(moderationCasesTable.createdAt))
+    .limit(100);
+  res.json(ListAdminModerationCasesResponse.parse(rows.map(toAdminModerationCase)));
+});
+
+router.post("/admin/moderation/cases/:id/review", requireOwner, async (req, res): Promise<void> => {
+  const params = ReviewAdminModerationCaseParams.safeParse(req.params);
+  const body = ReviewAdminModerationCaseBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    return;
+  }
+  const [current] = await db.select().from(moderationCasesTable).where(eq(moderationCasesTable.id, params.data.id)).limit(1);
+  if (!current) {
+    res.status(404).json({ error: "Moderation case not found." });
+    return;
+  }
+  if (current.status !== "open") {
+    res.status(409).json({ error: "This moderation case has already been reviewed and cannot be overwritten." });
+    return;
+  }
+  const reviewedAt = new Date();
+  const resolution = body.data.resolution?.trim() || (body.data.decision === "resolved" ? "Resolved by owner review." : "Dismissed by owner review.");
+  const [updated] = await db
+    .update(moderationCasesTable)
+    .set({ status: body.data.decision, resolution, assignedToUserId: req.user!.userId, resolvedAt: reviewedAt, updatedAt: reviewedAt })
+    .where(eq(moderationCasesTable.id, current.id))
+    .returning();
+  await writeAuditLog(req, {
+    action: "moderation_case_reviewed",
+    targetType: "moderation_case",
+    targetId: updated.id,
+    reason: resolution,
+    beforeState: { status: current.status },
+    afterState: { status: updated.status, decision: body.data.decision },
+  });
+  res.json(ReviewAdminModerationCaseResponse.parse(toAdminModerationCase(updated)));
+});
 
 router.get("/admin/finance/overview", requireOwner, async (_req, res): Promise<void> => {
   const [liabilityRows, profileReview, payoutReview, flags, snapshots] = await Promise.all([

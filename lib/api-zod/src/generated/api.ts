@@ -1389,6 +1389,34 @@ export const CreateChannelMessageResponse = zod.object({
 
 
 /**
+ * @summary Report a chat message for channel-owner and owner review
+ */
+export const CreateChannelChatReportParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const createChannelChatReportBodyDetailsMax = 500;
+
+
+
+export const CreateChannelChatReportBody = zod.object({
+  "messageId": zod.number().min(1),
+  "reason": zod.enum(['harassment', 'hate_or_harm', 'spam_or_scam', 'sexual_content', 'violence_or_threat', 'other']),
+  "details": zod.string().max(createChannelChatReportBodyDetailsMax).optional()
+})
+
+export const CreateChannelChatReportResponse = zod.object({
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "messageId": zod.number(),
+  "subjectUserId": zod.number(),
+  "status": zod.enum(['open']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Browse public, ready-to-play Kryv clips
  */
 export const ListClipsQueryParams = zod.object({
@@ -1921,6 +1949,64 @@ export const GetCreatorAchievementsResponseItem = zod.object({
   "evidence": zod.string()
 })
 export const GetCreatorAchievementsResponse = zod.array(GetCreatorAchievementsResponseItem)
+
+
+/**
+ * @summary List open and resolved viewer safety reports for owner review
+ */
+export const ListAdminModerationCasesQueryParams = zod.object({
+  "status": zod.enum(['open', 'resolved', 'dismissed']).optional()
+})
+
+export const ListAdminModerationCasesResponseItem = zod.object({
+  "id": zod.number(),
+  "channelId": zod.number().nullable(),
+  "reporterUserId": zod.number().nullable(),
+  "subjectUserId": zod.number().nullable(),
+  "reporterUsername": zod.string().nullish(),
+  "subjectUsername": zod.string().nullish(),
+  "caseType": zod.string(),
+  "status": zod.enum(['open', 'resolved', 'dismissed']),
+  "summary": zod.string().nullable(),
+  "evidence": zod.array(zod.record(zod.string(), zod.unknown())),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminModerationCasesResponse = zod.array(ListAdminModerationCasesResponseItem)
+
+
+/**
+ * @summary Resolve or dismiss a viewer safety report
+ */
+export const ReviewAdminModerationCaseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const reviewAdminModerationCaseBodyResolutionMax = 1000;
+
+
+
+export const ReviewAdminModerationCaseBody = zod.object({
+  "decision": zod.enum(['resolved', 'dismissed']),
+  "resolution": zod.string().min(1).max(reviewAdminModerationCaseBodyResolutionMax).optional()
+})
+
+export const ReviewAdminModerationCaseResponse = zod.object({
+  "id": zod.number(),
+  "channelId": zod.number().nullable(),
+  "reporterUserId": zod.number().nullable(),
+  "subjectUserId": zod.number().nullable(),
+  "reporterUsername": zod.string().nullish(),
+  "subjectUsername": zod.string().nullish(),
+  "caseType": zod.string(),
+  "status": zod.enum(['open', 'resolved', 'dismissed']),
+  "summary": zod.string().nullable(),
+  "evidence": zod.array(zod.record(zod.string(), zod.unknown())),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
 
 
 /**
