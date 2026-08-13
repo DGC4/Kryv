@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect } from 'react';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -12,31 +13,32 @@ if (import.meta.env.VITE_API_URL) {
   setBaseUrl(import.meta.env.VITE_API_URL);
 }
 
-// Pages
-import NotFound from '@/pages/not-found';
-import LiveHome from '@/pages/live/Home';
-import LiveCategory from '@/pages/live/Category';
-import LiveCategories from '@/pages/live/Categories';
-import LiveChannel from '@/pages/live/Channel';
-import CreatorProfile from '@/pages/profile/CreatorProfile';
-import CreatorDirectory from '@/pages/creators/Directory';
-import WatchHome from '@/pages/watch/Home';
-import WatchDetail from '@/pages/watch/Detail';
-import ClipsHome from '@/pages/clips/Home';
-import ClipDetail from '@/pages/clips/Detail';
-import SearchPage from '@/pages/search/Search';
-import CinemaHome from '@/pages/cinema/Home';
-import CinemaDetail from '@/pages/cinema/Detail';
-import DashboardLive from '@/pages/dashboard/Live';
-import DashboardWatch from '@/pages/dashboard/Watch';
-import DashboardAdmin from '@/pages/dashboard/Admin';
-import CustomerWallet from '@/pages/wallet/Wallet';
-import Privacy from '@/pages/legal/Privacy';
-import Terms from '@/pages/legal/Terms';
-import CreatorEconomics from '@/pages/legal/CreatorEconomics';
-import Safety from '@/pages/legal/Safety';
-import SignInPage from '@/pages/auth/SignIn';
-import SignUpPage from '@/pages/auth/SignUp';
+// Route modules are intentionally split so public entry pages do not preload
+// every owner dashboard, player, and catalog management surface.
+const NotFound = lazy(() => import('@/pages/not-found'));
+const LiveHome = lazy(() => import('@/pages/live/Home'));
+const LiveCategory = lazy(() => import('@/pages/live/Category'));
+const LiveCategories = lazy(() => import('@/pages/live/Categories'));
+const LiveChannel = lazy(() => import('@/pages/live/Channel'));
+const CreatorProfile = lazy(() => import('@/pages/profile/CreatorProfile'));
+const CreatorDirectory = lazy(() => import('@/pages/creators/Directory'));
+const WatchHome = lazy(() => import('@/pages/watch/Home'));
+const WatchDetail = lazy(() => import('@/pages/watch/Detail'));
+const ClipsHome = lazy(() => import('@/pages/clips/Home'));
+const ClipDetail = lazy(() => import('@/pages/clips/Detail'));
+const SearchPage = lazy(() => import('@/pages/search/Search'));
+const CinemaHome = lazy(() => import('@/pages/cinema/Home'));
+const CinemaDetail = lazy(() => import('@/pages/cinema/Detail'));
+const DashboardLive = lazy(() => import('@/pages/dashboard/Live'));
+const DashboardWatch = lazy(() => import('@/pages/dashboard/Watch'));
+const DashboardAdmin = lazy(() => import('@/pages/dashboard/Admin'));
+const CustomerWallet = lazy(() => import('@/pages/wallet/Wallet'));
+const Privacy = lazy(() => import('@/pages/legal/Privacy'));
+const Terms = lazy(() => import('@/pages/legal/Terms'));
+const CreatorEconomics = lazy(() => import('@/pages/legal/CreatorEconomics'));
+const Safety = lazy(() => import('@/pages/legal/Safety'));
+const SignInPage = lazy(() => import('@/pages/auth/SignIn'));
+const SignUpPage = lazy(() => import('@/pages/auth/SignUp'));
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -54,6 +56,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#080808] text-white"><div className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-5 py-4 text-sm font-bold text-white/65"><span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" /> Loading Kryv…</div></div>}>
     <Switch>
       <Route path="/" component={HomeRedirect} />
       
@@ -146,10 +149,10 @@ function AppRoutes() {
         <Layout><NotFound /></Layout>
       </Route>
     </Switch>
+    </Suspense>
   );
 }
 
-import { useEffect } from 'react';
 
 function ScrollToTop() {
   const [location] = useLocation();
