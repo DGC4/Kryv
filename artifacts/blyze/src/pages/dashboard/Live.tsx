@@ -1206,7 +1206,7 @@ export default function DashboardLive() {
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-white">Verified crypto settlement</p>
-                      <p className="mt-1 text-xs leading-relaxed text-white/40">Kryv creates a provider invoice first and only credits a creator balance after a signed payment callback confirms the transaction. Provider withdrawals and scheduled payouts remain disabled until production authorization, balance verification, reconciliation, and incident-readiness controls are complete.</p>
+                      <p className="mt-1 text-xs leading-relaxed text-white/40">Kryv creates a provider invoice first and only credits a creator balance after a signed payment callback confirms the transaction. Provider withdrawals and scheduled payout requests are hard-disabled operational boundaries; this dashboard cannot configure, queue, or trigger either capability.</p>
                     </div>
                     <span className="shrink-0 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-200">Owner-reviewed</span>
                   </div>
