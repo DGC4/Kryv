@@ -46,6 +46,7 @@ import { toChannelSummary } from "../lib/channelSerializer";
 import { toVideoSummary } from "../lib/videoSerializer";
 import { writeAuditLog } from "../lib/operations";
 import { getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode } from "../lib/plisio";
+import { enqueueDurableJob } from "../lib/jobs";
 
 const OPERATIONAL_FLAG_COPY: Record<string, string> = {
   crypto_commerce: "Crypto-only invoices for channel support and subscriptions. Disable immediately if provider callbacks or settlement monitoring are unhealthy.",
@@ -336,6 +337,17 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
   }
 
   const nextStatus = body.data.decision === "approved" ? "approved" : body.data.decision === "held" ? "held" : "rejected";
+  if (body.data.decision === "approved") {
+    const [providerWithdrawalFlag] = await db
+      .select({ enabled: featureFlagsTable.enabled })
+      .from(featureFlagsTable)
+      .where(eq(featureFlagsTable.key, "provider_withdrawals"))
+      .limit(1);
+    if (!providerWithdrawalFlag?.enabled || process.env.PLISIO_WITHDRAWALS_ENABLED !== "true") {
+      res.status(409).json({ error: "Provider withdrawal execution is not active. Keep this request held until the provider, runtime, queue, and worker controls are live." });
+      return;
+    }
+  }
   const now = new Date();
   await db.transaction(async (txn) => {
     if (body.data.decision === "rejected") {
@@ -379,6 +391,22 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
     });
   });
 
+  let executionQueued = true;
+  if (body.data.decision === "approved") {
+    executionQueued = await enqueueDurableJob({
+      id: `payout.execute:${before.id}`,
+      type: "payout.request",
+      occurredAt: now.toISOString(),
+      payload: { payoutRequestId: before.id },
+    });
+    if (!executionQueued) {
+      await db
+        .update(payoutRequestsTable)
+        .set({ status: "held", riskHoldReason: "Durable payout queue unavailable; owner must retry approval after queue recovery." })
+        .where(eq(payoutRequestsTable.id, before.id));
+    }
+  }
+
   const [after] = await db
     .select({
       id: payoutRequestsTable.id,
@@ -409,10 +437,14 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
     action: `owner_payout_request.${body.data.decision}`,
     targetType: "payout_request",
     targetId: String(before.id),
-    reason: body.data.reason,
+    reason: executionQueued ? body.data.reason : "Provider execution was not queued; the payout remains held.",
     beforeState: toAdminPayoutRequest(before),
     afterState: toAdminPayoutRequest(after!),
   });
+  if (!executionQueued) {
+    res.status(503).json({ error: "The payout request remains held because the durable execution queue is unavailable." });
+    return;
+  }
   res.json(ReviewAdminPayoutRequestResponse.parse(toAdminPayoutRequest(after!)));
 });
 

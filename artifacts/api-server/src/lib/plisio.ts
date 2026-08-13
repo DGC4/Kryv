@@ -41,6 +41,12 @@ export type PlisioWithdrawal = {
   transactionUrl: string | null;
 };
 
+export type PlisioWithdrawalFeeEstimate = {
+  providerCommission: string | null;
+  networkFee: string | null;
+  feePlan: "normal" | "priority";
+};
+
 export type PlisioDepositAddress = {
   uid: string;
   currency: KryvCryptoCode;
@@ -246,6 +252,53 @@ export async function createPlisioWithdrawal(input: {
       amount: typeof payload.data.amount === "string" ? payload.data.amount : input.amount,
       feeAmount: typeof payload.data.fee === "string" ? payload.data.fee : null,
       transactionUrl: typeof payload.data.tx_url === "string" ? payload.data.tx_url : null,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function estimatePlisioWithdrawalFee(input: {
+  currency: KryvCryptoCode;
+  destination: string;
+  amount: string;
+  feePlan?: "normal" | "priority";
+}): Promise<PlisioWithdrawalFeeEstimate> {
+  if (!isSupportedKryvCryptoCode(input.currency)) {
+    throw new Error("The requested payout currency is not enabled for Kryv.");
+  }
+  if (!/^\d+(\.\d{1,8})?$/.test(input.amount) || input.amount === "0") {
+    throw new Error("A payout amount must be a positive crypto decimal with at most eight places.");
+  }
+  const destination = input.destination.trim();
+  if (destination.length < 10 || destination.length > 256 || /[\s,]/.test(destination)) {
+    throw new Error("The payout destination has an invalid format.");
+  }
+
+  const feePlan = input.feePlan ?? "normal";
+  const params = new URLSearchParams({
+    addresses: destination,
+    amounts: input.amount,
+    type: "cash_out",
+    feePlan,
+    api_key: getSecretKey(),
+  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch(`${PLISIO_API_BASE.replace(/\/$/, "")}/operations/commission/${input.currency}?${params.toString()}`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => null) as any;
+    if (!response.ok || payload?.status !== "success" || !payload?.data) {
+      throw new Error("Plisio could not estimate the crypto payout fee.");
+    }
+    return {
+      providerCommission: providerCryptoAmount(payload.data.commission),
+      networkFee: providerCryptoAmount(payload.data.fee),
+      feePlan: payload.data.plan === "priority" ? "priority" : "normal",
     };
   } finally {
     clearTimeout(timer);
