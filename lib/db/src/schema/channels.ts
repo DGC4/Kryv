@@ -22,6 +22,10 @@ export const channelsTable = pgTable("channels", {
   slug: text("slug").notNull().unique(),
   displayName: text("display_name").notNull(),
   description: text("description"),
+  websiteUrl: text("website_url"),
+  youtubeUrl: text("youtube_url"),
+  instagramUrl: text("instagram_url"),
+  xUrl: text("x_url"),
   avatarUrl: text("avatar_url"),
   bannerUrl: text("banner_url"),
   categoryId: integer("category_id").references(() => categoriesTable.id, {
