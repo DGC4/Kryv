@@ -37,6 +37,42 @@ async function createFollowedLiveNotifications(channel: { id: number; slug: stri
   })));
 }
 
+async function createFollowedContentNotifications(input: { channelId: number; notificationType: "watch_upload_ready" | "clip_ready"; contentId: number; contentTitle: string }) {
+  const [channel] = await db
+    .select({ id: channelsTable.id, slug: channelsTable.slug, displayName: channelsTable.displayName })
+    .from(channelsTable)
+    .where(eq(channelsTable.id, input.channelId))
+    .limit(1);
+  if (!channel) return;
+
+  const followers = await db
+    .select({ userId: followsTable.followerUserId })
+    .from(followsTable)
+    .where(eq(followsTable.channelId, channel.id));
+  const followerIds = followers.map((follower) => follower.userId);
+  if (!followerIds.length) return;
+
+  const preferences = await db
+    .select({ userId: notificationPreferencesTable.userId, notifyOnUpload: notificationPreferencesTable.notifyOnUpload, notifyOnClip: notificationPreferencesTable.notifyOnClip })
+    .from(notificationPreferencesTable)
+    .where(and(inArray(notificationPreferencesTable.userId, followerIds), isNull(notificationPreferencesTable.channelId)));
+  const preferenceByUserId = new Map(preferences.map((preference) => [preference.userId, preference]));
+  const recipientIds = followerIds.filter((userId) => {
+    const preference = preferenceByUserId.get(userId);
+    return input.notificationType === "watch_upload_ready" ? preference?.notifyOnUpload !== false : preference?.notifyOnClip === true;
+  });
+  if (!recipientIds.length) return;
+
+  const isClip = input.notificationType === "clip_ready";
+  await db.insert(notificationsTable).values(recipientIds.map((userId) => ({
+    userId,
+    type: input.notificationType,
+    title: `${channel.displayName} published a ${isClip ? "Clip" : "Watch release"}`,
+    message: input.contentTitle,
+    data: { channelId: channel.id, channelSlug: channel.slug, ...(isClip ? { clipId: input.contentId } : { videoId: input.contentId }) },
+  })));
+}
+
 function publishAuthoritativeLiveState(channel: { id: number; isLive: boolean; viewerCount: number; fastpixPlaybackId: string | null }, providerEvent: string) {
   const occurredAt = new Date().toISOString();
   deleteSharedKey(DISCOVER_SUMMARY_CACHE_KEY).catch(() => undefined);
@@ -866,8 +902,10 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
       const uploadId = media.uploadId ?? (media as any).upload_id;
       const durationSeconds = media.duration ? Math.round(media.duration) : null;
 
+      const newlyReadyVideos: Array<{ id: number; channelId: number; title: string }> = [];
+      const newlyReadyClips: Array<{ id: number; channelId: number; title: string }> = [];
       if (uploadId) {
-        await db
+        newlyReadyVideos.push(...await db
           .update(videosTable)
           .set({
             uploadStatus: "ready",
@@ -875,7 +913,8 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
             fastpixPlaybackId: playbackId,
             durationSeconds,
           })
-          .where(eq(videosTable.fastpixUploadId, uploadId));
+          .where(and(eq(videosTable.fastpixUploadId, uploadId), ne(videosTable.uploadStatus, "ready")))
+          .returning({ id: videosTable.id, channelId: videosTable.channelId, title: videosTable.title }));
         await db
           .update(cinemaTitleAssetsTable)
           .set({
@@ -890,15 +929,16 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
           .where(eq(cinemaTitleAssetsTable.fastpixUploadId, uploadId));
       }
       if (mediaId) {
-        await db
+        newlyReadyVideos.push(...await db
           .update(videosTable)
           .set({ uploadStatus: "ready", fastpixPlaybackId: playbackId, durationSeconds })
-          .where(eq(videosTable.fastpixAssetId, mediaId));
+          .where(and(eq(videosTable.fastpixAssetId, mediaId), ne(videosTable.uploadStatus, "ready")))
+          .returning({ id: videosTable.id, channelId: videosTable.channelId, title: videosTable.title }));
         await db
           .update(cinemaTitleAssetsTable)
           .set({ processingStatus: "ready", fastpixPlaybackId: playbackId, durationSeconds, processingError: null, updatedAt: new Date() })
           .where(eq(cinemaTitleAssetsTable.fastpixMediaId, mediaId));
-        await db
+        newlyReadyClips.push(...await db
           .update(clipsTable)
           .set({
             processingStatus: "ready",
@@ -908,7 +948,14 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
             ...(durationSeconds ? { durationSeconds } : {}),
             processingError: null,
           })
-          .where(eq(clipsTable.fastpixMediaId, mediaId));
+          .where(and(eq(clipsTable.fastpixMediaId, mediaId), ne(clipsTable.processingStatus, "ready")))
+          .returning({ id: clipsTable.id, channelId: clipsTable.channelId, title: clipsTable.title }));
+      }
+      for (const video of newlyReadyVideos) {
+        createFollowedContentNotifications({ channelId: video.channelId, notificationType: "watch_upload_ready", contentId: video.id, contentTitle: video.title }).catch((error) => logger.error({ error, videoId: video.id, channelId: video.channelId }, "Unable to create Watch-ready inbox alerts"));
+      }
+      for (const clip of newlyReadyClips) {
+        createFollowedContentNotifications({ channelId: clip.channelId, notificationType: "clip_ready", contentId: clip.id, contentTitle: clip.title }).catch((error) => logger.error({ error, clipId: clip.id, channelId: clip.channelId }, "Unable to create Clip-ready inbox alerts"));
       }
       break;
     }
