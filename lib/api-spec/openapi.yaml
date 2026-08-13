@@ -2334,9 +2334,13 @@ components:
       allOf:
         - $ref: "#/components/schemas/ChannelSummary"
         - type: object
-          required: [description, isFollowing, isSubscribed, isOwner, ownerUserId, createdAt]
+          required: [description, websiteUrl, youtubeUrl, instagramUrl, xUrl, isFollowing, isSubscribed, isOwner, ownerUserId, createdAt]
           properties:
             description: { type: ["string", "null"] }
+            websiteUrl: { type: ["string", "null"], format: uri }
+            youtubeUrl: { type: ["string", "null"], format: uri }
+            instagramUrl: { type: ["string", "null"], format: uri }
+            xUrl: { type: ["string", "null"], format: uri }
             isFollowing: { type: boolean }
             isSubscribed: { type: boolean }
             isOwner: { type: boolean }
@@ -2356,6 +2360,10 @@ components:
       properties:
         displayName: { type: string, minLength: 1, maxLength: 60 }
         description: { type: string, maxLength: 500 }
+        websiteUrl: { type: ["string", "null"], format: uri, pattern: '^https://.+' }
+        youtubeUrl: { type: ["string", "null"], format: uri, pattern: '^https://(www\\.)?(youtube\\.com|youtu\\.be)/.+' }
+        instagramUrl: { type: ["string", "null"], format: uri, pattern: '^https://(www\\.)?instagram\\.com/.+' }
+        xUrl: { type: ["string", "null"], format: uri, pattern: '^https://(www\\.)?(x\\.com|twitter\\.com)/.+' }
         avatarUrl: { type: string }
         bannerUrl: { type: string }
         categoryId: { type: integer }

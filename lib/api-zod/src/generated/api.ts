@@ -797,6 +797,10 @@ export const CreateChannelResponse = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -829,6 +833,10 @@ export const GetChannelResponse = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -855,6 +863,10 @@ export const updateChannelBodyStreamTitleMax = 140;
 export const UpdateChannelBody = zod.object({
   "displayName": zod.string().min(1).max(updateChannelBodyDisplayNameMax).optional(),
   "description": zod.string().max(updateChannelBodyDescriptionMax).optional(),
+  "websiteUrl": zod.string().url().regex(/^https:\/\/.+/).nullable().optional(),
+  "youtubeUrl": zod.string().url().regex(/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+/).nullable().optional(),
+  "instagramUrl": zod.string().url().regex(/^https:\/\/(www\.)?instagram\.com\/.+/).nullable().optional(),
+  "xUrl": zod.string().url().regex(/^https:\/\/(www\.)?(x\.com|twitter\.com)\/.+/).nullable().optional(),
   "avatarUrl": zod.string().optional(),
   "bannerUrl": zod.string().optional(),
   "categoryId": zod.number().optional(),
@@ -878,6 +890,10 @@ export const UpdateChannelResponse = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -910,6 +926,10 @@ export const GetChannelBySlugResponse = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -1015,6 +1035,10 @@ export const FollowChannelResponse = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -1047,6 +1071,10 @@ export const UnfollowChannelResponse = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
 }).and(zod.object({
   "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
   "isFollowing": zod.boolean(),
   "isSubscribed": zod.boolean(),
   "isOwner": zod.boolean(),

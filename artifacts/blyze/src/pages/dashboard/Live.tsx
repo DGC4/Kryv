@@ -173,6 +173,11 @@ export default function DashboardLive() {
 
   const [displayName, setDisplayName] = useState('');
   const [settingsDisplayName, setSettingsDisplayName] = useState('');
+  const [settingsDescription, setSettingsDescription] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [xUrl, setXUrl] = useState('');
   const [chatSlowModeSeconds, setChatSlowModeSeconds] = useState(0);
   const [chatFollowersOnly, setChatFollowersOnly] = useState(false);
   const [streamTitle, setStreamTitle] = useState('');
@@ -303,6 +308,11 @@ export default function DashboardLive() {
   useEffect(() => {
     if (me?.channel) {
       setSettingsDisplayName(me.channel.displayName);
+      setSettingsDescription(me.channel.description || '');
+      setWebsiteUrl(me.channel.websiteUrl || '');
+      setYoutubeUrl(me.channel.youtubeUrl || '');
+      setInstagramUrl(me.channel.instagramUrl || '');
+      setXUrl(me.channel.xUrl || '');
       setStreamTitle(me.channel.streamTitle || '');
       setCategoryId(me.channel.categoryId || undefined);
     }
@@ -376,11 +386,21 @@ export default function DashboardLive() {
     if (!channel || !nextDisplayName) return;
 
     updateChannel.mutate(
-      { id: channel.id, data: { displayName: nextDisplayName } },
+      {
+        id: channel.id,
+        data: {
+          displayName: nextDisplayName,
+          description: settingsDescription.trim(),
+          websiteUrl: websiteUrl.trim() || null,
+          youtubeUrl: youtubeUrl.trim() || null,
+          instagramUrl: instagramUrl.trim() || null,
+          xUrl: xUrl.trim() || null,
+        },
+      },
       {
         onSuccess: async () => {
           await refetchMe();
-          toast({ title: 'Channel settings saved!', description: 'Your display name is now updated everywhere on Kryv.' });
+          toast({ title: 'Public profile saved!', description: 'Your channel identity, biography, and verified social links are now updated on Kryv.' });
         },
         onError: (err: any) =>
           toast({ title: 'Unable to save settings', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
@@ -1052,6 +1072,27 @@ export default function DashboardLive() {
                     <div className="flex items-center gap-2 bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5">
                       <span className="text-white/30 text-sm">kryv.tv/live/</span>
                       <span className="text-white text-sm font-mono">{channel.slug}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Channel biography</label>
+                    <textarea
+                      value={settingsDescription}
+                      onChange={e => setSettingsDescription(e.target.value)}
+                      placeholder="Tell viewers what your channel is about."
+                      maxLength={500}
+                      rows={4}
+                      className="w-full resize-y bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-primary/50 transition-all"
+                    />
+                    <p className="mt-1.5 text-right text-[10px] font-medium text-white/30">{settingsDescription.length}/500</p>
+                  </div>
+                  <div className="border-t border-white/[0.07] pt-4">
+                    <div className="mb-3"><p className="text-sm font-bold text-white">Official links</p><p className="mt-1 text-xs leading-relaxed text-white/35">Only HTTPS links are accepted. YouTube, Instagram, and X links must point to their official domains.</p></div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest">Website<input type="url" value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://your-site.com" autoComplete="url" className="mt-1.5 w-full bg-black/40 border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm normal-case tracking-normal text-white placeholder:text-white/20 focus:outline-none focus:border-primary/50" /></label>
+                      <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest">YouTube<input type="url" value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} placeholder="https://youtube.com/@channel" autoComplete="url" className="mt-1.5 w-full bg-black/40 border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm normal-case tracking-normal text-white placeholder:text-white/20 focus:outline-none focus:border-primary/50" /></label>
+                      <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest">Instagram<input type="url" value={instagramUrl} onChange={e => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/handle" autoComplete="url" className="mt-1.5 w-full bg-black/40 border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm normal-case tracking-normal text-white placeholder:text-white/20 focus:outline-none focus:border-primary/50" /></label>
+                      <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest">X / Twitter<input type="url" value={xUrl} onChange={e => setXUrl(e.target.value)} placeholder="https://x.com/handle" autoComplete="url" className="mt-1.5 w-full bg-black/40 border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm normal-case tracking-normal text-white placeholder:text-white/20 focus:outline-none focus:border-primary/50" /></label>
                     </div>
                   </div>
                   <Button

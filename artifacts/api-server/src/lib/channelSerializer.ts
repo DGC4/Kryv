@@ -101,6 +101,10 @@ export async function toChannelDetail(
   return {
     ...summary,
     description: channel.description,
+    websiteUrl: channel.websiteUrl,
+    youtubeUrl: channel.youtubeUrl,
+    instagramUrl: channel.instagramUrl,
+    xUrl: channel.xUrl,
     isFollowing,
     isSubscribed,
     isOwner: viewerUserId === channel.ownerUserId,

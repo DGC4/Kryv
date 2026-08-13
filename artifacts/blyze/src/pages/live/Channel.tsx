@@ -20,7 +20,7 @@ import {
 import { useAuthStore } from '@/lib/auth-store';
 import { useToast } from '@/hooks/use-toast';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2 } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -501,6 +501,20 @@ export default function LiveChannel() {
                 </p>
                 {channel.description && (
                   <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/60 line-clamp-2">{channel.description}</p>
+                )}
+                {(channel.websiteUrl || channel.youtubeUrl || channel.instagramUrl || channel.xUrl) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {[
+                      { label: 'Website', href: channel.websiteUrl, Icon: Globe2 },
+                      { label: 'YouTube', href: channel.youtubeUrl, Icon: Youtube },
+                      { label: 'Instagram', href: channel.instagramUrl, Icon: Instagram },
+                      { label: 'X', href: channel.xUrl, Icon: ExternalLink },
+                    ].filter((link): link is { label: string; href: string; Icon: typeof Globe2 } => Boolean(link.href)).map(({ label, href, Icon }) => (
+                      <a key={label} href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.03] px-2.5 py-1.5 text-xs font-bold text-white/65 transition hover:border-primary/50 hover:bg-primary/10 hover:text-primary" aria-label={`Open ${channel.displayName}'s ${label} in a new tab`}>
+                        <Icon className="h-3.5 w-3.5" />{label}
+                      </a>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
