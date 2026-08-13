@@ -3,7 +3,7 @@ import { useLocation, Link } from 'wouter';
 import { useAuthStore } from '../lib/auth-store';
 import { useGetMe, useGetNotificationInbox, useMarkNotificationRead } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
-import { Bell, Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, Users, WalletCards } from 'lucide-react';
+import { Bell, Menu, Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, Users, WalletCards } from 'lucide-react';
 import { KryvLogo, GoldenDBadge, UserBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,7 +50,14 @@ export function Header() {
             <KryvLogo subscriptionTier={me?.role === 'owner' ? 'ultra' : 'free'} />
           </Link>
 
-          <nav className="flex items-center gap-0 sm:gap-0.5 shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" aria-label="Browse Kryv" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/60 transition hover:bg-white/[0.06] hover:text-primary sm:hidden"><Menu className="h-4 w-4" /></button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 border-white/10 bg-black/95 p-1 backdrop-blur-xl">{NAV.map((item) => <DropdownMenuItem key={item.path} asChild><Link href={item.path} className="flex cursor-pointer items-center gap-2.5"><item.icon className="h-4 w-4 text-primary" /><span>{item.label}</span></Link></DropdownMenuItem>)}</DropdownMenuContent>
+          </DropdownMenu>
+
+          <nav className="hidden shrink-0 items-center gap-0 sm:flex sm:gap-0.5">
             {NAV.map(item => {
               const active = item.match.some(m => location === m || location.startsWith(`${m}/`));
               return (
