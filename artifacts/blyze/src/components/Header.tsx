@@ -50,7 +50,7 @@ export function Header() {
 
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-1 sm:gap-6 min-w-0">
-          <Link href="/">
+          <Link href="/" aria-label="Kryv home">
             <KryvLogo subscriptionTier={me?.role === 'owner' ? 'ultra' : 'free'} />
           </Link>
 
@@ -102,7 +102,7 @@ export function Header() {
           </form>
 
           <Link href="/search" className="md:hidden">
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/50 hover:bg-white/[0.06] hover:text-primary" title="Search Kryv">
+            <Button variant="ghost" size="icon" aria-label="Search Kryv" className="h-8 w-8 rounded-full text-white/50 hover:bg-white/[0.06] hover:text-primary" title="Search Kryv">
               <Search className="h-4 w-4" />
             </Button>
           </Link>
@@ -111,6 +111,7 @@ export function Header() {
           <Button
             variant="ghost" size="icon"
             onClick={cycleTheme}
+            aria-label="Cycle color theme"
             className="h-8 w-8 text-white/40 hover:text-primary hover:bg-white/[0.06] rounded-full"
             title="Cycle theme"
           >
@@ -140,7 +141,7 @@ export function Header() {
               {/* User menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="w-8 h-8 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
+                  <button type="button" aria-label="Open account menu" className="w-8 h-8 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
                     {user?.avatarUrl
                       ? <img src={user.avatarUrl} alt={user.username || ''} className="w-full h-full object-cover" />
                       : <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">{user?.username?.[0]?.toUpperCase()}</div>
