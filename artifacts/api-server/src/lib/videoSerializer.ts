@@ -7,6 +7,16 @@ import {
 } from "@workspace/db";
 import { categoryNameFor } from "./channelSerializer";
 
+function publicPlaybackSource(video: Video): "fastpix" | "youtube" {
+  // `playback_source` was introduced after early Watch records existed and is
+  // stored as unconstrained text. A YouTube response is valid only when an
+  // actual official embed identifier accompanies it; every other persisted
+  // value remains on Kryv's processed FastPix path.
+  return video.playbackSource === "youtube" && Boolean(video.youtubeVideoId?.trim())
+    ? "youtube"
+    : "fastpix";
+}
+
 export async function toVideoSummary(video: Video) {
   const [channel, categoryName] = await Promise.all([
     db
@@ -34,7 +44,7 @@ export async function toVideoSummary(video: Video) {
     contentType: video.contentType as "upload" | "original",
     playbackId: video.fastpixPlaybackId,
     fastpixPlaybackId: video.fastpixPlaybackId,
-    playbackSource: video.playbackSource as "fastpix" | "youtube",
+    playbackSource: publicPlaybackSource(video),
     youtubeVideoId: video.youtubeVideoId,
     uploadStatus: video.uploadStatus as
       | "waiting"
