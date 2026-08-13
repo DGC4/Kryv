@@ -10,7 +10,7 @@ export default function LiveCategory() {
     { categorySlug: slug, live: true },
     { query: { refetchInterval: 10000 } },
   );
-  const { data: categories, isError: categoriesError, refetch: refetchCategories } = useListCategories(
+  const { data: categories, isLoading: categoriesLoading, isError: categoriesError, refetch: refetchCategories } = useListCategories(
     { kind: 'live_game' },
     { query: { refetchInterval: 10000 } },
   );
@@ -19,7 +19,7 @@ export default function LiveCategory() {
   const liveCount = category?.liveChannelCount ?? channels?.length ?? 0;
   const visual = getLiveCategoryVisual(category?.slug || slug);
 
-  if (channelsLoading) {
+  if (channelsLoading || categoriesLoading) {
     return <div className="flex h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
