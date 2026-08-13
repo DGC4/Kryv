@@ -17,6 +17,11 @@ import {
 } from "./plisio";
 import { logger } from "./logger";
 
+// Provider withdrawal execution is intentionally hard-disabled until the required
+// production authorization, egress, reconciliation, and incident controls ship.
+// A database flag or environment variable must never override this launch gate.
+const PROVIDER_WITHDRAWALS_RUNTIME_ENABLED = false;
+
 export class NonRetryablePayoutError extends Error {
   constructor(message: string) {
     super(message);
@@ -117,8 +122,8 @@ export async function executeOwnerApprovedPayout(payoutRequestId: number): Promi
   if (!await isFeatureEnabled("provider_withdrawals")) {
     throw new NonRetryablePayoutError("Provider withdrawal execution is disabled by feature flag");
   }
-  if (process.env.PLISIO_WITHDRAWALS_ENABLED !== "true") {
-    throw new NonRetryablePayoutError("Provider withdrawal execution is disabled by runtime configuration");
+  if (!PROVIDER_WITHDRAWALS_RUNTIME_ENABLED) {
+    throw new NonRetryablePayoutError("Provider withdrawal execution is disabled by the production launch gate");
   }
 
   const [payout] = await db

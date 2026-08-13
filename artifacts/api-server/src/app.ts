@@ -246,7 +246,9 @@ app.get("/health", (_req, res) => {
       sharedCache: cacheConfigured,
       durableQueue: queueConfigured,
       realtimeTokenIssuer: realtimeConfigured,
-      providerWithdrawalsRuntimeEnabled: process.env.PLISIO_WITHDRAWALS_ENABLED === "true",
+      // Withdrawal execution is intentionally hard-disabled until the production
+      // launch gate is completed; do not infer availability from an environment flag.
+      providerWithdrawalsRuntimeEnabled: false,
     },
   });
 });

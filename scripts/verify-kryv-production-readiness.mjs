@@ -9,7 +9,7 @@
  * deployment intentionally operates in free-tier fallback mode.
  */
 const baseUrl = (process.env.KRYV_PRODUCTION_URL || 'https://kryv-backend.onrender.com').replace(/\/$/, '');
-const expectedWithdrawals = process.env.EXPECT_PROVIDER_WITHDRAWALS ?? 'true';
+const expectedWithdrawals = process.env.EXPECT_PROVIDER_WITHDRAWALS ?? 'false';
 const requireDurableTopology = process.env.REQUIRE_DURABLE_TOPOLOGY === 'true';
 
 function fail(message) {
