@@ -45,7 +45,7 @@ function formatDuration(value: number | null) {
 export default function WatchDetail() {
   const { id } = useParams<{ id: string }>();
   const videoId = parseInt(id || '0', 10);
-  const { data: video, isLoading } = useGetVideo(videoId, { query: { enabled: !!videoId } });
+  const { data: video, isLoading, refetch: refetchVideo } = useGetVideo(videoId, { query: { enabled: !!videoId } });
   const { data: allUploads = [] } = useListVideos({ contentType: 'upload' }, { query: { enabled: !!videoId } });
   const channelEngagement = useGetChannelEngagement(video?.channelId ?? 0, {
     query: { enabled: Boolean(video?.channelId), refetchInterval: 15000 },
@@ -139,7 +139,7 @@ export default function WatchDetail() {
   }
 
   if (!video) {
-    return <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><div className="text-center"><Film className="mx-auto h-8 w-8 text-white/20" /><p className="mt-4 text-xl font-black text-white">Video unavailable</p><Link href="/watch" className="mt-4 inline-flex text-sm font-black text-primary hover:text-white">Return to Watch <ChevronRight className="ml-1 h-4 w-4" /></Link></div></div>;
+    return <div className="flex h-[calc(100vh-4rem)] items-center justify-center px-4"><div className="text-center"><Film className="mx-auto h-8 w-8 text-white/20" /><p className="mt-4 text-xl font-black text-white">Video unavailable</p><p className="mt-2 text-sm leading-relaxed text-white/45">The release may be processing, unpublished, or temporarily unavailable.</p><div className="mt-4 flex flex-wrap justify-center gap-3"><button type="button" onClick={() => refetchVideo()} className="inline-flex min-h-10 items-center rounded-xl border border-white/[0.14] bg-white/[0.04] px-4 text-sm font-black text-white transition hover:border-primary/45 hover:text-primary">Retry</button><Link href="/watch" className="inline-flex min-h-10 items-center text-sm font-black text-primary hover:text-white">Return to Watch <ChevronRight className="ml-1 h-4 w-4" /></Link></div></div></div>;
   }
 
   const engagement = channelEngagement.data;
