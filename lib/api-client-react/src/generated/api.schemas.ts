@@ -880,6 +880,22 @@ export interface ChannelSafetyReport {
   createdAt: string;
 }
 
+export type ClipSafetyReportStatus = typeof ClipSafetyReportStatus[keyof typeof ClipSafetyReportStatus];
+
+
+export const ClipSafetyReportStatus = {
+  open: 'open',
+} as const;
+
+export interface ClipSafetyReport {
+  id: number;
+  clipId: number;
+  channelId: number;
+  subjectUserId: number;
+  status: ClipSafetyReportStatus;
+  createdAt: string;
+}
+
 export type AdminModerationCaseStatus = typeof AdminModerationCaseStatus[keyof typeof AdminModerationCaseStatus];
 
 

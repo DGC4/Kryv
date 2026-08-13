@@ -79,6 +79,7 @@ import type {
   CinemaHome,
   CinemaTitleDetail,
   ClipInput,
+  ClipSafetyReport,
   ClipSummary,
   CreateAdminAdCampaignInput,
   CreateAdminAdFundingInvoiceInput,
@@ -4030,6 +4031,78 @@ export const useCreateChannelSafetyReport = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getCreateChannelSafetyReportMutationOptions(options));
+    }
+
+export const getCreateClipSafetyReportUrl = (id: number,) => {
+
+
+
+
+  return `/api/clips/${id}/reports`
+}
+
+/**
+ * @summary Report a published Clip for owner safety review
+ */
+export const createClipSafetyReport = async (id: number,
+    channelSafetyReportInput: ChannelSafetyReportInput, options?: RequestInit): Promise<ClipSafetyReport> => {
+
+  return customFetch<ClipSafetyReport>(getCreateClipSafetyReportUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(channelSafetyReportInput)
+  }
+);}
+
+
+
+
+
+export const getCreateClipSafetyReportMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClipSafetyReport>>, TError,{id: number;data: BodyType<ChannelSafetyReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createClipSafetyReport>>, TError,{id: number;data: BodyType<ChannelSafetyReportInput>}, TContext> => {
+
+const mutationKey = ['createClipSafetyReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createClipSafetyReport>>, {id: number;data: BodyType<ChannelSafetyReportInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createClipSafetyReport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateClipSafetyReportMutationResult = NonNullable<Awaited<ReturnType<typeof createClipSafetyReport>>>
+    export type CreateClipSafetyReportMutationBody = BodyType<ChannelSafetyReportInput>
+    export type CreateClipSafetyReportMutationError = ErrorType<Error>
+
+    /**
+ * @summary Report a published Clip for owner safety review
+ */
+export const useCreateClipSafetyReport = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClipSafetyReport>>, TError,{id: number;data: BodyType<ChannelSafetyReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createClipSafetyReport>>,
+        TError,
+        {id: number;data: BodyType<ChannelSafetyReportInput>},
+        TContext
+      > => {
+      return useMutation(getCreateClipSafetyReportMutationOptions(options));
     }
 
 export const getListClipsUrl = (params?: ListClipsParams,) => {

@@ -134,6 +134,8 @@ export * from './cinemaTitleDetail';
 export * from './cinemaTitleEntitlementType';
 export * from './cinemaTitleMaturityLevel';
 export * from './clipInput';
+export * from './clipSafetyReport';
+export * from './clipSafetyReportStatus';
 export * from './clipSummary';
 export * from './clipSummaryProcessingStatus';
 export * from './createAdminAdCampaignInput';

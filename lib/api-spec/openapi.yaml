@@ -1513,6 +1513,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /clips/{id}/reports:
+    post:
+      operationId: createClipSafetyReport
+      tags: [moderation, clips]
+      summary: Report a published Clip for owner safety review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelSafetyReportInput"
+      responses:
+        "201":
+          description: Clip report recorded for review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClipSafetyReport"
+        "400":
+          description: Invalid report input or own clip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Published clip not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /clips:
     get:
       operationId: listClips
@@ -3260,6 +3303,17 @@ components:
       required: [id, channelId, subjectUserId, status, createdAt]
       properties:
         id: { type: integer }
+        channelId: { type: integer }
+        subjectUserId: { type: integer }
+        status: { type: string, enum: [open] }
+        createdAt: { type: string, format: date-time }
+
+    ClipSafetyReport:
+      type: object
+      required: [id, clipId, channelId, subjectUserId, status, createdAt]
+      properties:
+        id: { type: integer }
+        clipId: { type: integer }
         channelId: { type: integer }
         subjectUserId: { type: integer }
         status: { type: string, enum: [open] }

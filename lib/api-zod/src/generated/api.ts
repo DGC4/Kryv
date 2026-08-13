@@ -1695,6 +1695,32 @@ export const CreateChannelSafetyReportResponse = zod.object({
 
 
 /**
+ * @summary Report a published Clip for owner safety review
+ */
+export const CreateClipSafetyReportParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createClipSafetyReportBodyDetailsMax = 500;
+
+
+
+export const CreateClipSafetyReportBody = zod.object({
+  "reason": zod.enum(['harassment', 'hate_or_harm', 'spam_or_scam', 'sexual_content', 'violence_or_threat', 'impersonation', 'other']),
+  "details": zod.string().max(createClipSafetyReportBodyDetailsMax).optional()
+})
+
+export const CreateClipSafetyReportResponse = zod.object({
+  "id": zod.number(),
+  "clipId": zod.number(),
+  "channelId": zod.number(),
+  "subjectUserId": zod.number(),
+  "status": zod.enum(['open']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Browse public, ready-to-play Kryv clips
  */
 export const ListClipsQueryParams = zod.object({

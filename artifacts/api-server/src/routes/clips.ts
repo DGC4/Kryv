@@ -1,9 +1,12 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
-import { channelsTable, clipsTable, db, streamSessionsTable, videosTable } from "@workspace/db";
+import { channelsTable, clipsTable, db, moderationCasesTable, streamSessionsTable, videosTable } from "@workspace/db";
 import {
   CreateClipBody,
   CreateClipResponse,
+  CreateClipSafetyReportBody,
+  CreateClipSafetyReportParams,
+  CreateClipSafetyReportResponse,
   GetClipParams,
   GetClipResponse,
   ListClipsQueryParams,
@@ -13,6 +16,7 @@ import { requireAuth } from "../lib/auth";
 import { createFastPixClip, createFastPixLiveClip, FastPixNotConfiguredError } from "../lib/fastpix";
 import { enqueueDurableJob } from "../lib/jobs";
 import { logActivity } from "../lib/tracking";
+import { writeAuditLog } from "../lib/operations";
 
 const router: IRouter = Router();
 const MAX_CLIP_DURATION_SECONDS = 180;
@@ -69,6 +73,70 @@ router.get("/clips", async (req, res): Promise<void> => {
     .limit(50);
 
   res.json(ListClipsResponse.parse(rows.map(toClipSummary)));
+});
+
+router.post("/clips/:id/reports", requireAuth, async (req, res): Promise<void> => {
+  const params = CreateClipSafetyReportParams.safeParse(req.params);
+  const body = CreateClipSafetyReportBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: !params.success ? params.error.message : body.error.message });
+    return;
+  }
+
+  const [row] = await db
+    .select({ clip: clipsTable, channel: channelsTable })
+    .from(clipsTable)
+    .innerJoin(channelsTable, eq(clipsTable.channelId, channelsTable.id))
+    .where(and(eq(clipsTable.id, params.data.id), eq(clipsTable.isPublished, true), eq(clipsTable.processingStatus, "ready")))
+    .limit(1);
+  if (!row) {
+    res.status(404).json({ error: "Published clip not found." });
+    return;
+  }
+  if (row.clip.creatorUserId === req.user!.userId) {
+    res.status(400).json({ error: "You cannot report your own clip." });
+    return;
+  }
+
+  const details = body.data.details?.trim() || null;
+  const [caseRecord] = await db
+    .insert(moderationCasesTable)
+    .values({
+      channelId: row.channel.id,
+      reporterUserId: req.user!.userId,
+      subjectUserId: row.clip.creatorUserId,
+      caseType: "clip_report",
+      status: "open",
+      summary: details ? `Viewer clip report: ${body.data.reason} — ${details}` : `Viewer clip report: ${body.data.reason}`,
+      evidence: [{
+        kind: "clip",
+        clipId: row.clip.id,
+        title: row.clip.title,
+        channelId: row.channel.id,
+        channelSlug: row.channel.slug,
+        reason: body.data.reason,
+        reportedAt: new Date().toISOString(),
+      }],
+    })
+    .returning();
+
+  await writeAuditLog(req, {
+    action: "clip_reported",
+    targetType: "moderation_case",
+    targetId: caseRecord.id,
+    reason: body.data.reason,
+    afterState: { clipId: row.clip.id, channelId: row.channel.id, subjectUserId: row.clip.creatorUserId, status: "open" },
+  });
+  logActivity(req, "clip_reported", { clipId: row.clip.id, channelId: row.channel.id, caseId: caseRecord.id, reason: body.data.reason }).catch(() => undefined);
+
+  res.status(201).json(CreateClipSafetyReportResponse.parse({
+    id: caseRecord.id,
+    clipId: row.clip.id,
+    channelId: row.channel.id,
+    subjectUserId: row.clip.creatorUserId,
+    status: "open",
+    createdAt: caseRecord.createdAt.toISOString(),
+  }));
 });
 
 router.post("/clips", requireAuth, async (req, res): Promise<void> => {
