@@ -600,6 +600,14 @@ export type ClipInput = (unknown & {
   title: string;
 });
 
+export type AdminVideo = VideoSummary & ({
+  /**
+     * Owner-only timestamp recording the creator's official-source rights attestation. Null for FastPix uploads.
+     * @nullable
+     */
+  rightsAttestedAt: string | null;
+});
+
 export type VideoDetail = VideoSummary & ({
   /** @nullable */
   description: string | null;
@@ -1848,6 +1856,57 @@ export interface AdminAdFundingInvoice {
   /** @nullable */
   invoiceTotal: string | null;
   providerFeePaidBy: AdminAdFundingInvoiceProviderFeePaidBy;
+}
+
+export type AdminCommandOverviewPlatform = {
+  creatorChannels: number;
+  liveChannels: number;
+  watchItems: number;
+  readyWatchItems: number;
+  cinemaTitles: number;
+  totalViews: number;
+};
+
+export type AdminCommandOverviewCommerce = {
+  providerConfigured: boolean;
+  cryptoCommerceEnabled: boolean;
+  payoutRequestsEnabled: boolean;
+  scheduledPayoutRequestsEnabled: boolean;
+  providerWithdrawalsEnabled: boolean;
+  customerWalletCustodyEnabled: boolean;
+  adsDeliveryEnabled: boolean;
+  pendingProfileReviews: number;
+  pendingPayoutReviews: number;
+};
+
+export type AdminCommandOverviewPaymentsItem = {
+  status: string;
+  count: number;
+};
+
+export type AdminCommandOverviewRevenueByAssetItem = {
+  currency: string;
+  grossAmount: string;
+  platformFeeAmount: string;
+  creatorNetAmount: string;
+};
+
+export type AdminCommandOverviewPayoutStatusCountsItem = {
+  status: string;
+  count: number;
+};
+
+export type AdminCommandOverviewSafety = {
+  openCases: number;
+};
+
+export interface AdminCommandOverview {
+  platform: AdminCommandOverviewPlatform;
+  commerce: AdminCommandOverviewCommerce;
+  payments: AdminCommandOverviewPaymentsItem[];
+  revenueByAsset: AdminCommandOverviewRevenueByAssetItem[];
+  payoutStatusCounts: AdminCommandOverviewPayoutStatusCountsItem[];
+  safety: AdminCommandOverviewSafety;
 }
 
 export interface AdminStats {

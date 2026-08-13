@@ -18,9 +18,13 @@ import {
   adCampaignsTable,
   adCampaignFundingsTable,
   adRevenueMovementsTable,
+  cinemaTitlesTable,
   moderationCasesTable,
+  paymentIntentsTable,
+  platformRevenueMovementsTable,
 } from "@workspace/db";
 import {
+  GetAdminCommandOverviewResponse,
   GetAdminStatsResponse,
   ListAdminUsersResponse,
   UpdateAdminUserParams,
@@ -263,6 +267,71 @@ router.post("/admin/moderation/cases/:id/review", requireOwner, async (req, res)
     afterState: { status: updated.status, decision: body.data.decision },
   });
   res.json(ReviewAdminModerationCaseResponse.parse(toAdminModerationCase(updated)));
+});
+
+router.get("/admin/overview", requireOwner, async (_req, res): Promise<void> => {
+  const [channelStats, videoStats, cinemaStats, paymentStatuses, revenueRows, payoutStatuses, openCases, pendingProfiles, flags] = await Promise.all([
+    db.select({
+      creatorChannels: sql<number>`count(*)`.mapWith(Number),
+      liveChannels: sql<number>`count(*) filter (where ${channelsTable.isLive})`.mapWith(Number),
+    }).from(channelsTable),
+    db.select({
+      watchItems: sql<number>`count(*)`.mapWith(Number),
+      readyWatchItems: sql<number>`count(*) filter (where ${videosTable.uploadStatus} = 'ready')`.mapWith(Number),
+      totalViews: sql<number>`coalesce(sum(${videosTable.viewCount}), 0)`.mapWith(Number),
+    }).from(videosTable),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(cinemaTitlesTable),
+    db.select({ status: paymentIntentsTable.status, count: sql<number>`count(*)`.mapWith(Number) })
+      .from(paymentIntentsTable)
+      .groupBy(paymentIntentsTable.status),
+    db.select({
+      currency: platformRevenueMovementsTable.currency,
+      grossAmount: sql<string>`coalesce(sum(${platformRevenueMovementsTable.grossAmount}), 0)::text`,
+      platformFeeAmount: sql<string>`coalesce(sum(${platformRevenueMovementsTable.platformFeeAmount}), 0)::text`,
+      creatorNetAmount: sql<string>`coalesce(sum(${platformRevenueMovementsTable.creatorNetAmount}), 0)::text`,
+    }).from(platformRevenueMovementsTable).groupBy(platformRevenueMovementsTable.currency),
+    db.select({ status: payoutRequestsTable.status, count: sql<number>`count(*)`.mapWith(Number) })
+      .from(payoutRequestsTable)
+      .groupBy(payoutRequestsTable.status),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(moderationCasesTable).where(eq(moderationCasesTable.status, "open")),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(creatorPayoutProfilesTable).where(eq(creatorPayoutProfilesTable.reviewStatus, "pending")),
+    db.select({ key: featureFlagsTable.key, enabled: featureFlagsTable.enabled }).from(featureFlagsTable),
+  ]);
+  const flagMap = new Map(flags.map((row) => [row.key, row.enabled]));
+  const pendingPayoutReviews = payoutStatuses
+    .filter((row) => row.status === "requested" || row.status === "held")
+    .reduce((total, row) => total + row.count, 0);
+
+  res.json(GetAdminCommandOverviewResponse.parse({
+    platform: {
+      creatorChannels: channelStats[0]?.creatorChannels ?? 0,
+      liveChannels: channelStats[0]?.liveChannels ?? 0,
+      watchItems: videoStats[0]?.watchItems ?? 0,
+      readyWatchItems: videoStats[0]?.readyWatchItems ?? 0,
+      cinemaTitles: cinemaStats[0]?.count ?? 0,
+      totalViews: videoStats[0]?.totalViews ?? 0,
+    },
+    commerce: {
+      providerConfigured: isPlisioConfigured(),
+      cryptoCommerceEnabled: Boolean(flagMap.get("crypto_commerce")),
+      payoutRequestsEnabled: Boolean(flagMap.get("creator_payout_requests")),
+      scheduledPayoutRequestsEnabled: Boolean(flagMap.get("scheduled_payout_requests")),
+      providerWithdrawalsEnabled: Boolean(flagMap.get("provider_withdrawals")),
+      customerWalletCustodyEnabled: Boolean(flagMap.get("customer_wallet_custody")),
+      adsDeliveryEnabled: Boolean(flagMap.get("ads_delivery")),
+      pendingProfileReviews: pendingProfiles[0]?.count ?? 0,
+      pendingPayoutReviews,
+    },
+    payments: paymentStatuses.map((row) => ({ status: row.status, count: row.count })),
+    revenueByAsset: revenueRows.map((row) => ({
+      currency: row.currency,
+      grossAmount: toDecimalString(row.grossAmount),
+      platformFeeAmount: toDecimalString(row.platformFeeAmount),
+      creatorNetAmount: toDecimalString(row.creatorNetAmount),
+    })),
+    payoutStatusCounts: payoutStatuses.map((row) => ({ status: row.status, count: row.count })),
+    safety: { openCases: openCases[0]?.count ?? 0 },
+  }));
 });
 
 router.get("/admin/finance/overview", requireOwner, async (_req, res): Promise<void> => {
@@ -1031,7 +1100,10 @@ router.delete(
 
 router.get("/admin/videos", requireOwner, async (_req, res): Promise<void> => {
   const rows = await db.select().from(videosTable);
-  const results = await Promise.all(rows.map(toVideoSummary));
+  const results = await Promise.all(rows.map(async (video) => ({
+    ...(await toVideoSummary(video)),
+    rightsAttestedAt: video.rightsAttestedAt?.toISOString() ?? null,
+  })));
   res.json(ListAdminVideosResponse.parse(results));
 });
 

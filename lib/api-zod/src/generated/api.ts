@@ -2227,6 +2227,49 @@ export const ReviewAdminModerationCaseResponse = zod.object({
 
 
 /**
+ * @summary Owner-only command-center overview of platform, commerce, safety, and content operations
+ */
+export const GetAdminCommandOverviewResponse = zod.object({
+  "platform": zod.object({
+  "creatorChannels": zod.number(),
+  "liveChannels": zod.number(),
+  "watchItems": zod.number(),
+  "readyWatchItems": zod.number(),
+  "cinemaTitles": zod.number(),
+  "totalViews": zod.number()
+}),
+  "commerce": zod.object({
+  "providerConfigured": zod.boolean(),
+  "cryptoCommerceEnabled": zod.boolean(),
+  "payoutRequestsEnabled": zod.boolean(),
+  "scheduledPayoutRequestsEnabled": zod.boolean(),
+  "providerWithdrawalsEnabled": zod.boolean(),
+  "customerWalletCustodyEnabled": zod.boolean(),
+  "adsDeliveryEnabled": zod.boolean(),
+  "pendingProfileReviews": zod.number(),
+  "pendingPayoutReviews": zod.number()
+}),
+  "payments": zod.array(zod.object({
+  "status": zod.string(),
+  "count": zod.number()
+})),
+  "revenueByAsset": zod.array(zod.object({
+  "currency": zod.string(),
+  "grossAmount": zod.string(),
+  "platformFeeAmount": zod.string(),
+  "creatorNetAmount": zod.string()
+})),
+  "payoutStatusCounts": zod.array(zod.object({
+  "status": zod.string(),
+  "count": zod.number()
+})),
+  "safety": zod.object({
+  "openCases": zod.number()
+})
+})
+
+
+/**
  * @summary Owner-only finance command overview with asset liabilities and controlled-launch status
  */
 export const GetAdminFinanceOverviewResponse = zod.object({
@@ -2714,7 +2757,9 @@ export const ListAdminVideosResponseItem = zod.object({
   "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
-})
+}).and(zod.object({
+  "rightsAttestedAt": zod.coerce.date().nullable().describe('Owner-only timestamp recording the creator\'s official-source rights attestation. Null for FastPix uploads.')
+}))
 export const ListAdminVideosResponse = zod.array(ListAdminVideosResponseItem)
 
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Redirect } from 'wouter';
 import {
   useGetMe,
+  useGetAdminCommandOverview,
   useGetAdminStats,
   useListAdminUsers,
   useUpdateAdminUser,
@@ -52,7 +53,7 @@ import {
 import { GoldenDBadge, UserBadge } from '@/components/brand/BrandIdentity';
 import { useToast } from '@/hooks/use-toast';
 
-type Tab = 'users' | 'channels' | 'videos' | 'cinema' | 'finance' | 'ads' | 'safety' | 'operations';
+type Tab = 'overview' | 'users' | 'channels' | 'videos' | 'cinema' | 'finance' | 'ads' | 'safety' | 'operations';
 
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: boolean }) {
   return (
@@ -69,13 +70,16 @@ function StatCard({ label, value, icon: Icon, accent }: { label: string; value: 
 }
 
 export default function DashboardAdmin() {
-  const [tab, setTab] = useState<Tab>('users');
+  const [tab, setTab] = useState<Tab>('overview');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: me, isLoading: meLoading } = useGetMe();
   const { data: stats, isLoading: statsLoading } = useGetAdminStats({
     query: { enabled: me?.role === 'owner' },
+  });
+  const commandOverviewQuery = useGetAdminCommandOverview({
+    query: { enabled: me?.role === 'owner' && tab === 'overview', refetchInterval: tab === 'overview' ? 30000 : false },
   });
   const { data: users, isLoading: usersLoading } = useListAdminUsers({
     query: { enabled: me?.role === 'owner' },
@@ -449,12 +453,12 @@ export default function DashboardAdmin() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-white/[0.08] mb-5">
-        {(['users', 'channels', 'videos', 'cinema', 'finance', 'ads', 'safety', 'operations'] as Tab[]).map((t) => (
+      <div className="-mx-4 mb-5 flex gap-1 overflow-x-auto border-b border-white/[0.08] px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+        {(['overview', 'users', 'channels', 'videos', 'cinema', 'finance', 'ads', 'safety', 'operations'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-bold capitalize border-b-2 transition-colors ${
+            className={`shrink-0 px-4 py-2.5 text-sm font-bold capitalize border-b-2 transition-colors ${
               tab === t
                 ? 'border-primary text-primary'
                 : 'border-transparent text-white/40 hover:text-white'
@@ -464,6 +468,21 @@ export default function DashboardAdmin() {
           </button>
         ))}
       </div>
+
+      {tab === 'overview' && (
+        <section className="space-y-5">
+          <div className="rounded-2xl border border-primary/20 bg-[radial-gradient(circle_at_top_right,rgba(51,238,196,0.14),transparent_38%),linear-gradient(130deg,rgba(91,70,255,0.12),rgba(8,10,15,0.96)_58%)] p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2 text-primary"><Landmark className="h-5 w-5" /><h2 className="text-lg font-black text-white">Platform command overview</h2></div><p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/55">A read-only operating picture built from channel, video, Cinema, payment-intent, immutable revenue, payout, report, and feature-flag records. Asset amounts are never collapsed into a synthetic fiat total.</p></div><div className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${commandOverviewQuery.data?.commerce.providerConfigured ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' : 'border-amber-300/20 bg-amber-300/10 text-amber-100'}`}><Activity className="h-3.5 w-3.5" /> {commandOverviewQuery.data?.commerce.providerConfigured ? 'Provider configuration detected' : 'Provider configuration pending'}</div></div>
+          </div>
+          {commandOverviewQuery.isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div> : commandOverviewQuery.data ? <>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"><StatCard label="Creators" value={commandOverviewQuery.data.platform.creatorChannels} icon={Users} /><StatCard label="Live now" value={commandOverviewQuery.data.platform.liveChannels} icon={Radio} accent /><StatCard label="Watch objects" value={commandOverviewQuery.data.platform.watchItems} icon={PlaySquare} /><StatCard label="Ready Watch" value={commandOverviewQuery.data.platform.readyWatchItems} icon={CheckCircle2} accent /><StatCard label="Cinema titles" value={commandOverviewQuery.data.platform.cinemaTitles} icon={Clapperboard} /><StatCard label="Total views" value={commandOverviewQuery.data.platform.totalViews} icon={Eye} /></div>
+            <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]"><article className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h3 className="text-sm font-black text-white">Crypto commerce state</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Operational flags are shown as state only. Open Operations for acknowledged, audited changes.</p></div><Button size="sm" variant="secondary" className="w-fit text-xs font-black" onClick={() => setTab('operations')}>Open flags</Button></div><div className="mt-4 grid gap-2 sm:grid-cols-2">{[{ label: 'Crypto commerce', enabled: commandOverviewQuery.data.commerce.cryptoCommerceEnabled }, { label: 'Payout requests', enabled: commandOverviewQuery.data.commerce.payoutRequestsEnabled }, { label: 'Scheduled payouts', enabled: commandOverviewQuery.data.commerce.scheduledPayoutRequestsEnabled }, { label: 'Provider withdrawals', enabled: commandOverviewQuery.data.commerce.providerWithdrawalsEnabled }, { label: 'Customer custody', enabled: commandOverviewQuery.data.commerce.customerWalletCustodyEnabled }, { label: 'Ad delivery', enabled: commandOverviewQuery.data.commerce.adsDeliveryEnabled }].map((item) => <div key={item.label} className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${item.enabled ? 'border-emerald-300/20 bg-emerald-300/[0.06]' : 'border-white/[0.08] bg-white/[0.02]'}`}><span className="text-xs font-bold text-white/70">{item.label}</span><span className={`rounded-full px-2 py-1 text-[9px] font-black uppercase ${item.enabled ? 'bg-emerald-300/15 text-emerald-200' : 'bg-white/[0.07] text-white/45'}`}>{item.enabled ? 'On' : 'Off'}</span></div>)}</div></article>
+              <article className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-black text-white">Review queue</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Counts reflect actual open safety cases and queue records, not automated risk decisions.</p></div><Button size="sm" variant="secondary" className="w-fit text-xs font-black" onClick={() => setTab('finance')}>Open finance</Button></div><div className="mt-4 grid grid-cols-3 gap-3"><div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] p-3"><p className="text-2xl font-black text-amber-100">{commandOverviewQuery.data.commerce.pendingProfileReviews}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-white/40">Profiles</p></div><div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] p-3"><p className="text-2xl font-black text-amber-100">{commandOverviewQuery.data.commerce.pendingPayoutReviews}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-white/40">Payouts</p></div><div className="rounded-xl border border-red-300/15 bg-red-400/[0.05] p-3"><p className="text-2xl font-black text-red-100">{commandOverviewQuery.data.safety.openCases}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-white/40">Safety</p></div></div><div className="mt-4 flex gap-2"><Button size="sm" variant="secondary" className="flex-1 text-xs font-black" onClick={() => setTab('safety')}>Safety queue</Button><Button size="sm" variant="secondary" className="flex-1 text-xs font-black" onClick={() => setTab('cinema')}>Catalog ops</Button></div></article></div>
+            <div className="grid gap-5 xl:grid-cols-2"><article className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-black text-white">Payment intent status</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Provider-neutral intent counts. Completion is only meaningful after signed provider confirmation and downstream reconciliation.</p></div><Wallet className="h-5 w-5 text-primary" /></div><div className="mt-4 flex flex-wrap gap-2">{commandOverviewQuery.data.payments.length ? commandOverviewQuery.data.payments.map((payment) => <div key={payment.status} className="rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2"><p className="text-lg font-black text-white">{payment.count}</p><p className="text-[10px] font-bold uppercase tracking-wider text-white/40">{payment.status.replaceAll('_', ' ')}</p></div>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-4 text-xs leading-relaxed text-white/35">No payment intents have been recorded yet.</p>}</div></article><article className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-black text-white">Payout lifecycle</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Status totals are read-only here. Do not re-approve or retry requests that are already executing with a risk hold.</p></div><Clock3 className="h-5 w-5 text-primary" /></div><div className="mt-4 flex flex-wrap gap-2">{commandOverviewQuery.data.payoutStatusCounts.length ? commandOverviewQuery.data.payoutStatusCounts.map((payout) => <div key={payout.status} className="rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2"><p className="text-lg font-black text-white">{payout.count}</p><p className="text-[10px] font-bold uppercase tracking-wider text-white/40">{payout.status.replaceAll('_', ' ')}</p></div>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-4 text-xs leading-relaxed text-white/35">No payout requests have entered the lifecycle.</p>}</div></article></div>
+            <article className="overflow-hidden rounded-2xl border border-white/[0.08] bg-black/25"><div className="flex flex-col gap-2 border-b border-white/[0.07] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-black text-white">Settled platform revenue by asset</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Immutable platform revenue movements only. Values remain separated by crypto asset and reflect actual movement rows, not estimated treasury balances.</p></div><Button size="sm" variant="secondary" className="w-fit text-xs font-black" onClick={() => setTab('finance')}>Finance detail</Button></div>{commandOverviewQuery.data.revenueByAsset.length ? <div className="grid divide-y divide-white/[0.06] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">{commandOverviewQuery.data.revenueByAsset.map((asset) => <div key={asset.currency} className="p-4"><div className="flex items-center justify-between"><span className="font-black text-white">{asset.currency}</span><Landmark className="h-4 w-4 text-primary" /></div><p className="mt-3 text-sm font-black text-white">{asset.platformFeeAmount}</p><p className="text-[10px] font-bold uppercase tracking-widest text-white/35">Platform 5% movements</p><div className="mt-3 space-y-1 text-[11px] text-white/45"><p>Gross {asset.grossAmount}</p><p>Creator net {asset.creatorNetAmount}</p></div></div>)}</div> : <p className="p-6 text-sm text-white/40">No settled platform-revenue movements have been recorded.</p>}</article>
+          </> : <div className="rounded-2xl border border-red-300/20 bg-red-400/[0.05] p-5 text-sm text-red-100">The owner overview could not load. Use the focused Finance, Safety, Catalog, and Operations tabs while the API connection is restored.</div>}
+        </section>
+      )}
 
       {tab === 'finance' && (
         <section className="space-y-5">
@@ -713,21 +732,22 @@ export default function DashboardAdmin() {
       {tab === 'videos' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-white/40 uppercase tracking-widest">Cinema &amp; Watch Assets</h3>
+            <h3 className="text-sm font-black text-white/40 uppercase tracking-widest">Watch sources &amp; Cinema assets</h3>
             <Button onClick={handleAddOriginal} size="sm" className="bg-primary text-primary-foreground font-black text-[10px] h-8 rounded-lg uppercase tracking-widest">
               <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Cinema Original
             </Button>
           </div>
-          <div className="rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur overflow-hidden">
+          <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur">
             {videosLoading ? (
               <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
             ) : (
-              <table className="w-full text-sm">
+              <table className="min-w-[44rem] w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-white/[0.08] bg-white/[0.02]">
                     <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Title</th>
                     <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Type</th>
                     <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
+                    <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Source / rights</th>
                     <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest">Views</th>
                     <th className="p-3 text-[10px] font-black text-white/40 uppercase tracking-widest text-right">Action</th>
                   </tr>
@@ -751,6 +771,7 @@ export default function DashboardAdmin() {
                       <td className="p-3">
                         <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">{v.uploadStatus}</span>
                       </td>
+                      <td className="p-3"><div className="space-y-1"><span className={`inline-flex rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wider ${v.playbackSource === 'youtube' ? 'bg-red-400/10 text-red-200' : 'bg-primary/10 text-primary'}`}>{v.playbackSource}</span>{v.playbackSource === 'youtube' && <p className={`flex items-center gap-1 text-[10px] ${v.rightsAttestedAt ? 'text-emerald-200' : 'text-amber-100'}`}>{v.rightsAttestedAt ? <><CircleCheck className="h-3 w-3" /> Attested {new Date(v.rightsAttestedAt).toLocaleDateString()}</> : <><CircleAlert className="h-3 w-3" /> Missing record</>}</p>}</div></td>
                       <td className="p-3 text-white/40 text-xs">{v.viewCount}</td>
                       <td className="p-3 text-right">
                         <Button size="sm" variant="destructive" onClick={() => removeVideo(v.id)} disabled={deleteVideo.isPending} className="text-xs h-7 px-3">
@@ -760,7 +781,7 @@ export default function DashboardAdmin() {
                     </tr>
                   ))}
                   {videos?.length === 0 && (
-                    <tr><td colSpan={5} className="p-8 text-center text-white/30">No videos yet.</td></tr>
+                    <tr><td colSpan={6} className="p-8 text-center text-white/30">No video records have been created yet.</td></tr>
                   )}
                 </tbody>
               </table>

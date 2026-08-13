@@ -1887,6 +1887,20 @@ paths:
         "403": { description: Not an owner }
         "404": { description: Moderation case not found }
 
+  /admin/overview:
+    get:
+      operationId: getAdminCommandOverview
+      tags: [admin]
+      summary: Owner-only command-center overview of platform, commerce, safety, and content operations
+      responses:
+        "200":
+          description: Aggregated owner command overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCommandOverview"
+        "403": { description: Not an owner }
+
   /admin/finance/overview:
     get:
       operationId: getAdminFinanceOverview
@@ -2299,7 +2313,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/VideoSummary"
+                  $ref: "#/components/schemas/AdminVideo"
         "403":
           description: Not an owner
           content:
@@ -2850,6 +2864,17 @@ components:
           type: string
           enum: [waiting, processing, ready, errored]
         createdAt: { type: string, format: date-time }
+
+    AdminVideo:
+      allOf:
+        - $ref: "#/components/schemas/VideoSummary"
+        - type: object
+          required: [rightsAttestedAt]
+          properties:
+            rightsAttestedAt:
+              description: Owner-only timestamp recording the creator's official-source rights attestation. Null for FastPix uploads.
+              type: ["string", "null"]
+              format: date-time
 
     VideoDetail:
       allOf:
@@ -3701,6 +3726,65 @@ components:
         invoiceCommission: { type: ["string", "null"] }
         invoiceTotal: { type: ["string", "null"] }
         providerFeePaidBy: { type: string, enum: [client] }
+
+    AdminCommandOverview:
+      type: object
+      required: [platform, commerce, payments, revenueByAsset, payoutStatusCounts, safety]
+      properties:
+        platform:
+          type: object
+          required: [creatorChannels, liveChannels, watchItems, readyWatchItems, cinemaTitles, totalViews]
+          properties:
+            creatorChannels: { type: integer }
+            liveChannels: { type: integer }
+            watchItems: { type: integer }
+            readyWatchItems: { type: integer }
+            cinemaTitles: { type: integer }
+            totalViews: { type: integer }
+        commerce:
+          type: object
+          required: [providerConfigured, cryptoCommerceEnabled, payoutRequestsEnabled, scheduledPayoutRequestsEnabled, providerWithdrawalsEnabled, customerWalletCustodyEnabled, adsDeliveryEnabled, pendingProfileReviews, pendingPayoutReviews]
+          properties:
+            providerConfigured: { type: boolean }
+            cryptoCommerceEnabled: { type: boolean }
+            payoutRequestsEnabled: { type: boolean }
+            scheduledPayoutRequestsEnabled: { type: boolean }
+            providerWithdrawalsEnabled: { type: boolean }
+            customerWalletCustodyEnabled: { type: boolean }
+            adsDeliveryEnabled: { type: boolean }
+            pendingProfileReviews: { type: integer }
+            pendingPayoutReviews: { type: integer }
+        payments:
+          type: array
+          items:
+            type: object
+            required: [status, count]
+            properties:
+              status: { type: string }
+              count: { type: integer }
+        revenueByAsset:
+          type: array
+          items:
+            type: object
+            required: [currency, grossAmount, platformFeeAmount, creatorNetAmount]
+            properties:
+              currency: { type: string }
+              grossAmount: { type: string }
+              platformFeeAmount: { type: string }
+              creatorNetAmount: { type: string }
+        payoutStatusCounts:
+          type: array
+          items:
+            type: object
+            required: [status, count]
+            properties:
+              status: { type: string }
+              count: { type: integer }
+        safety:
+          type: object
+          required: [openCases]
+          properties:
+            openCases: { type: integer }
 
     AdminStats:
       type: object

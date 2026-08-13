@@ -41,6 +41,7 @@ import type {
   AdminCinemaTitleUpdate,
   AdminCinemaUploadSession,
   AdminCinemaUploadSessionInput,
+  AdminCommandOverview,
   AdminFeatureFlag,
   AdminFinanceOverview,
   AdminModerationCase,
@@ -50,6 +51,7 @@ import type {
   AdminUser,
   AdminUserActivityDetail,
   AdminUserUpdate,
+  AdminVideo,
   Category,
   ChannelAnalytics,
   ChannelChatSettings,
@@ -5225,6 +5227,83 @@ export const useReviewAdminModerationCase = <TError = ErrorType<void>,
       return useMutation(getReviewAdminModerationCaseMutationOptions(options));
     }
 
+export const getGetAdminCommandOverviewUrl = () => {
+
+
+
+
+  return `/api/admin/overview`
+}
+
+/**
+ * @summary Owner-only command-center overview of platform, commerce, safety, and content operations
+ */
+export const getAdminCommandOverview = async ( options?: RequestInit): Promise<AdminCommandOverview> => {
+
+  return customFetch<AdminCommandOverview>(getGetAdminCommandOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminCommandOverviewQueryKey = () => {
+    return [
+    `/api/admin/overview`
+    ] as const;
+    }
+
+
+export const getGetAdminCommandOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCommandOverview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCommandOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminCommandOverviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminCommandOverview>>> = ({ signal }) => getAdminCommandOverview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminCommandOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminCommandOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminCommandOverview>>>
+export type GetAdminCommandOverviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only command-center overview of platform, commerce, safety, and content operations
+ */
+
+export function useGetAdminCommandOverview<TData = Awaited<ReturnType<typeof getAdminCommandOverview>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCommandOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminCommandOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetAdminFinanceOverviewUrl = () => {
 
 
@@ -6502,9 +6581,9 @@ export const getListAdminVideosUrl = () => {
 /**
  * @summary Owner-only video list
  */
-export const listAdminVideos = async ( options?: RequestInit): Promise<VideoSummary[]> => {
+export const listAdminVideos = async ( options?: RequestInit): Promise<AdminVideo[]> => {
 
-  return customFetch<VideoSummary[]>(getListAdminVideosUrl(),
+  return customFetch<AdminVideo[]>(getListAdminVideosUrl(),
   {
     ...options,
     method: 'GET'
