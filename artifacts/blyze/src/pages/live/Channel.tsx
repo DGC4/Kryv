@@ -24,7 +24,7 @@ import { useAuthStore } from '@/lib/auth-store';
 import { getApiUrl } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronRight, CircleDot } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronRight, CircleDot, RefreshCw } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -49,29 +49,28 @@ export default function LiveChannel() {
   const { channelSlugOrId } = useParams<{ channelSlugOrId: string }>();
   const { user, token } = useAuthStore();
   const isSignedIn = !!user;
-  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'rest'>('rest');
   const [theaterMode, setTheaterMode] = useState(false);
 
   const { data: channel, isLoading, refetch: refetchChannel } = useGetChannelBySlug(channelSlugOrId || '', {
-    query: { enabled: !!channelSlugOrId, refetchInterval: realtimeStatus === 'connected' ? false : 15000 },
+    query: { enabled: !!channelSlugOrId, refetchInterval: 15000 },
   });
 
   const channelId = channel?.id;
 
-  const { data: messages, refetch: refetchMessages } = useListChannelMessages(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: realtimeStatus === 'connected' ? false : 15000 },
+  const { data: messages, isFetching: isRefreshingMessages, refetch: refetchMessages } = useListChannelMessages(channelId!, {
+    query: { enabled: !!channelId, refetchInterval: 15000 },
   });
   const { data: chatSettings } = useGetChannelChatSettings(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: realtimeStatus === 'connected' ? false : 10000 },
+    query: { enabled: !!channelId, refetchInterval: 10000 },
   });
   const { data: engagement, refetch: refetchEngagement } = useGetChannelEngagement(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: realtimeStatus === 'connected' ? false : 10000 },
+    query: { enabled: !!channelId, refetchInterval: 10000 },
   });
   const { data: liveRailChannels } = useListChannels({ live: true }, {
-    query: { refetchInterval: realtimeStatus === 'connected' ? false : 15000 },
+    query: { refetchInterval: 15000 },
   });
   const { data: followedLiveChannels } = useListFollowedLiveChannels({
-    query: { enabled: isSignedIn, refetchInterval: realtimeStatus === 'connected' ? false : 15000 },
+    query: { enabled: isSignedIn, refetchInterval: 15000 },
   });
   const { data: notificationPreferences } = useGetNotificationPreferences({
     query: { enabled: isSignedIn },
@@ -106,66 +105,6 @@ export default function LiveChannel() {
   const [channelReportDetails, setChannelReportDetails] = useState('');
   const [isSubmittingChannelReport, setIsSubmittingChannelReport] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
-
-  // Event-driven chat and live-state refresh. REST stays authoritative for writes,
-  // moderation, and fallback reads; the socket only accelerates refreshes. A configured
-  // gateway reconnects with bounded backoff rather than leaving viewers on a stale pane.
-  useEffect(() => {
-    if (!channelId || typeof window === 'undefined') return;
-    const websocketUrl = import.meta.env.VITE_REALTIME_URL?.trim();
-    if (!websocketUrl) {
-      setRealtimeStatus('rest');
-      return;
-    }
-
-    let disposed = false;
-    let socket: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let attempts = 0;
-
-    const scheduleReconnect = () => {
-      if (disposed) return;
-      setRealtimeStatus('rest');
-      const delay = Math.min(30000, 1000 * 2 ** Math.min(attempts++, 5));
-      reconnectTimer = setTimeout(connect, delay);
-    };
-
-    const connect = () => {
-      if (disposed) return;
-      setRealtimeStatus('connecting');
-      try {
-        socket = new WebSocket(websocketUrl, ['kryv.v1']);
-        socket.onopen = () => {
-          attempts = 0;
-          setRealtimeStatus('connected');
-          socket?.send(JSON.stringify({ type: 'subscribe', channelId }));
-        };
-        socket.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data) as { type?: string; channelId?: number };
-            if (message.channelId !== channelId) return;
-            if (message.type === 'chat.message.created' || message.type === 'chat.message.deleted' || message.type === 'channel.moderation.updated') refetchMessages();
-            if (message.type === 'engagement.updated') refetchEngagement();
-            if (message.type === 'live.state.updated') refetchChannel();
-          } catch {
-            // Malformed relay events never bypass REST authority.
-          }
-        };
-        socket.onclose = scheduleReconnect;
-        socket.onerror = () => socket?.close();
-      } catch {
-        scheduleReconnect();
-      }
-    };
-
-    connect();
-    return () => {
-      disposed = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'unsubscribe', channelId }));
-      socket?.close();
-    };
-  }, [channelId, refetchChannel, refetchEngagement, refetchMessages]);
 
   // Theater mode is entirely client-side; Escape always returns the viewer to the standard live layout.
   useEffect(() => {
@@ -714,7 +653,7 @@ export default function LiveChannel() {
               </p>
             ) : null}
           </div>
-          <div className="flex items-center gap-2 shrink-0"><span className={`rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-wider ${realtimeStatus === 'connected' ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' : realtimeStatus === 'connecting' ? 'border-primary/25 bg-primary/10 text-primary' : 'border-white/[0.1] bg-white/[0.03] text-white/40'}`}>{realtimeStatus === 'connected' ? 'Live relay' : realtimeStatus === 'connecting' ? 'Connecting' : 'REST sync'}</span>{channel.isOwner ? <Shield className="w-4 h-4 text-primary" /> : <Users className="w-4 h-4 text-muted-foreground" />}</div>
+          <div className="flex items-center gap-2 shrink-0"><button type="button" onClick={() => { void refetchMessages(); void refetchChannel(); }} disabled={isRefreshingMessages} className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-2 py-1 text-[8px] font-black uppercase tracking-wider text-white/50 transition hover:border-primary/40 hover:text-primary disabled:cursor-wait disabled:opacity-60" title="Refresh chat and stream status" aria-label="Refresh chat and stream status"><RefreshCw className={`h-3 w-3 ${isRefreshingMessages ? 'animate-spin' : ''}`} />Refresh</button>{channel.isOwner ? <Shield className="w-4 h-4 text-primary" /> : <Users className="w-4 h-4 text-muted-foreground" />}</div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4" ref={chatScrollRef}>
@@ -749,8 +688,10 @@ export default function LiveChannel() {
             </div>
           ))}
           {(!messages || messages.length === 0) && (
-            <div className="h-full flex items-center justify-center text-muted-foreground text-sm text-center px-4">
-              Welcome to the chat room!
+            <div className="flex h-full flex-col items-center justify-center px-5 text-center">
+              <Send className="h-5 w-5 text-white/20" />
+              <p className="mt-3 text-sm font-bold text-white/60">No messages yet</p>
+              <p className="mt-1 max-w-56 text-xs leading-relaxed text-white/35">Be the first to welcome the creator when chat is open.</p>
             </div>
           )}
         </div>
