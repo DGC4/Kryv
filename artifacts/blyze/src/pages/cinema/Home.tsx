@@ -54,8 +54,8 @@ function CinemaProfileGate({ profiles, onSelect, onCreate, isCreating }: { profi
 
 export default function CinemaHome() {
   const { user } = useAuthStore();
-  const { data: home, isLoading: homeLoading } = useGetCinemaHome();
-  const { data: genres, isLoading: genresLoading } = useListCategories({ kind: 'genre' });
+  const { data: home, isLoading: homeLoading, isError: homeError, refetch: refetchHome } = useGetCinemaHome();
+  const { data: genres, isLoading: genresLoading, isError: genresError, refetch: refetchGenres } = useListCategories({ kind: 'genre' });
   const profilesQuery = useListViewerProfiles({ query: { enabled: Boolean(user) } });
   const createViewerProfile = useCreateViewerProfile();
   const [activeProfileId, setActiveProfileId] = useState<number | null>(null);
@@ -79,6 +79,7 @@ export default function CinemaHome() {
   };
 
   if (homeLoading || genresLoading || (user && profilesQuery.isLoading)) return <div className="flex h-[70vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (homeError || genresError) return <div className="flex min-h-[70vh] items-center justify-center px-4 text-center"><div><Clapperboard className="mx-auto h-8 w-8 text-red-200/70" /><h1 className="mt-4 text-2xl font-black text-red-100">Cinema catalog is temporarily unavailable</h1><p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-red-100/70">Kryv cannot safely present a partial catalog while owner-published titles or their genre metadata are unavailable.</p><Button type="button" variant="outline" onClick={() => { void Promise.all([refetchHome(), refetchGenres()]); }} className="mt-5 border-red-200/25 bg-red-200/[0.08] font-black text-red-50 hover:bg-red-200/[0.14] hover:text-red-50">Retry Cinema</Button></div></div>;
   const activeProfile = profilesQuery.data?.find(profile => profile.id === activeProfileId) ?? null;
   if (user && !activeProfile) return <CinemaProfileGate profiles={profilesQuery.data ?? []} onSelect={selectProfile} onCreate={createProfile} isCreating={createViewerProfile.isPending} />;
 
