@@ -13,6 +13,34 @@ let cacheClient: Redis | null | undefined;
 let publisherClient: Redis | null | undefined;
 let subscriberClient: Redis | null | undefined;
 
+type LocalCacheEntry = { value: string; expiresAt: number };
+const localSharedCache = new Map<string, LocalCacheEntry>();
+const LOCAL_SHARED_CACHE_LIMIT = 256;
+
+function readLocalCache(key: string) {
+  const entry = localSharedCache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    localSharedCache.delete(key);
+    return null;
+  }
+  // Promote recently used entries while retaining a hard memory bound.
+  localSharedCache.delete(key);
+  localSharedCache.set(key, entry);
+  return entry.value;
+}
+
+function writeLocalCache(key: string, value: string, ttlSeconds: number) {
+  if (ttlSeconds <= 0) return;
+  localSharedCache.delete(key);
+  localSharedCache.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1_000 });
+  while (localSharedCache.size > LOCAL_SHARED_CACHE_LIMIT) {
+    const oldestKey = localSharedCache.keys().next().value;
+    if (!oldestKey) break;
+    localSharedCache.delete(oldestKey);
+  }
+}
+
 function createRedisClient(role: "cache" | "publisher" | "subscriber") {
   if (!CACHE_URL) return null;
 
@@ -48,29 +76,39 @@ export function realtimeRoom(channelId: number) {
 
 export async function readSharedJson<T>(key: string): Promise<T | null> {
   const client = getSharedStateClient();
-  if (!client) return null;
+  if (!client) {
+    const localValue = readLocalCache(key);
+    return localValue ? JSON.parse(localValue) as T : null;
+  }
   try {
     const value = await client.get(key);
     return value ? JSON.parse(value) as T : null;
   } catch {
-    return null;
+    const localValue = readLocalCache(key);
+    return localValue ? JSON.parse(localValue) as T : null;
   }
 }
 
 export async function writeSharedJson(key: string, value: unknown, ttlSeconds: number) {
+  const serialized = JSON.stringify(value);
   const client = getSharedStateClient();
-  if (!client) return false;
+  if (!client) {
+    writeLocalCache(key, serialized, ttlSeconds);
+    return true;
+  }
   try {
-    await client.set(key, JSON.stringify(value), "EX", ttlSeconds);
+    await client.set(key, serialized, "EX", ttlSeconds);
     return true;
   } catch {
-    return false;
+    writeLocalCache(key, serialized, ttlSeconds);
+    return true;
   }
 }
 
 export async function deleteSharedKey(key: string) {
+  localSharedCache.delete(key);
   const client = getSharedStateClient();
-  if (!client) return false;
+  if (!client) return true;
   try {
     await client.del(key);
     return true;
@@ -111,4 +149,5 @@ export async function closeSharedState() {
   cacheClient = undefined;
   publisherClient = undefined;
   subscriberClient = undefined;
+  localSharedCache.clear();
 }
