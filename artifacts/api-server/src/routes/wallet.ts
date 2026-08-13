@@ -25,6 +25,9 @@ import { writeAuditLog } from "../lib/operations";
 
 const router: IRouter = Router();
 const CUSTOMER_WALLET_FLAG = "customer_wallet_custody";
+// Customer deposit custody is intentionally unavailable until the dedicated
+// reconciliation, authorization, and support-control launch is complete.
+const CUSTOMER_WALLET_RUNTIME_ENABLED = false;
 
 class CustomerWalletError extends Error {
   constructor(message: string, readonly status = 400) {
@@ -48,6 +51,7 @@ function providerDepositUid(userId: number) {
 }
 
 async function isWalletCustodyEnabled() {
+  if (!CUSTOMER_WALLET_RUNTIME_ENABLED) return false;
   const [flag] = await db
     .select({ enabled: featureFlagsTable.enabled })
     .from(featureFlagsTable)
