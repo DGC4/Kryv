@@ -86,7 +86,7 @@ export default function DashboardAdmin() {
   const queryClient = useQueryClient();
 
   const { data: me, isLoading: meLoading } = useGetMe();
-  const { data: stats, isLoading: statsLoading } = useGetAdminStats({
+  const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useGetAdminStats({
     query: { enabled: me?.role === 'owner' },
   });
   const commandOverviewQuery = useGetAdminCommandOverview({
@@ -471,21 +471,23 @@ export default function DashboardAdmin() {
       </div>
 
       {/* Stats */}
-      {statsLoading ? (
-        <div className="flex items-center gap-2 mb-8">
+{statsLoading ? (
+        <div className="mb-8 flex items-center gap-2">
           <Loader2 className="w-5 h-5 animate-spin text-primary" />
           <span className="text-sm text-white/40">Loading stats…</span>
         </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-          <StatCard label="Total Users"   value={stats?.totalUsers ?? 0}    icon={Users}       />
-          <StatCard label="Banned"        value={stats?.bannedUsers ?? 0}   icon={Ban}         />
-          <StatCard label="Channels"      value={stats?.totalChannels ?? 0} icon={Radio}       />
-          <StatCard label="Live Now"      value={stats?.liveChannels ?? 0}  icon={Activity}    accent />
-          <StatCard label="Videos"        value={stats?.totalVideos ?? 0}   icon={Film}        />
-          <StatCard label="Total Views"   value={stats?.totalViews ?? 0}    icon={Eye}         />
+      ) : statsError ? (
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-300/20 bg-red-400/[0.05] p-4 text-sm text-red-100"><p className="font-bold">Top-line platform statistics are temporarily unavailable.</p><Button type="button" size="sm" variant="outline" onClick={() => refetchStats()} className="border-red-200/25 bg-red-200/[0.08] font-black text-red-50 hover:bg-red-200/[0.14] hover:text-red-50">Retry stats</Button></div>
+      ) : stats ? (
+        <div className="grid grid-cols-2 gap-3 mb-8 md:grid-cols-3 lg:grid-cols-6">
+          <StatCard label="Total Users"   value={stats.totalUsers}    icon={Users}       />
+          <StatCard label="Banned"        value={stats.bannedUsers}   icon={Ban}         />
+          <StatCard label="Channels"      value={stats.totalChannels} icon={Radio}       />
+          <StatCard label="Live Now"      value={stats.liveChannels}  icon={Activity}    accent />
+          <StatCard label="Videos"        value={stats.totalVideos}   icon={Film}        />
+          <StatCard label="Total Views"   value={stats.totalViews}    icon={Eye}         />
         </div>
-      )}
+      ) : null}
 
       {/* Tabs */}
       <div className="-mx-4 mb-5 flex gap-1 overflow-x-auto border-b border-white/[0.08] px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
