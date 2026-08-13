@@ -25,7 +25,7 @@ import { watchHistoryTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
-router.get("/videos", async (req, res): Promise<void> => {
+router.get("/videos", attachUserId, async (req, res): Promise<void> => {
   const query = ListVideosQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
@@ -52,7 +52,23 @@ router.get("/videos", async (req, res): Promise<void> => {
     rows = category ? rows.filter((v) => v.categoryId === category.id) : [];
   }
 
-  rows = rows.filter((v) => v.uploadStatus !== "errored");
+  let ownChannelId: number | null = null;
+  if (req.user?.userId) {
+    const [ownChannel] = await db
+      .select({ id: channelsTable.id })
+      .from(channelsTable)
+      .where(eq(channelsTable.ownerUserId, req.user.userId))
+      .limit(1);
+    ownChannelId = ownChannel?.id ?? null;
+  }
+
+  // Watch browse is public inventory: only ready creator uploads are public.
+  // A signed-in channel owner may retain visibility of their own in-progress
+  // uploads for Creator Studio, but no other unfinished or Cinema media leaks.
+  rows = rows.filter((video) => (
+    video.contentType === "upload"
+    && (video.uploadStatus === "ready" || video.channelId === ownChannelId)
+  ));
 
   const results = await Promise.all(rows.map(toVideoSummary));
   res.json(ListVideosResponse.parse(results));
@@ -215,22 +231,30 @@ router.get("/videos/:id", attachUserId, async (req, res): Promise<void> => {
     return;
   }
 
-  const [video] = await db
-    .select()
+  const [row] = await db
+    .select({ video: videosTable, channel: channelsTable })
     .from(videosTable)
+    .innerJoin(channelsTable, eq(videosTable.channelId, channelsTable.id))
     .where(eq(videosTable.id, params.data.id));
-  if (!video) {
+  if (!row) {
     res.status(404).json({ error: "Video not found" });
     return;
   }
+
+  const viewerUserId = req.user?.userId;
+  const isOwner = viewerUserId === row.channel.ownerUserId;
+  const isPublicWatchVideo = row.video.contentType === "upload" && row.video.uploadStatus === "ready";
+  if (!isPublicWatchVideo && !isOwner) {
+    res.status(404).json({ error: "Video not found" });
+    return;
+  }
+  const video = row.video;
 
   await db
     .update(videosTable)
     .set({ viewCount: sql`${videosTable.viewCount} + 1` })
     .where(eq(videosTable.id, video.id));
   video.viewCount += 1;
-
-  const viewerUserId = req.user?.userId;
 
   if (viewerUserId) {
     // Record watch history (fire-and-forget)
