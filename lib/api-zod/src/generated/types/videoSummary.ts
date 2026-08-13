@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { VideoSummaryContentType } from './videoSummaryContentType';
+import type { VideoSummaryPlaybackSource } from './videoSummaryPlaybackSource';
 import type { VideoSummaryUploadStatus } from './videoSummaryUploadStatus';
 
 export interface VideoSummary {
@@ -44,6 +45,13 @@ export interface VideoSummary {
      * @nullable
      */
   playbackId: string | null;
+  /** The approved playback provider for this Watch item. */
+  playbackSource: VideoSummaryPlaybackSource;
+  /**
+     * Official YouTube video identifier. Present only for rights-attested YouTube embeds.
+     * @nullable
+     */
+  youtubeVideoId: string | null;
   uploadStatus: VideoSummaryUploadStatus;
   createdAt: Date;
 }

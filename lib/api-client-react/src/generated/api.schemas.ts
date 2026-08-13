@@ -113,6 +113,17 @@ export const VideoSummaryContentType = {
   original: 'original',
 } as const;
 
+/**
+ * The approved playback provider for this Watch item.
+ */
+export type VideoSummaryPlaybackSource = typeof VideoSummaryPlaybackSource[keyof typeof VideoSummaryPlaybackSource];
+
+
+export const VideoSummaryPlaybackSource = {
+  fastpix: 'fastpix',
+  youtube: 'youtube',
+} as const;
+
 export type VideoSummaryUploadStatus = typeof VideoSummaryUploadStatus[keyof typeof VideoSummaryUploadStatus];
 
 
@@ -159,6 +170,13 @@ export interface VideoSummary {
      * @nullable
      */
   playbackId: string | null;
+  /** The approved playback provider for this Watch item. */
+  playbackSource: VideoSummaryPlaybackSource;
+  /**
+     * Official YouTube video identifier. Present only for rights-attested YouTube embeds.
+     * @nullable
+     */
+  youtubeVideoId: string | null;
   uploadStatus: VideoSummaryUploadStatus;
   createdAt: string;
 }
@@ -596,6 +614,14 @@ export const VideoInputContentType = {
   original: 'original',
 } as const;
 
+export type VideoInputPlaybackSource = typeof VideoInputPlaybackSource[keyof typeof VideoInputPlaybackSource];
+
+
+export const VideoInputPlaybackSource = {
+  fastpix: 'fastpix',
+  youtube: 'youtube',
+} as const;
+
 export interface VideoInput {
   /**
      * @minLength 1
@@ -606,12 +632,24 @@ export interface VideoInput {
   description?: string;
   categoryId?: number;
   contentType?: VideoInputContentType;
+  playbackSource?: VideoInputPlaybackSource;
+  /**
+     * @minLength 11
+     * @maxLength 32
+     * @pattern ^[A-Za-z0-9_-]+$
+     */
+  youtubeVideoId?: string;
+  /** Creator attests they have the rights to embed the official YouTube source in Kryv Watch. */
+  rightsAttested?: boolean;
 }
 
-export type VideoCreateResponse = VideoDetail & {
-  /** FastPix direct-upload URL — PUT the raw video file here from the browser */
-  uploadUrl: string;
-};
+export type VideoCreateResponse = VideoDetail & ({
+  /**
+     * FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.
+     * @nullable
+     */
+  uploadUrl: string | null;
+});
 
 export interface VideoUpdate {
   /**

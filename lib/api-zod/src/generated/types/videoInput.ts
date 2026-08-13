@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { VideoInputContentType } from './videoInputContentType';
+import type { VideoInputPlaybackSource } from './videoInputPlaybackSource';
 
 export interface VideoInput {
   /**
@@ -17,4 +18,13 @@ export interface VideoInput {
   description?: string;
   categoryId?: number;
   contentType?: VideoInputContentType;
+  playbackSource?: VideoInputPlaybackSource;
+  /**
+     * @minLength 11
+     * @maxLength 32
+     * @pattern ^[A-Za-z0-9_-]+$
+     */
+  youtubeVideoId?: string;
+  /** Creator attests they have the rights to embed the official YouTube source in Kryv Watch. */
+  rightsAttested?: boolean;
 }

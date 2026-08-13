@@ -85,6 +85,32 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const playbackSource = parsed.data.playbackSource ?? "fastpix";
+  if (playbackSource === "youtube") {
+    if (!parsed.data.youtubeVideoId || !parsed.data.rightsAttested) {
+      res.status(400).json({ error: "An official YouTube video ID and rights attestation are required." });
+      return;
+    }
+
+    const [video] = await db
+      .insert(videosTable)
+      .values({
+        channelId: channel.id,
+        title: parsed.data.title,
+        description: parsed.data.description ?? null,
+        categoryId: parsed.data.categoryId ?? null,
+        contentType: "upload",
+        uploadStatus: "ready",
+        playbackSource: "youtube",
+        youtubeVideoId: parsed.data.youtubeVideoId,
+        rightsAttestedAt: new Date(),
+      })
+      .returning();
+    const detail = await toVideoDetail(video, userId);
+    res.status(201).json(CreateVideoResponse.parse({ ...detail, uploadUrl: null }));
+    return;
+  }
+
   try {
     const origin = req.get("origin") || "*";
     const { fastpixUploadId, uploadUrl } = await createFastPixDirectUpload(origin);
@@ -96,8 +122,9 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
         title: parsed.data.title,
         description: parsed.data.description ?? null,
         categoryId: parsed.data.categoryId ?? null,
-        contentType: parsed.data.contentType ?? "upload",
+        contentType: "upload",
         uploadStatus: "waiting",
+        playbackSource: "fastpix",
         fastpixUploadId,
       })
       .returning();

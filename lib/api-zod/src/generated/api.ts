@@ -701,6 +701,8 @@ export const SearchKryvResponse = zod.object({
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
   "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 })),
@@ -938,6 +940,8 @@ export const GetCreatorProfileResponse = zod.object({
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
   "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 })),
@@ -1705,6 +1709,8 @@ export const ListVideosResponseItem = zod.object({
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
   "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 })
@@ -1718,13 +1724,22 @@ export const createVideoBodyTitleMax = 100;
 
 export const createVideoBodyDescriptionMax = 5000;
 
+export const createVideoBodyPlaybackSourceDefault = `fastpix`;
+export const createVideoBodyYoutubeVideoIdMin = 11;
+export const createVideoBodyYoutubeVideoIdMax = 32;
+
+
+export const createVideoBodyYoutubeVideoIdRegExp = new RegExp('^[A-Za-z0-9_-]+$');
 
 
 export const CreateVideoBody = zod.object({
   "title": zod.string().min(1).max(createVideoBodyTitleMax),
   "description": zod.string().max(createVideoBodyDescriptionMax).optional(),
   "categoryId": zod.number().optional(),
-  "contentType": zod.enum(['upload', 'original']).optional()
+  "contentType": zod.enum(['upload', 'original']).optional(),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).default(createVideoBodyPlaybackSourceDefault),
+  "youtubeVideoId": zod.string().min(createVideoBodyYoutubeVideoIdMin).max(createVideoBodyYoutubeVideoIdMax).regex(createVideoBodyYoutubeVideoIdRegExp).optional(),
+  "rightsAttested": zod.boolean().optional().describe('Creator attests they have the rights to embed the official YouTube source in Kryv Watch.')
 })
 
 export const CreateVideoResponse = zod.object({
@@ -1743,13 +1758,15 @@ export const CreateVideoResponse = zod.object({
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
   "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 }).and(zod.object({
   "description": zod.string().nullable(),
   "isOwner": zod.boolean()
 })).and(zod.object({
-  "uploadUrl": zod.string().describe('FastPix direct-upload URL — PUT the raw video file here from the browser')
+  "uploadUrl": zod.string().nullable().describe('FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.')
 }))
 
 
@@ -1776,6 +1793,8 @@ export const GetVideoResponse = zod.object({
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
   "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 }).and(zod.object({
@@ -1819,6 +1838,8 @@ export const UpdateVideoResponse = zod.object({
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
   "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 }).and(zod.object({
@@ -2689,6 +2710,8 @@ export const ListAdminVideosResponseItem = zod.object({
   "categoryName": zod.string().nullable(),
   "contentType": zod.enum(['upload', 'original']),
   "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
 })

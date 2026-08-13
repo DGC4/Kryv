@@ -7,7 +7,10 @@
  */
 import type { VideoDetail } from './videoDetail';
 
-export type VideoCreateResponse = VideoDetail & {
-  /** FastPix direct-upload URL — PUT the raw video file here from the browser */
-  uploadUrl: string;
-};
+export type VideoCreateResponse = VideoDetail & ({
+  /**
+     * FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.
+     * @nullable
+     */
+  uploadUrl: string | null;
+});

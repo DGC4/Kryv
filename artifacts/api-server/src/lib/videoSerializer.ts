@@ -34,6 +34,8 @@ export async function toVideoSummary(video: Video) {
     contentType: video.contentType as "upload" | "original",
     playbackId: video.fastpixPlaybackId,
     fastpixPlaybackId: video.fastpixPlaybackId,
+    playbackSource: video.playbackSource as "fastpix" | "youtube",
+    youtubeVideoId: video.youtubeVideoId,
     uploadStatus: video.uploadStatus as
       | "waiting"
       | "processing"

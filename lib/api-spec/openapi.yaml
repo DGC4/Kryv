@@ -2808,6 +2808,8 @@ components:
           categoryName,
           contentType,
           playbackId,
+          playbackSource,
+          youtubeVideoId,
           uploadStatus,
           createdAt,
         ]
@@ -2837,6 +2839,13 @@ components:
         playbackId:
           description: FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.
           type: ["string", "null"]
+        playbackSource:
+          description: The approved playback provider for this Watch item.
+          type: string
+          enum: [fastpix, youtube]
+        youtubeVideoId:
+          description: Official YouTube video identifier. Present only for rights-attested YouTube embeds.
+          type: ["string", "null"]
         uploadStatus:
           type: string
           enum: [waiting, processing, ready, errored]
@@ -2861,6 +2870,18 @@ components:
         contentType:
           type: string
           enum: [upload, original]
+        playbackSource:
+          type: string
+          enum: [fastpix, youtube]
+          default: fastpix
+        youtubeVideoId:
+          type: string
+          minLength: 11
+          maxLength: 32
+          pattern: "^[A-Za-z0-9_-]+$"
+        rightsAttested:
+          description: Creator attests they have the rights to embed the official YouTube source in Kryv Watch.
+          type: boolean
 
     VideoCreateResponse:
       allOf:
@@ -2869,8 +2890,8 @@ components:
           required: [uploadUrl]
           properties:
             uploadUrl:
-              description: FastPix direct-upload URL — PUT the raw video file here from the browser
-              type: string
+              description: FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.
+              type: ["string", "null"]
 
     VideoUpdate:
       type: object

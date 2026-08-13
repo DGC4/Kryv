@@ -35,6 +35,11 @@ export const videosTable = pgTable("videos", {
   fastpixUploadId: text("fastpix_upload_id"),
   fastpixAssetId: text("fastpix_asset_id").unique(),
   fastpixPlaybackId: text("fastpix_playback_id"),
+  // Watch supports either a processed FastPix upload or an explicitly attested
+  // official YouTube embed. Cinema remains governed by the owner-only catalog.
+  playbackSource: text("playback_source").notNull().default("fastpix"),
+  youtubeVideoId: text("youtube_video_id"),
+  rightsAttestedAt: timestamp("rights_attested_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
