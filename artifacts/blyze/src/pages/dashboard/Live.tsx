@@ -23,7 +23,6 @@ import {
   useCreateChannelModerationAction,
   useGetCreatorFinance,
   useSaveCreatorPayoutProfile,
-  useUpdateCreatorPayoutPreference,
   useCreateCreatorPayoutRequest,
   useGetCreatorAchievements,
 } from '@workspace/api-client-react';
@@ -192,10 +191,6 @@ export default function DashboardLive() {
   const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
   const [payoutCurrency, setPayoutCurrency] = useState<'BTC' | 'LTC' | 'ETH' | 'DOGE'>('BTC');
   const [payoutAddress, setPayoutAddress] = useState('');
-  const [payoutCadence, setPayoutCadence] = useState<'manual' | 'daily' | 'weekly' | 'monthly'>('manual');
-  const [payoutMinimumAmount, setPayoutMinimumAmount] = useState('0');
-  const [payoutWeekday, setPayoutWeekday] = useState(1);
-  const [payoutMonthDay, setPayoutMonthDay] = useState(1);
   const [payoutAmount, setPayoutAmount] = useState('');
   const [channelCreated, setChannelCreated] = useState(false);
   const [pollTitle, setPollTitle] = useState('');
@@ -230,7 +225,6 @@ export default function DashboardLive() {
     query: { enabled: Boolean(me?.channel && activeTab === 'achievements') },
   });
   const saveCreatorPayoutProfile = useSaveCreatorPayoutProfile();
-  const updateCreatorPayoutPreference = useUpdateCreatorPayoutPreference();
   const createCreatorPayoutRequest = useCreateCreatorPayoutRequest();
   const { data: savedNotificationPrefs } = useGetNotificationPreferences({ query: { enabled: activeTab === 'settings' } });
   const updateNotificationPrefs = useUpdateNotificationPreferences();
@@ -1278,14 +1272,7 @@ export default function DashboardLive() {
                     <div className="mt-4 space-y-2">{creatorFinanceQuery.data?.payoutProfiles.length ? creatorFinanceQuery.data.payoutProfiles.map((profile) => <div key={profile.id} className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-xs"><span className="font-bold text-white">{profile.currency} <span className="ml-2 font-mono text-white/45">{profile.addressMasked}</span></span><span className={`rounded-full px-2 py-1 text-[9px] font-black uppercase ${profile.reviewStatus === 'approved' ? 'bg-emerald-400/10 text-emerald-200' : profile.reviewStatus === 'rejected' ? 'bg-red-400/10 text-red-200' : 'bg-amber-300/10 text-amber-100'}`}>{profile.reviewStatus}</span></div>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-3 text-xs text-white/35">No payout destination has been saved.</p>}</div>
                   </form>
 
-                  <form onSubmit={(event) => { event.preventDefault(); updateCreatorPayoutPreference.mutate({ data: { cadence: payoutCadence, minimumAmount: payoutMinimumAmount || '0', ...(payoutCadence === 'weekly' ? { weekday: payoutWeekday } : {}), ...(payoutCadence === 'monthly' ? { monthDay: payoutMonthDay } : {}), enabled: payoutCadence !== 'manual' } }, { onSuccess: () => { creatorFinanceQuery.refetch(); toast({ title: 'Payout preference saved', description: payoutCadence === 'manual' ? 'Manual request mode is active.' : 'The selected cadence can create a review request after scheduled processing is enabled.' }); }, onError: (err: any) => toast({ title: 'Preference not saved', description: err?.body?.error || err?.message || 'Check the schedule values.', variant: 'destructive' }) }); }} className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
-                    <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Clock3 className="h-5 w-5" /></div><div><h3 className="text-sm font-black text-white">Payout cadence</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Daily, weekly, and monthly preferences create reviewable requests only. They never send funds automatically.</p></div></div>
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2"><label className="text-xs font-bold text-white/65">Cadence<select value={payoutCadence} onChange={event => setPayoutCadence(event.target.value as typeof payoutCadence)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="manual">Manual request</option><option value="daily">Daily review request</option><option value="weekly">Weekly review request</option><option value="monthly">Monthly review request</option></select></label><label className="text-xs font-bold text-white/65">Minimum per asset<input type="text" inputMode="decimal" value={payoutMinimumAmount} onChange={event => setPayoutMinimumAmount(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label></div>
-                    {payoutCadence === 'weekly' && <label className="mt-3 block text-xs font-bold text-white/65">Weekday<select value={payoutWeekday} onChange={event => setPayoutWeekday(Number(event.target.value))} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60">{['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) => <option key={day} value={index}>{day}</option>)}</select></label>}
-                    {payoutCadence === 'monthly' && <label className="mt-3 block text-xs font-bold text-white/65">Day of month<input type="number" min={1} max={28} value={payoutMonthDay} onChange={event => setPayoutMonthDay(Number(event.target.value))} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label>}
-                    <Button type="submit" disabled={updateCreatorPayoutPreference.isPending} className="mt-4 w-full font-black">{updateCreatorPayoutPreference.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : <><Save className="mr-2 h-4 w-4" /> Save payout preference</>}</Button>
-                    <p className="mt-3 text-[11px] leading-relaxed text-white/35">All scheduled evaluation uses UTC. A schedule remains inactive until the owner enables scheduled payout requests and production monitoring.</p>
-                  </form>
+                  <article className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.045] p-5"><div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-300/10 text-amber-100"><Clock3 className="h-5 w-5" /></div><div><h3 className="text-sm font-black text-white">Scheduled payout requests locked</h3><p className="mt-1 text-xs leading-relaxed text-white/55">Daily, weekly, and monthly payout preferences are unavailable because scheduled payout requests are hard-disabled at runtime. Kryv does not save dormant schedule instructions or promise future automatic review behavior.</p></div></div><div className="mt-5 rounded-xl border border-amber-300/15 bg-black/20 p-3 text-xs leading-relaxed text-amber-100/80"><b className="font-black text-amber-100">Available path:</b> add a masked destination for owner review, then use a manual payout request only when the current payout gate permits it. Provider withdrawals remain separately locked.</div></article>
                 </section>
 
                 <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
