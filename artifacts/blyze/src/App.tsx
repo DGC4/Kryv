@@ -29,6 +29,7 @@ const ClipDetail = lazy(() => import('@/pages/clips/Detail'));
 const SearchPage = lazy(() => import('@/pages/search/Search'));
 const CinemaHome = lazy(() => import('@/pages/cinema/Home'));
 const CinemaDetail = lazy(() => import('@/pages/cinema/Detail'));
+const DashboardStudio = lazy(() => import('@/pages/dashboard/Studio'));
 const DashboardLive = lazy(() => import('@/pages/dashboard/Live'));
 const DashboardWatch = lazy(() => import('@/pages/dashboard/Watch'));
 const DashboardAdmin = lazy(() => import('@/pages/dashboard/Admin'));
@@ -127,6 +128,11 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
+      <Route path="/dashboard">
+        <ProtectedRoute>
+          <Layout><DashboardStudio /></Layout>
+        </ProtectedRoute>
+      </Route>
       <Route path="/dashboard/live">
         <ProtectedRoute>
           <Layout><DashboardLive /></Layout>

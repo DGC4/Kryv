@@ -169,9 +169,9 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/watch" className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
                       <LayoutDashboard className="w-4 h-4 text-white/50" />
-                      <span>Creator Dashboard</span>
+                      <span>Creator Studio</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
