@@ -4,7 +4,6 @@ import {
   channelsTable,
   creatorBalanceMovementsTable,
   creatorBalancesTable,
-  creatorPayoutPreferencesTable,
   creatorPayoutProfilesTable,
   db,
   featureFlagsTable,
@@ -18,8 +17,6 @@ import {
   GetCreatorFinanceResponse,
   SaveCreatorPayoutProfileBody,
   SaveCreatorPayoutProfileResponse,
-  UpdateCreatorPayoutPreferenceBody,
-  UpdateCreatorPayoutPreferenceResponse,
 } from "@workspace/api-zod";
 import { getPlisioAssetSnapshots, isSupportedKryvCryptoCode } from "../lib/plisio";
 import { requireAuth } from "../lib/auth";
@@ -217,38 +214,14 @@ async function getAchievements(channelId: number, profiles: Array<{ reviewStatus
   ];
 }
 
-function nextRunAt(cadence: "manual" | "daily" | "weekly" | "monthly", weekday?: number, monthDay?: number) {
-  if (cadence === "manual") return null;
-  const now = new Date();
-  const next = new Date(now);
-  next.setUTCSeconds(0, 0);
-  if (cadence === "daily") {
-    next.setUTCDate(next.getUTCDate() + 1);
-    next.setUTCHours(12, 0, 0, 0);
-    return next;
-  }
-  if (cadence === "weekly") {
-    const requestedDay = weekday ?? 1;
-    const delta = (requestedDay - next.getUTCDay() + 7) % 7 || 7;
-    next.setUTCDate(next.getUTCDate() + delta);
-    next.setUTCHours(12, 0, 0, 0);
-    return next;
-  }
-  const requestedDay = monthDay ?? 1;
-  next.setUTCMonth(next.getUTCMonth() + 1, requestedDay);
-  next.setUTCHours(12, 0, 0, 0);
-  return next;
-}
-
 router.use(requireAuth);
 
 router.get("/creator/finance", async (req, res): Promise<void> => {
   try {
     const channel = await getCreatorChannel(req.user!.userId);
-    const [balanceRows, profileRows, preference, payoutRows] = await Promise.all([
+    const [balanceRows, profileRows, payoutRows] = await Promise.all([
       db.select().from(creatorBalancesTable).where(eq(creatorBalancesTable.channelId, channel.id)),
       db.select().from(creatorPayoutProfilesTable).where(eq(creatorPayoutProfilesTable.channelId, channel.id)),
-      db.select().from(creatorPayoutPreferencesTable).where(eq(creatorPayoutPreferencesTable.channelId, channel.id)).limit(1),
       db.select().from(payoutRequestsTable).where(eq(payoutRequestsTable.channelId, channel.id)).orderBy(desc(payoutRequestsTable.requestedAt)).limit(12),
     ]);
 
@@ -272,27 +245,16 @@ router.get("/creator/finance", async (req, res): Promise<void> => {
           };
         }),
       payoutProfiles: profiles,
-      payoutPreference: preference
-        ? {
-            cadence: preference.cadence as "manual" | "daily" | "weekly" | "monthly",
-            minimumAmount: toDecimalString(preference.minimumAmount),
-            weekday: preference.weekday,
-            monthDay: preference.monthDay,
-            timezone: preference.timezone,
-            enabled: preference.enabled,
-            nextRunAt: preference.nextRunAt,
-            updatedAt: preference.updatedAt,
-          }
-        : {
-            cadence: "manual" as const,
-            minimumAmount: "0",
-            weekday: null,
-            monthDay: null,
-            timezone: "UTC",
-            enabled: false,
-            nextRunAt: null,
-            updatedAt: new Date(),
-          },
+      payoutPreference: {
+        cadence: "manual" as const,
+        minimumAmount: "0",
+        weekday: null,
+        monthDay: null,
+        timezone: "UTC",
+        enabled: false,
+        nextRunAt: null,
+        updatedAt: new Date(),
+      },
       payoutRequests: payoutRows.filter((row) => isSupportedKryvCryptoCode(row.currency)).map(toPayoutRequest),
       achievements,
       payoutRequestsEnabled: await isFeatureEnabled(PAYOUT_REQUEST_FLAG),
@@ -367,73 +329,6 @@ router.post("/creator/finance/payout-profiles", async (req, res): Promise<void> 
   } catch (error) {
     const status = error instanceof CreatorFinanceError ? error.status : 500;
     res.status(status).json({ error: error instanceof Error ? error.message : "Payout destination could not be saved" });
-  }
-});
-
-router.put("/creator/finance/preferences", async (req, res): Promise<void> => {
-  const parsed = UpdateCreatorPayoutPreferenceBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  if (parsed.data.cadence === "weekly" && parsed.data.weekday === undefined) {
-    res.status(400).json({ error: "Choose a weekday for weekly payouts." });
-    return;
-  }
-  if (parsed.data.cadence === "monthly" && parsed.data.monthDay === undefined) {
-    res.status(400).json({ error: "Choose a monthly payout day." });
-    return;
-  }
-
-  try {
-    const channel = await getCreatorChannel(req.user!.userId);
-    const next = parsed.data.enabled ? nextRunAt(parsed.data.cadence, parsed.data.weekday, parsed.data.monthDay) : null;
-    const [preference] = await db
-      .insert(creatorPayoutPreferencesTable)
-      .values({
-        channelId: channel.id,
-        cadence: parsed.data.cadence,
-        minimumAmount: parsed.data.minimumAmount,
-        weekday: parsed.data.cadence === "weekly" ? parsed.data.weekday ?? null : null,
-        monthDay: parsed.data.cadence === "monthly" ? parsed.data.monthDay ?? null : null,
-        timezone: "UTC",
-        enabled: parsed.data.enabled,
-        nextRunAt: next,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: creatorPayoutPreferencesTable.channelId,
-        set: {
-          cadence: parsed.data.cadence,
-          minimumAmount: parsed.data.minimumAmount,
-          weekday: parsed.data.cadence === "weekly" ? parsed.data.weekday ?? null : null,
-          monthDay: parsed.data.cadence === "monthly" ? parsed.data.monthDay ?? null : null,
-          enabled: parsed.data.enabled,
-          nextRunAt: next,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-
-    await writeAuditLog(req, {
-      action: "creator_payout_preference.updated",
-      targetType: "creator_payout_preference",
-      targetId: String(preference.id),
-      afterState: { channelId: channel.id, cadence: preference.cadence, minimumAmount: preference.minimumAmount, enabled: preference.enabled, nextRunAt: preference.nextRunAt },
-    });
-    res.json(UpdateCreatorPayoutPreferenceResponse.parse({
-      cadence: preference.cadence,
-      minimumAmount: toDecimalString(preference.minimumAmount),
-      weekday: preference.weekday,
-      monthDay: preference.monthDay,
-      timezone: preference.timezone,
-      enabled: preference.enabled,
-      nextRunAt: preference.nextRunAt,
-      updatedAt: preference.updatedAt,
-    }));
-  } catch (error) {
-    const status = error instanceof CreatorFinanceError ? error.status : 500;
-    res.status(status).json({ error: error instanceof Error ? error.message : "Payout preference could not be updated" });
   }
 });
 

@@ -8,6 +8,7 @@
 import type { CreatorPayoutPreferenceCadence } from './creatorPayoutPreferenceCadence';
 
 export interface CreatorPayoutPreference {
+  /** Scheduled cadence is unavailable because scheduled payout requests are hard-disabled. */
   cadence: CreatorPayoutPreferenceCadence;
   minimumAmount: string;
   /**

@@ -91,7 +91,6 @@ import type {
   CreateCustomerWalletDepositAddressInput,
   CreatorAchievement,
   CreatorFinanceOverview,
-  CreatorPayoutPreference,
   CreatorPayoutProfile,
   CreatorPayoutRequest,
   CreatorProfile,
@@ -126,7 +125,6 @@ import type {
   SearchResults,
   StreamCredentials,
   UpdateAdminFeatureFlagInput,
-  UpdateCreatorPayoutPreferenceInput,
   VideoCreateResponse,
   VideoDetail,
   VideoInput,
@@ -5239,77 +5237,6 @@ export const useSaveCreatorPayoutProfile = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getSaveCreatorPayoutProfileMutationOptions(options));
-    }
-
-export const getUpdateCreatorPayoutPreferenceUrl = () => {
-
-
-
-
-  return `/api/creator/finance/preferences`
-}
-
-/**
- * @summary Set creator payout cadence and minimum amount; schedules create review requests only
- */
-export const updateCreatorPayoutPreference = async (updateCreatorPayoutPreferenceInput: UpdateCreatorPayoutPreferenceInput, options?: RequestInit): Promise<CreatorPayoutPreference> => {
-
-  return customFetch<CreatorPayoutPreference>(getUpdateCreatorPayoutPreferenceUrl(),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateCreatorPayoutPreferenceInput)
-  }
-);}
-
-
-
-
-
-export const getUpdateCreatorPayoutPreferenceMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>, TError,{data: BodyType<UpdateCreatorPayoutPreferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>, TError,{data: BodyType<UpdateCreatorPayoutPreferenceInput>}, TContext> => {
-
-const mutationKey = ['updateCreatorPayoutPreference'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>, {data: BodyType<UpdateCreatorPayoutPreferenceInput>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  updateCreatorPayoutPreference(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateCreatorPayoutPreferenceMutationResult = NonNullable<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>>
-    export type UpdateCreatorPayoutPreferenceMutationBody = BodyType<UpdateCreatorPayoutPreferenceInput>
-    export type UpdateCreatorPayoutPreferenceMutationError = ErrorType<void>
-
-    /**
- * @summary Set creator payout cadence and minimum amount; schedules create review requests only
- */
-export const useUpdateCreatorPayoutPreference = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCreatorPayoutPreference>>, TError,{data: BodyType<UpdateCreatorPayoutPreferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateCreatorPayoutPreference>>,
-        TError,
-        {data: BodyType<UpdateCreatorPayoutPreferenceInput>},
-        TContext
-      > => {
-      return useMutation(getUpdateCreatorPayoutPreferenceMutationOptions(options));
     }
 
 export const getCreateCreatorPayoutRequestUrl = () => {

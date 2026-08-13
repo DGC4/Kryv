@@ -209,8 +209,6 @@ export * from './searchKryvParams';
 export * from './searchResults';
 export * from './streamCredentials';
 export * from './updateAdminFeatureFlagInput';
-export * from './updateCreatorPayoutPreferenceInput';
-export * from './updateCreatorPayoutPreferenceInputCadence';
 export * from './videoCreateResponse';
 export * from './videoDetail';
 export * from './videoInput';

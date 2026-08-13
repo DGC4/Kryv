@@ -1949,27 +1949,6 @@ paths:
         "400": { description: Invalid destination or configuration }
         "403": { description: Creator channel is required }
 
-  /creator/finance/preferences:
-    put:
-      operationId: updateCreatorPayoutPreference
-      tags: [creator-finance]
-      summary: Set creator payout cadence and minimum amount; schedules create review requests only
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateCreatorPayoutPreferenceInput"
-      responses:
-        "200":
-          description: Updated preference
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CreatorPayoutPreference"
-        "400": { description: Invalid payout preference }
-        "403": { description: Creator channel is required }
-
   /creator/finance/payout-requests:
     post:
       operationId: createCreatorPayoutRequest
@@ -3829,7 +3808,7 @@ components:
       type: object
       required: [cadence, minimumAmount, timezone, enabled, nextRunAt, updatedAt]
       properties:
-        cadence: { type: string, enum: [manual, daily, weekly, monthly] }
+        cadence: { type: string, enum: [manual], description: Scheduled cadence is unavailable because scheduled payout requests are hard-disabled. }
         minimumAmount: { type: string }
         weekday: { type: ["integer", "null"], minimum: 0, maximum: 6 }
         monthDay: { type: ["integer", "null"], minimum: 1, maximum: 28 }
@@ -3896,16 +3875,6 @@ components:
       properties:
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
         address: { type: string, minLength: 12, maxLength: 240 }
-
-    UpdateCreatorPayoutPreferenceInput:
-      type: object
-      required: [cadence, minimumAmount, enabled]
-      properties:
-        cadence: { type: string, enum: [manual, daily, weekly, monthly] }
-        minimumAmount: { type: string, pattern: "^\\d+(\\.\\d{1,8})?$" }
-        weekday: { type: integer, minimum: 0, maximum: 6 }
-        monthDay: { type: integer, minimum: 1, maximum: 28 }
-        enabled: { type: boolean }
 
     CreateCreatorPayoutRequestInput:
       type: object

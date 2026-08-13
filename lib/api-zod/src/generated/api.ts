@@ -2167,7 +2167,7 @@ export const GetCreatorFinanceResponse = zod.object({
   "updatedAt": zod.coerce.date()
 })),
   "payoutPreference": zod.object({
-  "cadence": zod.enum(['manual', 'daily', 'weekly', 'monthly']),
+  "cadence": zod.enum(['manual']).describe('Scheduled cadence is unavailable because scheduled payout requests are hard-disabled.'),
   "minimumAmount": zod.string(),
   "weekday": zod.number().min(getCreatorFinanceResponsePayoutPreferenceWeekdayMin).max(getCreatorFinanceResponsePayoutPreferenceWeekdayMax).nullish(),
   "monthDay": zod.number().min(1).max(getCreatorFinanceResponsePayoutPreferenceMonthDayMax).nullish(),
@@ -2226,44 +2226,6 @@ export const SaveCreatorPayoutProfileResponse = zod.object({
   "confirmationStatus": zod.enum(['pending', 'confirmed', 'rejected']),
   "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
   "confirmedAt": zod.coerce.date().nullish(),
-  "updatedAt": zod.coerce.date()
-})
-
-
-/**
- * @summary Set creator payout cadence and minimum amount; schedules create review requests only
- */
-export const updateCreatorPayoutPreferenceBodyMinimumAmountRegExp = new RegExp('^\\d+(\\.\\d{1,8})?$');
-export const updateCreatorPayoutPreferenceBodyWeekdayMin = 0;
-export const updateCreatorPayoutPreferenceBodyWeekdayMax = 6;
-
-export const updateCreatorPayoutPreferenceBodyMonthDayMax = 28;
-
-
-
-export const UpdateCreatorPayoutPreferenceBody = zod.object({
-  "cadence": zod.enum(['manual', 'daily', 'weekly', 'monthly']),
-  "minimumAmount": zod.string().regex(updateCreatorPayoutPreferenceBodyMinimumAmountRegExp),
-  "weekday": zod.number().min(updateCreatorPayoutPreferenceBodyWeekdayMin).max(updateCreatorPayoutPreferenceBodyWeekdayMax).optional(),
-  "monthDay": zod.number().min(1).max(updateCreatorPayoutPreferenceBodyMonthDayMax).optional(),
-  "enabled": zod.boolean()
-})
-
-export const updateCreatorPayoutPreferenceResponseWeekdayMin = 0;
-export const updateCreatorPayoutPreferenceResponseWeekdayMax = 6;
-
-export const updateCreatorPayoutPreferenceResponseMonthDayMax = 28;
-
-
-
-export const UpdateCreatorPayoutPreferenceResponse = zod.object({
-  "cadence": zod.enum(['manual', 'daily', 'weekly', 'monthly']),
-  "minimumAmount": zod.string(),
-  "weekday": zod.number().min(updateCreatorPayoutPreferenceResponseWeekdayMin).max(updateCreatorPayoutPreferenceResponseWeekdayMax).nullish(),
-  "monthDay": zod.number().min(1).max(updateCreatorPayoutPreferenceResponseMonthDayMax).nullish(),
-  "timezone": zod.string(),
-  "enabled": zod.boolean(),
-  "nextRunAt": zod.coerce.date().nullable(),
   "updatedAt": zod.coerce.date()
 })
 

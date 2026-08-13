@@ -6,12 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Scheduled cadence is unavailable because scheduled payout requests are hard-disabled.
+ */
 export type CreatorPayoutPreferenceCadence = typeof CreatorPayoutPreferenceCadence[keyof typeof CreatorPayoutPreferenceCadence];
 
 
 export const CreatorPayoutPreferenceCadence = {
   manual: 'manual',
-  daily: 'daily',
-  weekly: 'weekly',
-  monthly: 'monthly',
 } as const;

@@ -1576,17 +1576,18 @@ export interface CreatorPayoutProfile {
   updatedAt: string;
 }
 
+/**
+ * Scheduled cadence is unavailable because scheduled payout requests are hard-disabled.
+ */
 export type CreatorPayoutPreferenceCadence = typeof CreatorPayoutPreferenceCadence[keyof typeof CreatorPayoutPreferenceCadence];
 
 
 export const CreatorPayoutPreferenceCadence = {
   manual: 'manual',
-  daily: 'daily',
-  weekly: 'weekly',
-  monthly: 'monthly',
 } as const;
 
 export interface CreatorPayoutPreference {
+  /** Scheduled cadence is unavailable because scheduled payout requests are hard-disabled. */
   cadence: CreatorPayoutPreferenceCadence;
   minimumAmount: string;
   /**
@@ -1672,33 +1673,6 @@ export interface SaveCreatorPayoutProfileInput {
      * @maxLength 240
      */
   address: string;
-}
-
-export type UpdateCreatorPayoutPreferenceInputCadence = typeof UpdateCreatorPayoutPreferenceInputCadence[keyof typeof UpdateCreatorPayoutPreferenceInputCadence];
-
-
-export const UpdateCreatorPayoutPreferenceInputCadence = {
-  manual: 'manual',
-  daily: 'daily',
-  weekly: 'weekly',
-  monthly: 'monthly',
-} as const;
-
-export interface UpdateCreatorPayoutPreferenceInput {
-  cadence: UpdateCreatorPayoutPreferenceInputCadence;
-  /** @pattern ^\d+(\.\d{1,8})?$ */
-  minimumAmount: string;
-  /**
-     * @minimum 0
-     * @maximum 6
-     */
-  weekday?: number;
-  /**
-     * @minimum 1
-     * @maximum 28
-     */
-  monthDay?: number;
-  enabled: boolean;
 }
 
 export interface CreateCreatorPayoutRequestInput {
