@@ -37,7 +37,11 @@ export function Header() {
   const openNotification = (notification: NonNullable<typeof notificationInbox.data>['items'][number]) => {
     if (!notification.isRead) markNotificationRead.mutate({ id: notification.id }, { onSuccess: () => notificationInbox.refetch() });
     const channelSlug = typeof notification.data?.channelSlug === 'string' ? notification.data.channelSlug : null;
+    const videoId = typeof notification.data?.videoId === 'number' ? notification.data.videoId : null;
+    const clipId = typeof notification.data?.clipId === 'number' ? notification.data.clipId : null;
     if (notification.type === 'followed_channel_live' && channelSlug) navigate(`/live/${channelSlug}`);
+    if (notification.type === 'watch_upload_ready' && videoId) navigate(`/watch/${videoId}`);
+    if (notification.type === 'clip_ready' && clipId) navigate(`/clips/${clipId}`);
   };
 
   return (
