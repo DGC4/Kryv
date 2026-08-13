@@ -277,3 +277,13 @@ The signed callback handler was reviewed through its transactional settlement pa
 The fixed-point fee fixture passed for an eight-decimal crypto subtotal: gross `0.12345678`, platform fee `0.00617283`, and creator net `0.11728395`. The signed callback fixture also passed without provider network access or money movement. The live health surface remains `status: ok`, crypto withdrawals runtime-enabled, and in `free-tier-fallback` mode without shared cache or durable queue.
 
 This is **code and configuration readiness evidence only**, not live settlement evidence. At the time of review, production contained five pending BTC tip intents and no completed tip intent, payment event, tip row, creator-balance movement, or platform-revenue movement. The failed original intent and all pending replacement invoices still require a real completed payment and signed provider callback before the 95/5 settlement can be marked proven.
+
+## Persistent live-chat composer repair
+
+On **2026-08-13 EDT**, the desktop live-channel chat rail was repaired and deployed in commit `7e6fb7f` (`fix: keep live chat composer in view`). The channel workspace no longer creates a vertical clipping context around the player area. On desktop, the chat rail is sticky beside the workspace and the message composer remains visible while the viewer scrolls through the action strip, About section, and engagement surfaces. On compact screens, chat is fixed above the page bottom and channel content receives matching bottom clearance so the composer remains reachable without scrolling through page content.
+
+The frontend production build passed. Render deployed the revision successfully, and visual production verification at `/live/fano` confirmed that the visible `Send a message…` composer remains present on initial load and after scrolling to the bottom of the channel content. No chat was sent during this verification.
+
+### Current Phase A gate state
+
+Production flags were rechecked after the chat release: `crypto_commerce`, `creator_payout_requests`, and `provider_withdrawals` are enabled. `ads_delivery`, `customer_wallet_custody`, and `scheduled_payout_requests` remain disabled. The active 95/5 policy remains configured, but no retained signed provider callback, completed tip, payment event, creator-balance movement, or platform-revenue movement exists in production. An owner-reported payment that was subsequently deleted cannot serve as reconciliation evidence. A new completed payment whose provider record and signed callback remain retained is required before settlement or payout reconciliation is marked proven.
