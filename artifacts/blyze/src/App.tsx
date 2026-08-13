@@ -19,6 +19,7 @@ import LiveCategory from '@/pages/live/Category';
 import LiveCategories from '@/pages/live/Categories';
 import LiveChannel from '@/pages/live/Channel';
 import CreatorProfile from '@/pages/profile/CreatorProfile';
+import CreatorDirectory from '@/pages/creators/Directory';
 import WatchHome from '@/pages/watch/Home';
 import WatchDetail from '@/pages/watch/Detail';
 import ClipsHome from '@/pages/clips/Home';
@@ -73,6 +74,9 @@ function AppRoutes() {
       </Route>
       <Route path="/profile/:slug">
         <Layout><CreatorProfile /></Layout>
+      </Route>
+      <Route path="/creators">
+        <Layout><CreatorDirectory /></Layout>
       </Route>
 
       <Route path="/watch">

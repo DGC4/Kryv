@@ -1,0 +1,52 @@
+import { useListCategories, useListChannels } from '@workspace/api-client-react';
+import { ArrowUpRight, CircleDot, Loader2, Radio, Search, Sparkles, Users } from 'lucide-react';
+import { type FormEvent, useMemo, useState } from 'react';
+import { Link } from 'wouter';
+
+type DirectoryFilter = 'all' | 'live';
+
+function formatCount(value: number) {
+  return value >= 1000 ? `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K` : value.toLocaleString();
+}
+
+export default function CreatorDirectory() {
+  const [filter, setFilter] = useState<DirectoryFilter>('all');
+  const [search, setSearch] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const [categorySlug, setCategorySlug] = useState<string | undefined>();
+  const { data: categories = [] } = useListCategories({ kind: 'live_game' });
+  const { data: channels = [], isLoading } = useListChannels({
+    live: filter === 'live' ? true : undefined,
+    search: search || undefined,
+    categorySlug,
+  }, { query: { refetchInterval: filter === 'live' ? 15000 : false } });
+
+  const sortedChannels = useMemo(() => [...channels].sort((left, right) => {
+    if (left.isLive !== right.isLive) return left.isLive ? -1 : 1;
+    return right.followerCount - left.followerCount || left.displayName.localeCompare(right.displayName);
+  }), [channels]);
+  const activeCategory = categories.find(category => category.slug === categorySlug);
+  const isFiltered = Boolean(search || categorySlug || filter === 'live');
+
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault();
+    setSearch(inputValue.trim());
+  };
+
+  const clearFilters = () => {
+    setFilter('all');
+    setSearch('');
+    setInputValue('');
+    setCategorySlug(undefined);
+  };
+
+  return (
+    <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-primary/[0.13] via-[#10131a] to-cyan-500/[0.07] px-5 py-7 sm:rounded-3xl sm:px-8 sm:py-10 lg:px-10"><div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-primary/20 blur-3xl" /><div className="pointer-events-none absolute -bottom-28 left-1/3 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" /><div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.75fr)] lg:items-end lg:gap-10"><div className="max-w-2xl"><div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-primary"><Users className="h-3.5 w-3.5" /> Creator directory</div><h1 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl">Find the people behind the next Kryv moment.</h1><p className="mt-3 max-w-xl text-sm leading-relaxed text-white/60 sm:text-base">Browse real creator channels, step into their live rooms, and follow their Watch releases and Cinema credits through one public profile.</p></div><form onSubmit={submitSearch} className="w-full rounded-2xl border border-white/[0.1] bg-black/30 p-2 backdrop-blur-sm"><label htmlFor="creator-directory-search" className="sr-only">Search creators</label><div className="flex items-center gap-2"><Search className="ml-2 h-4 w-4 shrink-0 text-white/40" /><input id="creator-directory-search" type="search" value={inputValue} onChange={event => setInputValue(event.target.value)} placeholder="Search creator or current stream" maxLength={64} className="h-11 min-w-0 flex-1 bg-transparent px-1 text-sm text-white outline-none placeholder:text-white/35" /><button type="submit" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-black text-primary-foreground transition hover:bg-primary/90 sm:px-4"><Search className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Search</span></button></div></form></div></section>
+
+      <div className="mt-6 flex flex-col gap-3 sm:mt-8"><div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><button type="button" onClick={() => setFilter('all')} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-bold transition ${filter === 'all' ? 'bg-primary text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.3)]' : 'border border-white/[0.09] bg-white/[0.045] text-white/65 hover:border-white/20 hover:bg-white/[0.08] hover:text-white'}`}><Users className="h-3.5 w-3.5" /> All creators</button><button type="button" onClick={() => setFilter('live')} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-bold transition ${filter === 'live' ? 'bg-red-500 text-white shadow-[0_0_18px_rgba(239,68,68,0.3)]' : 'border border-white/[0.09] bg-white/[0.045] text-white/65 hover:border-red-300/45 hover:bg-red-500/[0.1] hover:text-white'}`}><span className="h-2 w-2 rounded-full bg-red-300" /> Live now</button></div><div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><button type="button" onClick={() => setCategorySlug(undefined)} className={`inline-flex min-h-9 shrink-0 items-center rounded-full px-3 text-xs font-bold transition ${!categorySlug ? 'border border-primary/35 bg-primary/10 text-primary' : 'border border-white/[0.08] bg-black/20 text-white/50 hover:text-white'}`}>Any category</button>{categories.map(category => <button key={category.id} type="button" onClick={() => setCategorySlug(category.slug)} className={`inline-flex min-h-9 shrink-0 items-center rounded-full px-3 text-xs font-bold transition ${categorySlug === category.slug ? 'border border-primary/35 bg-primary/10 text-primary' : 'border border-white/[0.08] bg-black/20 text-white/50 hover:text-white'}`}>{category.name}</button>)}</div></div>
+
+      {isLoading ? <div className="flex min-h-[45vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> : sortedChannels.length ? <section className="mt-7"><div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><div className="flex items-center gap-2 text-primary"><Sparkles className="h-4 w-4" /><span className="text-[11px] font-black uppercase tracking-[0.18em]">Creator discovery</span></div><h2 className="mt-1 text-2xl font-black text-white sm:text-3xl">{filter === 'live' ? 'Live creator rooms' : activeCategory ? `${activeCategory.name} creators` : search ? `Creator results for “${search}”` : 'All creator channels'}</h2></div><p className="text-sm text-white/40">{sortedChannels.length} {sortedChannels.length === 1 ? 'channel' : 'channels'} shown</p></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{sortedChannels.map(channel => <article key={channel.id} className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0b0e14] transition hover:-translate-y-1 hover:border-primary/45 hover:shadow-2xl hover:shadow-black/25"><div className="relative h-28 overflow-hidden bg-gradient-to-br from-primary/20 to-cyan-500/10">{channel.bannerUrl && <img src={channel.bannerUrl} alt="" className="h-full w-full object-cover opacity-60 transition duration-500 group-hover:scale-105" />}<div className="absolute inset-0 bg-gradient-to-t from-[#0b0e14] to-transparent" />{channel.isLive && <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-red-400/35 bg-red-500/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-red-100"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> Live</span>}</div><div className="relative px-4 pb-4"><div className="-mt-8 flex items-end justify-between gap-3"><div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-[#0b0e14] bg-primary/15 shadow-lg">{channel.avatarUrl ? <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-xl font-black text-primary">{channel.displayName[0]}</span>}</div><span className="pb-1 text-xs font-bold text-white/40">{formatCount(channel.followerCount)} followers</span></div><Link href={`/profile/${channel.slug}`} className="mt-3 block"><h3 className="truncate text-lg font-black text-white transition group-hover:text-primary">{channel.displayName}</h3><p className="mt-1 min-h-10 line-clamp-2 text-xs leading-relaxed text-white/45">{channel.isLive ? channel.streamTitle || 'Live on Kryv now.' : channel.description || 'Public creator profile on Kryv.'}</p></Link><div className="mt-4 flex items-center justify-between gap-3"><span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[10px] font-bold uppercase tracking-wider text-white/40">{channel.isLive ? <CircleDot className="h-3.5 w-3.5 text-red-400" /> : <Radio className="h-3.5 w-3.5 text-primary" />}{channel.categoryName || 'Kryv creator'}</span><Link href={channel.isLive ? `/live/${channel.slug}` : `/profile/${channel.slug}`} className="inline-flex shrink-0 items-center gap-1 text-xs font-black text-primary hover:text-white">{channel.isLive ? 'Watch' : 'Profile'} <ArrowUpRight className="h-3.5 w-3.5" /></Link></div></div></article>)}</div></section> : <section className="mt-7 rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.015] p-8 text-center sm:p-12"><Users className="mx-auto h-8 w-8 text-white/20" /><h2 className="mt-4 text-xl font-black text-white">{isFiltered ? 'No creators match those filters.' : 'The creator directory is ready for its first channel.'}</h2><p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-white/45">{isFiltered ? 'Try another name, category, or return to the complete directory.' : 'Creator channels will be listed here as they are set up on Kryv. No placeholder profiles are shown.'}</p>{isFiltered ? <button type="button" onClick={clearFilters} className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-4 text-sm font-black text-primary transition hover:bg-primary hover:text-primary-foreground">Clear filters</button> : <Link href="/dashboard/live" className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-4 text-sm font-black text-primary transition hover:bg-primary hover:text-primary-foreground"><Radio className="h-4 w-4" /> Set up a creator channel</Link>}</section>}
+    </div>
+  );
+}

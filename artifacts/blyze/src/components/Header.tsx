@@ -3,7 +3,7 @@ import { useLocation, Link } from 'wouter';
 import { useAuthStore } from '../lib/auth-store';
 import { useGetMe } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
-import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, WalletCards } from 'lucide-react';
+import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, Users, WalletCards } from 'lucide-react';
 import { KryvLogo, GoldenDBadge, UserBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +14,7 @@ import {
 const NAV = [
   { label: 'Live',   path: '/live',   icon: Radio,       match: ['/', '/live'] },
   { label: 'Watch',  path: '/watch',  icon: PlaySquare,  match: ['/watch'] },
+  { label: 'Creators', path: '/creators', icon: Users, match: ['/creators', '/profile'] },
   { label: 'Clips',  path: '/clips',  icon: Clapperboard, match: ['/clips'] },
   { label: 'Cinema', path: '/cinema', icon: Tv,          match: ['/cinema'] },
 ];
