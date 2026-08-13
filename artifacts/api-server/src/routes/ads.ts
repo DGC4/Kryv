@@ -22,6 +22,10 @@ import { requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
 
+// Ad delivery is intentionally hard-disabled until consent, creative review,
+// measurement, and an operator kill switch are launched as one production slice.
+const AD_DELIVERY_RUNTIME_ENABLED = false;
+
 type AdSurface = "live" | "watch" | "cinema" | "clip";
 
 function noDecision(reason: string) {
@@ -40,6 +44,7 @@ function toAdBreak(row: typeof adBreaksTable.$inferSelect) {
 }
 
 async function adDeliveryEnabled() {
+  if (!AD_DELIVERY_RUNTIME_ENABLED) return false;
   const [flag] = await db.select({ enabled: featureFlagsTable.enabled }).from(featureFlagsTable).where(eq(featureFlagsTable.key, "ads_delivery")).limit(1);
   return Boolean(flag?.enabled);
 }

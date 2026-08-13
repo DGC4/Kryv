@@ -6,6 +6,7 @@ UPDATE feature_flags
 SET enabled = false,
     updated_at = now()
 WHERE key IN (
+  'ads_delivery',
   'customer_wallet_custody',
   'scheduled_payout_requests',
   'provider_withdrawals'

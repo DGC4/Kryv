@@ -75,6 +75,7 @@ import { executeOwnerApprovedPayout } from "../lib/payoutExecution";
 
 const HARD_DISABLED_OPERATIONAL_FLAGS = new Set([
   "customer_wallet_custody",
+  "ads_delivery",
   "scheduled_payout_requests",
   "provider_withdrawals",
 ]);
