@@ -26,6 +26,7 @@ import { VideoCard } from '@/components/VideoCard';
 import { useToast } from '@/hooks/use-toast';
 import { usePageMetadata } from '@/hooks/use-page-metadata';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
 type ProfileTab = 'about' | 'live' | 'watch' | 'cinema';
