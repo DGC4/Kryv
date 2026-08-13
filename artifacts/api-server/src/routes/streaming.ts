@@ -182,7 +182,7 @@ async function createCryptoCheckout(input: {
     return SubscribeResponse.parse({
       paymentIntentId: intent.id,
       invoiceUrl: invoice.invoiceUrl,
-      provider: "crypto",
+      provider: "plisio",
       status: "pending",
       selectedCurrency: invoice.selectedCurrency,
       expiresAt: invoice.expiresAt,
