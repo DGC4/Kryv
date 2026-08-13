@@ -2896,17 +2896,44 @@ export const UpdateAdminFeatureFlagResponse = zod.object({
 
 
 /**
- * @summary Owner-only user list
+ * @summary Owner-only paginated user registry
  */
-export const ListAdminUsersResponseItem = zod.object({
+export const listAdminUsersQueryQMax = 80;
+
+export const listAdminUsersQueryLimitDefault = 30;
+export const listAdminUsersQueryLimitMax = 100;
+
+export const listAdminUsersQueryOffsetDefault = 0;
+export const listAdminUsersQueryOffsetMin = 0;
+
+
+
+export const ListAdminUsersQueryParams = zod.object({
+  "q": zod.coerce.string().min(1).max(listAdminUsersQueryQMax).optional(),
+  "limit": zod.coerce.number().min(1).max(listAdminUsersQueryLimitMax).default(listAdminUsersQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminUsersQueryOffsetMin).default(listAdminUsersQueryOffsetDefault)
+})
+
+export const listAdminUsersResponseTotalMin = 0;
+
+
+export const listAdminUsersResponseOffsetMin = 0;
+
+
+
+export const ListAdminUsersResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "role": zod.enum(['user', 'owner']),
   "banned": zod.boolean(),
   "createdAt": zod.coerce.date()
+})),
+  "total": zod.number().min(listAdminUsersResponseTotalMin),
+  "limit": zod.number().min(1),
+  "offset": zod.number().min(listAdminUsersResponseOffsetMin)
 })
-export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem)
 
 
 /**
@@ -2983,9 +3010,33 @@ export const GetAdminUserActivityResponse = zod.object({
 
 
 /**
- * @summary Owner-only channel list
+ * @summary Owner-only paginated creator-channel registry
  */
-export const ListAdminChannelsResponseItem = zod.object({
+export const listAdminChannelsQueryQMax = 80;
+
+export const listAdminChannelsQueryLimitDefault = 30;
+export const listAdminChannelsQueryLimitMax = 100;
+
+export const listAdminChannelsQueryOffsetDefault = 0;
+export const listAdminChannelsQueryOffsetMin = 0;
+
+
+
+export const ListAdminChannelsQueryParams = zod.object({
+  "q": zod.coerce.string().min(1).max(listAdminChannelsQueryQMax).optional(),
+  "limit": zod.coerce.number().min(1).max(listAdminChannelsQueryLimitMax).default(listAdminChannelsQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminChannelsQueryOffsetMin).default(listAdminChannelsQueryOffsetDefault)
+})
+
+export const listAdminChannelsResponseTotalMin = 0;
+
+
+export const listAdminChannelsResponseOffsetMin = 0;
+
+
+
+export const ListAdminChannelsResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "slug": zod.string(),
   "displayName": zod.string(),
@@ -3000,8 +3051,11 @@ export const ListAdminChannelsResponseItem = zod.object({
   "categoryName": zod.string().nullable(),
   "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.')
+})),
+  "total": zod.number().min(listAdminChannelsResponseTotalMin),
+  "limit": zod.number().min(1),
+  "offset": zod.number().min(listAdminChannelsResponseOffsetMin)
 })
-export const ListAdminChannelsResponse = zod.array(ListAdminChannelsResponseItem)
 
 
 /**

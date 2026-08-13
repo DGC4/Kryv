@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   db,
@@ -33,12 +33,14 @@ import {
   GetAdminCommandOverviewResponse,
   GetAdminFinanceLedgerResponse,
   GetAdminStatsResponse,
+  ListAdminUsersQueryParams,
   ListAdminUsersResponse,
   UpdateAdminUserParams,
   UpdateAdminUserBody,
   UpdateAdminUserResponse,
   GetAdminUserActivityParams,
   GetAdminUserActivityResponse,
+  ListAdminChannelsQueryParams,
   ListAdminChannelsResponse,
   DeleteAdminChannelParams,
   ListAdminVideosResponse,
@@ -1189,9 +1191,32 @@ router.get("/admin/stats", requireOwner, async (_req, res): Promise<void> => {
   );
 });
 
-router.get("/admin/users", requireOwner, async (_req, res): Promise<void> => {
-  const rows = await db.select().from(usersTable);
-  res.json(ListAdminUsersResponse.parse(rows));
+router.get("/admin/users", requireOwner, async (req, res): Promise<void> => {
+  const parsed = ListAdminUsersQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { limit, offset } = parsed.data;
+  const query = parsed.data.q?.trim();
+  const where = query ? ilike(usersTable.username, `%${query}%`) : undefined;
+  const [rows, totals] = await Promise.all([
+    (where ? db.select().from(usersTable).where(where) : db.select().from(usersTable))
+      .orderBy(desc(usersTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    where
+      ? db.select({ total: sql<number>`count(*)`.mapWith(Number) }).from(usersTable).where(where)
+      : db.select({ total: sql<number>`count(*)`.mapWith(Number) }).from(usersTable),
+  ]);
+
+  res.json(ListAdminUsersResponse.parse({
+    items: rows,
+    total: totals[0]?.total ?? 0,
+    limit,
+    offset,
+  }));
 });
 
 router.patch(
@@ -1325,10 +1350,34 @@ router.get(
 router.get(
   "/admin/channels",
   requireOwner,
-  async (_req, res): Promise<void> => {
-    const rows = await db.select().from(channelsTable);
+  async (req, res): Promise<void> => {
+    const parsed = ListAdminChannelsQueryParams.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+
+    const { limit, offset } = parsed.data;
+    const query = parsed.data.q?.trim();
+    const where = query
+      ? or(ilike(channelsTable.displayName, `%${query}%`), ilike(channelsTable.slug, `%${query}%`))
+      : undefined;
+    const [rows, totals] = await Promise.all([
+      (where ? db.select().from(channelsTable).where(where) : db.select().from(channelsTable))
+        .orderBy(desc(channelsTable.createdAt))
+        .limit(limit)
+        .offset(offset),
+      where
+        ? db.select({ total: sql<number>`count(*)`.mapWith(Number) }).from(channelsTable).where(where)
+        : db.select({ total: sql<number>`count(*)`.mapWith(Number) }).from(channelsTable),
+    ]);
     const results = await Promise.all(rows.map(toChannelSummary));
-    res.json(ListAdminChannelsResponse.parse(results));
+    res.json(ListAdminChannelsResponse.parse({
+      items: results,
+      total: totals[0]?.total ?? 0,
+      limit,
+      offset,
+    }));
   },
 );
 

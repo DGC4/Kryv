@@ -30,6 +30,7 @@ import type {
   AdminAdFundingInvoice,
   AdminAdsOverview,
   AdminAnalytics,
+  AdminChannelPage,
   AdminCinemaAsset,
   AdminCinemaAssetInput,
   AdminCinemaCredit,
@@ -54,6 +55,7 @@ import type {
   AdminStats,
   AdminUser,
   AdminUserActivityDetail,
+  AdminUserPage,
   AdminUserUpdate,
   AdminVideo,
   Category,
@@ -102,7 +104,9 @@ import type {
   GetAdminAnalyticsParams,
   GetNotificationInboxParams,
   HealthStatus,
+  ListAdminChannelsParams,
   ListAdminModerationCasesParams,
+  ListAdminUsersParams,
   ListCategoriesParams,
   ListChannelsParams,
   ListClipsParams,
@@ -6894,20 +6898,27 @@ export const useUpdateAdminFeatureFlag = <TError = ErrorType<Error>,
       return useMutation(getUpdateAdminFeatureFlagMutationOptions(options));
     }
 
-export const getListAdminUsersUrl = () => {
+export const getListAdminUsersUrl = (params?: ListAdminUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/users`
+  return stringifiedParams.length > 0 ? `/api/admin/users?${stringifiedParams}` : `/api/admin/users`
 }
 
 /**
- * @summary Owner-only user list
+ * @summary Owner-only paginated user registry
  */
-export const listAdminUsers = async ( options?: RequestInit): Promise<AdminUser[]> => {
+export const listAdminUsers = async (params?: ListAdminUsersParams, options?: RequestInit): Promise<AdminUserPage> => {
 
-  return customFetch<AdminUser[]>(getListAdminUsersUrl(),
+  return customFetch<AdminUserPage>(getListAdminUsersUrl(params),
   {
     ...options,
     method: 'GET'
@@ -6920,23 +6931,23 @@ export const listAdminUsers = async ( options?: RequestInit): Promise<AdminUser[
 
 
 
-export const getListAdminUsersQueryKey = () => {
+export const getListAdminUsersQueryKey = (params?: ListAdminUsersParams,) => {
     return [
-    `/api/admin/users`
+    `/api/admin/users`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAdminUsersQueryOptions = <TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminUsersQueryOptions = <TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<Error>>(params?: ListAdminUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAdminUsersQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAdminUsersQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminUsers>>> = ({ signal }) => listAdminUsers({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminUsers>>> = ({ signal }) => listAdminUsers(params, { signal, ...requestOptions });
 
 
 
@@ -6950,15 +6961,15 @@ export type ListAdminUsersQueryError = ErrorType<Error>
 
 
 /**
- * @summary Owner-only user list
+ * @summary Owner-only paginated user registry
  */
 
 export function useListAdminUsers<TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAdminUsersQueryOptions(options)
+  const queryOptions = getListAdminUsersQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -7120,20 +7131,27 @@ export function useGetAdminUserActivity<TData = Awaited<ReturnType<typeof getAdm
 
 
 
-export const getListAdminChannelsUrl = () => {
+export const getListAdminChannelsUrl = (params?: ListAdminChannelsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/channels`
+  return stringifiedParams.length > 0 ? `/api/admin/channels?${stringifiedParams}` : `/api/admin/channels`
 }
 
 /**
- * @summary Owner-only channel list
+ * @summary Owner-only paginated creator-channel registry
  */
-export const listAdminChannels = async ( options?: RequestInit): Promise<ChannelSummary[]> => {
+export const listAdminChannels = async (params?: ListAdminChannelsParams, options?: RequestInit): Promise<AdminChannelPage> => {
 
-  return customFetch<ChannelSummary[]>(getListAdminChannelsUrl(),
+  return customFetch<AdminChannelPage>(getListAdminChannelsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -7146,23 +7164,23 @@ export const listAdminChannels = async ( options?: RequestInit): Promise<Channel
 
 
 
-export const getListAdminChannelsQueryKey = () => {
+export const getListAdminChannelsQueryKey = (params?: ListAdminChannelsParams,) => {
     return [
-    `/api/admin/channels`
+    `/api/admin/channels`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAdminChannelsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminChannels>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminChannelsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminChannels>>, TError = ErrorType<Error>>(params?: ListAdminChannelsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAdminChannelsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAdminChannelsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminChannels>>> = ({ signal }) => listAdminChannels({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminChannels>>> = ({ signal }) => listAdminChannels(params, { signal, ...requestOptions });
 
 
 
@@ -7176,15 +7194,15 @@ export type ListAdminChannelsQueryError = ErrorType<Error>
 
 
 /**
- * @summary Owner-only channel list
+ * @summary Owner-only paginated creator-channel registry
  */
 
 export function useListAdminChannels<TData = Awaited<ReturnType<typeof listAdminChannels>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminChannelsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAdminChannelsQueryOptions(options)
+  const queryOptions = getListAdminChannelsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

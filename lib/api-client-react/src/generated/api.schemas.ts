@@ -2232,6 +2232,26 @@ export interface AdminUserActivityDetail {
   channels: ChannelSummary[];
 }
 
+export interface AdminUserPage {
+  items: AdminUser[];
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 1 */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
+export interface AdminChannelPage {
+  items: ChannelSummary[];
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 1 */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
 export interface AdminUserUpdate {
   banned?: boolean;
 }
@@ -2342,4 +2362,38 @@ export const GetAdminAnalyticsRangeDays = {
   NUMBER_7: 7,
   NUMBER_30: 30,
 } as const;
+
+export type ListAdminUsersParams = {
+/**
+ * @minLength 1
+ * @maxLength 80
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type ListAdminChannelsParams = {
+/**
+ * @minLength 1
+ * @maxLength 80
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
 

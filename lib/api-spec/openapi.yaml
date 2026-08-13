@@ -2408,16 +2408,27 @@ paths:
     get:
       operationId: listAdminUsers
       tags: [admin]
-      summary: Owner-only user list
+      summary: Owner-only paginated user registry
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string, minLength: 1, maxLength: 80 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: Users
+          description: Bounded user registry page
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AdminUser"
+                $ref: "#/components/schemas/AdminUserPage"
         "403":
           description: Not an owner
           content:
@@ -2495,16 +2506,27 @@ paths:
     get:
       operationId: listAdminChannels
       tags: [admin]
-      summary: Owner-only channel list
+      summary: Owner-only paginated creator-channel registry
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string, minLength: 1, maxLength: 80 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: Channels
+          description: Bounded creator-channel registry page
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ChannelSummary"
+                $ref: "#/components/schemas/AdminChannelPage"
         "403":
           description: Not an owner
           content:
@@ -4333,6 +4355,30 @@ components:
         role: { type: string, enum: [user, owner] }
         banned: { type: boolean }
         createdAt: { type: string, format: date-time }
+
+    AdminUserPage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        total: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1 }
+        offset: { type: integer, minimum: 0 }
+
+    AdminChannelPage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelSummary"
+        total: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1 }
+        offset: { type: integer, minimum: 0 }
 
     AdminUserUpdate:
       type: object
