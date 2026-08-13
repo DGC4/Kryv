@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { z } from "zod";
 import { and, asc, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import {
   channelBansTable,
@@ -37,6 +38,11 @@ import { logActivity } from "../lib/tracking";
 import { writeAuditLog } from "../lib/operations";
 
 const router: IRouter = Router();
+
+const CreateChannelSafetyReportBody = z.object({
+  reason: z.enum(["harassment", "hate_or_harm", "spam_or_scam", "sexual_content", "violence_or_threat", "other"]),
+  details: z.string().trim().min(1).max(1000).optional(),
+});
 
 function messageListCacheKey(channelId: number) {
   return `kryv:chat:messages:${channelId}`;
@@ -493,6 +499,75 @@ router.post(
       status: "open",
       createdAt: caseRecord.createdAt,
     }));
+  },
+);
+
+router.post(
+  "/channels/:id/channel-reports",
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const params = CreateChannelChatReportParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const body = CreateChannelSafetyReportBody.safeParse(req.body);
+    if (!body.success) {
+      res.status(400).json({ error: body.error.message });
+      return;
+    }
+
+    const [channel] = await db
+      .select({ id: channelsTable.id, ownerUserId: channelsTable.ownerUserId, slug: channelsTable.slug, displayName: channelsTable.displayName })
+      .from(channelsTable)
+      .where(eq(channelsTable.id, params.data.id))
+      .limit(1);
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found." });
+      return;
+    }
+    if (channel.ownerUserId === req.user!.userId) {
+      res.status(400).json({ error: "You cannot report your own channel." });
+      return;
+    }
+
+    const details = body.data.details?.trim() || null;
+    const [caseRecord] = await db
+      .insert(moderationCasesTable)
+      .values({
+        channelId: channel.id,
+        reporterUserId: req.user!.userId,
+        subjectUserId: channel.ownerUserId,
+        caseType: "channel_report",
+        status: "open",
+        summary: details ? `Viewer channel report: ${body.data.reason} — ${details}` : `Viewer channel report: ${body.data.reason}`,
+        evidence: [{
+          kind: "channel",
+          channelId: channel.id,
+          slug: channel.slug,
+          displayName: channel.displayName,
+          reason: body.data.reason,
+          reportedAt: new Date().toISOString(),
+        }],
+      })
+      .returning();
+
+    await writeAuditLog(req, {
+      action: "channel_reported",
+      targetType: "moderation_case",
+      targetId: caseRecord.id,
+      reason: body.data.reason,
+      afterState: { channelId: channel.id, subjectUserId: channel.ownerUserId, status: "open" },
+    });
+    logActivity(req, "channel_reported", { channelId: channel.id, caseId: caseRecord.id, reason: body.data.reason }).catch(() => undefined);
+
+    res.status(201).json({
+      id: caseRecord.id,
+      channelId: channel.id,
+      subjectUserId: channel.ownerUserId,
+      status: "open",
+      createdAt: caseRecord.createdAt,
+    });
   },
 );
 

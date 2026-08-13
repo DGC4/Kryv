@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'wouter';
+import { Link, useParams } from 'wouter';
 import {
   useGetChannelBySlug,
   useListChannelMessages,
@@ -16,18 +16,23 @@ import {
   useCreateWalletTip,
   useCreateClip,
   useCreateChannelChatReport,
+  useGetNotificationPreferences,
+  useUpdateNotificationPreferences,
+  useListChannels,
+  useListFollowedLiveChannels,
 } from '@workspace/api-client-react';
 import { useAuthStore } from '@/lib/auth-store';
+import { getApiUrl } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronRight, CircleDot } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 
 export default function LiveChannel() {
   const { channelSlugOrId } = useParams<{ channelSlugOrId: string }>();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const isSignedIn = !!user;
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'rest'>('rest');
   const [theaterMode, setTheaterMode] = useState(false);
@@ -47,6 +52,15 @@ export default function LiveChannel() {
   const { data: engagement, refetch: refetchEngagement } = useGetChannelEngagement(channelId!, {
     query: { enabled: !!channelId, refetchInterval: realtimeStatus === 'connected' ? false : 10000 },
   });
+  const { data: liveRailChannels } = useListChannels({ live: true }, {
+    query: { refetchInterval: realtimeStatus === 'connected' ? false : 15000 },
+  });
+  const { data: followedLiveChannels } = useListFollowedLiveChannels({
+    query: { enabled: isSignedIn, refetchInterval: realtimeStatus === 'connected' ? false : 15000 },
+  });
+  const { data: notificationPreferences } = useGetNotificationPreferences({
+    query: { enabled: isSignedIn },
+  });
 
   const { toast } = useToast();
   const createMessage = useCreateChannelMessage();
@@ -60,6 +74,7 @@ export default function LiveChannel() {
   const createWalletTip = useCreateWalletTip();
   const createClip = useCreateClip();
   const createChatReport = useCreateChannelChatReport();
+  const updateNotificationPreferences = useUpdateNotificationPreferences();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [chatInput, setChatInput] = useState('');
@@ -72,6 +87,10 @@ export default function LiveChannel() {
   const [subscriptionTier, setSubscriptionTier] = useState<1 | 2 | 3>(1);
   const [cryptoCheckout, setCryptoCheckout] = useState<any | null>(null);
   const [reportTarget, setReportTarget] = useState<{ id: number; username: string } | null>(null);
+  const [channelReportOpen, setChannelReportOpen] = useState(false);
+  const [channelReportReason, setChannelReportReason] = useState<'harassment' | 'hate_or_harm' | 'spam_or_scam' | 'sexual_content' | 'violence_or_threat' | 'other'>('other');
+  const [channelReportDetails, setChannelReportDetails] = useState('');
+  const [isSubmittingChannelReport, setIsSubmittingChannelReport] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Event-driven chat and live-state refresh. REST stays authoritative for writes,
@@ -363,7 +382,6 @@ export default function LiveChannel() {
 
   const handleFollowToggle = () => {
     if (!isSignedIn) {
-      // Prompt user to sign in
       toast({
         title: "Sign in to follow",
         description: "You need to be signed in to follow channels.",
@@ -375,6 +393,70 @@ export default function LiveChannel() {
       unfollow.mutate({ id: channelId });
     } else {
       follow.mutate({ id: channelId });
+    }
+  };
+
+  const handleShareChannel = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${channel?.displayName || 'Kryv'} on Kryv`, text: channel?.streamTitle || 'Watch on Kryv', url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toast({ title: 'Channel link copied', description: 'Share this Kryv channel anywhere.' });
+    } catch (error) {
+      if ((error as DOMException | undefined)?.name !== 'AbortError') {
+        toast({ title: 'Unable to share', description: 'Please copy the link from your browser.', variant: 'destructive' });
+      }
+    }
+  };
+
+  const handleLiveAlertToggle = () => {
+    if (!isSignedIn) {
+      toast({ title: 'Sign in to manage alerts', description: 'Sign in to choose when Kryv alerts you about followed creators.' });
+      return;
+    }
+    if (!notificationPreferences) {
+      toast({ title: 'Alerts are loading', description: 'Please try again in a moment.' });
+      return;
+    }
+    updateNotificationPreferences.mutate(
+      {
+        data: {
+          ...notificationPreferences,
+          notifyOnLive: !notificationPreferences.notifyOnLive,
+        },
+      },
+      {
+        onSuccess: () => toast({ title: notificationPreferences.notifyOnLive ? 'Live alerts paused' : 'Live alerts enabled', description: 'This controls Kryv in-app alerts for followed creators.' }),
+        onError: (err: any) => toast({ title: 'Could not update alerts', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleChannelReport = async () => {
+    if (!isSignedIn || !token) {
+      toast({ title: 'Sign in to report', description: 'You need to be signed in before reporting a channel.' });
+      return;
+    }
+    if (!channelId) return;
+    setIsSubmittingChannelReport(true);
+    try {
+      const response = await fetch(getApiUrl(`/api/channels/${channelId}/channel-reports`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: channelReportReason, ...(channelReportDetails.trim() ? { details: channelReportDetails.trim() } : {}) }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || 'The report could not be submitted.');
+      setChannelReportOpen(false);
+      setChannelReportDetails('');
+      toast({ title: 'Report received', description: 'Kryv recorded this channel for safety review.' });
+    } catch (error) {
+      toast({ title: 'Report could not be sent', description: error instanceof Error ? error.message : 'Please try again in a moment.', variant: 'destructive' });
+    } finally {
+      setIsSubmittingChannelReport(false);
     }
   };
 
@@ -399,10 +481,45 @@ export default function LiveChannel() {
   const hlsSrc = (channel.fastpixPlaybackId || channel.playbackId)
     ? `https://stream.fastpix.com/${channel.fastpixPlaybackId || channel.playbackId}.m3u8`
     : null;
+  const railChannels = Array.from(
+    new Map([...(followedLiveChannels ?? []), ...(liveRailChannels ?? [])].map((item) => [item.id, item])).values(),
+  ).filter((item) => item.id !== channel.id).slice(0, 8);
+  const promotionLinks = [
+    { label: 'Website', detail: 'Official destination', href: channel.websiteUrl, Icon: Globe2 },
+    { label: 'YouTube', detail: 'Watch more from this creator', href: channel.youtubeUrl, Icon: Youtube },
+    { label: 'Instagram', detail: 'Follow the creator', href: channel.instagramUrl, Icon: Instagram },
+    { label: 'X', detail: 'Join the conversation', href: channel.xUrl, Icon: ExternalLink },
+  ].filter((link): link is { label: string; detail: string; href: string; Icon: typeof Globe2 } => Boolean(link.href));
 
   return (
-    <div className={`flex flex-1 min-h-0 flex-col overflow-hidden bg-background relative z-10 ${theaterMode ? 'lg:block' : 'lg:flex-row'}`}>
-      {/* Main Content: remains a stable viewing surface; only standard mode scrolls below the fold. */}
+    <div className={`relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden bg-background ${theaterMode ? 'xl:block' : 'xl:flex-row'}`}>
+      {!theaterMode && (
+        <aside className="hidden w-56 shrink-0 flex-col border-r border-white/[0.08] bg-[#090b11] xl:flex" aria-label="Live discovery">
+          <nav className="border-b border-white/[0.08] p-3" aria-label="Live navigation">
+            <p className="px-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Discover</p>
+            <div className="mt-2 space-y-1">
+              <Link href="/live" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-bold text-white/65 transition hover:bg-white/[0.06] hover:text-white"><Radio className="h-3.5 w-3.5 text-primary" />Live now</Link>
+              <Link href="/live/categories" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-bold text-white/65 transition hover:bg-white/[0.06] hover:text-white"><Tag className="h-3.5 w-3.5 text-primary" />Browse categories</Link>
+            </div>
+          </nav>
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+            {isSignedIn && (
+              <section aria-labelledby="followed-live-rail">
+                <div className="mb-2 flex items-center justify-between gap-2 px-2"><p id="followed-live-rail" className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Following</p><span className="text-[10px] font-bold text-primary">{followedLiveChannels?.length ?? 0} live</span></div>
+                {followedLiveChannels?.length ? (
+                  <div className="space-y-1">{followedLiveChannels.slice(0, 5).map((item) => <Link key={item.id} href={`/live/${item.slug || item.id}`} className="group flex items-center gap-2 rounded-lg p-2 transition hover:bg-white/[0.06]"><div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full border border-white/[0.1] bg-primary/15">{item.avatarUrl ? <img src={item.avatarUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-xs font-black text-primary">{item.displayName[0]}</span>}<span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border border-[#090b11] bg-emerald-400" /></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-white/80 group-hover:text-white">{item.displayName}</p><p className="truncate text-[10px] text-white/40">{item.categoryName || 'Live on Kryv'}</p></div><span className="text-[10px] font-bold text-white/45">{item.viewerCount.toLocaleString()}</span></Link>)}</div>
+                ) : <p className="rounded-lg border border-dashed border-white/[0.08] px-2.5 py-3 text-[11px] leading-relaxed text-white/35">Follow creators to see their live rooms here.</p>}
+              </section>
+            )}
+            <section className={isSignedIn ? 'mt-5 border-t border-white/[0.08] pt-4' : ''} aria-labelledby="live-rooms-rail">
+              <div className="mb-2 flex items-center justify-between gap-2 px-2"><p id="live-rooms-rail" className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Live rooms</p><CircleDot className="h-3.5 w-3.5 text-red-400" /></div>
+              {railChannels.length ? <div className="space-y-1">{railChannels.map((item) => <Link key={item.id} href={`/live/${item.slug || item.id}`} className="group flex items-center gap-2 rounded-lg p-2 transition hover:bg-white/[0.06]"><div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full border border-white/[0.1] bg-primary/15">{item.avatarUrl ? <img src={item.avatarUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-xs font-black text-primary">{item.displayName[0]}</span>}<span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border border-[#090b11] bg-red-400" /></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-white/80 group-hover:text-white">{item.displayName}</p><p className="truncate text-[10px] text-white/40">{item.categoryName || item.streamTitle || 'Live on Kryv'}</p></div><span className="text-[10px] font-bold text-white/45">{item.viewerCount.toLocaleString()}</span></Link>)}</div> : <p className="rounded-lg border border-dashed border-white/[0.08] px-2.5 py-3 text-[11px] leading-relaxed text-white/35">Live rooms will appear here as creators go on air.</p>}
+            </section>
+          </div>
+          <div className="border-t border-white/[0.08] p-3"><Link href="/live/categories" className="flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-black text-primary transition hover:bg-primary/10 hover:text-white">Explore live <ChevronRight className="h-4 w-4" /></Link></div>
+        </aside>
+      )}
+      {/* Main Content: the player and action strip stay above secondary channel information. */}
       <div className={`flex min-w-0 flex-col ${theaterMode ? 'h-full w-full shrink-0 overflow-hidden' : 'flex-1 overflow-y-auto'}`}>
         {/* Video Player - Responsive */}
         <div className={`w-full bg-black relative ${theaterMode ? 'h-full' : 'aspect-video sm:aspect-video lg:flex-1'}`}>
@@ -464,86 +581,31 @@ export default function LiveChannel() {
           </button>
         </div>
 
-        <div className="p-6 md:p-8">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div className="flex gap-4">
-              <div className="w-16 h-16 rounded-full bg-white/10 overflow-hidden shrink-0 border border-white/10">
-                {channel.avatarUrl ? (
-                  <img
-                    src={channel.avatarUrl}
-                    alt={channel.displayName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary/20 text-primary text-2xl font-bold">
-                    {channel.displayName[0]}
-                  </div>
-                )}
+        <section className="border-b border-white/[0.08] bg-[#0b0d13] px-4 py-4 sm:px-6 lg:px-7" aria-label="Channel actions">
+          <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
+            <div className="flex min-w-0 gap-3">
+              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/[0.12] bg-primary/15 sm:h-14 sm:w-14">
+                {channel.avatarUrl ? <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-xl font-black text-primary">{channel.displayName[0]}</div>}
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white leading-tight mb-1">
-                  {channel.streamTitle || `${channel.displayName}'s stream`}
-                </h1>
-                <div className="flex items-center gap-2 mb-2 text-primary font-medium">
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-bold">{channel.displayName}</span>
-                    {channel.ownerUserId === '1' && <GoldenDBadge />}
-                  </div>
-                  {channel.categoryName && (
-                    <>
-                      <span className="text-muted-foreground font-normal">playing</span>
-                      <span>{channel.categoryName}</span>
-                    </>
-                  )}
-                </div>
-                <p className="text-xs font-medium text-white/45">
-                  {typeof channel.followerCount === 'number' ? `${channel.followerCount.toLocaleString()} followers` : 'Kryv creator channel'}
-                </p>
-                {channel.description && (
-                  <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/60 line-clamp-2">{channel.description}</p>
-                )}
-                {(channel.websiteUrl || channel.youtubeUrl || channel.instagramUrl || channel.xUrl) && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {[
-                      { label: 'Website', href: channel.websiteUrl, Icon: Globe2 },
-                      { label: 'YouTube', href: channel.youtubeUrl, Icon: Youtube },
-                      { label: 'Instagram', href: channel.instagramUrl, Icon: Instagram },
-                      { label: 'X', href: channel.xUrl, Icon: ExternalLink },
-                    ].filter((link): link is { label: string; href: string; Icon: typeof Globe2 } => Boolean(link.href)).map(({ label, href, Icon }) => (
-                      <a key={label} href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.03] px-2.5 py-1.5 text-xs font-bold text-white/65 transition hover:border-primary/50 hover:bg-primary/10 hover:text-primary" aria-label={`Open ${channel.displayName}'s ${label} in a new tab`}>
-                        <Icon className="h-3.5 w-3.5" />{label}
-                      </a>
-                    ))}
-                  </div>
-                )}
+              <div className="min-w-0">
+                <h1 className="truncate text-lg font-black tracking-tight text-white sm:text-xl">{channel.streamTitle || `${channel.displayName}'s stream`}</h1>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs"><span className="font-bold text-white">{channel.displayName}</span>{Number(channel.ownerUserId) === 1 && <GoldenDBadge />}{channel.isLive ? <span className="inline-flex items-center gap-1 font-black uppercase tracking-[0.14em] text-red-300"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />Live</span> : <span className="font-bold text-white/40">Offline</span>}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] font-bold text-white/50"><span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" />{liveViewerCount.toLocaleString()} watching</span><span className="inline-flex items-center gap-1.5"><Tag className="h-3.5 w-3.5 text-primary" />{channel.categoryName || 'Uncategorized'}</span><span className="inline-flex items-center gap-1.5"><Languages className="h-3.5 w-3.5 text-primary" />English</span><span>{typeof channel.followerCount === 'number' ? `${channel.followerCount.toLocaleString()} followers` : 'Kryv creator channel'}</span></div>
               </div>
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant={channel.isFollowing ? 'secondary' : 'default'}
-                onClick={handleFollowToggle}
-                disabled={!isSignedIn || follow.isPending || unfollow.isPending}
-                className="font-bold"
-              >
-                <Heart className={`w-4 h-4 mr-2 ${channel.isFollowing ? 'fill-current' : ''}`} />
-                {channel.isFollowing ? 'Following' : 'Follow'}
-              </Button>
-              {channel.isLive && (
-                <Button variant="secondary" onClick={handleLiveClip} disabled={createClip.isPending} className="font-bold border border-white/10 text-white hover:text-white">
-                  {createClip.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Scissors className="w-4 h-4 mr-2" />}
-                  Clip
-                </Button>
-              )}
-              <Button variant="secondary" onClick={() => setSupportOpen(true)} className="font-bold border border-primary/25 text-primary hover:text-primary">
-                <Wallet className="w-4 h-4 mr-2" />
-                Support
-              </Button>
-              <Button variant="secondary" size="icon" aria-label="Share this channel">
-                <Share2 className="w-4 h-4" />
-              </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant={channel.isFollowing ? 'secondary' : 'default'} onClick={handleFollowToggle} disabled={follow.isPending || unfollow.isPending} className="h-9 rounded-lg px-3 text-xs font-black"><Heart className={`mr-1.5 h-3.5 w-3.5 ${channel.isFollowing ? 'fill-current' : ''}`} />{channel.isFollowing ? 'Following' : 'Follow'}</Button>
+              <Button variant="secondary" onClick={handleLiveAlertToggle} disabled={updateNotificationPreferences.isPending} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white" aria-label={notificationPreferences?.notifyOnLive ? 'Pause live alerts' : 'Enable live alerts'}>{notificationPreferences?.notifyOnLive ? <Bell className="mr-1.5 h-3.5 w-3.5 text-primary" /> : <BellOff className="mr-1.5 h-3.5 w-3.5" />}{notificationPreferences?.notifyOnLive ? 'Alerts on' : 'Alerts'}</Button>
+              <Button variant="secondary" onClick={() => setSupportOpen(true)} className="h-9 rounded-lg border border-primary/30 bg-primary/[0.08] px-3 text-xs font-black text-primary hover:bg-primary/15 hover:text-white"><Wallet className="mr-1.5 h-3.5 w-3.5" />Gift crypto</Button>
+              <Button variant="secondary" onClick={() => { setSubscriptionTier(1); setSupportOpen(true); }} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white"><Heart className="mr-1.5 h-3.5 w-3.5" />Subscribe</Button>
+              {channel.isLive && <Button variant="secondary" onClick={handleLiveClip} disabled={createClip.isPending} className="h-9 rounded-lg border border-white/[0.1] px-3 text-xs font-black text-white/80 hover:text-white">{createClip.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Scissors className="mr-1.5 h-3.5 w-3.5" />}Clip</Button>}
+              <Button variant="secondary" size="icon" onClick={handleShareChannel} className="h-9 w-9 rounded-lg border border-white/[0.1] text-white/70 hover:text-white" aria-label="Share this channel"><Share2 className="h-4 w-4" /></Button>
+              <Button variant="secondary" size="icon" onClick={() => isSignedIn ? setChannelReportOpen(true) : toast({ title: 'Sign in to report', description: 'You need to be signed in before reporting a channel.' })} className="h-9 w-9 rounded-lg border border-white/[0.1] text-white/50 hover:border-red-300/40 hover:text-red-200" aria-label="Report this channel"><Flag className="h-4 w-4" /></Button>
             </div>
           </div>
+        </section>
+
+        <div className="px-4 py-5 sm:px-6 lg:px-7">
 
           <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
             <DialogContent
@@ -570,6 +632,23 @@ export default function LiveChannel() {
               </section>
             </DialogContent>
           </Dialog>
+
+          <Dialog open={channelReportOpen} onOpenChange={setChannelReportOpen}>
+            <DialogContent className="w-[min(30rem,calc(100vw-2rem))] border-white/10 bg-[#11131a] p-5 shadow-2xl">
+              <DialogTitle className="text-base font-black text-white">Report {channel.displayName}</DialogTitle>
+              <DialogDescription className="mt-1 text-xs leading-relaxed text-white/45">Reports are sent to Kryv’s safety review queue. Use chat-message flags for a specific chat message.</DialogDescription>
+              <div className="mt-4 grid grid-cols-2 gap-2">{([{ key: 'harassment', label: 'Harassment' }, { key: 'hate_or_harm', label: 'Hate / harm' }, { key: 'spam_or_scam', label: 'Spam / scam' }, { key: 'sexual_content', label: 'Sexual content' }, { key: 'violence_or_threat', label: 'Violence / threat' }, { key: 'other', label: 'Other' }] as const).map((option) => <button key={option.key} type="button" onClick={() => setChannelReportReason(option.key)} className={`rounded-lg border px-3 py-2 text-left text-xs font-bold transition ${channelReportReason === option.key ? 'border-red-300/50 bg-red-400/10 text-red-100' : 'border-white/[0.1] bg-black/20 text-white/60 hover:border-white/25 hover:text-white'}`}>{option.label}</button>)}</div>
+              <label className="mt-4 block text-xs font-bold text-white/60">Optional context<textarea value={channelReportDetails} onChange={(event) => setChannelReportDetails(event.target.value)} maxLength={1000} placeholder="Tell the review team what happened" className="mt-1.5 min-h-24 w-full resize-y rounded-xl border border-white/[0.1] bg-black/25 px-3 py-2 text-sm text-white outline-none focus:border-red-300/50" /></label>
+              <div className="mt-4 flex justify-end gap-2"><Button type="button" variant="secondary" onClick={() => setChannelReportOpen(false)} className="border border-white/[0.1] text-white/75">Cancel</Button><Button type="button" onClick={handleChannelReport} disabled={isSubmittingChannelReport} className="bg-red-500 text-white hover:bg-red-400">{isSubmittingChannelReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Flag className="mr-2 h-4 w-4" />Send report</>}</Button></div>
+            </DialogContent>
+          </Dialog>
+
+          <section className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:mt-7 sm:p-5" aria-labelledby="channel-about">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2 text-primary"><Megaphone className="h-4 w-4" /><p className="text-[10px] font-black uppercase tracking-[0.18em]">Channel identity</p></div><h2 id="channel-about" className="mt-1 text-lg font-black text-white">About {channel.displayName}</h2></div><div className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-black/20 px-2.5 py-1 text-[10px] font-bold text-white/50"><Tag className="h-3 w-3 text-primary" />{channel.categoryName || 'Kryv Live'}</div></div>
+            <p className="mt-4 max-w-4xl text-sm leading-relaxed text-white/60">{channel.description || `${channel.displayName} has not added an About section yet. Creator bio, official destinations, and featured promotions can be managed from Creator Dashboard settings.`}</p>
+            {promotionLinks.length > 0 && <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{promotionLinks.map(({ label, detail, href, Icon }) => <a key={label} href={href} target="_blank" rel="noreferrer" className="group flex min-h-24 flex-col justify-between rounded-xl border border-white/[0.08] bg-black/20 p-3.5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/[0.07]"><div className="flex items-center justify-between gap-3"><div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary"><Icon className="h-4 w-4" /></div><ExternalLink className="h-3.5 w-3.5 text-white/30 transition group-hover:text-primary" /></div><div className="mt-4"><p className="text-sm font-black text-white">{label}</p><p className="mt-0.5 text-[11px] leading-relaxed text-white/45">{detail}</p></div></a>)}</div>}
+            <div className="mt-5 rounded-xl border border-primary/20 bg-primary/[0.045] p-3.5"><div className="flex items-start gap-2.5"><Wallet className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><p className="text-xs leading-relaxed text-white/55"><span className="font-black text-white/80">Crypto support integrity.</span> Support settles only after a signed provider confirmation. Eligible creator revenue is recorded as a 95% creator balance; Kryv’s 5% platform share and any client-borne provider checkout commission remain separate, auditable movements. USD is a reference quote only.</p></div></div>
+          </section>
 
           {(engagement?.pointsEnabled || engagement?.activePoll || engagement?.activePrediction) && (
             <section className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
