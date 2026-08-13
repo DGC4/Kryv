@@ -326,6 +326,24 @@ export interface StreamCredentials {
   fastpixPlaybackId?: string | null;
 }
 
+export type NotificationItemData = { [key: string]: unknown };
+
+export interface NotificationItem {
+  id: number;
+  type: string;
+  title: string;
+  /** @nullable */
+  message: string | null;
+  data: NotificationItemData;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationInbox {
+  items: NotificationItem[];
+  unreadCount: number;
+}
+
 export interface NotificationPreferences {
   notifyOnLive: boolean;
   notifyOnUpload: boolean;
@@ -2184,6 +2202,14 @@ export type SearchKryvParams = {
  * @maxLength 64
  */
 q: string;
+};
+
+export type GetNotificationInboxParams = {
+/**
+ * @minimum 1
+ * @maximum 30
+ */
+limit?: number;
 };
 
 export type ListChannelsParams = {

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 
-import { adCampaignFundingsTable, adCampaignsTable, adRevenueMovementsTable, cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { adCampaignFundingsTable, adCampaignsTable, adRevenueMovementsTable, cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, followsTable, notificationPreferencesTable, notificationsTable, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { addCryptoAmounts, compareCryptoAmounts, KRYV_PLATFORM_FEE_BPS, normalizeCryptoAmount, quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
 import { enqueueDurableJob } from "../lib/jobs";
 import { deleteSharedKey, publishRealtimeEvent } from "../lib/realtime";
@@ -11,6 +11,31 @@ import { isPlisioConfigured, isSupportedKryvCryptoCode, verifyPlisioJsonCallback
 
 const router: IRouter = Router();
 const DISCOVER_SUMMARY_CACHE_KEY = "kryv:discover:summary:v1";
+
+async function createFollowedLiveNotifications(channel: { id: number; slug: string; displayName: string; streamTitle: string | null }, streamSessionId: number) {
+  const followers = await db
+    .select({ userId: followsTable.followerUserId })
+    .from(followsTable)
+    .where(eq(followsTable.channelId, channel.id));
+  const followerIds = followers.map((follower) => follower.userId);
+  if (!followerIds.length) return;
+
+  const preferences = await db
+    .select({ userId: notificationPreferencesTable.userId, notifyOnLive: notificationPreferencesTable.notifyOnLive })
+    .from(notificationPreferencesTable)
+    .where(and(inArray(notificationPreferencesTable.userId, followerIds), isNull(notificationPreferencesTable.channelId)));
+  const livePreferenceByUserId = new Map(preferences.map((preference) => [preference.userId, preference.notifyOnLive]));
+  const recipientIds = followerIds.filter((userId) => livePreferenceByUserId.get(userId) !== false);
+  if (!recipientIds.length) return;
+
+  await db.insert(notificationsTable).values(recipientIds.map((userId) => ({
+    userId,
+    type: "followed_channel_live",
+    title: `${channel.displayName} is live`,
+    message: channel.streamTitle || "A creator you follow just started broadcasting on Kryv.",
+    data: { channelId: channel.id, channelSlug: channel.slug, streamSessionId },
+  })));
+}
 
 function publishAuthoritativeLiveState(channel: { id: number; isLive: boolean; viewerCount: number; fastpixPlaybackId: string | null }, providerEvent: string) {
   const occurredAt = new Date().toISOString();
@@ -672,17 +697,20 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
             ),
           );
         if (!openSession) {
-          await db.insert(streamSessionsTable).values({
+          const [createdSession] = await db.insert(streamSessionsTable).values({
             channelId: updatedChannel.id,
             startedAt: new Date(),
             title: updatedChannel.streamTitle ?? null,
             categoryId: updatedChannel.categoryId ?? null,
             streamKey: updatedChannel.fastpixStreamKey ?? null,
-          });
+          }).returning({ id: streamSessionsTable.id });
           await db
             .update(channelsTable)
             .set({ totalStreamCount: sql`${channelsTable.totalStreamCount} + 1` })
             .where(eq(channelsTable.id, updatedChannel.id));
+          if (createdSession) {
+            createFollowedLiveNotifications(updatedChannel, createdSession.id).catch((error) => logger.error({ error, channelId: updatedChannel.id, streamSessionId: createdSession.id }, "Unable to create followed-live inbox alerts"));
+          }
         }
         publishAuthoritativeLiveState(updatedChannel, event.type);
       }

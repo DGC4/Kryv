@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import {
   channelsTable,
   db,
   followsTable,
   notificationPreferencesTable,
+  notificationsTable,
   userActivityPresenceTable,
   usersTable,
   viewerProfilesTable,
@@ -20,6 +21,10 @@ import {
   UpdateActivityObservabilityPreferencesBody,
   UpdateActivityObservabilityPreferencesResponse,
   UpdateNotificationPreferencesBody,
+  GetNotificationInboxQueryParams,
+  GetNotificationInboxResponse,
+  MarkNotificationReadParams,
+  MarkNotificationReadResponse,
   UpdateViewerProfileBody,
   UpdateViewerProfileParams,
   UpdateViewerProfileResponse,
@@ -206,6 +211,69 @@ router.delete("/me/profiles/:id", requireAuth, async (req, res): Promise<void> =
     .delete(viewerProfilesTable)
     .where(and(eq(viewerProfilesTable.id, profile.id), eq(viewerProfilesTable.userId, req.user!.userId)));
   res.status(204).end();
+});
+
+router.get("/me/notifications", requireAuth, async (req, res): Promise<void> => {
+  const query = GetNotificationInboxQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+
+  const userId = req.user!.userId;
+  const [items, [unread]] = await Promise.all([
+    db
+      .select()
+      .from(notificationsTable)
+      .where(eq(notificationsTable.userId, userId))
+      .orderBy(desc(notificationsTable.createdAt))
+      .limit(query.data.limit),
+    db
+      .select({ count: sql<number>`COALESCE(COUNT(*), 0)::int` })
+      .from(notificationsTable)
+      .where(and(eq(notificationsTable.userId, userId), eq(notificationsTable.isRead, false))),
+  ]);
+
+  res.json(GetNotificationInboxResponse.parse({
+    items: items.map((item) => ({
+      id: item.id,
+      type: item.type,
+      title: item.title,
+      message: item.message,
+      data: item.data ?? {},
+      isRead: item.isRead,
+      createdAt: item.createdAt.toISOString(),
+    })),
+    unreadCount: Number(unread?.count ?? 0),
+  }));
+});
+
+router.patch("/me/notifications/:id/read", requireAuth, async (req, res): Promise<void> => {
+  const params = MarkNotificationReadParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [notification] = await db
+    .update(notificationsTable)
+    .set({ isRead: true })
+    .where(and(eq(notificationsTable.id, params.data.id), eq(notificationsTable.userId, req.user!.userId)))
+    .returning();
+  if (!notification) {
+    res.status(404).json({ error: "Notification not found" });
+    return;
+  }
+
+  res.json(MarkNotificationReadResponse.parse({
+    id: notification.id,
+    type: notification.type,
+    title: notification.title,
+    message: notification.message,
+    data: notification.data ?? {},
+    isRead: notification.isRead,
+    createdAt: notification.createdAt.toISOString(),
+  }));
 });
 
 router.get("/me/notification-preferences", requireAuth, async (req, res): Promise<void> => {

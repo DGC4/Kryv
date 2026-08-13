@@ -556,6 +556,45 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /me/notifications:
+    get:
+      operationId: getNotificationInbox
+      tags: [me]
+      summary: List the signed-in user’s persisted in-app notifications and unread count
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 30, default: 12 }
+      responses:
+        "200":
+          description: Notification inbox
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationInbox"
+        "401": { description: Not authenticated }
+
+  /me/notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [me]
+      summary: Mark one signed-in user notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Updated notification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationItem"
+        "401": { description: Not authenticated }
+        "404": { description: Notification not found }
+
   /me/notification-preferences:
     get:
       operationId: getNotificationPreferences
@@ -2637,6 +2676,27 @@ components:
         fastpixPlaybackId:
           description: FastPix playback id for this channel's live stream
           type: ["string", "null"]
+
+    NotificationItem:
+      type: object
+      required: [id, type, title, message, data, isRead, createdAt]
+      properties:
+        id: { type: integer }
+        type: { type: string }
+        title: { type: string }
+        message: { type: ["string", "null"] }
+        data: { type: object, additionalProperties: true }
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    NotificationInbox:
+      type: object
+      required: [items, unreadCount]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/NotificationItem" }
+        unreadCount: { type: integer }
 
     NotificationPreferences:
       type: object

@@ -760,6 +760,50 @@ export const ListFollowedLiveChannelsResponse = zod.array(ListFollowedLiveChanne
 
 
 /**
+ * @summary List the signed-in user’s persisted in-app notifications and unread count
+ */
+export const getNotificationInboxQueryLimitDefault = 12;
+export const getNotificationInboxQueryLimitMax = 30;
+
+
+
+export const GetNotificationInboxQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getNotificationInboxQueryLimitMax).default(getNotificationInboxQueryLimitDefault)
+})
+
+export const GetNotificationInboxResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "type": zod.string(),
+  "title": zod.string(),
+  "message": zod.string().nullable(),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "isRead": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})),
+  "unreadCount": zod.number()
+})
+
+
+/**
+ * @summary Mark one signed-in user notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const MarkNotificationReadResponse = zod.object({
+  "id": zod.number(),
+  "type": zod.string(),
+  "title": zod.string(),
+  "message": zod.string().nullable(),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "isRead": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Get the signed-in user's global notification preferences
  */
 export const GetNotificationPreferencesResponse = zod.object({

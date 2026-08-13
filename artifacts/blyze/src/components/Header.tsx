@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useAuthStore } from '../lib/auth-store';
-import { useGetMe } from '@workspace/api-client-react';
+import { useGetMe, useGetNotificationInbox, useMarkNotificationRead } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
-import { Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, Users, WalletCards } from 'lucide-react';
+import { Bell, Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, Users, WalletCards } from 'lucide-react';
 import { KryvLogo, GoldenDBadge, UserBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +24,8 @@ export function Header() {
   const { user, logout } = useAuthStore();
   const isSignedIn = !!user;
   const { data: me } = useGetMe({ query: { enabled: isSignedIn } });
+  const notificationInbox = useGetNotificationInbox({ limit: 12 }, { query: { enabled: isSignedIn, refetchInterval: isSignedIn ? 30000 : false } });
+  const markNotificationRead = useMarkNotificationRead();
   const cycleTheme = useThemeStore((s) => s.cycleTheme);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -31,6 +33,11 @@ export function Header() {
     e.preventDefault();
     const query = searchQuery.trim();
     if (query.length >= 2) navigate(`/search?q=${encodeURIComponent(query)}`);
+  };
+  const openNotification = (notification: NonNullable<typeof notificationInbox.data>['items'][number]) => {
+    if (!notification.isRead) markNotificationRead.mutate({ id: notification.id }, { onSuccess: () => notificationInbox.refetch() });
+    const channelSlug = typeof notification.data?.channelSlug === 'string' ? notification.data.channelSlug : null;
+    if (notification.type === 'followed_channel_live' && channelSlug) navigate(`/live/${channelSlug}`);
   };
 
   return (
@@ -101,6 +108,13 @@ export function Header() {
 
           {isSignedIn ? (
             <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" aria-label={`Notifications${notificationInbox.data?.unreadCount ? `, ${notificationInbox.data.unreadCount} unread` : ''}`} className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/55 transition hover:bg-white/[0.06] hover:text-primary"><Bell className="h-4 w-4" />{Boolean(notificationInbox.data?.unreadCount) && <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full border border-black bg-primary px-1 text-[9px] font-black leading-4 text-primary-foreground">{notificationInbox.data!.unreadCount > 9 ? '9+' : notificationInbox.data!.unreadCount}</span>}</button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[min(22rem,calc(100vw-1rem))] border-white/10 bg-black/95 p-1 backdrop-blur-xl"><DropdownMenuLabel className="flex items-center justify-between gap-3 px-3 py-2"><span className="text-sm font-black text-white">Notifications</span><span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{notificationInbox.data?.unreadCount ?? 0} unread</span></DropdownMenuLabel><DropdownMenuSeparator className="bg-white/[0.07]" />{notificationInbox.isLoading ? <div className="px-3 py-6 text-center text-xs text-white/40">Loading notifications…</div> : notificationInbox.data?.items.length ? <div className="max-h-[min(60vh,28rem)] overflow-y-auto">{notificationInbox.data.items.map((notification) => <DropdownMenuItem key={notification.id} onSelect={() => openNotification(notification)} className={`mb-1 flex cursor-pointer items-start gap-3 rounded-xl px-3 py-3 focus:bg-white/[0.08] ${notification.isRead ? 'text-white/55' : 'bg-primary/[0.07] text-white'}`}><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${notification.isRead ? 'bg-white/20' : 'bg-primary'}`} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{notification.title}</span>{notification.message && <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-white/45">{notification.message}</span>}<span className="mt-1.5 block text-[10px] text-white/30">{new Date(notification.createdAt).toLocaleString()}</span></span></DropdownMenuItem>)}</div> : <div className="px-4 py-8 text-center"><Bell className="mx-auto h-5 w-5 text-white/20" /><p className="mt-2 text-xs font-bold text-white/50">Your inbox is clear.</p><p className="mt-1 text-[11px] leading-relaxed text-white/35">Followed creator live alerts will appear here after a confirmed broadcast start.</p></div>}</DropdownMenuContent>
+              </DropdownMenu>
+
               {/* Go Live shortcut */}
               <Link href="/dashboard/live">
                 <Button
