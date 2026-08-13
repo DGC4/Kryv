@@ -174,3 +174,29 @@ Final non-mutating verification after the latest release returned HTTP `200` for
 The authenticated KRYV provider settings page was reopened after the owner reported enabling API withdrawals. The non-secret settings visible in the page confirm the Kryv callback URL, frontend success and failure URLs, Client-borne provider commission rule, and an empty request-IP restriction. The merchant secret was exposed by the provider UI during this visual recheck and is therefore considered compromised for operational hygiene; it must be rotated in Plisio and replaced through Render’s masked `PLISIO_SECRET_KEY` field before treating the live payout path as stable. No secret value is recorded here.
 
 The provider withdrawal-control recheck shows the **Disable withdrawal via API** switch visually off, which is consistent with the owner enabling provider API withdrawals. The Render environment list contains the masked `PLISIO_WITHDRAWALS_ENABLED` variable along with the explicit Plisio key, callback URL, encryption key, and subscription variables. A read-only Neon query still shows `creator_payout_requests=false`, `provider_withdrawals=false`, `customer_wallet_custody=false`, and `scheduled_payout_requests=false`; crypto commerce remains enabled. No secret or masked value is recorded.
+
+After the owner-enabled Plisio API-withdrawal control was confirmed off and the production `creator_payout_requests` plus `provider_withdrawals` feature flags were activated, Render completed the runtime redeploy successfully. The public readiness probe nevertheless continued to report `providerWithdrawalsRuntimeEnabled=false`, so the final runtime value requires correction and re-verification before any owner approval can submit an on-chain provider payout. This diagnostic does not change the database activation and did not create a payout request or withdrawal.
+
+## Verified live payout activation
+
+On **2026-08-12 EDT**, the final runtime gate was corrected. The Render environment value for `PLISIO_WITHDRAWALS_ENABLED` was explicitly read back as `false`, overwritten with the exact value `true`, saved, and deployed as `dep-d9uhunm417fc7388lvs0` from revision `a0d8c1e` (`feat: execute approved payouts without queue`). Render reported a successful build, server start, and service-live event. The post-deploy public readiness probe returned HTTP `200` with the authoritative capability payload below:
+
+```json
+{"status":"ok","mode":"free-tier-fallback","capabilities":{"sharedCache":false,"durableQueue":false,"realtimeTokenIssuer":true,"providerWithdrawalsRuntimeEnabled":true}}
+```
+
+The live activation boundary is now reconciled across the required controls. The provider setting was visually verified in the authenticated merchant console with **Disable withdrawal via API** switched off; the runtime gate is now true; and the independent read-only Neon main-branch query confirms the enabled database flags. No secret values, payout destinations, invoices, or payment amounts are recorded in this audit.
+
+| Control | Required state | Verified state |
+| --- | --- | --- |
+| Provider API withdrawals | Enabled | **Enabled** — the provider’s disable switch is off |
+| Backend runtime gate | `PLISIO_WITHDRAWALS_ENABLED === "true"` | **Enabled** — public `/health` capability is true |
+| Crypto commerce | `crypto_commerce=true` | **Enabled** |
+| Creator payout requests | `creator_payout_requests=true` | **Enabled** |
+| Provider withdrawal execution | `provider_withdrawals=true` | **Enabled** |
+| Customer wallet custody | `customer_wallet_custody=false` | **Intentionally disabled** |
+| Scheduled payout requests | `scheduled_payout_requests=false` | **Intentionally disabled** |
+
+With these controls active, an owner-approved creator payout may use the guarded inline executor in the current free-tier topology: it decrypts the server-encrypted destination only for provider submission, estimates the provider fee, makes an atomic database claim before the irreversible API call, and records the provider-confirmed settlement through the immutable ledger. The absence of Redis and an isolated worker does not block this owner-approved path; it operates synchronously as the documented free-tier fallback. Exact crypto units reported by the provider and ledger remain the settlement authority. USD values are reference-only.
+
+> **Controlled reconciliation remains required before treating a first transfer as operationally proven.** The next production action is a deliberately small owner-reviewed payout through an encrypted creator destination, followed by verification that the request reaches `submitted` or `completed` with its provider payout identifier, provider transaction URL, and immutable ledger movement. No transfer was initiated during this activation work. The provider secret seen in the merchant-console session must still be rotated and replaced in Render’s masked `PLISIO_SECRET_KEY` field.
