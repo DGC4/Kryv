@@ -2,6 +2,7 @@ import { useAuthStore } from '@/lib/auth-store';
 import { useGetDiscoverSummary, useListCategories, useListFollowedLiveChannels } from '@workspace/api-client-react';
 import { ChannelCard } from '@/components/ChannelCard';
 import { LiveCategoryCover } from '@/components/LiveCategoryCover';
+import { useState } from 'react';
 import { Link } from 'wouter';
 import {
   ArrowUpRight,
@@ -42,9 +43,10 @@ export default function LiveHome() {
     { kind: 'live_game' },
     { query: { refetchInterval: 10000 } },
   );
-  const { data: followedLive } = useListFollowedLiveChannels({
+  const { data: followedLive, isLoading: followedLiveLoading } = useListFollowedLiveChannels({
     query: { enabled: Boolean(user), refetchInterval: 10000 },
   });
+  const [liveFeed, setLiveFeed] = useState<'all' | 'following'>('all');
 
   if (discoverLoading || categoriesLoading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -53,6 +55,8 @@ export default function LiveHome() {
   const liveChannels = discover?.featuredChannels ?? [];
   const spotlight = liveChannels[0];
   const moreLiveChannels = liveChannels.slice(1);
+  const followingChannels = followedLive ?? [];
+  const visibleLiveChannels = liveFeed === 'following' ? followingChannels : (moreLiveChannels.length ? moreLiveChannels : liveChannels);
   const orderedCategories = [...(categories ?? [])].sort((a, b) =>
     (b.viewerCount - a.viewerCount) || (b.liveChannelCount - a.liveChannelCount) || a.name.localeCompare(b.name),
   );
@@ -102,11 +106,13 @@ export default function LiveHome() {
         )}
 
         <section aria-labelledby="live-now">
-          <RailHeading eyebrow="Happening now" title="Top live channels" detail={liveChannels.length ? 'Ranked by viewers with active broadcasts first.' : 'Your first broadcast will appear here the moment it is live on Kryv.'} icon={Flame} action={<Link href="/live/categories"><span className="hidden items-center gap-1 text-sm font-black text-primary hover:text-white sm:inline-flex">See all <ArrowUpRight className="h-4 w-4" /></span></Link>} />
-          {liveChannels.length > 0 ? (
+          <RailHeading eyebrow={liveFeed === 'following' ? 'Your community' : 'Happening now'} title={liveFeed === 'following' ? 'Channels you follow' : 'Top live channels'} detail={liveFeed === 'following' ? 'Only followed creators who are broadcasting right now.' : liveChannels.length ? 'Ranked by viewers with active broadcasts first.' : 'Your first broadcast will appear here the moment it is live on Kryv.'} icon={liveFeed === 'following' ? Users : Flame} action={user ? <div className="inline-flex min-h-10 shrink-0 rounded-xl border border-white/[0.1] bg-black/25 p-1" role="tablist" aria-label="Live channel filter"><button type="button" onClick={() => setLiveFeed('all')} role="tab" aria-selected={liveFeed === 'all'} className={`rounded-lg px-3 text-xs font-black transition ${liveFeed === 'all' ? 'bg-primary text-primary-foreground' : 'text-white/50 hover:text-white'}`}>All</button><button type="button" onClick={() => setLiveFeed('following')} role="tab" aria-selected={liveFeed === 'following'} className={`rounded-lg px-3 text-xs font-black transition ${liveFeed === 'following' ? 'bg-primary text-primary-foreground' : 'text-white/50 hover:text-white'}`}>Following</button></div> : <Link href="/live/categories"><span className="hidden items-center gap-1 text-sm font-black text-primary hover:text-white sm:inline-flex">See all <ArrowUpRight className="h-4 w-4" /></span></Link>} />
+          {liveFeed === 'following' && followedLiveLoading ? <div className="flex min-h-40 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.02]"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : visibleLiveChannels.length > 0 ? (
             <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-x-5 sm:gap-y-7 sm:overflow-visible sm:px-0 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-              {(moreLiveChannels.length ? moreLiveChannels : liveChannels).map(channel => <div key={channel.id} className="w-[78vw] shrink-0 snap-start sm:w-auto sm:shrink"><ChannelCard channel={channel} /></div>)}
+              {visibleLiveChannels.map(channel => <div key={channel.id} className="w-[78vw] shrink-0 snap-start sm:w-auto sm:shrink"><ChannelCard channel={channel} /></div>)}
             </div>
+          ) : liveFeed === 'following' ? (
+            <div className="flex flex-col items-start justify-between gap-5 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/[0.08] to-white/[0.02] p-5 sm:flex-row sm:items-center sm:p-7"><div><h3 className="text-lg font-black text-white">No followed channels are live.</h3><p className="mt-1 text-sm text-white/50">Follow creators from their channel or profile, then return here when they begin a broadcast.</p></div><button type="button" onClick={() => setLiveFeed('all')} className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-black text-primary transition-colors hover:bg-primary hover:text-primary-foreground">Explore live <ChevronRight className="h-4 w-4" /></button></div>
           ) : (
             <div className="flex flex-col items-start justify-between gap-5 rounded-2xl border border-white/[0.08] bg-gradient-to-r from-white/[0.04] to-primary/[0.06] p-5 sm:flex-row sm:items-center sm:p-7"><div><h3 className="text-lg font-black text-white">The room is ready for its first stream.</h3><p className="mt-1 text-sm text-white/50">Use your preferred broadcast software and your channel will appear here as soon as your broadcast is active.</p></div><Link href="/dashboard/live" className="shrink-0"><span className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-black text-primary transition-colors hover:bg-primary hover:text-primary-foreground">Set up your stream <ChevronRight className="h-4 w-4" /></span></Link></div>
           )}
