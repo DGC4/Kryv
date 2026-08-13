@@ -156,6 +156,12 @@ function useIpLocation() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 type DashTab = 'stream' | 'content' | 'settings' | 'engagement' | 'analytics' | 'revenue' | 'achievements';
+const DASH_TABS: DashTab[] = ['stream', 'content', 'settings', 'engagement', 'analytics', 'revenue', 'achievements'];
+
+function getInitialDashboardTab(): DashTab {
+  const requestedTab = new URLSearchParams(window.location.search).get('tab');
+  return DASH_TABS.includes(requestedTab as DashTab) ? requestedTab as DashTab : 'stream';
+}
 
 export default function DashboardLive() {
   const [, navigate] = useLocation();
@@ -183,7 +189,7 @@ export default function DashboardLive() {
   const [streamTitle, setStreamTitle] = useState('');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [credentials, setCredentials] = useState<{ rtmpUrl: string; streamKey: string } | null>(null);
-  const [activeTab, setActiveTab] = useState<DashTab>('stream');
+  const [activeTab, setActiveTab] = useState<DashTab>(getInitialDashboardTab);
   const [payoutCurrency, setPayoutCurrency] = useState<'BTC' | 'LTC' | 'ETH' | 'DOGE'>('BTC');
   const [payoutAddress, setPayoutAddress] = useState('');
   const [payoutCadence, setPayoutCadence] = useState<'manual' | 'daily' | 'weekly' | 'monthly'>('manual');
