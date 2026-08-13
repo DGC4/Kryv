@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -8,75 +7,26 @@ import {
 import { Crown, ShieldCheck, Star, Clock, Zap } from 'lucide-react';
 
 /**
- * KRYV Logo - Code-based SVG logo with neon glow
+ * Compact Kryv product mark. The mark remains distinctive without animation,
+ * so navigation stays quiet while content and status carry the hierarchy.
  */
-export function KryvLogo({ className = "h-9", subscriptionTier = "free" }: { className?: string; subscriptionTier?: "free" | "plus" | "pro" | "ultra" }) {
+export function KryvLogo({ className = 'h-9', subscriptionTier: _subscriptionTier = 'free' }: { className?: string; subscriptionTier?: 'free' | 'plus' | 'pro' | 'ultra' }) {
+  void _subscriptionTier;
+
   return (
-    <div className={`flex items-center gap-3 group shrink-0 cursor-pointer ${className}`}>
-      <div className="relative w-10 h-10 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
-        {/* Billion-Dollar Mark: Custom SVG K-Play-Signal Fusion */}
-        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)] group-hover:drop-shadow-[0_0_20px_hsl(var(--primary)/0.8)] transition-all duration-500">
-          <defs>
-            <linearGradient id="kryvGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="hsl(var(--primary))" />
-              <stop offset="100%" stopColor="#00E5FF" />
-            </linearGradient>
-            <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-          
-          {/* Background Shard 1 (Left Pillar) */}
-          <path 
-            d="M25 20 L40 20 L40 80 L25 80 Z" 
-            fill="url(#kryvGradient)" 
-            className="animate-pulse-subtle"
-          />
-          
-          {/* Background Shard 2 (Top Arm / Signal) */}
-          <path 
-            d="M45 45 L75 20 L85 20 L55 50 Z" 
-            fill="url(#kryvGradient)" 
-            opacity="0.9"
-          />
-          
-          {/* Background Shard 3 (Bottom Arm / Play Button) */}
-          <path 
-            d="M45 55 L55 50 L85 80 L75 80 Z" 
-            fill="url(#kryvGradient)" 
-          />
-          
-          {/* Central Highlight (The 'K' spine) */}
-          <rect x="30" y="25" width="4" height="50" fill="white" opacity="0.2" rx="2" />
-          
-          {/* Animated Play-Indicator Pulse */}
-          <circle cx="55" cy="50" r="4" fill="white" className="animate-ping" style={{ animationDuration: '3s' }} />
+    <div className={`flex items-center gap-2.5 ${className}`}>
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+        <svg viewBox="0 0 100 100" className="h-6 w-6" aria-hidden="true">
+          <path d="M21 18h17v64H21z" fill="currentColor" />
+          <path d="M43 46 74 18h14L53 50z" fill="currentColor" opacity="0.88" />
+          <path d="m43 54 10-4 35 32H74z" fill="currentColor" />
         </svg>
-        
-        {/* Glassmorphism ring around the mark */}
-        <div className="absolute inset-0 rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-[2px] -z-10 group-hover:border-primary/30 transition-colors duration-500" />
       </div>
-      
-      {/* Brand Text: Ultra-premium Typography */}
-      <div className="flex flex-col -gap-1">
-        <span className="font-black text-xl tracking-[0.2em] text-white select-none group-hover:text-primary transition-colors duration-500 leading-none">
-          KRYV
-        </span>
-        <div className="flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-          <div className="h-[1px] w-8 bg-primary/50" />
-          <span className="text-[8px] font-black text-primary uppercase tracking-[0.3em]">
-            {subscriptionTier === "free" ? "Free" : subscriptionTier === "plus" ? "Plus" : subscriptionTier === "pro" ? "Pro" : "Ultra"}
-          </span>
-        </div>
-      </div>
+      <span className="font-display text-base font-bold tracking-[0.18em] text-white select-none">KRYV</span>
     </div>
   );
 }
 
-/**
- * User Badge Component - Tiered badges with animations and tooltips
- */
 export type BadgeType = 'owner' | 'admin' | 'superstar' | 'member_30' | 'founder';
 
 interface UserBadgeProps {
@@ -87,125 +37,82 @@ interface UserBadgeProps {
 
 const BADGE_CONFIG = {
   owner: {
-    label: 'DGC Owner',
-    description: 'Platform Creator & Owner',
+    label: 'DGC owner',
+    description: 'Platform creator and owner',
     icon: Crown,
-    color: 'text-yellow-400',
-    bg: 'bg-yellow-400/10',
-    border: 'border-yellow-400/20',
-    glow: 'shadow-[0_0_10px_rgba(250,204,21,0.4)]',
-    animate: 'animate-bounce-subtle',
+    color: 'text-yellow-300',
+    bg: 'bg-yellow-300/10',
+    border: 'border-yellow-300/20',
   },
   admin: {
     label: 'Staff',
-    description: 'Kryv Platform Staff',
+    description: 'Kryv platform staff',
     icon: ShieldCheck,
     color: 'text-primary',
     bg: 'bg-primary/10',
     border: 'border-primary/20',
-    glow: 'shadow-[0_0_8px_hsl(var(--primary)/0.3)]',
-    animate: '',
   },
   superstar: {
-    label: 'Superstar',
-    description: 'Top Contributor',
+    label: 'Top contributor',
+    description: 'Recognized community contributor',
     icon: Star,
-    color: 'text-purple-400',
-    bg: 'bg-purple-400/10',
-    border: 'border-purple-400/20',
-    glow: 'shadow-[0_0_8px_rgba(192,132,252,0.3)]',
-    animate: 'animate-pulse-subtle',
+    color: 'text-purple-300',
+    bg: 'bg-purple-300/10',
+    border: 'border-purple-300/20',
   },
   member_30: {
-    label: '30 Day Member',
-    description: 'Loyal member for 30+ days',
+    label: '30-day member',
+    description: 'Member for 30 days or more',
     icon: Clock,
-    color: 'text-blue-400',
-    bg: 'bg-blue-400/10',
-    border: 'border-blue-400/20',
-    glow: '',
-    animate: '',
+    color: 'text-blue-300',
+    bg: 'bg-blue-300/10',
+    border: 'border-blue-300/20',
   },
   founder: {
     label: 'Founder',
-    description: 'Original Kryv Beta User',
+    description: 'Original Kryv beta user',
     icon: Zap,
-    color: 'text-orange-400',
-    bg: 'bg-orange-400/10',
-    border: 'border-orange-400/20',
-    glow: 'shadow-[0_0_8px_rgba(251,146,60,0.3)]',
-    animate: '',
+    color: 'text-orange-300',
+    bg: 'bg-orange-300/10',
+    border: 'border-orange-300/20',
   },
 };
 
-export function UserBadge({ type, size = 'md', className = "" }: UserBadgeProps) {
+export function UserBadge({ type, size = 'md', className = '' }: UserBadgeProps) {
   const config = BADGE_CONFIG[type];
   const Icon = config.icon;
-  const sizeClasses = size === 'sm' ? 'w-4 h-4 p-0.5' : 'w-5 h-5 p-1';
-  
+  const sizeClasses = size === 'sm' ? 'h-4 w-4 p-0.5' : 'h-5 w-5 p-1';
+
   return (
     <TooltipProvider>
       <Tooltip delayDuration={200}>
         <TooltipTrigger asChild>
-          <div className={`
-            inline-flex items-center justify-center rounded-md border transition-all duration-300 cursor-help
-            ${config.bg} ${config.border} ${config.color} ${config.glow} ${config.animate} ${sizeClasses} ${className}
-            hover:scale-110 hover:brightness-125
-          `}>
-            <Icon className="w-full h-full" strokeWidth={2.5} />
-          </div>
+          <span className={`inline-flex items-center justify-center rounded-md border ${config.bg} ${config.border} ${config.color} ${sizeClasses} ${className}`}>
+            <Icon className="h-full w-full" strokeWidth={2.25} />
+          </span>
         </TooltipTrigger>
-        <TooltipContent side="top" className="bg-black/90 border-white/10 text-white px-3 py-1.5 backdrop-blur-xl">
-          <div className="flex flex-col gap-0.5">
-            <p className={`text-xs font-black uppercase tracking-widest ${config.color}`}>{config.label}</p>
-            <p className="text-[10px] text-white/60 font-medium">{config.description}</p>
-          </div>
+        <TooltipContent side="top" className="border-white/10 bg-black/95 px-3 py-1.5 text-white">
+          <p className={`text-xs font-semibold ${config.color}`}>{config.label}</p>
+          <p className="mt-0.5 text-[11px] text-white/60">{config.description}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
 }
 
-/**
- * Golden D Badge - Specifically for FanoDGC
- */
-export function GoldenDBadge({ className = "" }: { className?: string }) {
+/** Official owner identifier used in administrative contexts. */
+export function GoldenDBadge({ className = '' }: { className?: string }) {
   return (
     <TooltipProvider>
       <Tooltip delayDuration={200}>
         <TooltipTrigger asChild>
-          <div className={`
-            relative w-5 h-5 flex items-center justify-center cursor-help transition-all duration-500 hover:scale-125
-            ${className}
-          `}>
-            {/* Glow background */}
-            <div className="absolute inset-0 bg-yellow-400/20 blur-md rounded-full animate-pulse" />
-            
-            {/* SVG Golden D */}
-            <svg viewBox="0 0 100 100" className="w-full h-full relative z-10 drop-shadow-[0_0_4px_rgba(250,204,21,0.8)]">
-              <defs>
-                <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#FFE55C" />
-                  <stop offset="50%" stopColor="#FFD700" />
-                  <stop offset="100%" stopColor="#CC9900" />
-                </linearGradient>
-              </defs>
-              <text
-                x="50%" y="75%"
-                fontFamily="Arial Black, sans-serif"
-                fontWeight="900"
-                fontSize="80"
-                fill="url(#goldGrad)"
-                textAnchor="middle"
-              >D</text>
-            </svg>
-          </div>
+          <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full border border-yellow-300/25 bg-yellow-300/10 text-[11px] font-bold text-yellow-200 ${className}`}>
+            D
+          </span>
         </TooltipTrigger>
-        <TooltipContent side="top" className="bg-black/90 border-white/10 text-white px-3 py-1.5 backdrop-blur-xl">
-          <div className="flex flex-col gap-0.5">
-            <p className="text-xs font-black uppercase tracking-widest text-yellow-400">DGC</p>
-            <p className="text-[10px] text-white/60 font-medium">Official DGC Arcade Owner</p>
-          </div>
+        <TooltipContent side="top" className="border-white/10 bg-black/95 px-3 py-1.5 text-white">
+          <p className="text-xs font-semibold text-yellow-200">DGC</p>
+          <p className="mt-0.5 text-[11px] text-white/60">Official DGC Arcade owner</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

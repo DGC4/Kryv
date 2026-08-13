@@ -124,53 +124,6 @@
 }
 
 /* ──────────────────────────────────────────────────────────────
-   Glow utilities (DGC-brand-inspired)
-   ────────────────────────────────────────────────────────────── */
-
-@keyframes gradient-shift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 8px hsl(var(--primary) / 0.3); }
-  50%       { box-shadow: 0 0 24px hsl(var(--primary) / 0.6), 0 0 48px hsl(var(--primary) / 0.2); }
-}
-
-@keyframes logo-glow {
-  0%   { text-shadow: 0 0 8px hsl(var(--primary) / 0.7); }
-  50%  { text-shadow: 0 0 20px hsl(var(--primary)), 0 0 40px hsl(var(--primary) / 0.4); }
-  100% { text-shadow: 0 0 8px hsl(var(--primary) / 0.7); }
-}
-
-.text-gradient-shift {
-  background: linear-gradient(
-    270deg,
-    hsl(var(--primary)),
-    #FF8C00,
-    #FF1493,
-    #B44FFF,
-    #00D4FF,
-    hsl(var(--primary))
-  );
-  background-size: 400% 400%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradient-shift 5s ease infinite;
-}
-
-.glow-border {
-  border-color: hsl(var(--primary) / 0.4);
-  animation: glow-pulse 3s ease-in-out infinite;
-}
-
-.kryv-logo {
-  animation: logo-glow 4s ease-in-out infinite;
-}
-
-/* ──────────────────────────────────────────────────────────────
    Elevation utilities
    ────────────────────────────────────────────────────────────── */
 
@@ -227,26 +180,4 @@
 
   .font-display { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
   .no-emoji { font-family: var(--font-sans); }
-}
-
-/* ──────────────────────────────────────────────────────────────
-   Badge Animations
-   ────────────────────────────────────────────────────────────── */
-
-@keyframes bounce-subtle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; filter: brightness(1); }
-  50% { opacity: 0.8; filter: brightness(1.2); }
-}
-
-.animate-bounce-subtle {
-  animation: bounce-subtle 2s ease-in-out infinite;
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 3s ease-in-out infinite;
 }
