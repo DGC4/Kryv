@@ -98,7 +98,7 @@ const OPERATIONAL_FLAG_COPY: Record<string, string> = {
 function toAdminFeatureFlag(row: { key: string; enabled: boolean; description: string | null; updatedAt: Date }) {
   return {
     key: row.key,
-    enabled: row.enabled,
+    enabled: HARD_DISABLED_OPERATIONAL_FLAGS.has(row.key) ? false : row.enabled,
     description: row.description || OPERATIONAL_FLAG_COPY[row.key] || "Platform operational feature flag.",
     updatedAt: row.updatedAt.toISOString(),
   };

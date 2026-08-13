@@ -87,4 +87,15 @@ export async function ensureAdminTreasuryContextSchema(): Promise<void> {
        OR month_day IS NOT NULL
        OR next_run_at IS NOT NULL;
   `);
+
+  // These capability rows may exist in older environments, but each corresponding
+  // operation is hard-disabled in code. Persist the disabled state too, preventing
+  // owner surfaces or future workers from treating a legacy row as launch approval.
+  await db.execute(sql`
+    UPDATE feature_flags
+    SET enabled = false,
+        updated_at = now()
+    WHERE key IN ('customer_wallet_custody', 'ads_delivery', 'scheduled_payout_requests', 'provider_withdrawals')
+      AND enabled = true;
+  `);
 }
