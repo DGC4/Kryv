@@ -47,6 +47,7 @@ import { toVideoSummary } from "../lib/videoSerializer";
 import { writeAuditLog } from "../lib/operations";
 import { getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode } from "../lib/plisio";
 import { enqueueDurableJob } from "../lib/jobs";
+import { executeOwnerApprovedPayout } from "../lib/payoutExecution";
 
 const OPERATIONAL_FLAG_COPY: Record<string, string> = {
   crypto_commerce: "Crypto-only invoices for channel support and subscriptions. Disable immediately if provider callbacks or settlement monitoring are unhealthy.",
@@ -392,6 +393,8 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
   });
 
   let executionQueued = true;
+  let executionPath: "queue" | "inline" = "queue";
+  let executionFailure: unknown = null;
   if (body.data.decision === "approved") {
     executionQueued = await enqueueDurableJob({
       id: `payout.execute:${before.id}`,
@@ -400,10 +403,17 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
       payload: { payoutRequestId: before.id },
     });
     if (!executionQueued) {
-      await db
-        .update(payoutRequestsTable)
-        .set({ status: "held", riskHoldReason: "Durable payout queue unavailable; owner must retry approval after queue recovery." })
-        .where(eq(payoutRequestsTable.id, before.id));
+      // Free-tier deployments do not have Redis or a persistent worker. Run the
+      // exact same guarded executor synchronously after owner approval rather than
+      // pretending a queued withdrawal will be delivered. The executor claims the
+      // request before it contacts Plisio, so an ambiguous provider response stays
+      // in `executing` for reconciliation instead of being submitted twice.
+      executionPath = "inline";
+      try {
+        await executeOwnerApprovedPayout(before.id);
+      } catch (error) {
+        executionFailure = error;
+      }
     }
   }
 
@@ -437,12 +447,17 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
     action: `owner_payout_request.${body.data.decision}`,
     targetType: "payout_request",
     targetId: String(before.id),
-    reason: executionQueued ? body.data.reason : "Provider execution was not queued; the payout remains held.",
+    reason: executionFailure
+      ? "The guarded inline provider execution did not complete; inspect the recorded payout status before any retry."
+      : body.data.reason ?? (body.data.decision === "approved" ? `Provider execution accepted through ${executionPath}.` : null),
     beforeState: toAdminPayoutRequest(before),
     afterState: toAdminPayoutRequest(after!),
   });
-  if (!executionQueued) {
-    res.status(503).json({ error: "The payout request remains held because the durable execution queue is unavailable." });
+  if (executionFailure) {
+    res.status(502).json({
+      error: "The provider payout did not complete. Kryv retained the authoritative payout status for reconciliation; do not re-approve or retry until it is reviewed.",
+      payout: ReviewAdminPayoutRequestResponse.parse(toAdminPayoutRequest(after!)),
+    });
     return;
   }
   res.json(ReviewAdminPayoutRequestResponse.parse(toAdminPayoutRequest(after!)));
