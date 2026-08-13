@@ -33,6 +33,17 @@ try {
       fail(`provider withdrawal runtime is ${withdrawalsEnabled}; expected ${expectedWithdrawals}`);
     }
 
+    const hardDisabledCapabilities = [
+      "customerWalletCustodyRuntimeEnabled",
+      "scheduledPayoutRequestsRuntimeEnabled",
+      "adDeliveryRuntimeEnabled",
+    ];
+    for (const capability of hardDisabledCapabilities) {
+      if (health?.capabilities?.[capability] === true) {
+        fail(`${capability} is active; it must remain disabled until its separate production launch gate is complete`);
+      }
+    }
+
     const mode = health?.mode ?? 'unknown';
     if (requireDurableTopology && mode === 'free-tier-fallback') {
       fail('durable topology required but deployment reports free-tier fallback mode');
@@ -42,6 +53,9 @@ try {
       status: health?.status,
       mode,
       providerWithdrawalsRuntimeEnabled: withdrawalsEnabled,
+      customerWalletCustodyRuntimeEnabled: Boolean(health?.capabilities?.customerWalletCustodyRuntimeEnabled),
+      scheduledPayoutRequestsRuntimeEnabled: Boolean(health?.capabilities?.scheduledPayoutRequestsRuntimeEnabled),
+      adDeliveryRuntimeEnabled: Boolean(health?.capabilities?.adDeliveryRuntimeEnabled),
       durableTopologyRequired: requireDurableTopology,
       result: process.exitCode ? 'failed' : 'passed',
     }, null, 2));

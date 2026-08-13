@@ -249,6 +249,9 @@ app.get("/health", (_req, res) => {
       // Withdrawal execution is intentionally hard-disabled until the production
       // launch gate is completed; do not infer availability from an environment flag.
       providerWithdrawalsRuntimeEnabled: false,
+      customerWalletCustodyRuntimeEnabled: false,
+      scheduledPayoutRequestsRuntimeEnabled: false,
+      adDeliveryRuntimeEnabled: false,
     },
   });
 });
