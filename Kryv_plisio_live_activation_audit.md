@@ -226,3 +226,18 @@ The production channel model now supports optional public biography, website, Yo
 An initial production request after this release exposed a serializer contract fault: the additive database columns existed, but the runtime database table model did not select them, which caused the channel detail contract to reject `undefined` fields. The defect was fixed in revision `fdf1cc1` (`fix: expose creator links in runtime schema`), deployed successfully, and rechecked. `GET /api/channels/slug/fano` now returns HTTP 200 and includes `websiteUrl`, `youtubeUrl`, `instagramUrl`, and `xUrl` as safe `null` values when no profile links are configured. The deployed `/live/fano` page renders normally after the repair. A final read-only production readiness gate passed.
 
 > This evidence demonstrates product and contract readiness without substituting for a real settlement. The actual 95/5 tip ledger movements and the first guarded payout are still intentionally unproven until a real crypto payment is available.
+
+## Persistent live-channel workspace release
+
+On **2026-08-13 EDT**, revision `3a195e0` (`feat: add persistent live channel workspace`) was committed and pushed to `DGC4/Kryv` main. Render built the backend successfully, started the HTTP server, and reported the service live. The deployed frontend was then verified at `/live/fano` against the production API.
+
+| Verification area | Production result |
+| --- | --- |
+| Desktop discovery | The `xl` persistent left rail renders Live navigation, Browse Categories, followed-live empty state, live-room empty state, and an Explore Live escape route. |
+| Channel action strip | The identity strip is directly below the player and exposes follow state, alert state, crypto support, subscription, share, channel report, creator identity, offline status, viewer count, category, language, and follower count without requiring a page-level detour. |
+| Safety reporting | The Report control opens an accessible channel-level reason picker and optional-context dialog. The dialog was opened and closed only; no report was submitted. |
+| About and integrity disclosure | The About area renders below the action strip and includes the creator profile/promotions fallback plus the clear crypto-integrity disclosure: provider-confirmed settlement, 95% creator balance, separate 5% Kryv share, client-borne provider commission, and USD as a reference quote only. |
+| Theater mode | Theater mode enters and exits successfully. It hides the left discovery rail while retaining the player surface, compact action strip, About information, and chat area. |
+| Readiness gate | `pnpm run verify:production-readiness` passed with `status: ok`, `mode: free-tier-fallback`, and `providerWithdrawalsRuntimeEnabled: true`. |
+
+No crypto support flow, provider checkout, subscription checkout, payment, tip, signed callback, creator credit, channel report submission, payout request, or provider withdrawal was created during this release verification. The availability and money-readiness boundary is unchanged: the deployment remains on the documented free-tier fallback without production Redis, queue, isolated worker, or realtime gateway, and the first real 95/5 tip settlement plus first owner-approved payout reconciliation remain open evidence requirements.
