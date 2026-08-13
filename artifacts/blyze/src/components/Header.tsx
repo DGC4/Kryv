@@ -68,6 +68,7 @@ export function Header() {
                 <Link
                   key={item.path}
                   href={item.path}
+                  aria-current={active ? 'page' : undefined}
                   className={`relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-2 rounded-md text-sm font-semibold transition-colors ${
                     active
                       ? 'text-primary'
@@ -95,6 +96,7 @@ export function Header() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search Kryv..."
+              aria-label="Search Kryv"
               minLength={2}
               maxLength={64}
               className="h-8 bg-white/[0.06] border border-white/[0.08] rounded-full pl-8 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/60 focus:bg-white/[0.09] transition-all w-44 lg:w-56"
