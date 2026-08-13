@@ -25,6 +25,11 @@ export interface ChannelSummary {
   /** @nullable */
   categoryName: string | null;
   /**
+     * Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.
+     * @nullable
+     */
+  lastStreamAt: Date | null;
+  /**
      * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
      * @nullable
      */

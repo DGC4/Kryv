@@ -59,6 +59,7 @@ export async function toChannelSummary(channel: Channel) {
     subscriberCount,
     categoryId: channel.categoryId,
     categoryName,
+    lastStreamAt: channel.lastStreamAt,
     playbackId: channel.fastpixPlaybackId,
     fastpixPlaybackId: channel.fastpixPlaybackId,
   };

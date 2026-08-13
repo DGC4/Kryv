@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useGetMe, useListVideos, useCreateVideo, useDeleteVideo, useListCategories } from '@workspace/api-client-react';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -50,10 +51,11 @@ export default function DashboardWatch() {
       setIsUploading(true);
       setUploadProgress(0);
       const videoRecord = await createVideo.mutateAsync({ data: { title: title.trim(), categoryId, contentType: 'upload', playbackSource: 'fastpix' } });
-      if (!videoRecord.uploadUrl) throw new Error('No FastPix upload URL was issued.');
+      const uploadUrl = videoRecord.uploadUrl;
+      if (!uploadUrl) throw new Error('No FastPix upload URL was issued.');
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('PUT', videoRecord.uploadUrl);
+        xhr.open('PUT', uploadUrl);
         xhr.upload.onprogress = (progressEvent) => {
           if (progressEvent.lengthComputable) setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 100));
         };

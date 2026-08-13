@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   useGetMe,
+  useGetChannelBySlug,
   useCreateChannel,
   useUpdateChannel,
   useCreateChannelStream,
@@ -209,7 +210,10 @@ export default function DashboardLive() {
   const [browserPreviewState, setBrowserPreviewState] = useState<'idle' | 'requesting' | 'ready' | 'blocked'>('idle');
   const [browserPreviewError, setBrowserPreviewError] = useState<string | null>(null);
   // Location is intentionally not collected or required for broadcast setup.
-  const location: LocationData | null = null;
+  const [location] = useState<LocationData | null>(null);
+  const { data: channelDetail } = useGetChannelBySlug(me?.channel?.slug ?? '', {
+    query: { enabled: Boolean(me?.channel) },
+  });
   const { data: chatSettings } = useGetChannelChatSettings(me?.channel?.id ?? 0, {
     query: { enabled: Boolean(me?.channel) },
   });
@@ -308,15 +312,15 @@ export default function DashboardLive() {
   useEffect(() => {
     if (me?.channel) {
       setSettingsDisplayName(me.channel.displayName);
-      setSettingsDescription(me.channel.description || '');
-      setWebsiteUrl(me.channel.websiteUrl || '');
-      setYoutubeUrl(me.channel.youtubeUrl || '');
-      setInstagramUrl(me.channel.instagramUrl || '');
-      setXUrl(me.channel.xUrl || '');
+      setSettingsDescription(channelDetail?.description || '');
+      setWebsiteUrl(channelDetail?.websiteUrl || '');
+      setYoutubeUrl(channelDetail?.youtubeUrl || '');
+      setInstagramUrl(channelDetail?.instagramUrl || '');
+      setXUrl(channelDetail?.xUrl || '');
       setStreamTitle(me.channel.streamTitle || '');
       setCategoryId(me.channel.categoryId || undefined);
     }
-  }, [me]);
+  }, [me, channelDetail]);
 
   useEffect(() => {
     if (chatSettings) {
@@ -328,15 +332,6 @@ export default function DashboardLive() {
   useEffect(() => {
     if (savedNotificationPrefs) setNotificationPrefs(savedNotificationPrefs);
   }, [savedNotificationPrefs]);
-
-  useEffect(() => {
-    if (!creatorFinanceQuery.data?.payoutPreference) return;
-    const preference = creatorFinanceQuery.data.payoutPreference;
-    setPayoutCadence(preference.cadence);
-    setPayoutMinimumAmount(preference.minimumAmount);
-    setPayoutWeekday(preference.weekday ?? 1);
-    setPayoutMonthDay(preference.monthDay ?? 1);
-  }, [creatorFinanceQuery.data?.payoutPreference]);
 
   const handleCreateChannel = (e: React.FormEvent) => {
     e.preventDefault();

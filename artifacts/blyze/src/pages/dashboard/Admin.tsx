@@ -55,7 +55,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Loader2, Ban, ShieldCheck, Trash2, Users, Radio, Film, Eye,
-  Crown, Lock, ShieldAlert, Activity, PlaySquare, Tv, Plus, Clapperboard, CheckCircle2, CircleAlert, FileVideo2, Gavel, History, Send, UploadCloud, Power, Zap, Wallet, Landmark, Clock3, XCircle,
+  Crown, Lock, ShieldAlert, Activity, PlaySquare, Tv, Plus, Clapperboard, CheckCircle2, CircleAlert, FileVideo2, Gavel, History, Send, UploadCloud, Power, Zap, Wallet, Landmark, Clock3, XCircle, Search, Save, CircleCheck,
 } from 'lucide-react';
 import { GoldenDBadge, UserBadge } from '@/components/brand/BrandIdentity';
 import { useToast } from '@/hooks/use-toast';
@@ -268,7 +268,7 @@ export default function DashboardAdmin() {
     });
   };
 
-  const removeChannel = (id: string) => {
+  const removeChannel = (id: number) => {
     if (!confirm('Remove this channel permanently?')) return;
     deleteChannel.mutate({ id }, {
       onSuccess: () => { toast({ title: 'Channel removed' }); invalidateAll(); },
@@ -781,7 +781,7 @@ export default function DashboardAdmin() {
                         <Button
                           size="sm"
                           variant={u.banned ? 'secondary' : 'destructive'}
-                          onClick={() => toggleBan(u.id, u.banned)}
+                          onClick={() => toggleBan(String(u.id), u.banned)}
                           disabled={updateUser.isPending}
                           className="text-xs"
                         >
@@ -836,7 +836,7 @@ export default function DashboardAdmin() {
                     </td>
                     <td className="p-3 text-white/40 text-xs">{c.followerCount}</td>
                     <td className="p-3 text-right">
-                      <Button size="sm" variant="destructive" onClick={() => removeChannel(String(c.id))} disabled={deleteChannel.isPending} className="text-xs">
+                      <Button size="sm" variant="destructive" onClick={() => removeChannel(c.id)} disabled={deleteChannel.isPending} className="text-xs">
                         <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
                       </Button>
                     </td>

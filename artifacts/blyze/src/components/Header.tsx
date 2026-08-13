@@ -4,7 +4,7 @@ import { useAuthStore } from '../lib/auth-store';
 import { useGetMe, useGetNotificationInbox, useMarkNotificationRead } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
 import { Bell, Menu, Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, Users, WalletCards } from 'lucide-react';
-import { KryvLogo, GoldenDBadge, UserBadge } from './brand/BrandIdentity';
+import { KryvLogo, GoldenDBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -152,7 +152,7 @@ export function Header() {
                   <DropdownMenuLabel className="font-normal pb-2">
                     <div className="flex items-center gap-2 mb-0.5">
                       <p className="text-sm font-bold text-white truncate">{user?.username}</p>
-                      {me?.role === 'owner' ? <GoldenDBadge /> : (me?.role === 'admin' && <UserBadge type="admin" size="sm" />)}
+                      {me?.role === 'owner' && <GoldenDBadge />}
                     </div>
                     <p className="text-xs text-white/40 truncate">{user?.email}</p>
                   </DropdownMenuLabel>

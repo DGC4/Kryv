@@ -86,7 +86,7 @@ export default function WatchDetail() {
     event.preventDefault();
     if (!video || !clipTitle.trim()) return;
     createClip.mutate(
-      { videoId: video.id, startTime: clipStart, endTime: clipEnd, title: clipTitle.trim() },
+      { data: { videoId: video.id, startTime: clipStart, endTime: clipEnd, title: clipTitle.trim() } },
       {
         onSuccess: () => {
           setClipTitle('');

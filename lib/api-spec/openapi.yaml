@@ -2690,6 +2690,7 @@ components:
           subscriberCount,
           categoryId,
           categoryName,
+          lastStreamAt,
           playbackId,
         ]
       properties:
@@ -2705,6 +2706,10 @@ components:
         subscriberCount: { type: integer }
         categoryId: { type: ["integer", "null"] }
         categoryName: { type: ["string", "null"] }
+        lastStreamAt:
+          description: Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.
+          type: ["string", "null"]
+          format: date-time
         playbackId:
           description: FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
           type: ["string", "null"]

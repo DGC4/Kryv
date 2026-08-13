@@ -202,7 +202,7 @@ export const getHealthCheckQueryKey = () => {
     }
 
 
-export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -229,7 +229,7 @@ export type HealthCheckQueryError = ErrorType<unknown>
  */
 
 export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -279,7 +279,7 @@ export const getGetMeQueryKey = () => {
     }
 
 
-export const getGetMeQueryOptions = <TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetMeQueryOptions = <TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<Error>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -306,7 +306,7 @@ export type GetMeQueryError = ErrorType<Error>
  */
 
 export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -356,7 +356,7 @@ export const getListViewerProfilesQueryKey = () => {
     }
 
 
-export const getListViewerProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listViewerProfiles>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listViewerProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListViewerProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listViewerProfiles>>, TError = ErrorType<Error>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listViewerProfiles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -383,7 +383,7 @@ export type ListViewerProfilesQueryError = ErrorType<Error>
  */
 
 export function useListViewerProfiles<TData = Awaited<ReturnType<typeof listViewerProfiles>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listViewerProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listViewerProfiles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -654,7 +654,7 @@ export const getGetAdDecisionQueryKey = (params?: GetAdDecisionParams,) => {
     }
 
 
-export const getGetAdDecisionQueryOptions = <TData = Awaited<ReturnType<typeof getAdDecision>>, TError = ErrorType<unknown>>(params: GetAdDecisionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdDecision>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdDecisionQueryOptions = <TData = Awaited<ReturnType<typeof getAdDecision>>, TError = ErrorType<unknown>>(params: GetAdDecisionParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdDecision>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -681,7 +681,7 @@ export type GetAdDecisionQueryError = ErrorType<unknown>
  */
 
 export function useGetAdDecision<TData = Awaited<ReturnType<typeof getAdDecision>>, TError = ErrorType<unknown>>(
- params: GetAdDecisionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdDecision>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params: GetAdDecisionParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdDecision>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -810,7 +810,7 @@ export const getListAdminCinemaTitlesQueryKey = (params?: ListAdminCinemaTitlesP
     }
 
 
-export const getListAdminCinemaTitlesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError = ErrorType<void>>(params?: ListAdminCinemaTitlesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminCinemaTitlesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError = ErrorType<void>>(params?: ListAdminCinemaTitlesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -837,7 +837,7 @@ export type ListAdminCinemaTitlesQueryError = ErrorType<void>
  */
 
 export function useListAdminCinemaTitles<TData = Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError = ErrorType<void>>(
- params?: ListAdminCinemaTitlesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminCinemaTitlesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminCinemaTitles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -1102,7 +1102,7 @@ export const getGetAdminCinemaTitleQueryKey = (id: number,) => {
     }
 
 
-export const getGetAdminCinemaTitleQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminCinemaTitleQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError = ErrorType<void>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1129,7 +1129,7 @@ export type GetAdminCinemaTitleQueryError = ErrorType<void>
  */
 
 export function useGetAdminCinemaTitle<TData = Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError = ErrorType<void>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminCinemaTitle>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -1475,7 +1475,7 @@ export const getListCategoriesQueryKey = (params?: ListCategoriesParams,) => {
     }
 
 
-export const getListCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof listCategories>>, TError = ErrorType<unknown>>(params?: ListCategoriesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCategories>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof listCategories>>, TError = ErrorType<unknown>>(params?: ListCategoriesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listCategories>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1502,7 +1502,7 @@ export type ListCategoriesQueryError = ErrorType<unknown>
  */
 
 export function useListCategories<TData = Awaited<ReturnType<typeof listCategories>>, TError = ErrorType<unknown>>(
- params?: ListCategoriesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCategories>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListCategoriesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listCategories>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -1552,7 +1552,7 @@ export const getGetDiscoverSummaryQueryKey = () => {
     }
 
 
-export const getGetDiscoverSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getDiscoverSummary>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiscoverSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetDiscoverSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getDiscoverSummary>>, TError = ErrorType<unknown>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getDiscoverSummary>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1579,7 +1579,7 @@ export type GetDiscoverSummaryQueryError = ErrorType<unknown>
  */
 
 export function useGetDiscoverSummary<TData = Awaited<ReturnType<typeof getDiscoverSummary>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDiscoverSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getDiscoverSummary>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -1636,7 +1636,7 @@ export const getSearchKryvQueryKey = (params?: SearchKryvParams,) => {
     }
 
 
-export const getSearchKryvQueryOptions = <TData = Awaited<ReturnType<typeof searchKryv>>, TError = ErrorType<Error>>(params: SearchKryvParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchKryv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getSearchKryvQueryOptions = <TData = Awaited<ReturnType<typeof searchKryv>>, TError = ErrorType<Error>>(params: SearchKryvParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof searchKryv>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1663,7 +1663,7 @@ export type SearchKryvQueryError = ErrorType<Error>
  */
 
 export function useSearchKryv<TData = Awaited<ReturnType<typeof searchKryv>>, TError = ErrorType<Error>>(
- params: SearchKryvParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchKryv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params: SearchKryvParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof searchKryv>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -1713,7 +1713,7 @@ export const getListFollowedLiveChannelsQueryKey = () => {
     }
 
 
-export const getListFollowedLiveChannelsQueryOptions = <TData = Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListFollowedLiveChannelsQueryOptions = <TData = Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError = ErrorType<Error>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1740,7 +1740,7 @@ export type ListFollowedLiveChannelsQueryError = ErrorType<Error>
  */
 
 export function useListFollowedLiveChannels<TData = Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listFollowedLiveChannels>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -1797,7 +1797,7 @@ export const getGetNotificationInboxQueryKey = (params?: GetNotificationInboxPar
     }
 
 
-export const getGetNotificationInboxQueryOptions = <TData = Awaited<ReturnType<typeof getNotificationInbox>>, TError = ErrorType<void>>(params?: GetNotificationInboxParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationInbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetNotificationInboxQueryOptions = <TData = Awaited<ReturnType<typeof getNotificationInbox>>, TError = ErrorType<void>>(params?: GetNotificationInboxParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getNotificationInbox>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1824,7 +1824,7 @@ export type GetNotificationInboxQueryError = ErrorType<void>
  */
 
 export function useGetNotificationInbox<TData = Awaited<ReturnType<typeof getNotificationInbox>>, TError = ErrorType<void>>(
- params?: GetNotificationInboxParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationInbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetNotificationInboxParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getNotificationInbox>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -1945,7 +1945,7 @@ export const getGetNotificationPreferencesQueryKey = () => {
     }
 
 
-export const getGetNotificationPreferencesQueryOptions = <TData = Awaited<ReturnType<typeof getNotificationPreferences>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetNotificationPreferencesQueryOptions = <TData = Awaited<ReturnType<typeof getNotificationPreferences>>, TError = ErrorType<Error>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getNotificationPreferences>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1972,7 +1972,7 @@ export type GetNotificationPreferencesQueryError = ErrorType<Error>
  */
 
 export function useGetNotificationPreferences<TData = Awaited<ReturnType<typeof getNotificationPreferences>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getNotificationPreferences>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -2093,7 +2093,7 @@ export const getGetActivityObservabilityPreferencesQueryKey = () => {
     }
 
 
-export const getGetActivityObservabilityPreferencesQueryOptions = <TData = Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetActivityObservabilityPreferencesQueryOptions = <TData = Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError = ErrorType<Error>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2120,7 +2120,7 @@ export type GetActivityObservabilityPreferencesQueryError = ErrorType<Error>
  */
 
 export function useGetActivityObservabilityPreferences<TData = Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getActivityObservabilityPreferences>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -2319,7 +2319,7 @@ export const getListChannelsQueryKey = (params?: ListChannelsParams,) => {
     }
 
 
-export const getListChannelsQueryOptions = <TData = Awaited<ReturnType<typeof listChannels>>, TError = ErrorType<unknown>>(params?: ListChannelsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListChannelsQueryOptions = <TData = Awaited<ReturnType<typeof listChannels>>, TError = ErrorType<unknown>>(params?: ListChannelsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listChannels>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2346,7 +2346,7 @@ export type ListChannelsQueryError = ErrorType<unknown>
  */
 
 export function useListChannels<TData = Awaited<ReturnType<typeof listChannels>>, TError = ErrorType<unknown>>(
- params?: ListChannelsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListChannelsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listChannels>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -2467,7 +2467,7 @@ export const getGetCreatorProfileQueryKey = (slug: string,) => {
     }
 
 
-export const getGetCreatorProfileQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorProfile>>, TError = ErrorType<Error>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCreatorProfileQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorProfile>>, TError = ErrorType<Error>>(slug: string, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCreatorProfile>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2494,7 +2494,7 @@ export type GetCreatorProfileQueryError = ErrorType<Error>
  */
 
 export function useGetCreatorProfile<TData = Awaited<ReturnType<typeof getCreatorProfile>>, TError = ErrorType<Error>>(
- slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ slug: string, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCreatorProfile>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -2544,7 +2544,7 @@ export const getGetChannelQueryKey = (id: number,) => {
     }
 
 
-export const getGetChannelQueryOptions = <TData = Awaited<ReturnType<typeof getChannel>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannel>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetChannelQueryOptions = <TData = Awaited<ReturnType<typeof getChannel>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannel>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2571,7 +2571,7 @@ export type GetChannelQueryError = ErrorType<Error>
  */
 
 export function useGetChannel<TData = Awaited<ReturnType<typeof getChannel>>, TError = ErrorType<Error>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannel>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannel>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -2693,7 +2693,7 @@ export const getGetChannelBySlugQueryKey = (slug: string,) => {
     }
 
 
-export const getGetChannelBySlugQueryOptions = <TData = Awaited<ReturnType<typeof getChannelBySlug>>, TError = ErrorType<Error>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetChannelBySlugQueryOptions = <TData = Awaited<ReturnType<typeof getChannelBySlug>>, TError = ErrorType<Error>>(slug: string, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannelBySlug>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2720,7 +2720,7 @@ export type GetChannelBySlugQueryError = ErrorType<Error>
  */
 
 export function useGetChannelBySlug<TData = Awaited<ReturnType<typeof getChannelBySlug>>, TError = ErrorType<Error>>(
- slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ slug: string, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannelBySlug>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -2841,7 +2841,7 @@ export const getGetChannelAnalyticsQueryKey = (id: number,) => {
     }
 
 
-export const getGetChannelAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getChannelAnalytics>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetChannelAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getChannelAnalytics>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannelAnalytics>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2868,7 +2868,7 @@ export type GetChannelAnalyticsQueryError = ErrorType<Error>
  */
 
 export function useGetChannelAnalytics<TData = Awaited<ReturnType<typeof getChannelAnalytics>>, TError = ErrorType<Error>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannelAnalytics>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -3202,7 +3202,7 @@ export const getGetChannelChatSettingsQueryKey = (id: number,) => {
     }
 
 
-export const getGetChannelChatSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getChannelChatSettings>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelChatSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetChannelChatSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getChannelChatSettings>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannelChatSettings>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -3229,7 +3229,7 @@ export type GetChannelChatSettingsQueryError = ErrorType<Error>
  */
 
 export function useGetChannelChatSettings<TData = Awaited<ReturnType<typeof getChannelChatSettings>>, TError = ErrorType<Error>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelChatSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannelChatSettings>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -3639,7 +3639,7 @@ export const getGetChannelEngagementQueryKey = (id: number,) => {
     }
 
 
-export const getGetChannelEngagementQueryOptions = <TData = Awaited<ReturnType<typeof getChannelEngagement>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelEngagement>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetChannelEngagementQueryOptions = <TData = Awaited<ReturnType<typeof getChannelEngagement>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannelEngagement>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -3666,7 +3666,7 @@ export type GetChannelEngagementQueryError = ErrorType<Error>
  */
 
 export function useGetChannelEngagement<TData = Awaited<ReturnType<typeof getChannelEngagement>>, TError = ErrorType<Error>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChannelEngagement>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getChannelEngagement>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -3788,7 +3788,7 @@ export const getListChannelMessagesQueryKey = (id: number,) => {
     }
 
 
-export const getListChannelMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listChannelMessages>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChannelMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListChannelMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listChannelMessages>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listChannelMessages>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -3815,7 +3815,7 @@ export type ListChannelMessagesQueryError = ErrorType<Error>
  */
 
 export function useListChannelMessages<TData = Awaited<ReturnType<typeof listChannelMessages>>, TError = ErrorType<Error>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChannelMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listChannelMessages>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -4232,7 +4232,7 @@ export const getListClipsQueryKey = (params?: ListClipsParams,) => {
     }
 
 
-export const getListClipsQueryOptions = <TData = Awaited<ReturnType<typeof listClips>>, TError = ErrorType<unknown>>(params?: ListClipsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClips>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListClipsQueryOptions = <TData = Awaited<ReturnType<typeof listClips>>, TError = ErrorType<unknown>>(params?: ListClipsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listClips>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4259,7 +4259,7 @@ export type ListClipsQueryError = ErrorType<unknown>
  */
 
 export function useListClips<TData = Awaited<ReturnType<typeof listClips>>, TError = ErrorType<unknown>>(
- params?: ListClipsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClips>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListClipsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listClips>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -4380,7 +4380,7 @@ export const getGetClipQueryKey = (id: number,) => {
     }
 
 
-export const getGetClipQueryOptions = <TData = Awaited<ReturnType<typeof getClip>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClip>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetClipQueryOptions = <TData = Awaited<ReturnType<typeof getClip>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getClip>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4407,7 +4407,7 @@ export type GetClipQueryError = ErrorType<Error>
  */
 
 export function useGetClip<TData = Awaited<ReturnType<typeof getClip>>, TError = ErrorType<Error>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClip>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getClip>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -4464,7 +4464,7 @@ export const getListVideosQueryKey = (params?: ListVideosParams,) => {
     }
 
 
-export const getListVideosQueryOptions = <TData = Awaited<ReturnType<typeof listVideos>>, TError = ErrorType<unknown>>(params?: ListVideosParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListVideosQueryOptions = <TData = Awaited<ReturnType<typeof listVideos>>, TError = ErrorType<unknown>>(params?: ListVideosParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideos>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4491,7 +4491,7 @@ export type ListVideosQueryError = ErrorType<unknown>
  */
 
 export function useListVideos<TData = Awaited<ReturnType<typeof listVideos>>, TError = ErrorType<unknown>>(
- params?: ListVideosParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListVideosParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideos>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -4612,7 +4612,7 @@ export const getGetVideoQueryKey = (id: number,) => {
     }
 
 
-export const getGetVideoQueryOptions = <TData = Awaited<ReturnType<typeof getVideo>>, TError = ErrorType<Error>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetVideoQueryOptions = <TData = Awaited<ReturnType<typeof getVideo>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getVideo>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4639,7 +4639,7 @@ export type GetVideoQueryError = ErrorType<Error>
  */
 
 export function useGetVideo<TData = Awaited<ReturnType<typeof getVideo>>, TError = ErrorType<Error>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getVideo>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -4832,7 +4832,7 @@ export const getGetCinemaTitleQueryKey = (id: number,) => {
     }
 
 
-export const getGetCinemaTitleQueryOptions = <TData = Awaited<ReturnType<typeof getCinemaTitle>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCinemaTitle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCinemaTitleQueryOptions = <TData = Awaited<ReturnType<typeof getCinemaTitle>>, TError = ErrorType<void>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCinemaTitle>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4859,7 +4859,7 @@ export type GetCinemaTitleQueryError = ErrorType<void>
  */
 
 export function useGetCinemaTitle<TData = Awaited<ReturnType<typeof getCinemaTitle>>, TError = ErrorType<void>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCinemaTitle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCinemaTitle>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -4909,7 +4909,7 @@ export const getGetCinemaHomeQueryKey = () => {
     }
 
 
-export const getGetCinemaHomeQueryOptions = <TData = Awaited<ReturnType<typeof getCinemaHome>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCinemaHome>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCinemaHomeQueryOptions = <TData = Awaited<ReturnType<typeof getCinemaHome>>, TError = ErrorType<unknown>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCinemaHome>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4936,7 +4936,7 @@ export type GetCinemaHomeQueryError = ErrorType<unknown>
  */
 
 export function useGetCinemaHome<TData = Awaited<ReturnType<typeof getCinemaHome>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCinemaHome>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCinemaHome>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -4986,7 +4986,7 @@ export const getGetCustomerWalletQueryKey = () => {
     }
 
 
-export const getGetCustomerWalletQueryOptions = <TData = Awaited<ReturnType<typeof getCustomerWallet>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCustomerWallet>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCustomerWalletQueryOptions = <TData = Awaited<ReturnType<typeof getCustomerWallet>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCustomerWallet>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -5013,7 +5013,7 @@ export type GetCustomerWalletQueryError = ErrorType<void>
  */
 
 export function useGetCustomerWallet<TData = Awaited<ReturnType<typeof getCustomerWallet>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCustomerWallet>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCustomerWallet>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -5134,7 +5134,7 @@ export const getGetCreatorFinanceQueryKey = () => {
     }
 
 
-export const getGetCreatorFinanceQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorFinance>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorFinance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCreatorFinanceQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorFinance>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCreatorFinance>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -5161,7 +5161,7 @@ export type GetCreatorFinanceQueryError = ErrorType<void>
  */
 
 export function useGetCreatorFinance<TData = Awaited<ReturnType<typeof getCreatorFinance>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorFinance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCreatorFinance>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -5353,7 +5353,7 @@ export const getGetCreatorAchievementsQueryKey = () => {
     }
 
 
-export const getGetCreatorAchievementsQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorAchievements>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorAchievements>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCreatorAchievementsQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorAchievements>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCreatorAchievements>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -5380,7 +5380,7 @@ export type GetCreatorAchievementsQueryError = ErrorType<void>
  */
 
 export function useGetCreatorAchievements<TData = Awaited<ReturnType<typeof getCreatorAchievements>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorAchievements>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getCreatorAchievements>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -5437,7 +5437,7 @@ export const getListAdminModerationCasesQueryKey = (params?: ListAdminModeration
     }
 
 
-export const getListAdminModerationCasesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminModerationCases>>, TError = ErrorType<void>>(params?: ListAdminModerationCasesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminModerationCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminModerationCasesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminModerationCases>>, TError = ErrorType<void>>(params?: ListAdminModerationCasesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminModerationCases>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -5464,7 +5464,7 @@ export type ListAdminModerationCasesQueryError = ErrorType<void>
  */
 
 export function useListAdminModerationCases<TData = Awaited<ReturnType<typeof listAdminModerationCases>>, TError = ErrorType<void>>(
- params?: ListAdminModerationCasesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminModerationCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminModerationCasesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminModerationCases>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -5586,7 +5586,7 @@ export const getGetAdminCommandOverviewQueryKey = () => {
     }
 
 
-export const getGetAdminCommandOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCommandOverview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCommandOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminCommandOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCommandOverview>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminCommandOverview>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -5613,7 +5613,7 @@ export type GetAdminCommandOverviewQueryError = ErrorType<void>
  */
 
 export function useGetAdminCommandOverview<TData = Awaited<ReturnType<typeof getAdminCommandOverview>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCommandOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminCommandOverview>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -5670,7 +5670,7 @@ export const getGetAdminAnalyticsQueryKey = (params?: GetAdminAnalyticsParams,) 
     }
 
 
-export const getGetAdminAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAnalytics>>, TError = ErrorType<void>>(params?: GetAdminAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAnalytics>>, TError = ErrorType<void>>(params?: GetAdminAnalyticsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -5697,7 +5697,7 @@ export type GetAdminAnalyticsQueryError = ErrorType<void>
  */
 
 export function useGetAdminAnalytics<TData = Awaited<ReturnType<typeof getAdminAnalytics>>, TError = ErrorType<void>>(
- params?: GetAdminAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetAdminAnalyticsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminAnalytics>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -5747,7 +5747,7 @@ export const getGetAdminFinanceOverviewQueryKey = () => {
     }
 
 
-export const getGetAdminFinanceOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminFinanceOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -5774,7 +5774,7 @@ export type GetAdminFinanceOverviewQueryError = ErrorType<void>
  */
 
 export function useGetAdminFinanceOverview<TData = Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceOverview>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -5824,7 +5824,7 @@ export const getGetAdminTreasuryContextQueryKey = () => {
     }
 
 
-export const getGetAdminTreasuryContextQueryOptions = <TData = Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminTreasuryContextQueryOptions = <TData = Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -5851,7 +5851,7 @@ export type GetAdminTreasuryContextQueryError = ErrorType<void>
  */
 
 export function useGetAdminTreasuryContext<TData = Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -5972,7 +5972,7 @@ export const getGetAdminFinanceLedgerQueryKey = () => {
     }
 
 
-export const getGetAdminFinanceLedgerQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminFinanceLedgerQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -5999,7 +5999,7 @@ export type GetAdminFinanceLedgerQueryError = ErrorType<void>
  */
 
 export function useGetAdminFinanceLedger<TData = Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminFinanceLedger>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -6049,7 +6049,7 @@ export const getListAdminCreatorBalancesQueryKey = () => {
     }
 
 
-export const getListAdminCreatorBalancesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminCreatorBalancesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -6076,7 +6076,7 @@ export type ListAdminCreatorBalancesQueryError = ErrorType<void>
  */
 
 export function useListAdminCreatorBalances<TData = Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -6126,7 +6126,7 @@ export const getGetAdminCreatorBalanceDetailQueryKey = (channelId: number,) => {
     }
 
 
-export const getGetAdminCreatorBalanceDetailQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError = ErrorType<void>>(channelId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminCreatorBalanceDetailQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError = ErrorType<void>>(channelId: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -6153,7 +6153,7 @@ export type GetAdminCreatorBalanceDetailQueryError = ErrorType<void>
  */
 
 export function useGetAdminCreatorBalanceDetail<TData = Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError = ErrorType<void>>(
- channelId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ channelId: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -6203,7 +6203,7 @@ export const getListAdminPayoutProfilesQueryKey = () => {
     }
 
 
-export const getListAdminPayoutProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminPayoutProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -6230,7 +6230,7 @@ export type ListAdminPayoutProfilesQueryError = ErrorType<void>
  */
 
 export function useListAdminPayoutProfiles<TData = Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -6352,7 +6352,7 @@ export const getListAdminPayoutRequestsQueryKey = () => {
     }
 
 
-export const getListAdminPayoutRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminPayoutRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -6379,7 +6379,7 @@ export type ListAdminPayoutRequestsQueryError = ErrorType<void>
  */
 
 export function useListAdminPayoutRequests<TData = Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -6501,7 +6501,7 @@ export const getGetAdminAdsOverviewQueryKey = () => {
     }
 
 
-export const getGetAdminAdsOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAdsOverview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAdsOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminAdsOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAdsOverview>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminAdsOverview>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -6528,7 +6528,7 @@ export type GetAdminAdsOverviewQueryError = ErrorType<void>
  */
 
 export function useGetAdminAdsOverview<TData = Awaited<ReturnType<typeof getAdminAdsOverview>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAdsOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminAdsOverview>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -6792,7 +6792,7 @@ export const getGetAdminStatsQueryKey = () => {
     }
 
 
-export const getGetAdminStatsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminStats>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminStatsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminStats>>, TError = ErrorType<Error>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -6819,7 +6819,7 @@ export type GetAdminStatsQueryError = ErrorType<Error>
  */
 
 export function useGetAdminStats<TData = Awaited<ReturnType<typeof getAdminStats>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -6869,7 +6869,7 @@ export const getListAdminFeatureFlagsQueryKey = () => {
     }
 
 
-export const getListAdminFeatureFlagsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminFeatureFlagsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError = ErrorType<Error>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -6896,7 +6896,7 @@ export type ListAdminFeatureFlagsQueryError = ErrorType<Error>
  */
 
 export function useListAdminFeatureFlags<TData = Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError = ErrorType<Error>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminFeatureFlags>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -7025,7 +7025,7 @@ export const getListAdminUsersQueryKey = (params?: ListAdminUsersParams,) => {
     }
 
 
-export const getListAdminUsersQueryOptions = <TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<Error>>(params?: ListAdminUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminUsersQueryOptions = <TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<Error>>(params?: ListAdminUsersParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -7052,7 +7052,7 @@ export type ListAdminUsersQueryError = ErrorType<Error>
  */
 
 export function useListAdminUsers<TData = Awaited<ReturnType<typeof listAdminUsers>>, TError = ErrorType<Error>>(
- params?: ListAdminUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminUsersParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminUsers>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -7174,7 +7174,7 @@ export const getGetAdminUserActivityQueryKey = (id: string,) => {
     }
 
 
-export const getGetAdminUserActivityQueryOptions = <TData = Awaited<ReturnType<typeof getAdminUserActivity>>, TError = ErrorType<Error>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminUserActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminUserActivityQueryOptions = <TData = Awaited<ReturnType<typeof getAdminUserActivity>>, TError = ErrorType<Error>>(id: string, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminUserActivity>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -7201,7 +7201,7 @@ export type GetAdminUserActivityQueryError = ErrorType<Error>
  */
 
 export function useGetAdminUserActivity<TData = Awaited<ReturnType<typeof getAdminUserActivity>>, TError = ErrorType<Error>>(
- id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminUserActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ id: string, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminUserActivity>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -7258,7 +7258,7 @@ export const getListAdminChannelsQueryKey = (params?: ListAdminChannelsParams,) 
     }
 
 
-export const getListAdminChannelsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminChannels>>, TError = ErrorType<Error>>(params?: ListAdminChannelsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminChannelsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminChannels>>, TError = ErrorType<Error>>(params?: ListAdminChannelsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminChannels>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -7285,7 +7285,7 @@ export type ListAdminChannelsQueryError = ErrorType<Error>
  */
 
 export function useListAdminChannels<TData = Awaited<ReturnType<typeof listAdminChannels>>, TError = ErrorType<Error>>(
- params?: ListAdminChannelsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminChannelsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminChannels>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -7413,7 +7413,7 @@ export const getListAdminVideosQueryKey = (params?: ListAdminVideosParams,) => {
     }
 
 
-export const getListAdminVideosQueryOptions = <TData = Awaited<ReturnType<typeof listAdminVideos>>, TError = ErrorType<Error>>(params?: ListAdminVideosParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAdminVideosQueryOptions = <TData = Awaited<ReturnType<typeof listAdminVideos>>, TError = ErrorType<Error>>(params?: ListAdminVideosParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminVideos>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -7440,7 +7440,7 @@ export type ListAdminVideosQueryError = ErrorType<Error>
  */
 
 export function useListAdminVideos<TData = Awaited<ReturnType<typeof listAdminVideos>>, TError = ErrorType<Error>>(
- params?: ListAdminVideosParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVideos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminVideosParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminVideos>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
