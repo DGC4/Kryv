@@ -488,7 +488,7 @@ export default function LiveChannel() {
   const selectedTier = SUBSCRIPTION_TIERS[subscriptionTier];
 
   return (
-    <div className={`relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden bg-background ${theaterMode ? 'xl:block' : 'xl:flex-row'}`}>
+    <div className={`relative z-10 flex min-h-0 flex-1 flex-col overflow-x-hidden bg-background ${theaterMode ? 'xl:block' : 'xl:flex-row'}`}>
       {!theaterMode && (
         <aside className="hidden w-56 shrink-0 flex-col border-r border-white/[0.08] bg-[#090b11] xl:flex" aria-label="Live discovery">
           <nav className="border-b border-white/[0.08] p-3" aria-label="Live navigation">
@@ -516,7 +516,7 @@ export default function LiveChannel() {
         </aside>
       )}
       {/* Main Content: the player and action strip stay above secondary channel information. */}
-      <div className={`flex min-w-0 flex-col ${theaterMode ? 'h-full w-full shrink-0 overflow-hidden' : 'flex-1 overflow-y-auto'}`}>
+      <div className={`flex min-w-0 flex-col ${theaterMode ? 'h-full w-full shrink-0 overflow-hidden' : 'flex-1 pb-[44dvh] sm:pb-[40dvh] lg:pb-0'}`}>
         {/* Video Player - Responsive */}
         <div className={`w-full bg-black relative ${theaterMode ? 'h-full' : 'aspect-video sm:aspect-video lg:flex-1'}`}>
           {channel.isLive && hlsSrc ? (
@@ -703,8 +703,8 @@ export default function LiveChannel() {
         </div>
       </div>
 
-      {/* Chat Sidebar - Mobile: bottom sheet, Desktop: right sidebar */}
-      <div className="w-full lg:w-80 xl:w-96 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/40 backdrop-blur flex flex-col h-[45dvh] sm:h-[50dvh] lg:h-auto shrink-0 overflow-hidden">
+      {/* Chat is always reachable: fixed above mobile content and sticky beside desktop content. */}
+      <aside aria-label="Stream chat" className={`fixed inset-x-0 bottom-0 z-40 flex h-[44dvh] min-h-64 flex-col overflow-hidden border-t border-white/10 bg-[#090b11]/[0.98] shadow-[0_-18px_48px_rgba(0,0,0,0.46)] backdrop-blur-xl sm:h-[40dvh] lg:sticky lg:top-0 lg:z-20 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:w-80 lg:shrink-0 lg:self-start lg:border-l lg:border-t-0 lg:bg-black/40 lg:shadow-none xl:w-96 ${theaterMode ? 'xl:fixed xl:inset-y-0 xl:right-0 xl:left-auto xl:z-40 xl:h-dvh xl:w-96 xl:border-l xl:border-t-0 xl:bg-[#090b11]/[0.98] xl:shadow-[-18px_0_48px_rgba(0,0,0,0.46)]' : ''}`}>
         <div className="p-2 sm:p-4 border-b border-white/10 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h3 className="font-display font-bold text-white text-sm sm:text-base">Stream Chat</h3>
@@ -787,7 +787,7 @@ export default function LiveChannel() {
             </div>
           )}
         </div>
-      </div>
+      </aside>
     </div>
   );
 }
