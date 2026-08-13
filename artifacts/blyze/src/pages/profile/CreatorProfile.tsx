@@ -11,6 +11,7 @@ import {
   Loader2,
   Play,
   Radio,
+  RefreshCw,
   ShieldAlert,
   Tv2,
   Users,
@@ -58,7 +59,7 @@ export default function CreatorProfile() {
   }
 
   if (isError || !profile) {
-    return <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center"><CircleDot className="h-8 w-8 text-white/20" /><h1 className="mt-4 text-xl font-black text-white">Creator profile unavailable</h1><p className="mt-2 max-w-md text-sm leading-relaxed text-white/45">This creator may have changed their channel URL or is no longer available on Kryv.</p><Link href="/live" className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-4 text-sm font-black text-primary transition hover:bg-primary hover:text-primary-foreground"><Radio className="h-4 w-4" /> Explore Live</Link></div>;
+    return <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center"><CircleDot className="h-8 w-8 text-white/20" /><h1 className="mt-4 text-xl font-black text-white">Creator profile unavailable</h1><p className="mt-2 max-w-md text-sm leading-relaxed text-white/45">This creator may have changed their channel URL or is no longer available on Kryv.</p><div className="mt-5 flex flex-wrap justify-center gap-3"><button type="button" onClick={() => refetch()} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/[0.14] bg-white/[0.04] px-4 text-sm font-black text-white transition hover:border-primary/45 hover:text-primary"><RefreshCw className="h-4 w-4" /> Retry</button><Link href="/live" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-4 text-sm font-black text-primary transition hover:bg-primary hover:text-primary-foreground"><Radio className="h-4 w-4" /> Explore Live</Link></div></div>;
   }
 
   const { channel, live, watch, cinemaCredits } = profile;
