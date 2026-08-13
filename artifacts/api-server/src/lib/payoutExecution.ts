@@ -171,9 +171,12 @@ export async function executeOwnerApprovedPayout(payoutRequestId: number): Promi
     addressAuthTag: payout.addressAuthTag,
     addressDigest: payout.addressDigest,
   });
-  const feeEstimate = await estimatePlisioWithdrawalFee({ currency, destination, amount, feePlan: "normal" });
-  await claimApprovedPayoutExecution(payoutRequestId);
-  const providerPayout = await createPlisioWithdrawal({ currency, destination, amount, feePlan: feeEstimate.feePlan });
+  let executionClaimed = false;
+  try {
+    const feeEstimate = await estimatePlisioWithdrawalFee({ currency, destination, amount, feePlan: "normal" });
+    await claimApprovedPayoutExecution(payoutRequestId);
+    executionClaimed = true;
+    const providerPayout = await createPlisioWithdrawal({ currency, destination, amount, feePlan: feeEstimate.feePlan });
   if (compareCryptoAmounts(amount, providerPayout.amount) !== 0) {
     throw new Error("Provider payout amount does not match the owner-approved crypto amount");
   }
@@ -253,11 +256,25 @@ export async function executeOwnerApprovedPayout(payoutRequestId: number): Promi
     });
   });
 
-  logger.info({ payoutRequestId, providerPayoutId: providerPayout.providerPayoutId, providerStatus }, "Kryv payout provider operation recorded");
-  return {
-    payoutRequestId,
-    providerPayoutId: providerPayout.providerPayoutId,
-    providerStatus,
-    status: completed ? "completed" : "submitted",
-  };
+    logger.info({ payoutRequestId, providerPayoutId: providerPayout.providerPayoutId, providerStatus }, "Kryv payout provider operation recorded");
+    return {
+      payoutRequestId,
+      providerPayoutId: providerPayout.providerPayoutId,
+      providerStatus,
+      status: completed ? "completed" : "submitted",
+    };
+  } catch (error) {
+    // Once the request is claimed, a network or persistence failure can be ambiguous:
+    // the provider may have accepted the withdrawal even if Kryv cannot record it.
+    // Preserve the executing claim, surface a durable reconciliation instruction, and
+    // never turn this path into an automatic retry.
+    if (executionClaimed) {
+      await db
+        .update(payoutRequestsTable)
+        .set({ riskHoldReason: "Provider payout outcome requires manual reconciliation. Do not retry or reapprove this request until the provider operation is conclusively resolved." })
+        .where(and(eq(payoutRequestsTable.id, payoutRequestId), eq(payoutRequestsTable.status, "executing")));
+      logger.error({ payoutRequestId, err: error }, "Kryv payout requires manual provider reconciliation after execution claim");
+    }
+    throw error;
+  }
 }
