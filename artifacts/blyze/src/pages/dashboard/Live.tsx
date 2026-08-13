@@ -556,22 +556,31 @@ export default function DashboardLive() {
     );
   }, [me?.channel, resetStream, toast]);
 
+  const openBroadcastSetup = () => {
+    setActiveTab('stream');
+    window.setTimeout(() => {
+      document.getElementById('broadcast-setup')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
   const handleGoLive = () => {
     if (me?.channel?.isLive) {
       navigate(`/live/${me.channel.slug}`);
       return;
     }
+
+    openBroadcastSetup();
     if (!credentials) {
       toast({
         title: 'Generate your stream key first',
-        description: 'Click "Generate Stream Key" in Step 2 before going live.',
+        description: 'Kryv opened Stream Credentials. Generate a key there before starting your encoder.',
         variant: 'destructive',
       });
       return;
     }
     toast({
       title: 'Broadcast setup is ready',
-      description: 'Start streaming in OBS with your RTMP URL and stream key. Kryv will publish your channel automatically when the live signal is active.',
+      description: 'Kryv opened your RTMP credentials. Start streaming in OBS; your channel publishes automatically when the live signal is active.',
     });
   };
 
@@ -811,7 +820,7 @@ export default function DashboardLive() {
               </div>
 
               {/* Step 2: Stream credentials */}
-              <div className="p-5 border border-white/[0.07] rounded-2xl bg-white/[0.02]">
+              <div id="broadcast-setup" tabIndex={-1} className="scroll-mt-24 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 <div className="flex items-center gap-2 mb-4">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${credentials ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-primary/20 text-primary border border-primary/30'}`}>
                     {credentials ? <CheckCircle2 className="w-3.5 h-3.5" /> : '2'}
