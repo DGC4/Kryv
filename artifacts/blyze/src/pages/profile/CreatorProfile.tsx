@@ -13,6 +13,7 @@ import {
   Radio,
   RefreshCw,
   ShieldAlert,
+  Share2,
   Tv2,
   Users,
   UserPlus,
@@ -71,6 +72,20 @@ export default function CreatorProfile() {
 
   const { channel, live, watch, cinemaCredits } = profile;
   const isFollowPending = followChannel.isPending || unfollowChannel.isPending;
+  const shareProfile = async () => {
+    const shareData = { title: `${channel.displayName} on Kryv`, text: `Follow ${channel.displayName} on Kryv.`, url: window.location.href };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      await navigator.clipboard.writeText(shareData.url);
+      toast({ title: 'Profile link copied', description: 'Share this creator anywhere.' });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      toast({ title: 'Share unavailable', description: 'Your browser could not open or copy the profile link.', variant: 'destructive' });
+    }
+  };
   const handleFollow = () => {
     const mutation = channel.isFollowing ? unfollowChannel : followChannel;
     mutation.mutate({ id: channel.id }, {
@@ -118,7 +133,7 @@ export default function CreatorProfile() {
             </div>
             <div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5 sm:gap-2"><p className="truncate text-xl font-black tracking-tight text-white sm:text-3xl">{channel.displayName}</p>{Number(channel.ownerUserId) === 1 && <GoldenDBadge />}</div><div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-bold text-white/55"><span className={`inline-flex items-center gap-1.5 ${live.isLive ? 'text-red-200' : 'text-white/45'}`}><CircleDot className={`h-3.5 w-3.5 ${live.isLive ? 'text-red-400' : 'text-white/35'}`} />{live.isLive ? 'Live now' : 'Offline'}</span><span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" />{channel.followerCount.toLocaleString()} followers</span>{channel.categoryName && <span>{channel.categoryName}</span>}</div></div>
           </div>
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><Link href={`/live/${channel.slug}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-center text-sm font-black text-primary-foreground transition hover:bg-primary/90 sm:px-4"><Radio className="h-4 w-4" /> <span className="truncate">{live.isLive ? 'Watch live' : 'Channel'}</span></Link>{!channel.isOwner && (me ? <button type="button" onClick={handleFollow} disabled={isFollowPending} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-center text-sm font-black transition disabled:cursor-wait disabled:opacity-60 sm:px-4 ${channel.isFollowing ? 'border-primary/45 bg-primary/10 text-primary hover:bg-primary/20' : 'border-white/[0.12] bg-black/25 text-white/75 hover:border-primary/45 hover:text-white'}`}>{isFollowPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} <span className="truncate">{channel.isFollowing ? 'Following' : 'Follow'}</span></button> : <Link href="/sign-in" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-black/25 px-3 text-center text-sm font-black text-white/75 transition hover:border-primary/45 hover:text-white sm:px-4"><UserPlus className="h-4 w-4" /> <span className="truncate">Follow</span></Link>)}<Link href="/watch" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-black/25 px-3 text-center text-sm font-black text-white/75 transition hover:border-primary/45 hover:text-white sm:px-4"><Tv2 className="h-4 w-4" /> <span className="truncate">Watch</span></Link></div>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"><Link href={`/live/${channel.slug}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-center text-sm font-black text-primary-foreground transition hover:bg-primary/90 sm:px-4"><Radio className="h-4 w-4" /> <span className="truncate">{live.isLive ? 'Watch live' : 'Channel'}</span></Link>{!channel.isOwner && (me ? <button type="button" onClick={handleFollow} disabled={isFollowPending} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-center text-sm font-black transition disabled:cursor-wait disabled:opacity-60 sm:px-4 ${channel.isFollowing ? 'border-primary/45 bg-primary/10 text-primary hover:bg-primary/20' : 'border-white/[0.12] bg-black/25 text-white/75 hover:border-primary/45 hover:text-white'}`}>{isFollowPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} <span className="truncate">{channel.isFollowing ? 'Following' : 'Follow'}</span></button> : <Link href="/sign-in" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-black/25 px-3 text-center text-sm font-black text-white/75 transition hover:border-primary/45 hover:text-white sm:px-4"><UserPlus className="h-4 w-4" /> <span className="truncate">Follow</span></Link>)}<Link href="/watch" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-black/25 px-3 text-center text-sm font-black text-white/75 transition hover:border-primary/45 hover:text-white sm:px-4"><Tv2 className="h-4 w-4" /> <span className="truncate">Watch</span></Link><button type="button" onClick={shareProfile} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-black/25 px-3 text-center text-sm font-black text-white/75 transition hover:border-primary/45 hover:text-primary sm:px-4"><Share2 className="h-4 w-4" /> <span className="truncate">Share</span></button></div>
         </div>
       </section>
 
