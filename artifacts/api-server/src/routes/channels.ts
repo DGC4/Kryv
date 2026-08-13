@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
-import { db, channelsTable, chatMessagesTable, followsTable, streamSessionsTable } from "@workspace/db";
+import { and, desc, eq, gte, ilike, isNull, or, sql } from "drizzle-orm";
+import { db, channelsTable, chatMessagesTable, followsTable, streamSessionsTable, subscriptionsTable, tipsTable } from "@workspace/db";
 import {
   ListChannelsQueryParams,
   ListChannelsResponse,
@@ -272,6 +272,17 @@ router.get(
         ),
       );
 
+    const [[tipSummary], [subscriptionSummary]] = await Promise.all([
+      db
+        .select({ completedTipCount: sql<number>`COALESCE(COUNT(*), 0)::int` })
+        .from(tipsTable)
+        .where(and(eq(tipsTable.receiverChannelId, channel.id), eq(tipsTable.status, "completed"), gte(tipsTable.createdAt, periodStart))),
+      db
+        .select({ activeSubscriptionCount: sql<number>`COALESCE(COUNT(*), 0)::int` })
+        .from(subscriptionsTable)
+        .where(and(eq(subscriptionsTable.channelId, channel.id), eq(subscriptionsTable.status, "active"), or(isNull(subscriptionsTable.expiresAt), gte(subscriptionsTable.expiresAt, new Date())))),
+    ]);
+
     const recentStreams = await db
       .select({
         id: streamSessionsTable.id,
@@ -300,6 +311,8 @@ router.get(
         peakViewers: Number(summary?.peakViewers ?? 0),
         averageViewers: Number(summary?.averageViewers ?? 0),
         totalChatMessages: Number(chatSummary?.totalChatMessages ?? 0),
+        completedTipCount: Number(tipSummary?.completedTipCount ?? 0),
+        activeSubscriptionCount: Number(subscriptionSummary?.activeSubscriptionCount ?? 0),
         recentStreams,
       }),
     );

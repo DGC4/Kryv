@@ -19,5 +19,9 @@ export interface ChannelAnalytics {
   peakViewers: number;
   averageViewers: number;
   totalChatMessages: number;
+  /** Completed tip records received during the rolling measurement period; does not aggregate asset amounts across currencies */
+  completedTipCount: number;
+  /** Current active subscriptions whose expiry is absent or in the future */
+  activeSubscriptionCount: number;
   recentStreams: ChannelAnalyticsRecentStreamsItem[];
 }

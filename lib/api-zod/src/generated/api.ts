@@ -1146,6 +1146,8 @@ export const GetChannelAnalyticsResponse = zod.object({
   "peakViewers": zod.number(),
   "averageViewers": zod.number(),
   "totalChatMessages": zod.number(),
+  "completedTipCount": zod.number().describe('Completed tip records received during the rolling measurement period; does not aggregate asset amounts across currencies'),
+  "activeSubscriptionCount": zod.number().describe('Current active subscriptions whose expiry is absent or in the future'),
   "recentStreams": zod.array(zod.object({
   "id": zod.number(),
   "title": zod.string().nullable(),

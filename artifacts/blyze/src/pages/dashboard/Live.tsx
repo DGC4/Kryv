@@ -1396,7 +1396,7 @@ export default function DashboardLive() {
           <div className="p-5 max-w-6xl">
             <div className="flex flex-col gap-1 mb-5">
               <h2 className="text-lg font-black text-white">Live Analytics</h2>
-              <p className="text-xs text-white/35">A rolling 30-day view of your stream sessions and community activity.</p>
+              <p className="text-xs text-white/35">A rolling 30-day view of your stream sessions, community activity, and completed support events.</p>
             </div>
 
             {analyticsLoading ? (
@@ -1414,7 +1414,8 @@ export default function DashboardLive() {
                     { label: 'Streams', value: (analytics?.totalStreams ?? 0).toLocaleString(), icon: Signal },
                     { label: 'Time Live', value: formatDuration(analytics?.totalStreamSeconds), icon: BarChart2 },
                     { label: 'Followers', value: (analytics?.followerCount ?? channel.followerCount ?? 0).toLocaleString(), icon: Users },
-                    { label: 'Subscribers', value: (analytics?.subscriberCount ?? channel.subscriberCount ?? 0).toLocaleString(), icon: Crown },
+                    { label: 'Active subscriptions', value: (analytics?.activeSubscriptionCount ?? analytics?.subscriberCount ?? channel.subscriberCount ?? 0).toLocaleString(), icon: Crown },
+                    { label: 'Completed tips', value: (analytics?.completedTipCount ?? 0).toLocaleString(), icon: Wallet },
                   ].map(({ label, value, icon: Icon, accent }) => (
                     <div key={label} className="p-3.5 sm:p-4 border border-white/[0.07] rounded-2xl bg-white/[0.02] min-w-0">
                       <div className="flex items-center gap-2 mb-2">
