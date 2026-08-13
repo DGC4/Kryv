@@ -4,6 +4,7 @@ import { useGetCinemaTitle } from '@workspace/api-client-react';
 import HlsPlayer from '@/components/video/HlsPlayer';
 import { ArrowLeft, Clapperboard, Film, Info, Loader2, LockKeyhole, Play, ShieldCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePageMetadata } from '@/hooks/use-page-metadata';
 
 function formatRuntime(seconds: number | null) {
   if (!seconds) return 'Runtime unavailable';
@@ -24,6 +25,12 @@ export default function CinemaDetail() {
   const cinemaTitleId = Number.parseInt(id || '0', 10);
   const { data: title, isLoading, refetch: refetchTitle } = useGetCinemaTitle(cinemaTitleId, { query: { enabled: Number.isSafeInteger(cinemaTitleId) && cinemaTitleId > 0 } as any });
   const [showTrailer, setShowTrailer] = useState(false);
+  usePageMetadata({
+    title: title?.title ?? 'Cinema title',
+    description: title?.synopsis?.trim() || 'Explore an owner-published, rights-cleared title in Kryv Cinema.',
+    imageUrl: title?.backdropUrl || title?.posterUrl,
+    type: 'video.other',
+  });
 
   if (isLoading) return <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-black"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!title) return <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center gap-3 bg-black px-6 text-center"><Clapperboard className="h-8 w-8 text-primary/70" /><p className="text-xl font-black text-white">This Cinema title is unavailable</p><p className="max-w-sm text-sm text-white/45">It may be outside its publication or viewing window.</p><div className="mt-2 flex flex-wrap justify-center gap-3"><Button type="button" variant="secondary" onClick={() => refetchTitle()}>Retry</Button><Link href="/cinema"><Button variant="secondary">Return to Cinema</Button></Link></div></div>;

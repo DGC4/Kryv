@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarDays, Clapperboard, Eye, Loader2, Radio, Share2, Shi
 import HlsPlayer from '@/components/video/HlsPlayer';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { usePageMetadata } from '@/hooks/use-page-metadata';
 import { useAuthStore } from '@/lib/auth-store';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,6 +29,11 @@ export default function ClipDetail() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('harassment');
   const [reportDetails, setReportDetails] = useState('');
+  usePageMetadata({
+    title: clip?.title ?? 'Clip',
+    description: clip ? `Watch ${clip.title} on Kryv Clips.` : 'Watch short creator moments on Kryv Clips.',
+    type: 'video.other',
+  });
 
   const submitSafetyReport = (event: React.FormEvent) => {
     event.preventDefault();

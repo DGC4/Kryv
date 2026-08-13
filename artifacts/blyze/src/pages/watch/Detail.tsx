@@ -31,6 +31,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { usePageMetadata } from '@/hooks/use-page-metadata';
 import { useAuthStore } from '@/lib/auth-store';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -62,6 +63,12 @@ export default function WatchDetail() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('harassment');
   const [reportDetails, setReportDetails] = useState('');
+  usePageMetadata({
+    title: video?.title ?? 'Watch video',
+    description: video?.description?.trim() || 'Watch a creator release on Kryv Watch.',
+    imageUrl: video?.thumbnailUrl,
+    type: 'video.other',
+  });
 
   const recommendations = useMemo(() => {
     if (!video) return [];

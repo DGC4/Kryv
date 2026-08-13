@@ -23,6 +23,7 @@ import { Link, useParams } from 'wouter';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { VideoCard } from '@/components/VideoCard';
 import { useToast } from '@/hooks/use-toast';
+import { usePageMetadata } from '@/hooks/use-page-metadata';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -53,6 +54,12 @@ export default function CreatorProfile() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('harassment');
   const [reportDetails, setReportDetails] = useState('');
+  usePageMetadata({
+    title: profile?.channel.displayName ?? 'Creator profile',
+    description: profile ? `Watch ${profile.channel.displayName} on Kryv: creator profile, Live broadcasts, Watch releases, and Cinema credits.` : 'Explore creators, Live broadcasts, and Watch releases on Kryv.',
+    imageUrl: profile?.channel.avatarUrl,
+    type: 'profile',
+  });
 
   if (isLoading) {
     return <div className="flex min-h-[70vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;

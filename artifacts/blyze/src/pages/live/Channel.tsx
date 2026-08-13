@@ -23,6 +23,7 @@ import {
 import { useAuthStore } from '@/lib/auth-store';
 import { getApiUrl } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { usePageMetadata } from '@/hooks/use-page-metadata';
 import HlsPlayer from '@/components/video/HlsPlayer';
 import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronRight, CircleDot, RefreshCw } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
@@ -56,6 +57,12 @@ export default function LiveChannel() {
   });
 
   const channelId = channel?.id;
+  usePageMetadata({
+    title: channel?.displayName ?? 'Live channel',
+    description: channel ? (channel.description?.trim() || `${channel.displayName} ${channel.isLive ? 'is live now' : 'is on Kryv Live'}.`) : 'Watch live creator broadcasts on Kryv.',
+    imageUrl: channel?.avatarUrl,
+    type: 'video.other',
+  });
 
   const { data: messages, isFetching: isRefreshingMessages, refetch: refetchMessages } = useListChannelMessages(channelId!, {
     query: { enabled: !!channelId, refetchInterval: 15000 },
