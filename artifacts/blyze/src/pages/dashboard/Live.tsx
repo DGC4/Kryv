@@ -38,6 +38,7 @@ import {
   Clapperboard, Library, Search, X, LayoutDashboard, Send, Trash2, Clock3, Ban, Camera, Mic, Square,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { CreatorStudioNav } from '@/components/CreatorStudioNav';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -706,7 +707,7 @@ export default function DashboardLive() {
                 <span>{[location.city, location.region].filter(Boolean).join(', ') || location.country}</span>
               </div>
             )}
-            <Link href="/dashboard/watch" className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 text-xs font-black text-white/70 transition hover:border-primary/45 hover:text-primary sm:px-4"><Library className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Watch studio</span></Link>
+            <div className="hidden md:block"><CreatorStudioNav active="live" /></div>
             <Button
               onClick={handleGoLive}
               className={`h-11 px-3 text-xs font-black transition-all sm:px-5 ${
@@ -722,7 +723,10 @@ export default function DashboardLive() {
         </div>
 
         <div className="lg:hidden overflow-x-auto border-b border-white/[0.06] bg-black/35 px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max gap-1">
+          <div className="min-w-max">
+            <CreatorStudioNav active="live" />
+          </div>
+          <div className="mt-2 flex min-w-max gap-1">
             {([
               { id: 'stream', label: 'Stream', icon: LayoutDashboard },
               { id: 'content', label: 'Content', icon: Library },
