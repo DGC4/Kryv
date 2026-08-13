@@ -10,7 +10,7 @@ function formatCount(value: number) {
 
 export default function LiveCategories() {
   const [query, setQuery] = useState('');
-  const { data: categories, isLoading } = useListCategories(
+  const { data: categories, isLoading, isError, refetch: refetchCategories } = useListCategories(
     { kind: 'live_game' },
     { query: { refetchInterval: 10000 } },
   );
@@ -21,6 +21,10 @@ export default function LiveCategories() {
 
   if (isLoading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
+  if (isError) {
+    return <div className="flex min-h-[60vh] items-center justify-center px-4 text-center"><div><Sparkles className="mx-auto h-8 w-8 text-red-200/70" /><h1 className="mt-4 text-2xl font-black text-red-100">Live categories are temporarily unavailable</h1><p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-red-100/70">Kryv cannot confirm the available communities or current live activity right now.</p><button type="button" onClick={() => refetchCategories()} className="mt-5 inline-flex min-h-10 items-center rounded-xl border border-red-200/25 bg-red-200/[0.08] px-4 text-sm font-black text-red-50 transition hover:bg-red-200/[0.14]">Retry categories</button></div></div>;
   }
 
   return (
