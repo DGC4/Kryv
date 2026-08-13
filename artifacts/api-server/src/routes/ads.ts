@@ -22,8 +22,8 @@ import { requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
 
-// Ad delivery is intentionally hard-disabled until consent, creative review,
-// measurement, and an operator kill switch are launched as one production slice.
+// Ad delivery is hard-disabled at runtime. Consent, review, measurement, and operator controls
+// do not make this capability available through the current product.
 const AD_DELIVERY_RUNTIME_ENABLED = false;
 
 type AdSurface = "live" | "watch" | "cinema" | "clip";
@@ -75,7 +75,7 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
   }
 
   // No consent means the service must not make a personalized or measurable ad decision.
-  // Contextual ad delivery is a distinct future capability and remains disabled until configured.
+  // Contextual ad delivery is unavailable because ad delivery is hard-disabled at runtime.
   if (userId) {
     const [consent] = await db
       .select({ granted: consentPreferencesTable.granted })

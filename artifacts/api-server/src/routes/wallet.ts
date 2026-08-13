@@ -25,8 +25,7 @@ import { writeAuditLog } from "../lib/operations";
 
 const router: IRouter = Router();
 const CUSTOMER_WALLET_FLAG = "customer_wallet_custody";
-// Customer deposit custody is intentionally unavailable until the dedicated
-// reconciliation, authorization, and support-control launch is complete.
+// Customer deposit custody is hard-disabled at runtime and unavailable through this service.
 const CUSTOMER_WALLET_RUNTIME_ENABLED = false;
 
 class CustomerWalletError extends Error {

@@ -73,8 +73,7 @@ async function requireCryptoCommerceReadiness(_req: Request, res: Response, next
   }
 }
 
-// Customer wallet custody is intentionally hard-disabled until its separate
-// authorization, reconciliation, and support-control launch is complete.
+// Customer wallet custody is hard-disabled at runtime and unavailable through this service.
 const CUSTOMER_WALLET_RUNTIME_ENABLED = false;
 
 function configuredSubscriptionAmount(tier: number) {
@@ -87,14 +86,14 @@ function configuredSubscriptionAmount(tier: number) {
 
 async function assertCustomerWalletCustodyEnabled() {
   if (!CUSTOMER_WALLET_RUNTIME_ENABLED) {
-    throw new WalletPaymentError("Kryv Wallet is not active yet. Deposit and wallet-payment controls remain disabled until the custody launch gate is complete.", 403);
+    throw new WalletPaymentError("Kryv Wallet custody is hard-disabled. Deposit and wallet-payment controls are unavailable.", 403);
   }
   const [flag] = await db
     .select({ enabled: featureFlagsTable.enabled })
     .from(featureFlagsTable)
     .where(eq(featureFlagsTable.key, "customer_wallet_custody"))
     .limit(1);
-  if (!flag?.enabled) throw new WalletPaymentError("Kryv Wallet is not active yet. Deposit and wallet-payment controls must be reconciled before funds can move internally.", 403);
+  if (!flag?.enabled) throw new WalletPaymentError("Kryv Wallet custody is hard-disabled. Deposit and wallet-payment controls are unavailable.", 403);
 }
 
 async function quoteWalletTipFee(txn: any, grossAmount: string) {

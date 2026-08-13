@@ -88,11 +88,11 @@ const HARD_DISABLED_OPERATIONAL_FLAGS = new Set([
 
 const OPERATIONAL_FLAG_COPY: Record<string, string> = {
   crypto_commerce: "Crypto-only invoices for channel support and subscriptions. Disable immediately if provider callbacks or settlement monitoring are unhealthy.",
-  ads_delivery: "Viewer ad decision and eligible ad-break delivery. Keep disabled until consent, frequency caps, and impression monitoring are operational.",
+  ads_delivery: "Viewer ad decision and eligible ad-break delivery. This capability is hard-disabled and cannot be activated through the owner console.",
   creator_payout_requests: "Creator payout request queue. Keep disabled until encrypted payout profiles, creator ledger monitoring, and owner review procedures are operational.",
-  scheduled_payout_requests: "Scheduled daily, weekly, and monthly payout request generation. Keep disabled until a production scheduler, idempotency checks, and alerting are configured.",
-  provider_withdrawals: "Provider withdrawal execution. Keep disabled until request IP, provider balances, fee estimation, reconciliation, and incident response are verified.",
-  customer_wallet_custody: "Customer deposit addresses and stored crypto balances. Keep disabled until signed pay-in callbacks, ledger reconciliation, support procedures, and custody approvals are operational.",
+  scheduled_payout_requests: "Scheduled daily, weekly, and monthly payout request generation. This capability is hard-disabled and cannot be activated through the owner console.",
+  provider_withdrawals: "Provider withdrawal execution. This capability is hard-disabled and cannot be activated through the owner console.",
+  customer_wallet_custody: "Customer deposit addresses and stored crypto balances. This capability is hard-disabled and cannot be activated through the owner console.",
 };
 
 function toAdminFeatureFlag(row: { key: string; enabled: boolean; description: string | null; updatedAt: Date }) {
