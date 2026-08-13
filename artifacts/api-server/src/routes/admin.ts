@@ -73,6 +73,12 @@ import { createPlisioInvoice, getPlisioAssetSnapshots, isPlisioConfigured, isSup
 import { enqueueDurableJob } from "../lib/jobs";
 import { executeOwnerApprovedPayout } from "../lib/payoutExecution";
 
+const HARD_DISABLED_OPERATIONAL_FLAGS = new Set([
+  "customer_wallet_custody",
+  "scheduled_payout_requests",
+  "provider_withdrawals",
+]);
+
 const OPERATIONAL_FLAG_COPY: Record<string, string> = {
   crypto_commerce: "Crypto-only invoices for channel support and subscriptions. Disable immediately if provider callbacks or settlement monitoring are unhealthy.",
   ads_delivery: "Viewer ad decision and eligible ad-break delivery. Keep disabled until consent, frequency caps, and impression monitoring are operational.",
@@ -1102,6 +1108,11 @@ router.patch("/admin/feature-flags/:key", requireOwner, async (req, res): Promis
   const key = params.data.key;
   if (!(key in OPERATIONAL_FLAG_COPY)) {
     res.status(404).json({ error: "Operational feature flag not found" });
+    return;
+  }
+
+  if (body.data.enabled && HARD_DISABLED_OPERATIONAL_FLAGS.has(key)) {
+    res.status(400).json({ error: `${key.replaceAll("_", " ")} is hard-disabled until its documented production launch gate is complete.` });
     return;
   }
 
