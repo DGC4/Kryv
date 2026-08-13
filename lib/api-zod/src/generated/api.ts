@@ -2389,6 +2389,59 @@ export const GetAdminFinanceLedgerResponse = zod.object({
 
 
 /**
+ * @summary Owner-only current creator balances grouped by channel and crypto asset
+ */
+export const ListAdminCreatorBalancesResponseItem = zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminCreatorBalancesResponse = zod.array(ListAdminCreatorBalancesResponseItem)
+
+
+/**
+ * @summary Owner-only per-creator balances and recent immutable balance movements
+ */
+export const GetAdminCreatorBalanceDetailParams = zod.object({
+  "channelId": zod.coerce.number()
+})
+
+export const GetAdminCreatorBalanceDetailResponse = zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string(),
+  "balances": zod.array(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "updatedAt": zod.coerce.date()
+})),
+  "movements": zod.array(zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "movementType": zod.string(),
+  "availableDelta": zod.string(),
+  "heldDelta": zod.string(),
+  "pendingDelta": zod.string(),
+  "sourceType": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
  * @summary Owner-only masked creator payout profiles awaiting or completing review
  */
 export const ListAdminPayoutProfilesResponseItem = zod.object({

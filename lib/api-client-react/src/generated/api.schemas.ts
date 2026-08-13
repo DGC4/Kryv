@@ -1684,6 +1684,38 @@ export interface AdminFinanceLedger {
   paymentEvents: AdminFinanceLedgerPaymentEventsItem[];
 }
 
+export interface AdminCreatorBalance {
+  channelId: number;
+  channelSlug: string;
+  channelDisplayName: string;
+  creatorUsername: string;
+  currency: CryptoCurrency;
+  pendingAmount: string;
+  availableAmount: string;
+  heldAmount: string;
+  updatedAt: string;
+}
+
+export interface AdminCreatorBalanceMovement {
+  id: number;
+  currency: CryptoCurrency;
+  movementType: string;
+  availableDelta: string;
+  heldDelta: string;
+  pendingDelta: string;
+  sourceType: string;
+  createdAt: string;
+}
+
+export interface AdminCreatorBalanceDetail {
+  channelId: number;
+  channelSlug: string;
+  channelDisplayName: string;
+  creatorUsername: string;
+  balances: AdminCreatorBalance[];
+  movements: AdminCreatorBalanceMovement[];
+}
+
 export interface AdminFinanceOverview {
   assetLiabilities: AdminFinanceAssetLiability[];
   pendingProfileReviews: number;

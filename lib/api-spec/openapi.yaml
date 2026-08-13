@@ -1949,6 +1949,42 @@ paths:
                 $ref: "#/components/schemas/AdminFinanceLedger"
         "403": { description: Not an owner }
 
+  /admin/finance/creator-balances:
+    get:
+      operationId: listAdminCreatorBalances
+      tags: [admin-finance]
+      summary: Owner-only current creator balances grouped by channel and crypto asset
+      responses:
+        "200":
+          description: Current creator balance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminCreatorBalance"
+        "403": { description: Not an owner }
+
+  /admin/finance/creator-balances/{channelId}:
+    get:
+      operationId: getAdminCreatorBalanceDetail
+      tags: [admin-finance]
+      summary: Owner-only per-creator balances and recent immutable balance movements
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Creator balance drilldown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCreatorBalanceDetail"
+        "403": { description: Not an owner }
+        "404": { description: Channel not found }
+
   /admin/finance/payout-profiles:
     get:
       operationId: listAdminPayoutProfiles
@@ -3674,6 +3710,48 @@ components:
               errorCode: { type: ["string", "null"] }
               processedAt: { type: ["string", "null"], format: date-time }
               createdAt: { type: string, format: date-time }
+
+    AdminCreatorBalance:
+      type: object
+      required: [channelId, channelSlug, channelDisplayName, creatorUsername, currency, pendingAmount, availableAmount, heldAmount, updatedAt]
+      properties:
+        channelId: { type: integer }
+        channelSlug: { type: string }
+        channelDisplayName: { type: string }
+        creatorUsername: { type: string }
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        pendingAmount: { type: string }
+        availableAmount: { type: string }
+        heldAmount: { type: string }
+        updatedAt: { type: string, format: date-time }
+
+    AdminCreatorBalanceMovement:
+      type: object
+      required: [id, currency, movementType, availableDelta, heldDelta, pendingDelta, sourceType, createdAt]
+      properties:
+        id: { type: integer }
+        currency: { $ref: "#/components/schemas/CryptoCurrency" }
+        movementType: { type: string }
+        availableDelta: { type: string }
+        heldDelta: { type: string }
+        pendingDelta: { type: string }
+        sourceType: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    AdminCreatorBalanceDetail:
+      type: object
+      required: [channelId, channelSlug, channelDisplayName, creatorUsername, balances, movements]
+      properties:
+        channelId: { type: integer }
+        channelSlug: { type: string }
+        channelDisplayName: { type: string }
+        creatorUsername: { type: string }
+        balances:
+          type: array
+          items: { $ref: "#/components/schemas/AdminCreatorBalance" }
+        movements:
+          type: array
+          items: { $ref: "#/components/schemas/AdminCreatorBalanceMovement" }
 
     AdminFinanceOverview:
       type: object

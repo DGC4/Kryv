@@ -43,6 +43,8 @@ import type {
   AdminCinemaUploadSession,
   AdminCinemaUploadSessionInput,
   AdminCommandOverview,
+  AdminCreatorBalance,
+  AdminCreatorBalanceDetail,
   AdminFeatureFlag,
   AdminFinanceLedger,
   AdminFinanceOverview,
@@ -5533,6 +5535,160 @@ export function useGetAdminFinanceLedger<TData = Awaited<ReturnType<typeof getAd
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminFinanceLedgerQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAdminCreatorBalancesUrl = () => {
+
+
+
+
+  return `/api/admin/finance/creator-balances`
+}
+
+/**
+ * @summary Owner-only current creator balances grouped by channel and crypto asset
+ */
+export const listAdminCreatorBalances = async ( options?: RequestInit): Promise<AdminCreatorBalance[]> => {
+
+  return customFetch<AdminCreatorBalance[]>(getListAdminCreatorBalancesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminCreatorBalancesQueryKey = () => {
+    return [
+    `/api/admin/finance/creator-balances`
+    ] as const;
+    }
+
+
+export const getListAdminCreatorBalancesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminCreatorBalancesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminCreatorBalances>>> = ({ signal }) => listAdminCreatorBalances({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminCreatorBalancesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminCreatorBalances>>>
+export type ListAdminCreatorBalancesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only current creator balances grouped by channel and crypto asset
+ */
+
+export function useListAdminCreatorBalances<TData = Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminCreatorBalancesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminCreatorBalanceDetailUrl = (channelId: number,) => {
+
+
+
+
+  return `/api/admin/finance/creator-balances/${channelId}`
+}
+
+/**
+ * @summary Owner-only per-creator balances and recent immutable balance movements
+ */
+export const getAdminCreatorBalanceDetail = async (channelId: number, options?: RequestInit): Promise<AdminCreatorBalanceDetail> => {
+
+  return customFetch<AdminCreatorBalanceDetail>(getGetAdminCreatorBalanceDetailUrl(channelId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminCreatorBalanceDetailQueryKey = (channelId: number,) => {
+    return [
+    `/api/admin/finance/creator-balances/${channelId}`
+    ] as const;
+    }
+
+
+export const getGetAdminCreatorBalanceDetailQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError = ErrorType<void>>(channelId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminCreatorBalanceDetailQueryKey(channelId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>> = ({ signal }) => getAdminCreatorBalanceDetail(channelId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: channelId !== null && channelId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminCreatorBalanceDetailQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>>
+export type GetAdminCreatorBalanceDetailQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only per-creator balances and recent immutable balance movements
+ */
+
+export function useGetAdminCreatorBalanceDetail<TData = Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError = ErrorType<void>>(
+ channelId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCreatorBalanceDetail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminCreatorBalanceDetailQueryOptions(channelId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

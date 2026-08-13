@@ -48,6 +48,9 @@ import {
   UpdateAdminFeatureFlagBody,
   UpdateAdminFeatureFlagResponse,
   GetAdminFinanceOverviewResponse,
+  ListAdminCreatorBalancesResponse,
+  GetAdminCreatorBalanceDetailParams,
+  GetAdminCreatorBalanceDetailResponse,
   ListAdminPayoutProfilesResponse,
   ReviewAdminPayoutProfileParams,
   ReviewAdminPayoutProfileBody,
@@ -461,6 +464,109 @@ router.get("/admin/finance/ledger", requireOwner, async (_req, res): Promise<voi
       ...event,
       processedAt: event.processedAt?.toISOString() ?? null,
       createdAt: event.createdAt.toISOString(),
+    })),
+  }));
+});
+
+router.get("/admin/finance/creator-balances", requireOwner, async (_req, res): Promise<void> => {
+  const balances = await db
+    .select({
+      channelId: creatorBalancesTable.channelId,
+      channelSlug: channelsTable.slug,
+      channelDisplayName: channelsTable.displayName,
+      creatorUsername: usersTable.username,
+      currency: creatorBalancesTable.currency,
+      pendingAmount: creatorBalancesTable.pendingAmount,
+      availableAmount: creatorBalancesTable.availableAmount,
+      heldAmount: creatorBalancesTable.heldAmount,
+      updatedAt: creatorBalancesTable.updatedAt,
+    })
+    .from(creatorBalancesTable)
+    .innerJoin(channelsTable, eq(creatorBalancesTable.channelId, channelsTable.id))
+    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+    .orderBy(desc(creatorBalancesTable.updatedAt));
+
+  res.json(ListAdminCreatorBalancesResponse.parse(balances.map((balance) => ({
+    ...balance,
+    pendingAmount: toDecimalString(balance.pendingAmount),
+    availableAmount: toDecimalString(balance.availableAmount),
+    heldAmount: toDecimalString(balance.heldAmount),
+    updatedAt: balance.updatedAt.toISOString(),
+  }))));
+});
+
+router.get("/admin/finance/creator-balances/:channelId", requireOwner, async (req, res): Promise<void> => {
+  const params = GetAdminCreatorBalanceDetailParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [channel] = await db
+    .select({
+      channelId: channelsTable.id,
+      channelSlug: channelsTable.slug,
+      channelDisplayName: channelsTable.displayName,
+      creatorUsername: usersTable.username,
+    })
+    .from(channelsTable)
+    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+    .where(eq(channelsTable.id, params.data.channelId));
+  if (!channel) {
+    res.status(404).json({ error: "Channel not found" });
+    return;
+  }
+
+  const [balances, movements] = await Promise.all([
+    db
+      .select({
+        channelId: creatorBalancesTable.channelId,
+        channelSlug: channelsTable.slug,
+        channelDisplayName: channelsTable.displayName,
+        creatorUsername: usersTable.username,
+        currency: creatorBalancesTable.currency,
+        pendingAmount: creatorBalancesTable.pendingAmount,
+        availableAmount: creatorBalancesTable.availableAmount,
+        heldAmount: creatorBalancesTable.heldAmount,
+        updatedAt: creatorBalancesTable.updatedAt,
+      })
+      .from(creatorBalancesTable)
+      .innerJoin(channelsTable, eq(creatorBalancesTable.channelId, channelsTable.id))
+      .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+      .where(eq(creatorBalancesTable.channelId, channel.channelId))
+      .orderBy(desc(creatorBalancesTable.updatedAt)),
+    db
+      .select({
+        id: creatorBalanceMovementsTable.id,
+        currency: creatorBalanceMovementsTable.currency,
+        movementType: creatorBalanceMovementsTable.movementType,
+        availableDelta: creatorBalanceMovementsTable.availableDelta,
+        heldDelta: creatorBalanceMovementsTable.heldDelta,
+        pendingDelta: creatorBalanceMovementsTable.pendingDelta,
+        sourceType: creatorBalanceMovementsTable.sourceType,
+        createdAt: creatorBalanceMovementsTable.createdAt,
+      })
+      .from(creatorBalanceMovementsTable)
+      .where(eq(creatorBalanceMovementsTable.channelId, channel.channelId))
+      .orderBy(desc(creatorBalanceMovementsTable.createdAt))
+      .limit(50),
+  ]);
+
+  res.json(GetAdminCreatorBalanceDetailResponse.parse({
+    ...channel,
+    balances: balances.map((balance) => ({
+      ...balance,
+      pendingAmount: toDecimalString(balance.pendingAmount),
+      availableAmount: toDecimalString(balance.availableAmount),
+      heldAmount: toDecimalString(balance.heldAmount),
+      updatedAt: balance.updatedAt.toISOString(),
+    })),
+    movements: movements.map((movement) => ({
+      ...movement,
+      availableDelta: toDecimalString(movement.availableDelta),
+      heldDelta: toDecimalString(movement.heldDelta),
+      pendingDelta: toDecimalString(movement.pendingDelta),
+      createdAt: movement.createdAt.toISOString(),
     })),
   }));
 });
