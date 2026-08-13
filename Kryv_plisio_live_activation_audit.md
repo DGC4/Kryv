@@ -295,3 +295,10 @@ On **2026-08-13 EDT**, revision `d3d5b1a` (`fix: focus creator broadcast setup`)
 The deployed dashboard retained its existing safety surfaces during verification: masked stream credentials, explicit rotation control, offline preview state, local-only browser camera/microphone preflight, creator chat with delete/timeout/ban controls, engagement management tabs, and the OBS handoff guide. No stream key was rotated, stream settings changed, camera permission requested, chat message sent, payment initiated, or payout action performed.
 
 > This release improves the creator workflow only. It does not change the free-tier topology, the REST fallback for production chat, crypto settlement evidence, customer wallet custody, scheduled payout requests, or advertising-delivery gating.
+
+
+## Retained settlement gate recheck
+
+A final read-only production Neon query on **2026-08-13 EDT** found `payment_events=0`, `tips=0`, `creator_balance_movements=0`, and `creator_balances=0`. The owner-reported completed payment cannot be reconciled because its retained settlement evidence was deleted. Accordingly, there is no signed-provider callback, immutable payment event, settled tip row, 95% creator movement, 5% platform movement, or creator balance record that can prove the 95/5 flow in production.
+
+Creator Profile, Watch, and Cinema expansion remain gated by this missing retained evidence. This is an operating-evidence boundary rather than a known checkout, fee-policy, callback-code, or UI defect: the active 95/5 policy, deterministic allocation checks, signed callback path, crypto commerce runtime, and production invoice creation flow have already been reviewed. Customer wallet custody, scheduled payout requests, and advertising delivery remain disabled.
