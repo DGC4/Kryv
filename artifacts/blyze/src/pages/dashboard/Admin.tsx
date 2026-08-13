@@ -117,13 +117,13 @@ export default function DashboardAdmin() {
     { query: { enabled: me?.role === 'owner' && tab === 'cinema' } },
   );
   const { data: videos, isLoading: videosLoading } = useListAdminVideos({
-    query: { enabled: me?.role === 'owner' },
+    query: { enabled: me?.role === 'owner' && tab === 'videos' },
   });
   const { data: cinemaTitles, isLoading: cinemaTitlesLoading } = useListAdminCinemaTitles({
-    query: { enabled: me?.role === 'owner' },
+    query: { enabled: me?.role === 'owner' && tab === 'cinema' },
   });
   const { data: featureFlags, isLoading: featureFlagsLoading } = useListAdminFeatureFlags({
-    query: { enabled: me?.role === 'owner' },
+    query: { enabled: me?.role === 'owner' && tab === 'operations' },
   });
   const financeOverviewQuery = useGetAdminFinanceOverview({
     query: { enabled: me?.role === 'owner' && tab === 'finance', refetchInterval: tab === 'finance' ? 15000 : false },
