@@ -2103,6 +2103,39 @@ paths:
                 $ref: "#/components/schemas/AdminFinanceOverview"
         "403": { description: Not an owner }
 
+  /admin/finance/context:
+    get:
+      operationId: getAdminTreasuryContext
+      tags: [admin-finance]
+      summary: Owner-only safe treasury operating labels and notes; never includes provider credentials, wallet addresses, or payout controls
+      responses:
+        "200":
+          description: Safe treasury operating context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTreasuryContext"
+        "403": { description: Not an owner }
+    put:
+      operationId: updateAdminTreasuryContext
+      tags: [admin-finance]
+      summary: Owner-only update of safe treasury operating labels and notes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTreasuryContextUpdate"
+      responses:
+        "200":
+          description: Updated safe treasury operating context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTreasuryContext"
+        "400": { description: Invalid safe context fields }
+        "403": { description: Not an owner }
+
   /admin/finance/ledger:
     get:
       operationId: getAdminFinanceLedger
@@ -3914,6 +3947,21 @@ components:
         providerTreasuryBalance: { type: ["string", "null"] }
         priceUsd: { type: ["string", "null"] }
         rateUpdatedAt: { type: ["string", "null"], format: date-time }
+
+    AdminTreasuryContext:
+      type: object
+      required: [label, notes, updatedAt]
+      properties:
+        label: { type: ["string", "null"], maxLength: 120, description: Owner-visible non-secret treasury label only }
+        notes: { type: ["string", "null"], maxLength: 2000, description: Owner-visible non-secret operational notes only }
+        updatedAt: { type: ["string", "null"], format: date-time }
+
+    AdminTreasuryContextUpdate:
+      type: object
+      required: [label, notes]
+      properties:
+        label: { type: ["string", "null"], maxLength: 120 }
+        notes: { type: ["string", "null"], maxLength: 2000 }
 
     AdminFinanceLedger:
       type: object

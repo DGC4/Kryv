@@ -10,6 +10,7 @@ import {
   userActivityPresenceTable,
   videosTable,
   featureFlagsTable,
+  adminTreasuryContextTable,
   creatorBalanceMovementsTable,
   creatorBalancesTable,
   creatorPayoutProfilesTable,
@@ -50,6 +51,9 @@ import {
   UpdateAdminFeatureFlagBody,
   UpdateAdminFeatureFlagResponse,
   GetAdminFinanceOverviewResponse,
+  GetAdminTreasuryContextResponse,
+  UpdateAdminTreasuryContextBody,
+  UpdateAdminTreasuryContextResponse,
   ListAdminCreatorBalancesResponse,
   GetAdminCreatorBalanceDetailParams,
   GetAdminCreatorBalanceDetailResponse,
@@ -416,6 +420,48 @@ router.get("/admin/analytics", requireOwner, async (req, res): Promise<void> => 
       creatorNetAmount: toDecimalString(asset.creatorNetAmount),
     })),
   }));
+});
+
+function toAdminTreasuryContext(row: typeof adminTreasuryContextTable.$inferSelect | undefined) {
+  return {
+    label: row?.label ?? null,
+    notes: row?.notes ?? null,
+    updatedAt: row?.updatedAt ?? null,
+  };
+}
+
+router.get("/admin/finance/context", requireOwner, async (_req, res): Promise<void> => {
+  const [context] = await db.select().from(adminTreasuryContextTable).where(eq(adminTreasuryContextTable.id, 1));
+  res.json(GetAdminTreasuryContextResponse.parse(toAdminTreasuryContext(context)));
+});
+
+router.put("/admin/finance/context", requireOwner, async (req, res): Promise<void> => {
+  const body = UpdateAdminTreasuryContextBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const label = body.data.label?.trim() || null;
+  const notes = body.data.notes?.trim() || null;
+  const [before] = await db.select().from(adminTreasuryContextTable).where(eq(adminTreasuryContextTable.id, 1));
+  const now = new Date();
+  const [updated] = await db.insert(adminTreasuryContextTable)
+    .values({ id: 1, label, notes, updatedByUserId: req.user!.userId, updatedAt: now })
+    .onConflictDoUpdate({
+      target: adminTreasuryContextTable.id,
+      set: { label, notes, updatedByUserId: req.user!.userId, updatedAt: now },
+    })
+    .returning();
+
+  await writeAuditLog(req, {
+    action: "admin.treasury_context.update",
+    targetType: "admin_treasury_context",
+    targetId: "1",
+    beforeState: toAdminTreasuryContext(before),
+    afterState: toAdminTreasuryContext(updated),
+  });
+  res.json(UpdateAdminTreasuryContextResponse.parse(toAdminTreasuryContext(updated)));
 });
 
 router.get("/admin/finance/ledger", requireOwner, async (_req, res): Promise<void> => {

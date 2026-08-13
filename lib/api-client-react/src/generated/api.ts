@@ -53,6 +53,8 @@ import type {
   AdminPayoutProfile,
   AdminPayoutRequest,
   AdminStats,
+  AdminTreasuryContext,
+  AdminTreasuryContextUpdate,
   AdminUser,
   AdminUserActivityDetail,
   AdminUserPage,
@@ -5851,6 +5853,154 @@ export function useGetAdminFinanceOverview<TData = Awaited<ReturnType<typeof get
 
 
 
+
+export const getGetAdminTreasuryContextUrl = () => {
+
+
+
+
+  return `/api/admin/finance/context`
+}
+
+/**
+ * @summary Owner-only safe treasury operating labels and notes; never includes provider credentials, wallet addresses, or payout controls
+ */
+export const getAdminTreasuryContext = async ( options?: RequestInit): Promise<AdminTreasuryContext> => {
+
+  return customFetch<AdminTreasuryContext>(getGetAdminTreasuryContextUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminTreasuryContextQueryKey = () => {
+    return [
+    `/api/admin/finance/context`
+    ] as const;
+    }
+
+
+export const getGetAdminTreasuryContextQueryOptions = <TData = Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminTreasuryContextQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminTreasuryContext>>> = ({ signal }) => getAdminTreasuryContext({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminTreasuryContextQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminTreasuryContext>>>
+export type GetAdminTreasuryContextQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only safe treasury operating labels and notes; never includes provider credentials, wallet addresses, or payout controls
+ */
+
+export function useGetAdminTreasuryContext<TData = Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminTreasuryContext>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminTreasuryContextQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminTreasuryContextUrl = () => {
+
+
+
+
+  return `/api/admin/finance/context`
+}
+
+/**
+ * @summary Owner-only update of safe treasury operating labels and notes
+ */
+export const updateAdminTreasuryContext = async (adminTreasuryContextUpdate: AdminTreasuryContextUpdate, options?: RequestInit): Promise<AdminTreasuryContext> => {
+
+  return customFetch<AdminTreasuryContext>(getUpdateAdminTreasuryContextUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminTreasuryContextUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminTreasuryContextMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminTreasuryContext>>, TError,{data: BodyType<AdminTreasuryContextUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminTreasuryContext>>, TError,{data: BodyType<AdminTreasuryContextUpdate>}, TContext> => {
+
+const mutationKey = ['updateAdminTreasuryContext'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminTreasuryContext>>, {data: BodyType<AdminTreasuryContextUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAdminTreasuryContext(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminTreasuryContextMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminTreasuryContext>>>
+    export type UpdateAdminTreasuryContextMutationBody = BodyType<AdminTreasuryContextUpdate>
+    export type UpdateAdminTreasuryContextMutationError = ErrorType<void>
+
+    /**
+ * @summary Owner-only update of safe treasury operating labels and notes
+ */
+export const useUpdateAdminTreasuryContext = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminTreasuryContext>>, TError,{data: BodyType<AdminTreasuryContextUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminTreasuryContext>>,
+        TError,
+        {data: BodyType<AdminTreasuryContextUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminTreasuryContextMutationOptions(options));
+    }
 
 export const getGetAdminFinanceLedgerUrl = () => {
 

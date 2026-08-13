@@ -32,6 +32,9 @@ import {
   getListAdminFeatureFlagsQueryKey,
   useGetAdminFinanceLedger,
   useGetAdminFinanceOverview,
+  useGetAdminTreasuryContext,
+  useUpdateAdminTreasuryContext,
+  getGetAdminTreasuryContextQueryKey,
   useListAdminCreatorBalances,
   useGetAdminCreatorBalanceDetail,
   useListAdminPayoutProfiles,
@@ -128,6 +131,9 @@ export default function DashboardAdmin() {
   const financeLedgerQuery = useGetAdminFinanceLedger({
     query: { enabled: me?.role === 'owner' && tab === 'finance', refetchInterval: tab === 'finance' ? 15000 : false },
   });
+  const treasuryContextQuery = useGetAdminTreasuryContext({
+    query: { enabled: me?.role === 'owner' && tab === 'finance' },
+  });
   const creatorBalancesQuery = useListAdminCreatorBalances({
     query: { enabled: me?.role === 'owner' && tab === 'finance', refetchInterval: tab === 'finance' ? 15000 : false },
   });
@@ -179,6 +185,8 @@ export default function DashboardAdmin() {
   const [adBudgetUsd, setAdBudgetUsd] = useState('');
   const [adCreatorShare, setAdCreatorShare] = useState('0');
   const [adEndsAt, setAdEndsAt] = useState(() => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16));
+  const [treasuryLabel, setTreasuryLabel] = useState('');
+  const [treasuryNotes, setTreasuryNotes] = useState('');
 
   const updateUser = useUpdateAdminUser();
   const deleteChannel = useDeleteAdminChannel();
@@ -197,6 +205,13 @@ export default function DashboardAdmin() {
   const createAdminAdFundingInvoice = useCreateAdminAdFundingInvoice();
   const approveAdminAdCampaign = useApproveAdminAdCampaign();
   const reviewAdminModerationCase = useReviewAdminModerationCase();
+  const updateAdminTreasuryContext = useUpdateAdminTreasuryContext();
+
+  React.useEffect(() => {
+    if (!treasuryContextQuery.data) return;
+    setTreasuryLabel(treasuryContextQuery.data.label ?? '');
+    setTreasuryNotes(treasuryContextQuery.data.notes ?? '');
+  }, [treasuryContextQuery.data?.updatedAt]);
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
@@ -236,8 +251,20 @@ export default function DashboardAdmin() {
 
   const refreshFinanceCommand = () => {
     queryClient.invalidateQueries({ queryKey: getGetAdminFinanceOverviewQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetAdminTreasuryContextQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListAdminPayoutProfilesQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListAdminPayoutRequestsQueryKey() });
+  };
+
+  const saveTreasuryContext = (event: React.FormEvent) => {
+    event.preventDefault();
+    updateAdminTreasuryContext.mutate({ data: { label: treasuryLabel.trim() || null, notes: treasuryNotes.trim() || null } }, {
+      onSuccess: () => {
+        refreshFinanceCommand();
+        toast({ title: 'Treasury operating context saved', description: 'The safe label and notes were audit logged. No wallet address, provider key, custody record, or payout instruction was changed.' });
+      },
+      onError: (error: any) => toast({ title: 'Treasury context could not be saved', description: error?.body?.error || error?.message || 'The safe operating note was not changed.', variant: 'destructive' }),
+    });
   };
 
   const refreshAdsCommand = () => adsOverviewQuery.refetch();
@@ -555,6 +582,8 @@ export default function DashboardAdmin() {
                 <StatCard label="Payout requests" value={financeOverviewQuery.data?.payoutRequestsEnabled ? 1 : 0} icon={Wallet} accent={Boolean(financeOverviewQuery.data?.payoutRequestsEnabled)} />
                 <StatCard label="Provider withdrawals" value={financeOverviewQuery.data?.providerWithdrawalsEnabled ? 1 : 0} icon={Send} accent={Boolean(financeOverviewQuery.data?.providerWithdrawalsEnabled)} />
               </div>
+
+              <section className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2 text-primary"><Landmark className="h-4 w-4" /><h3 className="text-sm font-black text-white">Treasury operating context</h3></div><p className="mt-1 max-w-3xl text-xs leading-relaxed text-white/45">A safe, owner-visible label and note for the finance desk. This is not a wallet configuration surface and cannot store provider keys, seed phrases, full addresses, custody data, or payout instructions.</p></div>{treasuryContextQuery.data?.updatedAt && <p className="shrink-0 text-[10px] text-white/35">Updated {new Date(treasuryContextQuery.data.updatedAt).toLocaleString()}</p>}</div>{treasuryContextQuery.isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : treasuryContextQuery.isError ? <div className="mt-4 rounded-xl border border-red-300/20 bg-red-400/[0.05] p-3 text-xs text-red-100">The safe treasury context could not be loaded. No context values are shown or changed.</div> : <form onSubmit={saveTreasuryContext} className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_auto]"><label className="text-xs font-bold text-white/65">Desk label<input value={treasuryLabel} onChange={(event) => setTreasuryLabel(event.target.value)} maxLength={120} placeholder="e.g. Kryv operating treasury" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" /></label><label className="text-xs font-bold text-white/65">Safe operating note<textarea value={treasuryNotes} onChange={(event) => setTreasuryNotes(event.target.value)} maxLength={2000} rows={3} placeholder="Non-secret handoff context for the operator desk" className="mt-1.5 w-full resize-y rounded-xl border border-white/[0.1] bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-primary/60" /></label><div className="flex items-end"><Button type="submit" disabled={updateAdminTreasuryContext.isPending} className="min-h-11 w-full font-black lg:w-auto">{updateAdminTreasuryContext.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save safe context'}</Button></div></form>}<p className="mt-3 text-[10px] leading-relaxed text-amber-100/75">Hard boundary: provider withdrawals, customer custody, scheduled payout requests, and ad delivery remain operationally disabled. Saving this context does not alter those gates.</p></section>
 
               <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-black/25">
                 <div className="flex flex-col gap-2 border-b border-white/[0.07] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-black text-white">Creator liability by asset</h3><p className="mt-1 text-xs text-white/40">On-platform pending, available, and held balance projections. These are not provider treasury balances.</p></div><span className="text-[10px] font-bold uppercase tracking-widest text-white/35">Crypto only</span></div>

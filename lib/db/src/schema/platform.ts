@@ -592,3 +592,16 @@ export const featureFlagsTable = pgTable("feature_flags", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+
+// Singleton owner context for non-secret treasury operating labels and notes only.
+// Wallet addresses, provider credentials, custody balances, and payout instructions
+// are intentionally absent from this schema.
+export const adminTreasuryContextTable = pgTable("admin_treasury_context", {
+  id: integer("id").primaryKey().default(1),
+  label: text("label"),
+  notes: text("notes"),
+  updatedByUserId: integer("updated_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

@@ -2480,6 +2480,49 @@ export const GetAdminFinanceOverviewResponse = zod.object({
 
 
 /**
+ * @summary Owner-only safe treasury operating labels and notes; never includes provider credentials, wallet addresses, or payout controls
+ */
+export const getAdminTreasuryContextResponseLabelMax = 120;
+
+export const getAdminTreasuryContextResponseNotesMax = 2000;
+
+
+
+export const GetAdminTreasuryContextResponse = zod.object({
+  "label": zod.string().max(getAdminTreasuryContextResponseLabelMax).nullable().describe('Owner-visible non-secret treasury label only'),
+  "notes": zod.string().max(getAdminTreasuryContextResponseNotesMax).nullable().describe('Owner-visible non-secret operational notes only'),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Owner-only update of safe treasury operating labels and notes
+ */
+export const updateAdminTreasuryContextBodyLabelMax = 120;
+
+export const updateAdminTreasuryContextBodyNotesMax = 2000;
+
+
+
+export const UpdateAdminTreasuryContextBody = zod.object({
+  "label": zod.string().max(updateAdminTreasuryContextBodyLabelMax).nullable(),
+  "notes": zod.string().max(updateAdminTreasuryContextBodyNotesMax).nullable()
+})
+
+export const updateAdminTreasuryContextResponseLabelMax = 120;
+
+export const updateAdminTreasuryContextResponseNotesMax = 2000;
+
+
+
+export const UpdateAdminTreasuryContextResponse = zod.object({
+  "label": zod.string().max(updateAdminTreasuryContextResponseLabelMax).nullable().describe('Owner-visible non-secret treasury label only'),
+  "notes": zod.string().max(updateAdminTreasuryContextResponseNotesMax).nullable().describe('Owner-visible non-secret operational notes only'),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
  * @summary Owner-only recent immutable revenue, creator-balance, and sanitized payment-event activity
  */
 export const GetAdminFinanceLedgerResponse = zod.object({

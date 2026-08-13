@@ -87,6 +87,8 @@ export * from './adminModerationCaseStatus';
 export * from './adminPayoutProfile';
 export * from './adminPayoutRequest';
 export * from './adminStats';
+export * from './adminTreasuryContext';
+export * from './adminTreasuryContextUpdate';
 export * from './adminUser';
 export * from './adminUserActivityDetail';
 export * from './adminUserActivityEvent';

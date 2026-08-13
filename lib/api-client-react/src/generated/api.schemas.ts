@@ -1734,6 +1734,36 @@ export interface AdminFinanceAssetLiability {
   rateUpdatedAt: string | null;
 }
 
+export interface AdminTreasuryContext {
+  /**
+     * Owner-visible non-secret treasury label only
+     * @maxLength 120
+     * @nullable
+     */
+  label: string | null;
+  /**
+     * Owner-visible non-secret operational notes only
+     * @maxLength 2000
+     * @nullable
+     */
+  notes: string | null;
+  /** @nullable */
+  updatedAt: string | null;
+}
+
+export interface AdminTreasuryContextUpdate {
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  label: string | null;
+  /**
+     * @maxLength 2000
+     * @nullable
+     */
+  notes: string | null;
+}
+
 export type AdminFinanceLedgerPlatformRevenueItem = {
   id: number;
   channelId: number;
