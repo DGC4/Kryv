@@ -26,6 +26,9 @@ import type {
   AdBreak,
   AdBreakInput,
   AdDecision,
+  AdminAdCampaign,
+  AdminAdFundingInvoice,
+  AdminAdsOverview,
   AdminCinemaAsset,
   AdminCinemaAssetInput,
   AdminCinemaRightsWindow,
@@ -64,6 +67,8 @@ import type {
   CinemaTitle,
   ClipInput,
   ClipSummary,
+  CreateAdminAdCampaignInput,
+  CreateAdminAdFundingInvoiceInput,
   CreateCreatorPayoutRequestInput,
   CreateCustomerWalletDepositAddressInput,
   CreatorAchievement,
@@ -5135,6 +5140,297 @@ export const useReviewAdminPayoutRequest = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getReviewAdminPayoutRequestMutationOptions(options));
+    }
+
+export const getGetAdminAdsOverviewUrl = () => {
+
+
+
+
+  return `/api/admin/ads/overview`
+}
+
+/**
+ * @summary Owner-only advertising campaign, funding, and revenue-control overview
+ */
+export const getAdminAdsOverview = async ( options?: RequestInit): Promise<AdminAdsOverview> => {
+
+  return customFetch<AdminAdsOverview>(getGetAdminAdsOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminAdsOverviewQueryKey = () => {
+    return [
+    `/api/admin/ads/overview`
+    ] as const;
+    }
+
+
+export const getGetAdminAdsOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAdsOverview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAdsOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminAdsOverviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAdsOverview>>> = ({ signal }) => getAdminAdsOverview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAdsOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminAdsOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAdsOverview>>>
+export type GetAdminAdsOverviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary Owner-only advertising campaign, funding, and revenue-control overview
+ */
+
+export function useGetAdminAdsOverview<TData = Awaited<ReturnType<typeof getAdminAdsOverview>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAdsOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminAdsOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminAdCampaignUrl = () => {
+
+
+
+
+  return `/api/admin/ads/campaigns`
+}
+
+/**
+ * @summary Create a draft owner-controlled promotional or crypto-funded advertiser campaign
+ */
+export const createAdminAdCampaign = async (createAdminAdCampaignInput: CreateAdminAdCampaignInput, options?: RequestInit): Promise<AdminAdCampaign> => {
+
+  return customFetch<AdminAdCampaign>(getCreateAdminAdCampaignUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createAdminAdCampaignInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminAdCampaignMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAdCampaign>>, TError,{data: BodyType<CreateAdminAdCampaignInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminAdCampaign>>, TError,{data: BodyType<CreateAdminAdCampaignInput>}, TContext> => {
+
+const mutationKey = ['createAdminAdCampaign'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminAdCampaign>>, {data: BodyType<CreateAdminAdCampaignInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminAdCampaign(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminAdCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminAdCampaign>>>
+    export type CreateAdminAdCampaignMutationBody = BodyType<CreateAdminAdCampaignInput>
+    export type CreateAdminAdCampaignMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a draft owner-controlled promotional or crypto-funded advertiser campaign
+ */
+export const useCreateAdminAdCampaign = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAdCampaign>>, TError,{data: BodyType<CreateAdminAdCampaignInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminAdCampaign>>,
+        TError,
+        {data: BodyType<CreateAdminAdCampaignInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminAdCampaignMutationOptions(options));
+    }
+
+export const getCreateAdminAdFundingInvoiceUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/ads/campaigns/${id}/funding-invoice`
+}
+
+/**
+ * @summary Create a crypto-only advertiser funding invoice for an unfunded paid campaign
+ */
+export const createAdminAdFundingInvoice = async (id: number,
+    createAdminAdFundingInvoiceInput: CreateAdminAdFundingInvoiceInput, options?: RequestInit): Promise<AdminAdFundingInvoice> => {
+
+  return customFetch<AdminAdFundingInvoice>(getCreateAdminAdFundingInvoiceUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createAdminAdFundingInvoiceInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminAdFundingInvoiceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAdFundingInvoice>>, TError,{id: number;data: BodyType<CreateAdminAdFundingInvoiceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminAdFundingInvoice>>, TError,{id: number;data: BodyType<CreateAdminAdFundingInvoiceInput>}, TContext> => {
+
+const mutationKey = ['createAdminAdFundingInvoice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminAdFundingInvoice>>, {id: number;data: BodyType<CreateAdminAdFundingInvoiceInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createAdminAdFundingInvoice(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminAdFundingInvoiceMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminAdFundingInvoice>>>
+    export type CreateAdminAdFundingInvoiceMutationBody = BodyType<CreateAdminAdFundingInvoiceInput>
+    export type CreateAdminAdFundingInvoiceMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a crypto-only advertiser funding invoice for an unfunded paid campaign
+ */
+export const useCreateAdminAdFundingInvoice = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAdFundingInvoice>>, TError,{id: number;data: BodyType<CreateAdminAdFundingInvoiceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminAdFundingInvoice>>,
+        TError,
+        {id: number;data: BodyType<CreateAdminAdFundingInvoiceInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminAdFundingInvoiceMutationOptions(options));
+    }
+
+export const getApproveAdminAdCampaignUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/ads/campaigns/${id}/approve`
+}
+
+/**
+ * @summary Approve an owner-controlled promotional flight or signed crypto-funded campaign for delivery
+ */
+export const approveAdminAdCampaign = async (id: number, options?: RequestInit): Promise<AdminAdCampaign> => {
+
+  return customFetch<AdminAdCampaign>(getApproveAdminAdCampaignUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getApproveAdminAdCampaignMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveAdminAdCampaign>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveAdminAdCampaign>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['approveAdminAdCampaign'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveAdminAdCampaign>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  approveAdminAdCampaign(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveAdminAdCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof approveAdminAdCampaign>>>
+
+    export type ApproveAdminAdCampaignMutationError = ErrorType<void>
+
+    /**
+ * @summary Approve an owner-controlled promotional flight or signed crypto-funded campaign for delivery
+ */
+export const useApproveAdminAdCampaign = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveAdminAdCampaign>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveAdminAdCampaign>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getApproveAdminAdCampaignMutationOptions(options));
     }
 
 export const getGetAdminStatsUrl = () => {

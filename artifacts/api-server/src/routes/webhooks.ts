@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
 
-import { cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { adCampaignFundingsTable, adCampaignsTable, adRevenueMovementsTable, cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { addCryptoAmounts, compareCryptoAmounts, KRYV_PLATFORM_FEE_BPS, normalizeCryptoAmount, quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
 import { enqueueDurableJob } from "../lib/jobs";
 import { deleteSharedKey, publishRealtimeEvent } from "../lib/realtime";
@@ -372,6 +372,67 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
       .from(paymentIntentsTable)
       .where(and(eq(paymentIntentsTable.orderNumber, orderNumber), eq(paymentIntentsTable.provider, "plisio")))
       .limit(1);
+
+    const [adFunding] = !intent
+      ? await db.select().from(adCampaignFundingsTable).where(and(eq(adCampaignFundingsTable.orderNumber, orderNumber), eq(adCampaignFundingsTable.provider, "plisio"))).limit(1)
+      : [undefined];
+
+    if (!intent && adFunding) {
+      if (providerStatus !== "completed") {
+        const fundingStatus = ["cancelled", "expired"].includes(providerStatus) ? "cancelled" : providerStatus === "error" ? "failed" : "pending";
+        await db.transaction(async (txn) => {
+          await txn.update(adCampaignFundingsTable).set({ providerPaymentId: transactionId, status: fundingStatus, updatedAt: new Date() }).where(and(eq(adCampaignFundingsTable.id, adFunding.id), ne(adCampaignFundingsTable.status, "confirmed")));
+          if (fundingStatus !== "pending") await txn.update(adCampaignsTable).set({ fundingStatus: "unfunded", updatedAt: new Date() }).where(eq(adCampaignsTable.id, adFunding.campaignId));
+        });
+        await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
+        res.status(200).json({ received: true, status: fundingStatus });
+        return;
+      }
+      let adTerms: VerifiedPlisioSettlementTerms;
+      try {
+        adTerms = verifiedPlisioSettlementTerms(callback);
+      } catch (error) {
+        await db.update(paymentEventsTable).set({ processingStatus: "failed", errorCode: "invalid_ad_funding_terms" }).where(eq(paymentEventsTable.id, event.id));
+        res.status(422).json({ error: error instanceof Error ? error.message : "Invalid advertiser crypto funding terms" });
+        return;
+      }
+      const fundingSettlement = await db.transaction(async (txn) => {
+        const [confirmedFunding] = await txn.update(adCampaignFundingsTable).set({
+          providerPaymentId: transactionId,
+          selectedCurrency: adTerms.currency,
+          invoiceAmount: adTerms.invoiceAmount,
+          invoiceCommission: adTerms.invoiceCommission,
+          invoiceTotal: adTerms.invoiceTotal,
+          receivedAmount: adTerms.receivedAmount,
+          status: "confirmed",
+          confirmedAt: new Date(),
+          updatedAt: new Date(),
+          metadata: {
+            ...((adFunding.metadata ?? {}) as Record<string, unknown>),
+            settlement: { ...adTerms, providerFeePaidBy: "client", confirmations: typeof callback.confirmations === "string" || typeof callback.confirmations === "number" ? String(callback.confirmations) : null },
+          },
+        }).where(and(eq(adCampaignFundingsTable.id, adFunding.id), ne(adCampaignFundingsTable.status, "confirmed"))).returning();
+        if (!confirmedFunding) return { duplicate: true };
+        await txn.update(adCampaignsTable).set({ fundingStatus: "funded", updatedAt: new Date() }).where(eq(adCampaignsTable.id, adFunding.campaignId));
+        await txn.insert(adRevenueMovementsTable).values({
+          campaignId: adFunding.campaignId,
+          fundingId: confirmedFunding.id,
+          currency: adTerms.currency,
+          movementType: "advertiser_funding_settled",
+          grossAmount: adTerms.invoiceAmount,
+          platformAmount: adTerms.invoiceAmount,
+          creatorAmount: "0",
+          sourceType: "ad_campaign_funding",
+          sourceId: String(confirmedFunding.id),
+          idempotencyKey: `ad-funding-settlement:${confirmedFunding.id}`,
+          metadata: { fundingType: adFunding.fundingType, providerPaymentId: transactionId, ...adTerms, providerFeePaidBy: "client" },
+        }).onConflictDoNothing();
+        return { duplicate: false };
+      });
+      await db.update(paymentEventsTable).set({ processingStatus: "processed", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));
+      res.status(200).json({ received: true, advertiserFundingConfirmed: !fundingSettlement.duplicate, duplicate: fundingSettlement.duplicate });
+      return;
+    }
 
     if (!intent) {
       await db.update(paymentEventsTable).set({ processingStatus: "failed", errorCode: "unknown_order", processedAt: new Date() }).where(eq(paymentEventsTable.id, event.id));

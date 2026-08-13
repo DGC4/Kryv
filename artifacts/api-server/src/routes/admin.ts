@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { z } from "zod";
 import {
   db,
   usersTable,
@@ -14,6 +15,9 @@ import {
   creatorPayoutProfilesTable,
   payoutRequestsTable,
   payoutApprovalsTable,
+  adCampaignsTable,
+  adCampaignFundingsTable,
+  adRevenueMovementsTable,
 } from "@workspace/db";
 import {
   GetAdminStatsResponse,
@@ -45,7 +49,7 @@ import { requireOwner } from "../lib/auth";
 import { toChannelSummary } from "../lib/channelSerializer";
 import { toVideoSummary } from "../lib/videoSerializer";
 import { writeAuditLog } from "../lib/operations";
-import { getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode } from "../lib/plisio";
+import { createPlisioInvoice, getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode, type KryvCryptoCode } from "../lib/plisio";
 import { enqueueDurableJob } from "../lib/jobs";
 import { executeOwnerApprovedPayout } from "../lib/payoutExecution";
 
@@ -69,6 +73,62 @@ function toAdminFeatureFlag(row: { key: string; enabled: boolean; description: s
 
 function toDecimalString(value: unknown) {
   return typeof value === "string" ? value : String(value ?? "0");
+}
+
+const CryptoCode = z.enum(["BTC", "LTC", "ETH", "DOGE"]);
+const AdCampaignIdParams = z.object({ id: z.coerce.number().int().positive() });
+const CreateAdminAdCampaignBody = z.object({
+  name: z.string().trim().min(2).max(140),
+  advertiserName: z.string().trim().min(2).max(140).optional(),
+  fundingMode: z.enum(["promotional", "paid"]),
+  budgetUsd: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  creatorShareBps: z.number().int().min(0).max(10_000).default(0),
+  startsAt: z.coerce.date().optional(),
+  endsAt: z.coerce.date(),
+}).superRefine((value, ctx) => {
+  if (value.endsAt <= (value.startsAt ?? new Date())) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["endsAt"], message: "Campaign end time must be later than its start time." });
+  }
+  if (value.fundingMode === "paid" && (!value.budgetUsd || Number(value.budgetUsd) <= 0)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["budgetUsd"], message: "A positive USD reference budget is required to create a crypto-funded campaign invoice." });
+  }
+});
+const CreateAdminAdFundingInvoiceBody = z.object({ cryptoCurrency: CryptoCode.optional() });
+
+function toAdminAdCampaign(row: {
+  id: number;
+  name: string;
+  advertiserName: string | null;
+  campaignType: string;
+  status: string;
+  fundingMode: string;
+  fundingStatus: string;
+  budgetAmount: unknown;
+  budgetCurrency: string | null;
+  budgetSpentAmount: unknown;
+  creatorShareBps: number;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  approvedAt: Date | null;
+  createdAt: Date;
+}) {
+  return {
+    id: row.id,
+    name: row.name,
+    advertiserName: row.advertiserName,
+    campaignType: row.campaignType,
+    status: row.status,
+    fundingMode: row.fundingMode,
+    fundingStatus: row.fundingStatus,
+    budgetAmount: row.budgetAmount === null ? null : toDecimalString(row.budgetAmount),
+    budgetCurrency: row.budgetCurrency,
+    budgetSpentAmount: toDecimalString(row.budgetSpentAmount),
+    creatorShareBps: row.creatorShareBps,
+    startsAt: row.startsAt,
+    endsAt: row.endsAt,
+    approvedAt: row.approvedAt,
+    createdAt: row.createdAt,
+  };
 }
 
 function toAdminPayoutProfile(row: any) {
@@ -108,6 +168,11 @@ function toAdminPayoutRequest(row: any) {
     channelDisplayName: row.channelDisplayName,
     creatorUsername: row.creatorUsername,
   };
+}
+
+async function isOperationalFeatureEnabled(key: string) {
+  const [flag] = await db.select({ enabled: featureFlagsTable.enabled }).from(featureFlagsTable).where(eq(featureFlagsTable.key, key)).limit(1);
+  return Boolean(flag?.enabled);
 }
 
 async function getFinanceFlags() {
@@ -461,6 +526,181 @@ router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (re
     return;
   }
   res.json(ReviewAdminPayoutRequestResponse.parse(toAdminPayoutRequest(after!)));
+});
+
+router.get("/admin/ads/overview", requireOwner, async (_req, res): Promise<void> => {
+  const [campaignRows, fundingRows, revenueRows] = await Promise.all([
+    db.select().from(adCampaignsTable).orderBy(desc(adCampaignsTable.createdAt)).limit(24),
+    db.select({
+      pending: sql<number>`count(*) filter (where ${adCampaignFundingsTable.status} in ('creating', 'pending'))`.mapWith(Number),
+      confirmed: sql<number>`count(*) filter (where ${adCampaignFundingsTable.status} = 'confirmed')`.mapWith(Number),
+    }).from(adCampaignFundingsTable),
+    db.select({
+      currency: adRevenueMovementsTable.currency,
+      grossAmount: sql<string>`coalesce(sum(${adRevenueMovementsTable.grossAmount}), 0)::text`,
+      platformAmount: sql<string>`coalesce(sum(${adRevenueMovementsTable.platformAmount}), 0)::text`,
+      creatorAmount: sql<string>`coalesce(sum(${adRevenueMovementsTable.creatorAmount}), 0)::text`,
+    }).from(adRevenueMovementsTable).groupBy(adRevenueMovementsTable.currency),
+  ]);
+  res.json({
+    campaigns: campaignRows.map(toAdminAdCampaign),
+    pendingFundings: fundingRows[0]?.pending ?? 0,
+    confirmedFundings: fundingRows[0]?.confirmed ?? 0,
+    revenue: revenueRows.map((row) => ({ ...row, grossAmount: toDecimalString(row.grossAmount), platformAmount: toDecimalString(row.platformAmount), creatorAmount: toDecimalString(row.creatorAmount) })),
+    deliveryEnabled: await isOperationalFeatureEnabled("ads_delivery"),
+    policy: {
+      paidDelivery: "Paid campaigns require a signed crypto funding confirmation, owner approval, an active rule, and an active creative.",
+      promotion: "Free launch flights require owner approval, an explicit end time, an active rule, and an active creative.",
+      creatorAllocation: "No creator ad revenue is credited unless a campaign has an explicit approved allocation and qualified delivery accounting.",
+    },
+  });
+});
+
+router.post("/admin/ads/campaigns", requireOwner, async (req, res): Promise<void> => {
+  const body = CreateAdminAdCampaignBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+  const campaign = body.data;
+  const [created] = await db.insert(adCampaignsTable).values({
+    name: campaign.name,
+    advertiserName: campaign.advertiserName ?? null,
+    campaignType: campaign.fundingMode === "paid" ? "sponsored" : "house",
+    status: "draft",
+    fundingMode: campaign.fundingMode,
+    fundingStatus: campaign.fundingMode === "paid" ? "unfunded" : "promotional_pending",
+    budgetAmount: campaign.budgetUsd ?? null,
+    budgetCurrency: campaign.budgetUsd ? "USD" : null,
+    creatorShareBps: campaign.creatorShareBps,
+    startsAt: campaign.startsAt ?? new Date(),
+    endsAt: campaign.endsAt,
+    createdByUserId: req.user!.userId,
+  }).returning();
+  await writeAuditLog(req, {
+    action: "advertising_campaign.created",
+    targetType: "ad_campaign",
+    targetId: String(created.id),
+    afterState: toAdminAdCampaign(created),
+  });
+  res.status(201).json(toAdminAdCampaign(created));
+});
+
+router.post("/admin/ads/campaigns/:id/funding-invoice", requireOwner, async (req, res): Promise<void> => {
+  const params = AdCampaignIdParams.safeParse(req.params);
+  const body = CreateAdminAdFundingInvoiceBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: params.success ? body.error.message : params.error.message });
+    return;
+  }
+  if (!isPlisioConfigured()) {
+    res.status(503).json({ error: "Crypto provider configuration is incomplete; a campaign funding invoice cannot be created." });
+    return;
+  }
+  const [campaign] = await db.select().from(adCampaignsTable).where(eq(adCampaignsTable.id, params.data.id)).limit(1);
+  if (!campaign) {
+    res.status(404).json({ error: "Advertising campaign not found." });
+    return;
+  }
+  if (campaign.fundingMode !== "paid" || !campaign.budgetAmount || ["funded", "invoice_pending"].includes(campaign.fundingStatus)) {
+    res.status(409).json({ error: "A funding invoice is available only for an unfunded paid campaign with no active funding invoice." });
+    return;
+  }
+  const orderNumber = `kryv_ad_campaign_${campaign.id}_${crypto.randomUUID()}`;
+  try {
+    const invoice = await createPlisioInvoice({
+      orderNumber,
+      orderName: `Kryv advertising · ${campaign.name}`,
+      sourceAmountUsd: toDecimalString(campaign.budgetAmount),
+      currency: body.data.cryptoCurrency as KryvCryptoCode | undefined,
+      description: `Kryv advertiser campaign funding for ${campaign.name}`,
+      successPath: "/admin?advertising=funding-confirmed",
+      failurePath: "/admin?advertising=funding-cancelled",
+    });
+    const [funding] = await db.transaction(async (txn) => {
+      const [created] = await txn.insert(adCampaignFundingsTable).values({
+        campaignId: campaign.id,
+        advertiserUserId: campaign.advertiserUserId,
+        fundingType: "paid",
+        provider: "plisio",
+        providerPaymentId: invoice.transactionId,
+        orderNumber,
+        sourceAmount: toDecimalString(campaign.budgetAmount),
+        sourceCurrency: "USD",
+        selectedCurrency: invoice.selectedCurrency,
+        invoiceAmount: invoice.invoiceAmount,
+        invoiceCommission: invoice.invoiceCommission,
+        invoiceTotal: invoice.invoiceTotal,
+        status: "pending",
+        expiresAt: invoice.expiresAt,
+        idempotencyKey: `ad-funding:${orderNumber}`,
+        metadata: { providerFeePaidBy: "client", campaignId: campaign.id },
+      }).returning();
+      await txn.update(adCampaignsTable).set({ fundingStatus: "invoice_pending", updatedAt: new Date() }).where(eq(adCampaignsTable.id, campaign.id));
+      return [created];
+    });
+    await writeAuditLog(req, {
+      action: "advertising_campaign.funding_invoice_created",
+      targetType: "ad_campaign",
+      targetId: String(campaign.id),
+      afterState: { campaignId: campaign.id, fundingId: funding.id, orderNumber, selectedCurrency: invoice.selectedCurrency },
+    });
+    res.status(201).json({
+      campaignId: campaign.id,
+      fundingId: funding.id,
+      paymentIntentId: funding.id,
+      invoiceUrl: invoice.invoiceUrl,
+      provider: "crypto",
+      status: "pending",
+      selectedCurrency: invoice.selectedCurrency,
+      expiresAt: invoice.expiresAt,
+      paymentAddress: invoice.paymentAddress,
+      qrCodeDataUrl: invoice.qrCodeDataUrl,
+      invoiceAmount: invoice.invoiceAmount,
+      invoiceCommission: invoice.invoiceCommission,
+      invoiceTotal: invoice.invoiceTotal,
+      providerFeePaidBy: "client",
+    });
+  } catch (error) {
+    res.status(502).json({ error: error instanceof Error ? error.message : "The crypto funding invoice could not be created." });
+  }
+});
+
+router.post("/admin/ads/campaigns/:id/approve", requireOwner, async (req, res): Promise<void> => {
+  const params = AdCampaignIdParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const [campaign] = await db.select().from(adCampaignsTable).where(eq(adCampaignsTable.id, params.data.id)).limit(1);
+  if (!campaign) {
+    res.status(404).json({ error: "Advertising campaign not found." });
+    return;
+  }
+  if (campaign.endsAt <= new Date()) {
+    res.status(409).json({ error: "An expired campaign cannot be approved for delivery." });
+    return;
+  }
+  const approvedFundingStatus = campaign.fundingMode === "paid" ? "funded" : "promotional_approved";
+  if (campaign.fundingMode === "paid" && campaign.fundingStatus !== "funded") {
+    res.status(409).json({ error: "A paid campaign requires signed crypto funding confirmation before it can be approved." });
+    return;
+  }
+  const [approved] = await db.update(adCampaignsTable).set({
+    status: "active",
+    fundingStatus: approvedFundingStatus,
+    approvedByUserId: req.user!.userId,
+    approvedAt: new Date(),
+    updatedAt: new Date(),
+  }).where(eq(adCampaignsTable.id, campaign.id)).returning();
+  await writeAuditLog(req, {
+    action: "advertising_campaign.approved",
+    targetType: "ad_campaign",
+    targetId: String(campaign.id),
+    beforeState: toAdminAdCampaign(campaign),
+    afterState: toAdminAdCampaign(approved),
+  });
+  res.json(toAdminAdCampaign(approved));
 });
 
 router.get("/admin/feature-flags", requireOwner, async (_req, res): Promise<void> => {

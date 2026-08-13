@@ -192,17 +192,27 @@ export const adCampaignsTable = pgTable("ad_campaigns", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   advertiserName: text("advertiser_name"),
+  advertiserUserId: integer("advertiser_user_id").references(() => usersTable.id, { onDelete: "set null" }),
   campaignType: text("campaign_type").notNull().default("house"),
   status: text("status").notNull().default("draft"),
+  fundingMode: text("funding_mode").notNull().default("promotional"),
+  fundingStatus: text("funding_status").notNull().default("not_required"),
+  budgetAmount: numeric("budget_amount", { precision: 18, scale: 8 }),
+  budgetCurrency: text("budget_currency"),
+  budgetSpentAmount: numeric("budget_spent_amount", { precision: 18, scale: 8 }).notNull().default("0"),
+  creatorShareBps: integer("creator_share_bps").notNull().default(0),
   startsAt: timestamp("starts_at", { withTimezone: true }),
   endsAt: timestamp("ends_at", { withTimezone: true }),
   targeting: jsonb("targeting").notNull().default({}),
   frequencyPolicy: jsonb("frequency_policy").notNull().default({}),
+  approvedByUserId: integer("approved_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
   createdByUserId: integer("created_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   statusWindowIdx: index("ad_campaigns_status_window_idx").on(table.status, table.startsAt, table.endsAt),
+  fundingStatusIdx: index("ad_campaigns_funding_status_idx").on(table.status, table.fundingStatus, table.startsAt, table.endsAt),
 }));
 
 export const adCreativesTable = pgTable("ad_creatives", {
@@ -278,6 +288,51 @@ export const adImpressionsTable = pgTable("ad_impressions", {
 }, (table) => ({
   breakDeliveryIdx: index("ad_impressions_break_delivery_idx").on(table.adBreakId, table.deliveryStatus),
   userCreatedIdx: index("ad_impressions_user_created_idx").on(table.userId, table.createdAt),
+}));
+
+export const adCampaignFundingsTable = pgTable("ad_campaign_fundings", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull().references(() => adCampaignsTable.id, { onDelete: "cascade" }),
+  advertiserUserId: integer("advertiser_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  fundingType: text("funding_type").notNull().default("paid"),
+  provider: text("provider").notNull().default("plisio"),
+  providerPaymentId: text("provider_payment_id").unique(),
+  orderNumber: text("order_number").notNull().unique(),
+  sourceAmount: numeric("source_amount", { precision: 18, scale: 8 }).notNull(),
+  sourceCurrency: text("source_currency").notNull().default("USD"),
+  selectedCurrency: text("selected_currency"),
+  invoiceAmount: numeric("invoice_amount", { precision: 18, scale: 8 }),
+  invoiceCommission: numeric("invoice_commission", { precision: 18, scale: 8 }),
+  invoiceTotal: numeric("invoice_total", { precision: 18, scale: 8 }),
+  receivedAmount: numeric("received_amount", { precision: 18, scale: 8 }),
+  status: text("status").notNull().default("creating"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  metadata: jsonb("metadata").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  campaignStatusIdx: index("ad_campaign_fundings_campaign_status_idx").on(table.campaignId, table.status, table.createdAt),
+}));
+
+export const adRevenueMovementsTable = pgTable("ad_revenue_movements", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull().references(() => adCampaignsTable.id, { onDelete: "cascade" }),
+  fundingId: integer("funding_id").references(() => adCampaignFundingsTable.id, { onDelete: "set null" }),
+  channelId: integer("channel_id").references(() => channelsTable.id, { onDelete: "set null" }),
+  currency: text("currency").notNull(),
+  movementType: text("movement_type").notNull(),
+  grossAmount: numeric("gross_amount", { precision: 18, scale: 8 }).notNull(),
+  platformAmount: numeric("platform_amount", { precision: 18, scale: 8 }).notNull(),
+  creatorAmount: numeric("creator_amount", { precision: 18, scale: 8 }).notNull().default("0"),
+  sourceType: text("source_type").notNull(),
+  sourceId: text("source_id").notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  metadata: jsonb("metadata").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  campaignCreatedIdx: index("ad_revenue_movements_campaign_created_idx").on(table.campaignId, table.createdAt),
 }));
 
 // ─── Provider-neutral payment ledger and owner operations ──────────────────────

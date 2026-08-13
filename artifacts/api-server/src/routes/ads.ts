@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, desc, eq, gte } from "drizzle-orm";
 import {
   adBreaksTable,
+  adCampaignsTable,
   adCreativesTable,
   adRulesTable,
   channelsTable,
@@ -100,10 +101,39 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
     return;
   }
 
-  // A rule must explicitly reference an active campaign. This prevents an
-  // arbitrary creative from being served merely because it is currently active.
+  // A rule must explicitly reference an owner-approved campaign. This prevents an
+  // arbitrary creative, an unfunded paid campaign, or an expired launch flight from
+  // being served merely because a creative happens to be active.
   if (!rule.campaignId) {
     res.json(noDecision("ad_rule_has_no_campaign"));
+    return;
+  }
+  const [campaign] = await db
+    .select({
+      id: adCampaignsTable.id,
+      status: adCampaignsTable.status,
+      fundingMode: adCampaignsTable.fundingMode,
+      fundingStatus: adCampaignsTable.fundingStatus,
+      startsAt: adCampaignsTable.startsAt,
+      endsAt: adCampaignsTable.endsAt,
+    })
+    .from(adCampaignsTable)
+    .where(eq(adCampaignsTable.id, rule.campaignId))
+    .limit(1);
+  if (!campaign || campaign.status !== "active") {
+    res.json(noDecision("ad_campaign_not_active"));
+    return;
+  }
+  if (campaign.startsAt && campaign.startsAt > now || campaign.endsAt && campaign.endsAt <= now) {
+    res.json(noDecision("ad_campaign_outside_delivery_window"));
+    return;
+  }
+  if (campaign.fundingMode === "paid" && campaign.fundingStatus !== "funded") {
+    res.json(noDecision("ad_campaign_funding_not_confirmed"));
+    return;
+  }
+  if (campaign.fundingMode === "promotional" && campaign.fundingStatus !== "promotional_approved") {
+    res.json(noDecision("ad_campaign_promotion_not_approved"));
     return;
   }
   const [creative] = await db

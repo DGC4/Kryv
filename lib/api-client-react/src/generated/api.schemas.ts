@@ -1452,6 +1452,178 @@ export interface UpdateAdminFeatureFlagInput {
   enabled: boolean;
 }
 
+export type AdminAdCampaignCampaignType = typeof AdminAdCampaignCampaignType[keyof typeof AdminAdCampaignCampaignType];
+
+
+export const AdminAdCampaignCampaignType = {
+  house: 'house',
+  sponsored: 'sponsored',
+} as const;
+
+export type AdminAdCampaignStatus = typeof AdminAdCampaignStatus[keyof typeof AdminAdCampaignStatus];
+
+
+export const AdminAdCampaignStatus = {
+  draft: 'draft',
+  active: 'active',
+  paused: 'paused',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type AdminAdCampaignFundingMode = typeof AdminAdCampaignFundingMode[keyof typeof AdminAdCampaignFundingMode];
+
+
+export const AdminAdCampaignFundingMode = {
+  promotional: 'promotional',
+  paid: 'paid',
+} as const;
+
+export type AdminAdCampaignFundingStatus = typeof AdminAdCampaignFundingStatus[keyof typeof AdminAdCampaignFundingStatus];
+
+
+export const AdminAdCampaignFundingStatus = {
+  not_required: 'not_required',
+  promotional_pending: 'promotional_pending',
+  promotional_approved: 'promotional_approved',
+  unfunded: 'unfunded',
+  invoice_pending: 'invoice_pending',
+  funded: 'funded',
+  cancelled: 'cancelled',
+  failed: 'failed',
+} as const;
+
+export interface AdminAdCampaign {
+  id: number;
+  name: string;
+  /** @nullable */
+  advertiserName: string | null;
+  campaignType: AdminAdCampaignCampaignType;
+  status: AdminAdCampaignStatus;
+  fundingMode: AdminAdCampaignFundingMode;
+  fundingStatus: AdminAdCampaignFundingStatus;
+  /** @nullable */
+  budgetAmount: string | null;
+  /** @nullable */
+  budgetCurrency: string | null;
+  budgetSpentAmount: string;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  creatorShareBps: number;
+  /** @nullable */
+  startsAt: string | null;
+  /** @nullable */
+  endsAt: string | null;
+  /** @nullable */
+  approvedAt: string | null;
+  createdAt: string;
+}
+
+export interface AdminAdRevenue {
+  currency: CryptoCurrency;
+  grossAmount: string;
+  platformAmount: string;
+  creatorAmount: string;
+}
+
+export type AdminAdsOverviewPolicy = {
+  paidDelivery: string;
+  promotion: string;
+  creatorAllocation: string;
+};
+
+export interface AdminAdsOverview {
+  campaigns: AdminAdCampaign[];
+  pendingFundings: number;
+  confirmedFundings: number;
+  revenue: AdminAdRevenue[];
+  deliveryEnabled: boolean;
+  policy: AdminAdsOverviewPolicy;
+}
+
+export type CreateAdminAdCampaignInputFundingMode = typeof CreateAdminAdCampaignInputFundingMode[keyof typeof CreateAdminAdCampaignInputFundingMode];
+
+
+export const CreateAdminAdCampaignInputFundingMode = {
+  promotional: 'promotional',
+  paid: 'paid',
+} as const;
+
+export interface CreateAdminAdCampaignInput {
+  /**
+     * @minLength 2
+     * @maxLength 140
+     */
+  name: string;
+  /**
+     * @minLength 2
+     * @maxLength 140
+     */
+  advertiserName?: string;
+  fundingMode: CreateAdminAdCampaignInputFundingMode;
+  /**
+     * USD reference amount used only to obtain a crypto funding invoice; it is not a fiat charge.
+     * @pattern ^\d+(\.\d{1,2})?$
+     */
+  budgetUsd?: string;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  creatorShareBps?: number;
+  startsAt?: string;
+  endsAt: string;
+}
+
+export interface CreateAdminAdFundingInvoiceInput {
+  cryptoCurrency?: CryptoCurrency;
+}
+
+export type AdminAdFundingInvoiceProvider = typeof AdminAdFundingInvoiceProvider[keyof typeof AdminAdFundingInvoiceProvider];
+
+
+export const AdminAdFundingInvoiceProvider = {
+  crypto: 'crypto',
+} as const;
+
+export type AdminAdFundingInvoiceStatus = typeof AdminAdFundingInvoiceStatus[keyof typeof AdminAdFundingInvoiceStatus];
+
+
+export const AdminAdFundingInvoiceStatus = {
+  pending: 'pending',
+} as const;
+
+export type AdminAdFundingInvoiceProviderFeePaidBy = typeof AdminAdFundingInvoiceProviderFeePaidBy[keyof typeof AdminAdFundingInvoiceProviderFeePaidBy];
+
+
+export const AdminAdFundingInvoiceProviderFeePaidBy = {
+  client: 'client',
+} as const;
+
+export interface AdminAdFundingInvoice {
+  campaignId: number;
+  fundingId: number;
+  paymentIntentId: number;
+  invoiceUrl: string;
+  provider: AdminAdFundingInvoiceProvider;
+  status: AdminAdFundingInvoiceStatus;
+  selectedCurrency: CryptoCurrency | null;
+  expiresAt: string | null;
+  /** @nullable */
+  paymentAddress: string | null;
+  /** @nullable */
+  qrCodeDataUrl: string | null;
+  /** @nullable */
+  invoiceAmount: string | null;
+  /** @nullable */
+  invoiceCommission: string | null;
+  /** @nullable */
+  invoiceTotal: string | null;
+  providerFeePaidBy: AdminAdFundingInvoiceProviderFeePaidBy;
+}
+
 export interface AdminStats {
   totalUsers: number;
   totalChannels: number;

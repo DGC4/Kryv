@@ -2073,6 +2073,159 @@ export const ReviewAdminPayoutRequestResponse = zod.object({
 
 
 /**
+ * @summary Owner-only advertising campaign, funding, and revenue-control overview
+ */
+export const getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMin = 0;
+export const getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMax = 10000;
+
+
+
+export const GetAdminAdsOverviewResponse = zod.object({
+  "campaigns": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "advertiserName": zod.string().nullable(),
+  "campaignType": zod.enum(['house', 'sponsored']),
+  "status": zod.enum(['draft', 'active', 'paused', 'completed', 'cancelled']),
+  "fundingMode": zod.enum(['promotional', 'paid']),
+  "fundingStatus": zod.enum(['not_required', 'promotional_pending', 'promotional_approved', 'unfunded', 'invoice_pending', 'funded', 'cancelled', 'failed']),
+  "budgetAmount": zod.string().nullable(),
+  "budgetCurrency": zod.string().nullable(),
+  "budgetSpentAmount": zod.string(),
+  "creatorShareBps": zod.number().min(getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMin).max(getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMax),
+  "startsAt": zod.coerce.date().nullable(),
+  "endsAt": zod.coerce.date().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})),
+  "pendingFundings": zod.number(),
+  "confirmedFundings": zod.number(),
+  "revenue": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "grossAmount": zod.string(),
+  "platformAmount": zod.string(),
+  "creatorAmount": zod.string()
+})),
+  "deliveryEnabled": zod.boolean(),
+  "policy": zod.object({
+  "paidDelivery": zod.string(),
+  "promotion": zod.string(),
+  "creatorAllocation": zod.string()
+})
+})
+
+
+/**
+ * @summary Create a draft owner-controlled promotional or crypto-funded advertiser campaign
+ */
+export const createAdminAdCampaignBodyNameMin = 2;
+export const createAdminAdCampaignBodyNameMax = 140;
+
+export const createAdminAdCampaignBodyAdvertiserNameMin = 2;
+export const createAdminAdCampaignBodyAdvertiserNameMax = 140;
+
+export const createAdminAdCampaignBodyBudgetUsdRegExp = new RegExp('^\\d+(\\.\\d{1,2})?$');
+export const createAdminAdCampaignBodyCreatorShareBpsDefault = 0;
+export const createAdminAdCampaignBodyCreatorShareBpsMin = 0;
+export const createAdminAdCampaignBodyCreatorShareBpsMax = 10000;
+
+
+
+export const CreateAdminAdCampaignBody = zod.object({
+  "name": zod.string().min(createAdminAdCampaignBodyNameMin).max(createAdminAdCampaignBodyNameMax),
+  "advertiserName": zod.string().min(createAdminAdCampaignBodyAdvertiserNameMin).max(createAdminAdCampaignBodyAdvertiserNameMax).optional(),
+  "fundingMode": zod.enum(['promotional', 'paid']),
+  "budgetUsd": zod.string().regex(createAdminAdCampaignBodyBudgetUsdRegExp).optional().describe('USD reference amount used only to obtain a crypto funding invoice; it is not a fiat charge.'),
+  "creatorShareBps": zod.number().min(createAdminAdCampaignBodyCreatorShareBpsMin).max(createAdminAdCampaignBodyCreatorShareBpsMax).default(createAdminAdCampaignBodyCreatorShareBpsDefault),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date()
+})
+
+export const createAdminAdCampaignResponseCreatorShareBpsMin = 0;
+export const createAdminAdCampaignResponseCreatorShareBpsMax = 10000;
+
+
+
+export const CreateAdminAdCampaignResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "advertiserName": zod.string().nullable(),
+  "campaignType": zod.enum(['house', 'sponsored']),
+  "status": zod.enum(['draft', 'active', 'paused', 'completed', 'cancelled']),
+  "fundingMode": zod.enum(['promotional', 'paid']),
+  "fundingStatus": zod.enum(['not_required', 'promotional_pending', 'promotional_approved', 'unfunded', 'invoice_pending', 'funded', 'cancelled', 'failed']),
+  "budgetAmount": zod.string().nullable(),
+  "budgetCurrency": zod.string().nullable(),
+  "budgetSpentAmount": zod.string(),
+  "creatorShareBps": zod.number().min(createAdminAdCampaignResponseCreatorShareBpsMin).max(createAdminAdCampaignResponseCreatorShareBpsMax),
+  "startsAt": zod.coerce.date().nullable(),
+  "endsAt": zod.coerce.date().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Create a crypto-only advertiser funding invoice for an unfunded paid campaign
+ */
+export const CreateAdminAdFundingInvoiceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateAdminAdFundingInvoiceBody = zod.object({
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional()
+})
+
+export const CreateAdminAdFundingInvoiceResponse = zod.object({
+  "campaignId": zod.number(),
+  "fundingId": zod.number(),
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string(),
+  "provider": zod.enum(['crypto']),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.string().nullable(),
+  "qrCodeDataUrl": zod.string().nullable(),
+  "invoiceAmount": zod.string().nullable(),
+  "invoiceCommission": zod.string().nullable(),
+  "invoiceTotal": zod.string().nullable(),
+  "providerFeePaidBy": zod.enum(['client'])
+})
+
+
+/**
+ * @summary Approve an owner-controlled promotional flight or signed crypto-funded campaign for delivery
+ */
+export const ApproveAdminAdCampaignParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const approveAdminAdCampaignResponseCreatorShareBpsMin = 0;
+export const approveAdminAdCampaignResponseCreatorShareBpsMax = 10000;
+
+
+
+export const ApproveAdminAdCampaignResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "advertiserName": zod.string().nullable(),
+  "campaignType": zod.enum(['house', 'sponsored']),
+  "status": zod.enum(['draft', 'active', 'paused', 'completed', 'cancelled']),
+  "fundingMode": zod.enum(['promotional', 'paid']),
+  "fundingStatus": zod.enum(['not_required', 'promotional_pending', 'promotional_approved', 'unfunded', 'invoice_pending', 'funded', 'cancelled', 'failed']),
+  "budgetAmount": zod.string().nullable(),
+  "budgetCurrency": zod.string().nullable(),
+  "budgetSpentAmount": zod.string(),
+  "creatorShareBps": zod.number().min(approveAdminAdCampaignResponseCreatorShareBpsMin).max(approveAdminAdCampaignResponseCreatorShareBpsMax),
+  "startsAt": zod.coerce.date().nullable(),
+  "endsAt": zod.coerce.date().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Owner-only platform totals
  */
 export const GetAdminStatsResponse = zod.object({
