@@ -17,7 +17,7 @@ function formatDuration(seconds: number | null) {
 export default function ClipDetail() {
   const { id } = useParams<{ id: string }>();
   const clipId = Number(id);
-  const { data: clip, isLoading } = useGetClip(clipId, { query: { enabled: Number.isSafeInteger(clipId) && clipId > 0 } });
+  const { data: clip, isLoading, refetch: refetchClip } = useGetClip(clipId, { query: { enabled: Number.isSafeInteger(clipId) && clipId > 0 } });
   const { data: channelClips } = useListClips(
     clip?.channelId ? { channelId: clip.channelId } : undefined,
     { query: { enabled: Boolean(clip?.channelId) } },
@@ -60,7 +60,7 @@ export default function ClipDetail() {
   if (!clip || !clip.playbackId) {
     return (
       <main className="min-h-[calc(100vh-4rem)] bg-[#080808] flex items-center justify-center px-4 text-center text-white">
-        <div className="max-w-md"><div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/[0.06] flex items-center justify-center"><Clapperboard className="w-7 h-7 text-white/35" /></div><h1 className="text-xl font-black">This clip is unavailable</h1><p className="mt-2 text-sm leading-relaxed text-white/45">It may still be processing, unpublished, or no longer available.</p><Link href="/clips" className="inline-flex mt-5 text-sm font-bold text-primary hover:underline">Browse clips</Link></div>
+        <div className="max-w-md"><div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/[0.06] flex items-center justify-center"><Clapperboard className="w-7 h-7 text-white/35" /></div><h1 className="text-xl font-black">This clip is unavailable</h1><p className="mt-2 text-sm leading-relaxed text-white/45">It may still be processing, unpublished, or no longer available.</p><div className="mt-5 flex flex-wrap justify-center gap-3"><button type="button" onClick={() => refetchClip()} className="inline-flex min-h-10 items-center rounded-xl border border-white/[0.14] bg-white/[0.04] px-4 text-sm font-black text-white transition hover:border-primary/45 hover:text-primary">Retry</button><Link href="/clips" className="inline-flex min-h-10 items-center text-sm font-bold text-primary hover:underline">Browse clips</Link></div></div>
       </main>
     );
   }
