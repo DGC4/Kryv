@@ -1695,6 +1695,32 @@ export const CreateChannelSafetyReportResponse = zod.object({
 
 
 /**
+ * @summary Report a published Watch video for owner safety review
+ */
+export const CreateVideoSafetyReportParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createVideoSafetyReportBodyDetailsMax = 500;
+
+
+
+export const CreateVideoSafetyReportBody = zod.object({
+  "reason": zod.enum(['harassment', 'hate_or_harm', 'spam_or_scam', 'sexual_content', 'violence_or_threat', 'impersonation', 'other']),
+  "details": zod.string().max(createVideoSafetyReportBodyDetailsMax).optional()
+})
+
+export const CreateVideoSafetyReportResponse = zod.object({
+  "id": zod.number(),
+  "videoId": zod.number(),
+  "channelId": zod.number(),
+  "subjectUserId": zod.number(),
+  "status": zod.enum(['open']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Report a published Clip for owner safety review
  */
 export const CreateClipSafetyReportParams = zod.object({

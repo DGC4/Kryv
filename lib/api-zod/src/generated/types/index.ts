@@ -210,6 +210,8 @@ export * from './videoDetail';
 export * from './videoInput';
 export * from './videoInputContentType';
 export * from './videoInputPlaybackSource';
+export * from './videoSafetyReport';
+export * from './videoSafetyReportStatus';
 export * from './videoSummary';
 export * from './videoSummaryContentType';
 export * from './videoSummaryPlaybackSource';

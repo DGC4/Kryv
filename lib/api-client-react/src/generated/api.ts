@@ -124,6 +124,7 @@ import type {
   VideoCreateResponse,
   VideoDetail,
   VideoInput,
+  VideoSafetyReport,
   VideoSummary,
   VideoUpdate,
   ViewerProfile,
@@ -4031,6 +4032,78 @@ export const useCreateChannelSafetyReport = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getCreateChannelSafetyReportMutationOptions(options));
+    }
+
+export const getCreateVideoSafetyReportUrl = (id: number,) => {
+
+
+
+
+  return `/api/videos/${id}/reports`
+}
+
+/**
+ * @summary Report a published Watch video for owner safety review
+ */
+export const createVideoSafetyReport = async (id: number,
+    channelSafetyReportInput: ChannelSafetyReportInput, options?: RequestInit): Promise<VideoSafetyReport> => {
+
+  return customFetch<VideoSafetyReport>(getCreateVideoSafetyReportUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(channelSafetyReportInput)
+  }
+);}
+
+
+
+
+
+export const getCreateVideoSafetyReportMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVideoSafetyReport>>, TError,{id: number;data: BodyType<ChannelSafetyReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createVideoSafetyReport>>, TError,{id: number;data: BodyType<ChannelSafetyReportInput>}, TContext> => {
+
+const mutationKey = ['createVideoSafetyReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createVideoSafetyReport>>, {id: number;data: BodyType<ChannelSafetyReportInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createVideoSafetyReport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateVideoSafetyReportMutationResult = NonNullable<Awaited<ReturnType<typeof createVideoSafetyReport>>>
+    export type CreateVideoSafetyReportMutationBody = BodyType<ChannelSafetyReportInput>
+    export type CreateVideoSafetyReportMutationError = ErrorType<Error>
+
+    /**
+ * @summary Report a published Watch video for owner safety review
+ */
+export const useCreateVideoSafetyReport = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVideoSafetyReport>>, TError,{id: number;data: BodyType<ChannelSafetyReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createVideoSafetyReport>>,
+        TError,
+        {id: number;data: BodyType<ChannelSafetyReportInput>},
+        TContext
+      > => {
+      return useMutation(getCreateVideoSafetyReportMutationOptions(options));
     }
 
 export const getCreateClipSafetyReportUrl = (id: number,) => {

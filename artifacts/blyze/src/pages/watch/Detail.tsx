@@ -5,6 +5,7 @@ import {
   useCreateChannelEngagementAction,
   useGetChannelEngagement,
   useCreateClip,
+  useCreateVideoSafetyReport,
   useGetVideo,
   useListVideos,
 } from '@workspace/api-client-react';
@@ -23,12 +24,16 @@ import {
   Play,
   Radio,
   Share2,
+  ShieldAlert,
   Sparkles,
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthStore } from '@/lib/auth-store';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 function formatDuration(value: number | null) {
   if (!value) return null;
@@ -47,11 +52,16 @@ export default function WatchDetail() {
   });
   const engagementAction = useCreateChannelEngagementAction();
   const createClip = useCreateClip();
+  const createVideoSafetyReport = useCreateVideoSafetyReport();
+  const signedInUser = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [clipTitle, setClipTitle] = useState('');
   const [clipStart, setClipStart] = useState(0);
   const [clipEnd, setClipEnd] = useState(30);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('harassment');
+  const [reportDetails, setReportDetails] = useState('');
 
   const recommendations = useMemo(() => {
     if (!video) return [];
@@ -78,6 +88,15 @@ export default function WatchDetail() {
         onError: (err: any) => toast({ title: 'Unable to create clip', description: err?.body?.error || err?.message || 'Please try again.', variant: 'destructive' }),
       },
     );
+  };
+
+  const submitSafetyReport = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!video) return;
+    createVideoSafetyReport.mutate({ id: video.id, data: { reason: reportReason as 'harassment' | 'hate_or_harm' | 'spam_or_scam' | 'sexual_content' | 'violence_or_threat' | 'impersonation' | 'other', ...(reportDetails.trim() ? { details: reportDetails.trim() } : {}) } }, {
+      onSuccess: () => { setReportOpen(false); setReportDetails(''); toast({ title: 'Report received', description: 'Kryv recorded this Watch report for owner safety review.' }); },
+      onError: (error: any) => toast({ title: 'Report could not be sent', description: error?.body?.error || error?.message || 'Please try again.', variant: 'destructive' }),
+    });
   };
 
   const shareVideo = async () => {
@@ -137,8 +156,10 @@ export default function WatchDetail() {
           {video.playbackSource === 'youtube' && video.youtubeVideoId && <div className="mt-3 flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2.5 text-xs leading-relaxed text-white/45 sm:flex-row sm:items-center sm:justify-between"><span>This rights-cleared release plays through YouTube&apos;s privacy-enhanced embed. If the publisher blocks embedding, use the official source.</span><a href={`https://www.youtube.com/watch?v=${video.youtubeVideoId}`} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1.5 font-black text-primary hover:text-white">Open on YouTube <ExternalLink className="h-3.5 w-3.5" /></a></div>}
 
           <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 sm:mt-5 sm:p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2 text-primary"><span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em]"><Play className="h-3.5 w-3.5 fill-current" /> Kryv Watch</span>{video.categoryName && <span className="rounded-full border border-white/[0.1] bg-black/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/55">{video.categoryName}</span>}</div><h1 className="mt-2 text-xl font-black leading-tight text-white sm:text-3xl">{video.title}</h1><div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-white/45"><span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-primary" />{video.viewCount.toLocaleString()} views</span><span>{formatDistanceToNow(new Date(video.createdAt), { addSuffix: true })}</span>{duration && <span>{duration}</span>}</div></div><div className="flex flex-wrap gap-2"><Button type="button" variant="secondary" onClick={shareVideo} aria-label="Copy Watch link" className="h-10 gap-2 rounded-xl px-3 sm:px-4"><Share2 className="h-4 w-4" /><span>Share</span></Button>{video.isOwner && video.playbackSource === 'fastpix' && video.playbackId && <Button type="button" variant="secondary" aria-label="Create a native clip" className="h-10 gap-2 rounded-xl border border-primary/30 px-3 text-primary hover:text-primary sm:px-4" onClick={() => { setClipTitle(`${video.title} · Clip`); setClipStart(0); setClipEnd(Math.min(video.durationSeconds || 30, 30)); }}><Clapperboard className="h-4 w-4" /><span className="hidden sm:inline">Make Clip</span></Button>}</div></div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2 text-primary"><span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em]"><Play className="h-3.5 w-3.5 fill-current" /> Kryv Watch</span>{video.categoryName && <span className="rounded-full border border-white/[0.1] bg-black/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/55">{video.categoryName}</span>}</div><h1 className="mt-2 text-xl font-black leading-tight text-white sm:text-3xl">{video.title}</h1><div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-white/45"><span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-primary" />{video.viewCount.toLocaleString()} views</span><span>{formatDistanceToNow(new Date(video.createdAt), { addSuffix: true })}</span>{duration && <span>{duration}</span>}</div></div><div className="flex flex-wrap gap-2"><Button type="button" variant="secondary" onClick={shareVideo} aria-label="Copy Watch link" className="h-10 gap-2 rounded-xl px-3 sm:px-4"><Share2 className="h-4 w-4" /><span>Share</span></Button>{!video.isOwner && (signedInUser ? <Button type="button" variant="ghost" onClick={() => setReportOpen(true)} className="h-10 rounded-xl px-3 text-white/45 hover:bg-red-400/10 hover:text-red-200 sm:px-4"><ShieldAlert className="mr-2 h-4 w-4" /><span>Report</span></Button> : <Link href="/sign-in" className="inline-flex h-10 items-center rounded-xl px-3 text-sm font-bold text-white/45 transition hover:bg-red-400/10 hover:text-red-200 sm:px-4"><ShieldAlert className="mr-2 h-4 w-4" />Report</Link>)}{video.isOwner && video.playbackSource === 'fastpix' && video.playbackId && <Button type="button" variant="secondary" aria-label="Create a native clip" className="h-10 gap-2 rounded-xl border border-primary/30 px-3 text-primary hover:text-primary sm:px-4" onClick={() => { setClipTitle(`${video.title} · Clip`); setClipStart(0); setClipEnd(Math.min(video.durationSeconds || 30, 30)); }}><Clapperboard className="h-4 w-4" /><span className="hidden sm:inline">Make Clip</span></Button>}</div></div>
           </div>
+
+          {!video.isOwner && signedInUser && <Dialog open={reportOpen} onOpenChange={setReportOpen}><DialogContent className="border-white/[0.12] bg-[#0b0e14] text-white sm:max-w-md"><DialogHeader><DialogTitle className="text-white">Report this Watch video</DialogTitle><DialogDescription className="leading-relaxed text-white/50">Reports are recorded for owner safety review. Provide only information relevant to this published Watch release.</DialogDescription></DialogHeader><form onSubmit={submitSafetyReport} className="space-y-4"><label className="block text-xs font-black uppercase tracking-wider text-white/55">Reason<select value={reportReason} onChange={(event) => setReportReason(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-white/[0.1] bg-black/35 px-3 text-sm font-semibold text-white outline-none focus:border-primary/60"><option value="harassment">Harassment</option><option value="hate_or_harm">Hate or harm</option><option value="spam_or_scam">Spam or scam</option><option value="sexual_content">Sexual content</option><option value="violence_or_threat">Violence or threat</option><option value="impersonation">Impersonation</option><option value="other">Other</option></select></label><label className="block text-xs font-black uppercase tracking-wider text-white/55">Optional details<Textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={500} placeholder="What should the safety reviewer know?" className="mt-2 min-h-28 border-white/[0.1] bg-black/35 text-white placeholder:text-white/30 focus-visible:ring-primary" /></label><p className="text-right text-[10px] text-white/30">{reportDetails.length}/500</p><DialogFooter><Button type="button" variant="ghost" onClick={() => setReportOpen(false)} disabled={createVideoSafetyReport.isPending} className="text-white/60">Cancel</Button><Button type="submit" disabled={createVideoSafetyReport.isPending} className="font-black">{createVideoSafetyReport.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}Send report</Button></DialogFooter></form></DialogContent></Dialog>}
 
           <section className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><Link href={`/profile/${video.channelSlug}`} className="group flex min-w-0 items-center gap-3"><div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-primary/15">{video.channelAvatarUrl ? <img src={video.channelAvatarUrl} alt={video.channelName} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-lg font-black text-primary">{video.channelName?.[0]}</span>}</div><div className="min-w-0"><p className="truncate text-base font-black text-white transition group-hover:text-primary">{video.channelName}</p><p className="mt-0.5 text-xs text-white/40">Creator profile · releases, live room, and curated credits</p></div></Link><Link href={`/live/${video.channelSlug}`} className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-3 text-sm font-black text-primary transition hover:bg-primary hover:text-primary-foreground"><Radio className="h-4 w-4" /> Visit live room</Link></div>{video.description && <p className="mt-5 border-t border-white/[0.07] pt-5 text-sm leading-relaxed text-white/70 whitespace-pre-wrap">{video.description}</p>}</section>
 

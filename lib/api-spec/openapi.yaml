@@ -1513,6 +1513,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /videos/{id}/reports:
+    post:
+      operationId: createVideoSafetyReport
+      tags: [moderation, videos]
+      summary: Report a published Watch video for owner safety review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChannelSafetyReportInput"
+      responses:
+        "201":
+          description: Video report recorded for review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoSafetyReport"
+        "400":
+          description: Invalid report input or own video
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Published Watch video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /clips/{id}/reports:
     post:
       operationId: createClipSafetyReport
@@ -3303,6 +3346,17 @@ components:
       required: [id, channelId, subjectUserId, status, createdAt]
       properties:
         id: { type: integer }
+        channelId: { type: integer }
+        subjectUserId: { type: integer }
+        status: { type: string, enum: [open] }
+        createdAt: { type: string, format: date-time }
+
+    VideoSafetyReport:
+      type: object
+      required: [id, videoId, channelId, subjectUserId, status, createdAt]
+      properties:
+        id: { type: integer }
+        videoId: { type: integer }
         channelId: { type: integer }
         subjectUserId: { type: integer }
         status: { type: string, enum: [open] }

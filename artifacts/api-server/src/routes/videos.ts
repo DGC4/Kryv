@@ -1,11 +1,14 @@
 import { Router, type IRouter } from "express";
-import { eq, sql } from "drizzle-orm";
-import { db, categoriesTable, channelsTable, videosTable, usersTable } from "@workspace/db";
+import { and, eq, sql } from "drizzle-orm";
+import { db, categoriesTable, channelsTable, moderationCasesTable, videosTable, usersTable } from "@workspace/db";
 import {
   ListVideosQueryParams,
   ListVideosResponse,
   CreateVideoBody,
   CreateVideoResponse,
+  CreateVideoSafetyReportBody,
+  CreateVideoSafetyReportParams,
+  CreateVideoSafetyReportResponse,
   GetVideoParams,
   GetVideoResponse,
   UpdateVideoParams,
@@ -17,6 +20,7 @@ import { requireAuth, attachUserId } from "../lib/auth";
 import { toVideoSummary, toVideoDetail } from "../lib/videoSerializer";
 import { createFastPixDirectUpload, FastPixNotConfiguredError } from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
+import { writeAuditLog } from "../lib/operations";
 import { watchHistoryTable } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -52,6 +56,70 @@ router.get("/videos", async (req, res): Promise<void> => {
 
   const results = await Promise.all(rows.map(toVideoSummary));
   res.json(ListVideosResponse.parse(results));
+});
+
+router.post("/videos/:id/reports", requireAuth, async (req, res): Promise<void> => {
+  const params = CreateVideoSafetyReportParams.safeParse(req.params);
+  const body = CreateVideoSafetyReportBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: !params.success ? params.error.message : body.error.message });
+    return;
+  }
+
+  const [row] = await db
+    .select({ video: videosTable, channel: channelsTable })
+    .from(videosTable)
+    .innerJoin(channelsTable, eq(videosTable.channelId, channelsTable.id))
+    .where(and(eq(videosTable.id, params.data.id), eq(videosTable.contentType, "upload"), eq(videosTable.uploadStatus, "ready")))
+    .limit(1);
+  if (!row) {
+    res.status(404).json({ error: "Published Watch video not found." });
+    return;
+  }
+  if (row.channel.ownerUserId === req.user!.userId) {
+    res.status(400).json({ error: "You cannot report your own Watch video." });
+    return;
+  }
+
+  const details = body.data.details?.trim() || null;
+  const [caseRecord] = await db
+    .insert(moderationCasesTable)
+    .values({
+      channelId: row.channel.id,
+      reporterUserId: req.user!.userId,
+      subjectUserId: row.channel.ownerUserId,
+      caseType: "video_report",
+      status: "open",
+      summary: details ? `Viewer Watch report: ${body.data.reason} — ${details}` : `Viewer Watch report: ${body.data.reason}`,
+      evidence: [{
+        kind: "watch_video",
+        videoId: row.video.id,
+        title: row.video.title,
+        channelId: row.channel.id,
+        channelSlug: row.channel.slug,
+        reason: body.data.reason,
+        reportedAt: new Date().toISOString(),
+      }],
+    })
+    .returning();
+
+  await writeAuditLog(req, {
+    action: "video_reported",
+    targetType: "moderation_case",
+    targetId: caseRecord.id,
+    reason: body.data.reason,
+    afterState: { videoId: row.video.id, channelId: row.channel.id, subjectUserId: row.channel.ownerUserId, status: "open" },
+  });
+  logActivity(req, "video_reported", { videoId: row.video.id, channelId: row.channel.id, caseId: caseRecord.id, reason: body.data.reason }).catch(() => undefined);
+
+  res.status(201).json(CreateVideoSafetyReportResponse.parse({
+    id: caseRecord.id,
+    videoId: row.video.id,
+    channelId: row.channel.id,
+    subjectUserId: row.channel.ownerUserId,
+    status: "open",
+    createdAt: caseRecord.createdAt.toISOString(),
+  }));
 });
 
 router.post("/videos", requireAuth, async (req, res): Promise<void> => {
