@@ -1215,36 +1215,14 @@ export default function DashboardLive() {
                 </div>
               </div>
 
-              {/* Subscription Plans */}
               <div>
                 <h2 className="text-lg font-black text-white mb-5 flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-primary" />
-                  Subscription Plans
+                  Supporter access
                 </h2>
-                <div className="space-y-3">
-                  {[
-                    { name: 'Free Tier', price: '$0', desc: 'Standard streaming with ads', icon: Signal, color: 'text-white/40' },
-                    { name: 'Plus Plan', price: '$4.99', desc: 'One platform ad-free', icon: Zap, color: 'text-blue-400' },
-                    { name: 'Pro Bundle', price: '$9.99', desc: 'Two platforms ad-free', icon: Shield, color: 'text-purple-400' },
-                    { name: 'Kryv Ultra', price: '$14.99', desc: 'Full ad-free experience', icon: Crown, color: 'text-yellow-400', best: true },
-                  ].map((plan) => (
-                    <div key={plan.name} className={`p-4 border rounded-2xl flex items-center gap-4 transition-all hover:bg-white/[0.04] cursor-pointer ${plan.best ? 'border-primary/40 bg-primary/[0.03]' : 'border-white/[0.07] bg-white/[0.01]'}`}>
-                      <div className={`w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center shrink-0 ${plan.color}`}>
-                        <plan.icon className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-white">{plan.name}</p>
-                          {plan.best && <span className="text-[9px] font-black bg-primary text-primary-foreground px-1.5 py-0.5 rounded uppercase">Best Value</span>}
-                        </div>
-                        <p className="text-xs text-white/40">{plan.desc}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-black text-white">{plan.price}</p>
-                        <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest">/ month</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.01] p-5">
+                  <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Shield className="h-5 w-5" /></div><div><p className="text-sm font-black text-white">Crypto-only supporter flows</p><p className="mt-1 text-xs leading-relaxed text-white/45">Eligible subscriptions and tips are recorded only after provider-confirmed crypto checkout. Kryv does not offer card or fiat checkout.</p></div></div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2"><div className="rounded-xl border border-white/[0.07] bg-black/20 p-3"><p className="text-[10px] font-black uppercase tracking-wider text-white/35">Ad delivery</p><p className="mt-1 text-sm font-black text-amber-100">Disabled</p><p className="mt-1 text-[11px] leading-relaxed text-white/40">No advertising or ad-free entitlement is currently delivered.</p></div><div className="rounded-xl border border-white/[0.07] bg-black/20 p-3"><p className="text-[10px] font-black uppercase tracking-wider text-white/35">Subscription status</p><p className="mt-1 text-sm font-black text-white">Provider-confirmed only</p><p className="mt-1 text-[11px] leading-relaxed text-white/40">Creator balances move only after the signed provider callback is reconciled.</p></div></div>
                 </div>
               </div>
             </div>
