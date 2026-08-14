@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { Layout } from "./components/Layout";
 import { ThemeProvider } from "./lib/themeProvider";
 import { setBaseUrl } from "@workspace/api-client-react";
 import { useAuthStore } from "./lib/auth-store";
+import { useThemeStore } from "./store/theme";
 import "./styles/theme.css";
 
 // Configure API base URL if provided, otherwise use relative paths
@@ -184,12 +185,27 @@ function ScrollToTop() {
   return null;
 }
 
+function ThemeRouteAdvance() {
+  const [location] = useLocation();
+  const advanceForNavigation = useThemeStore((state) => state.advanceForNavigation);
+  const previousLocationRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (previousLocationRef.current === location) return;
+    previousLocationRef.current = location;
+    advanceForNavigation();
+  }, [advanceForNavigation, location]);
+
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <WouterRouter base={basePath}>
           <ScrollToTop />
+          <ThemeRouteAdvance />
           <AppRoutes />
         </WouterRouter>
       </QueryClientProvider>

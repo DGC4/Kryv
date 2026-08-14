@@ -2472,6 +2472,70 @@ export const ReviewAdminModerationCaseResponse = zod.object({
 
 
 /**
+ * @summary Public, read-only Focus Mode presentation state. Returns no owner controls or credentials.
+ */
+export const getPlatformFocusModeResponseAnnouncementTextMax = 500;
+
+
+
+export const GetPlatformFocusModeResponse = zod.object({
+  "isEnabled": zod.boolean(),
+  "sourceType": zod.union([zod.literal('live'),zod.literal('cinema'),zod.literal(null)]).nullable(),
+  "sourceId": zod.number().nullable(),
+  "chatEnabled": zod.boolean(),
+  "announcementText": zod.string().max(getPlatformFocusModeResponseAnnouncementTextMax).nullable(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Owner-only Focus Mode settings
+ */
+export const getAdminFocusModeResponseAnnouncementTextMax = 500;
+
+
+
+export const GetAdminFocusModeResponse = zod.object({
+  "isEnabled": zod.boolean(),
+  "sourceType": zod.enum(['live', 'cinema']),
+  "sourceId": zod.number().nullable(),
+  "chatEnabled": zod.boolean(),
+  "announcementText": zod.string().max(getAdminFocusModeResponseAnnouncementTextMax).nullable(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Owner-only update to the public Focus Mode presentation
+ */
+
+export const updateAdminFocusModeBodyAnnouncementTextMax = 500;
+
+
+
+export const UpdateAdminFocusModeBody = zod.object({
+  "isEnabled": zod.boolean(),
+  "sourceType": zod.enum(['live', 'cinema']),
+  "sourceId": zod.number().min(1).nullish(),
+  "chatEnabled": zod.boolean(),
+  "announcementText": zod.string().max(updateAdminFocusModeBodyAnnouncementTextMax).nullish()
+})
+
+export const updateAdminFocusModeResponseAnnouncementTextMax = 500;
+
+
+
+export const UpdateAdminFocusModeResponse = zod.object({
+  "isEnabled": zod.boolean(),
+  "sourceType": zod.enum(['live', 'cinema']),
+  "sourceId": zod.number().nullable(),
+  "chatEnabled": zod.boolean(),
+  "announcementText": zod.string().max(updateAdminFocusModeResponseAnnouncementTextMax).nullable(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Owner-only command-center overview of platform, commerce, safety, and content operations
  */
 export const GetAdminCommandOverviewResponse = zod.object({

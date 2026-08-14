@@ -11,6 +11,7 @@ import {
   videosTable,
   featureFlagsTable,
   adminTreasuryContextTable,
+  platformFocusSettingsTable,
   creatorBalanceMovementsTable,
   creatorBalancesTable,
   creatorPayoutProfilesTable,
@@ -56,6 +57,10 @@ import {
   GetAdminTreasuryContextResponse,
   UpdateAdminTreasuryContextBody,
   UpdateAdminTreasuryContextResponse,
+  GetAdminFocusModeResponse,
+  UpdateAdminFocusModeBody,
+  UpdateAdminFocusModeResponse,
+  GetPlatformFocusModeResponse,
   ListAdminCreatorBalancesResponse,
   GetAdminCreatorBalanceDetailParams,
   GetAdminCreatorBalanceDetailResponse,
@@ -442,6 +447,106 @@ function toAdminTreasuryContext(row: typeof adminTreasuryContextTable.$inferSele
     updatedAt: row?.updatedAt ?? null,
   };
 }
+
+function toAdminFocusMode(row: typeof platformFocusSettingsTable.$inferSelect | undefined) {
+  const sourceType = row?.sourceType === "cinema" ? "cinema" as const : "live" as const;
+  const sourceId = sourceType === "cinema" ? row?.cinemaTitleId ?? null : row?.liveChannelId ?? null;
+  return {
+    isEnabled: row?.isEnabled ?? false,
+    sourceType,
+    sourceId,
+    chatEnabled: row?.chatEnabled ?? true,
+    announcementText: row?.announcementText ?? null,
+    updatedAt: (row?.updatedAt ?? new Date()).toISOString(),
+  };
+}
+
+function toPlatformFocusMode(row: typeof platformFocusSettingsTable.$inferSelect | undefined) {
+  const adminState = toAdminFocusMode(row);
+  if (!adminState.isEnabled) {
+    return { ...adminState, sourceType: null, sourceId: null, announcementText: null };
+  }
+  return adminState;
+}
+
+router.get("/platform/focus", async (_req, res): Promise<void> => {
+  const [settings] = await db.select().from(platformFocusSettingsTable).where(eq(platformFocusSettingsTable.id, 1));
+  res.json(GetPlatformFocusModeResponse.parse(toPlatformFocusMode(settings)));
+});
+
+router.get("/admin/focus-mode", requireOwner, async (_req, res): Promise<void> => {
+  const [settings] = await db.select().from(platformFocusSettingsTable).where(eq(platformFocusSettingsTable.id, 1));
+  res.json(GetAdminFocusModeResponse.parse(toAdminFocusMode(settings)));
+});
+
+router.put("/admin/focus-mode", requireOwner, async (req, res): Promise<void> => {
+  const body = UpdateAdminFocusModeBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const sourceId = body.data.sourceId ?? null;
+  if (body.data.isEnabled && !sourceId) {
+    res.status(400).json({ error: "Choose a live channel or published Cinema title before enabling Focus Mode." });
+    return;
+  }
+
+  if (sourceId) {
+    if (body.data.sourceType === "live") {
+      const [channel] = await db.select({ id: channelsTable.id }).from(channelsTable).where(eq(channelsTable.id, sourceId)).limit(1);
+      if (!channel) {
+        res.status(400).json({ error: "The selected live channel no longer exists." });
+        return;
+      }
+    } else {
+      const [title] = await db.select({ id: cinemaTitlesTable.id, publishState: cinemaTitlesTable.publishState }).from(cinemaTitlesTable).where(eq(cinemaTitlesTable.id, sourceId)).limit(1);
+      if (!title || title.publishState !== "published") {
+        res.status(400).json({ error: "Focus Mode can use only an existing published Cinema title." });
+        return;
+      }
+    }
+  }
+
+  const announcementText = body.data.announcementText?.trim() || null;
+  const [before] = await db.select().from(platformFocusSettingsTable).where(eq(platformFocusSettingsTable.id, 1));
+  const now = new Date();
+  const [updated] = await db.insert(platformFocusSettingsTable)
+    .values({
+      id: 1,
+      isEnabled: body.data.isEnabled,
+      sourceType: body.data.sourceType,
+      liveChannelId: body.data.sourceType === "live" ? sourceId : null,
+      cinemaTitleId: body.data.sourceType === "cinema" ? sourceId : null,
+      chatEnabled: body.data.chatEnabled,
+      announcementText,
+      updatedByUserId: req.user!.userId,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: platformFocusSettingsTable.id,
+      set: {
+        isEnabled: body.data.isEnabled,
+        sourceType: body.data.sourceType,
+        liveChannelId: body.data.sourceType === "live" ? sourceId : null,
+        cinemaTitleId: body.data.sourceType === "cinema" ? sourceId : null,
+        chatEnabled: body.data.chatEnabled,
+        announcementText,
+        updatedByUserId: req.user!.userId,
+        updatedAt: now,
+      },
+    })
+    .returning();
+
+  await writeAuditLog(req, {
+    action: "admin.focus_mode.update",
+    targetType: "platform_focus_settings",
+    targetId: "1",
+    beforeState: toAdminFocusMode(before),
+    afterState: toAdminFocusMode(updated),
+  });
+  res.json(UpdateAdminFocusModeResponse.parse(toAdminFocusMode(updated)));
+});
 
 router.get("/admin/finance/context", requireOwner, async (_req, res): Promise<void> => {
   const [context] = await db.select().from(adminTreasuryContextTable).where(eq(adminTreasuryContextTable.id, 1));

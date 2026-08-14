@@ -24,7 +24,7 @@ import { useAuthStore } from '@/lib/auth-store';
 import { getApiUrl } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { usePageMetadata } from '@/hooks/use-page-metadata';
-import HlsPlayer from '@/components/video/HlsPlayer';
+import KryvPlayer from '@/components/video/KryvPlayer';
 import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronDown, ChevronRight, ChevronUp, CircleDot, MoreHorizontal, RefreshCw, MessageCircleMore } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
@@ -509,12 +509,13 @@ export default function LiveChannel() {
         {/* Video Player - Responsive */}
         <div className={`w-full bg-black relative ${theaterMode ? 'h-full' : 'aspect-video sm:aspect-video lg:flex-1'}`}>
           {channel.isLive && hlsSrc ? (
-            <HlsPlayer
+            <KryvPlayer
               src={hlsSrc}
               autoPlay
               muted
               live
               className="w-full h-full object-contain"
+              ariaLabel={`${channel.displayName} live broadcast player`}
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center">

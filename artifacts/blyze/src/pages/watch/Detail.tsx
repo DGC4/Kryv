@@ -14,7 +14,7 @@ import {
   useListVideos,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
-import HlsPlayer from '@/components/video/HlsPlayer';
+import KryvPlayer from '@/components/video/KryvPlayer';
 import {
   Award,
   Check,
@@ -220,7 +220,7 @@ export default function WatchDetail() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
         <div className="min-w-0">
           <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/[0.1] bg-black shadow-2xl sm:rounded-3xl">
-            {video.playbackSource === 'youtube' && video.youtubeVideoId ? <iframe src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}?rel=0&modestbranding=1`} title={`${video.title} on YouTube`} className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /> : video.playbackId ? <HlsPlayer src={`https://stream.fastpix.com/${video.playbackId}.m3u8`} poster={video.thumbnailUrl || undefined} className="h-full w-full" /> : <div className="flex h-full w-full flex-col items-center justify-center bg-[#050609] px-5 text-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /><h3 className="mt-4 text-xl font-bold text-white">Video is processing</h3><p className="mt-2 max-w-md text-sm leading-relaxed text-white/50">This upload does not have a playable source yet. Kryv will make it available after media processing is complete.</p></div>}
+            {video.playbackSource === 'youtube' && video.youtubeVideoId ? <iframe src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}?rel=0&modestbranding=1`} title={`${video.title} on YouTube`} className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /> : video.playbackId ? <KryvPlayer src={`https://stream.fastpix.com/${video.playbackId}.m3u8`} poster={video.thumbnailUrl || undefined} className="h-full w-full object-contain" ariaLabel={`${video.title} player`} /> : <div className="flex h-full w-full flex-col items-center justify-center bg-[#050609] px-5 text-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /><h3 className="mt-4 text-xl font-bold text-white">Video is processing</h3><p className="mt-2 max-w-md text-sm leading-relaxed text-white/50">This upload does not have a playable source yet. Kryv will make it available after media processing is complete.</p></div>}
           </div>
           {video.playbackSource === 'youtube' && video.youtubeVideoId && <div className="mt-3 flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2.5 text-xs leading-relaxed text-white/45 sm:flex-row sm:items-center sm:justify-between"><span>This rights-cleared release plays through YouTube&apos;s privacy-enhanced embed. If the publisher blocks embedding, use the official source.</span><a href={`https://www.youtube.com/watch?v=${video.youtubeVideoId}`} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1.5 font-black text-primary hover:text-white">Open on YouTube <ExternalLink className="h-3.5 w-3.5" /></a></div>}
 

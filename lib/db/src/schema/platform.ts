@@ -605,3 +605,19 @@ export const adminTreasuryContextTable = pgTable("admin_treasury_context", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Singleton owner-controlled public Focus Mode. A configured source always remains
+// either an existing live channel or an owner-published Cinema title; it grants no
+// creator Cinema publishing right and does not alter commerce or custody controls.
+export const platformFocusSettingsTable = pgTable("platform_focus_settings", {
+  id: integer("id").primaryKey().default(1),
+  isEnabled: boolean("is_enabled").notNull().default(false),
+  sourceType: text("source_type").notNull().default("live"),
+  liveChannelId: integer("live_channel_id").references(() => channelsTable.id, { onDelete: "set null" }),
+  cinemaTitleId: integer("cinema_title_id").references(() => cinemaTitlesTable.id, { onDelete: "set null" }),
+  chatEnabled: boolean("chat_enabled").notNull().default(true),
+  announcementText: text("announcement_text"),
+  updatedByUserId: integer("updated_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

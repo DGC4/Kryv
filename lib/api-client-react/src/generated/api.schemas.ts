@@ -1903,6 +1903,78 @@ export interface ReviewPayoutRequestInput {
   reason?: string;
 }
 
+/**
+ * @nullable
+ */
+export type PlatformFocusModeSourceType = typeof PlatformFocusModeSourceType[keyof typeof PlatformFocusModeSourceType] | null;
+
+
+export const PlatformFocusModeSourceType = {
+  live: 'live',
+  cinema: 'cinema',
+} as const;
+
+export interface PlatformFocusMode {
+  isEnabled: boolean;
+  /** @nullable */
+  sourceType: PlatformFocusModeSourceType;
+  /** @nullable */
+  sourceId: number | null;
+  chatEnabled: boolean;
+  /**
+     * @maxLength 500
+     * @nullable
+     */
+  announcementText: string | null;
+  updatedAt: string;
+}
+
+export type AdminFocusModeSourceType = typeof AdminFocusModeSourceType[keyof typeof AdminFocusModeSourceType];
+
+
+export const AdminFocusModeSourceType = {
+  live: 'live',
+  cinema: 'cinema',
+} as const;
+
+export interface AdminFocusMode {
+  isEnabled: boolean;
+  sourceType: AdminFocusModeSourceType;
+  /** @nullable */
+  sourceId: number | null;
+  chatEnabled: boolean;
+  /**
+     * @maxLength 500
+     * @nullable
+     */
+  announcementText: string | null;
+  updatedAt: string;
+}
+
+export type UpdateAdminFocusModeInputSourceType = typeof UpdateAdminFocusModeInputSourceType[keyof typeof UpdateAdminFocusModeInputSourceType];
+
+
+export const UpdateAdminFocusModeInputSourceType = {
+  live: 'live',
+  cinema: 'cinema',
+} as const;
+
+export interface UpdateAdminFocusModeInput {
+  isEnabled: boolean;
+  sourceType: UpdateAdminFocusModeInputSourceType;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  sourceId?: number | null;
+  chatEnabled: boolean;
+  /**
+     * @maxLength 500
+     * @nullable
+     */
+  announcementText?: string | null;
+}
+
 export interface AdminFeatureFlag {
   key: string;
   enabled: boolean;

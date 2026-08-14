@@ -50,6 +50,7 @@ import type {
   AdminFeatureFlag,
   AdminFinanceLedger,
   AdminFinanceOverview,
+  AdminFocusMode,
   AdminModerationCase,
   AdminPayoutProfile,
   AdminPayoutRequest,
@@ -120,6 +121,7 @@ import type {
   NotificationItem,
   NotificationPreferences,
   NotificationPreferencesInput,
+  PlatformFocusMode,
   ReviewAdminModerationCaseInput,
   ReviewPayoutProfileInput,
   ReviewPayoutRequestInput,
@@ -128,6 +130,7 @@ import type {
   SearchResults,
   StreamCredentials,
   UpdateAdminFeatureFlagInput,
+  UpdateAdminFocusModeInput,
   VideoComment,
   VideoCommentInput,
   VideoCreateResponse,
@@ -5846,6 +5849,231 @@ export const useReviewAdminModerationCase = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getReviewAdminModerationCaseMutationOptions(options));
+    }
+
+export const getGetPlatformFocusModeUrl = () => {
+
+
+
+
+  return `/api/platform/focus`
+}
+
+/**
+ * @summary Public, read-only Focus Mode presentation state. Returns no owner controls or credentials.
+ */
+export const getPlatformFocusMode = async ( options?: RequestInit): Promise<PlatformFocusMode> => {
+
+  return customFetch<PlatformFocusMode>(getGetPlatformFocusModeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformFocusModeQueryKey = () => {
+    return [
+    `/api/platform/focus`
+    ] as const;
+    }
+
+
+export const getGetPlatformFocusModeQueryOptions = <TData = Awaited<ReturnType<typeof getPlatformFocusMode>>, TError = ErrorType<unknown>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getPlatformFocusMode>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformFocusModeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatformFocusMode>>> = ({ signal }) => getPlatformFocusMode({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatformFocusMode>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformFocusModeQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatformFocusMode>>>
+export type GetPlatformFocusModeQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public, read-only Focus Mode presentation state. Returns no owner controls or credentials.
+ */
+
+export function useGetPlatformFocusMode<TData = Awaited<ReturnType<typeof getPlatformFocusMode>>, TError = ErrorType<unknown>>(
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getPlatformFocusMode>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformFocusModeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminFocusModeUrl = () => {
+
+
+
+
+  return `/api/admin/focus-mode`
+}
+
+/**
+ * @summary Owner-only Focus Mode settings
+ */
+export const getAdminFocusMode = async ( options?: RequestInit): Promise<AdminFocusMode> => {
+
+  return customFetch<AdminFocusMode>(getGetAdminFocusModeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminFocusModeQueryKey = () => {
+    return [
+    `/api/admin/focus-mode`
+    ] as const;
+    }
+
+
+export const getGetAdminFocusModeQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFocusMode>>, TError = ErrorType<Error>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminFocusMode>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminFocusModeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminFocusMode>>> = ({ signal }) => getAdminFocusMode({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminFocusMode>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminFocusModeQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminFocusMode>>>
+export type GetAdminFocusModeQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Owner-only Focus Mode settings
+ */
+
+export function useGetAdminFocusMode<TData = Awaited<ReturnType<typeof getAdminFocusMode>>, TError = ErrorType<Error>>(
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getAdminFocusMode>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminFocusModeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminFocusModeUrl = () => {
+
+
+
+
+  return `/api/admin/focus-mode`
+}
+
+/**
+ * @summary Owner-only update to the public Focus Mode presentation
+ */
+export const updateAdminFocusMode = async (updateAdminFocusModeInput: UpdateAdminFocusModeInput, options?: RequestInit): Promise<AdminFocusMode> => {
+
+  return customFetch<AdminFocusMode>(getUpdateAdminFocusModeUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateAdminFocusModeInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminFocusModeMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminFocusMode>>, TError,{data: BodyType<UpdateAdminFocusModeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminFocusMode>>, TError,{data: BodyType<UpdateAdminFocusModeInput>}, TContext> => {
+
+const mutationKey = ['updateAdminFocusMode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminFocusMode>>, {data: BodyType<UpdateAdminFocusModeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAdminFocusMode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminFocusModeMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminFocusMode>>>
+    export type UpdateAdminFocusModeMutationBody = BodyType<UpdateAdminFocusModeInput>
+    export type UpdateAdminFocusModeMutationError = ErrorType<Error>
+
+    /**
+ * @summary Owner-only update to the public Focus Mode presentation
+ */
+export const useUpdateAdminFocusMode = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminFocusMode>>, TError,{data: BodyType<UpdateAdminFocusModeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminFocusMode>>,
+        TError,
+        {data: BodyType<UpdateAdminFocusModeInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminFocusModeMutationOptions(options));
     }
 
 export const getGetAdminCommandOverviewUrl = () => {

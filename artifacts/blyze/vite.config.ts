@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 const port = process.env.PORT ? Number(process.env.PORT) : 5173;
 const basePath = process.env.BASE_PATH ?? "/";
+const apiProxyTarget = process.env.KRYV_API_PROXY_TARGET ?? "http://localhost:8080";
 export default defineConfig({
   base: basePath,
   plugins: [react(), tailwindcss()],
@@ -23,7 +24,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
+        target: apiProxyTarget,
         changeOrigin: true,
       },
     },

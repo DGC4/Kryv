@@ -31,6 +31,9 @@ import {
   useListAdminFeatureFlags,
   useUpdateAdminFeatureFlag,
   getListAdminFeatureFlagsQueryKey,
+  useGetAdminFocusMode,
+  useUpdateAdminFocusMode,
+  getGetAdminFocusModeQueryKey,
   useGetAdminFinanceLedger,
   useGetAdminFinanceOverview,
   useGetAdminTreasuryContext,
@@ -61,7 +64,7 @@ import {
 import { GoldenDBadge, UserBadge } from '@/components/brand/BrandIdentity';
 import { useToast } from '@/hooks/use-toast';
 
-type Tab = 'overview' | 'analytics' | 'users' | 'channels' | 'videos' | 'cinema' | 'finance' | 'ads' | 'safety' | 'operations';
+type Tab = 'overview' | 'analytics' | 'users' | 'channels' | 'videos' | 'cinema' | 'finance' | 'ads' | 'safety' | 'operations' | 'focus';
 
 function formatDuration(seconds: number) {
   const hours = Math.floor(seconds / 3600);
@@ -138,6 +141,17 @@ export default function DashboardAdmin() {
   const { data: featureFlags, isLoading: featureFlagsLoading } = useListAdminFeatureFlags({
     query: { enabled: me?.role === 'owner' && tab === 'operations' },
   });
+  const focusModeQuery = useGetAdminFocusMode({
+    query: { enabled: me?.role === 'owner' && tab === 'focus' },
+  });
+  const focusChannelOptionsQuery = useListAdminChannels(
+    { limit: 100, offset: 0 },
+    { query: { enabled: me?.role === 'owner' && tab === 'focus' } },
+  );
+  const focusCinemaOptionsQuery = useListAdminCinemaTitles(
+    { limit: 100, offset: 0 },
+    { query: { enabled: me?.role === 'owner' && tab === 'focus' } },
+  );
   const financeOverviewQuery = useGetAdminFinanceOverview({
     query: { enabled: me?.role === 'owner' && tab === 'finance', refetchInterval: tab === 'finance' ? 15000 : false },
   });
@@ -209,6 +223,11 @@ export default function DashboardAdmin() {
   const [adEndsAt, setAdEndsAt] = useState(() => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16));
   const [treasuryLabel, setTreasuryLabel] = useState('');
   const [treasuryNotes, setTreasuryNotes] = useState('');
+  const [focusEnabled, setFocusEnabled] = useState(false);
+  const [focusSourceType, setFocusSourceType] = useState<'live' | 'cinema'>('live');
+  const [focusSourceId, setFocusSourceId] = useState('');
+  const [focusChatEnabled, setFocusChatEnabled] = useState(true);
+  const [focusAnnouncement, setFocusAnnouncement] = useState('');
 
   const updateUser = useUpdateAdminUser();
   const deleteChannel = useDeleteAdminChannel();
@@ -229,12 +248,22 @@ export default function DashboardAdmin() {
   const approveAdminAdCampaign = useApproveAdminAdCampaign();
   const reviewAdminModerationCase = useReviewAdminModerationCase();
   const updateAdminTreasuryContext = useUpdateAdminTreasuryContext();
+  const updateAdminFocusMode = useUpdateAdminFocusMode();
 
   React.useEffect(() => {
     if (!treasuryContextQuery.data) return;
     setTreasuryLabel(treasuryContextQuery.data.label ?? '');
     setTreasuryNotes(treasuryContextQuery.data.notes ?? '');
   }, [treasuryContextQuery.data?.updatedAt]);
+
+  React.useEffect(() => {
+    if (!focusModeQuery.data) return;
+    setFocusEnabled(focusModeQuery.data.isEnabled);
+    setFocusSourceType(focusModeQuery.data.sourceType);
+    setFocusSourceId(focusModeQuery.data.sourceId === null ? '' : String(focusModeQuery.data.sourceId));
+    setFocusChatEnabled(focusModeQuery.data.chatEnabled);
+    setFocusAnnouncement(focusModeQuery.data.announcementText ?? '');
+  }, [focusModeQuery.data?.updatedAt]);
 
   React.useEffect(() => {
     const title = cinemaDetailQuery.data;
@@ -319,6 +348,33 @@ export default function DashboardAdmin() {
         toast({ title: 'Treasury operating context saved', description: 'The safe label and notes were audit logged. No wallet address, provider key, custody record, or payout instruction was changed.' });
       },
       onError: (error: any) => toast({ title: 'Treasury context could not be saved', description: error?.body?.error || error?.message || 'The safe operating note was not changed.', variant: 'destructive' }),
+    });
+  };
+
+  const saveFocusMode = (event: React.FormEvent) => {
+    event.preventDefault();
+    const rawSourceId = focusSourceId.trim();
+    const sourceId = rawSourceId ? Number(rawSourceId) : null;
+    if (rawSourceId && (sourceId === null || !Number.isInteger(sourceId) || sourceId <= 0)) {
+      toast({ title: 'Choose a valid Focus Mode source', description: 'Select an existing live channel or published Cinema title.', variant: 'destructive' });
+      return;
+    }
+    if (focusEnabled && !sourceId) {
+      toast({ title: 'Choose a source before enabling Focus Mode', description: 'A single live channel or published Cinema title is required.', variant: 'destructive' });
+      return;
+    }
+    updateAdminFocusMode.mutate({ data: {
+      isEnabled: focusEnabled,
+      sourceType: focusSourceType,
+      sourceId,
+      chatEnabled: focusChatEnabled,
+      announcementText: focusAnnouncement.trim() || null,
+    } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetAdminFocusModeQueryKey() });
+        toast({ title: focusEnabled ? 'Focus Mode is live' : 'Focus Mode is off', description: 'The public presentation setting was saved and audit logged. Commerce, custody, payout, and ad-delivery gates were not changed.' });
+      },
+      onError: (error: any) => toast({ title: 'Focus Mode could not be saved', description: error?.body?.error || error?.message || 'No public presentation setting was changed.', variant: 'destructive' }),
     });
   };
 
@@ -609,7 +665,7 @@ export default function DashboardAdmin() {
 
       {/* Tabs */}
       <div className="-mx-4 mb-5 flex snap-x snap-mandatory gap-1 overflow-x-auto overscroll-x-contain border-b border-white/[0.08] px-4 [scroll-padding-inline:1rem] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
-        {(['overview', 'analytics', 'users', 'channels', 'videos', 'cinema', 'finance', 'ads', 'safety', 'operations'] as Tab[]).map((t) => (
+        {(['overview', 'analytics', 'users', 'channels', 'videos', 'cinema', 'finance', 'ads', 'safety', 'operations', 'focus'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -636,6 +692,15 @@ export default function DashboardAdmin() {
             <div className="grid gap-5 xl:grid-cols-2"><article className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-black text-white">Payment intent status</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Provider-neutral intent counts. Completion is only meaningful after signed provider confirmation and downstream reconciliation.</p></div><Wallet className="h-5 w-5 text-primary" /></div><div className="mt-4 flex flex-wrap gap-2">{commandOverviewQuery.data.payments.length ? commandOverviewQuery.data.payments.map((payment) => <div key={payment.status} className="rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2"><p className="text-lg font-black text-white">{payment.count}</p><p className="text-[10px] font-bold uppercase tracking-wider text-white/40">{payment.status.replaceAll('_', ' ')}</p></div>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-4 text-xs leading-relaxed text-white/35">No payment intents have been recorded yet.</p>}</div></article><article className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-black text-white">Payout lifecycle</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Status totals are read-only here. Do not re-approve or retry requests that are already executing with a risk hold.</p></div><Clock3 className="h-5 w-5 text-primary" /></div><div className="mt-4 flex flex-wrap gap-2">{commandOverviewQuery.data.payoutStatusCounts.length ? commandOverviewQuery.data.payoutStatusCounts.map((payout) => <div key={payout.status} className="rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2"><p className="text-lg font-black text-white">{payout.count}</p><p className="text-[10px] font-bold uppercase tracking-wider text-white/40">{payout.status.replaceAll('_', ' ')}</p></div>) : <p className="rounded-xl border border-dashed border-white/[0.1] p-4 text-xs leading-relaxed text-white/35">No payout requests have entered the lifecycle.</p>}</div></article></div>
             <article className="overflow-hidden rounded-2xl border border-white/[0.08] bg-black/25"><div className="flex flex-col gap-2 border-b border-white/[0.07] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-black text-white">Settled platform revenue by asset</h3><p className="mt-1 text-xs leading-relaxed text-white/40">Immutable platform revenue movements only. Values remain separated by crypto asset and reflect actual movement rows, not estimated treasury balances.</p></div><Button size="sm" variant="secondary" className="w-fit text-xs font-black" onClick={() => setTab('finance')}>Finance detail</Button></div>{commandOverviewQuery.data.revenueByAsset.length ? <div className="grid divide-y divide-white/[0.06] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">{commandOverviewQuery.data.revenueByAsset.map((asset) => <div key={asset.currency} className="p-4"><div className="flex items-center justify-between"><span className="font-black text-white">{asset.currency}</span><Landmark className="h-4 w-4 text-primary" /></div><p className="mt-3 text-sm font-black text-white">{asset.platformFeeAmount}</p><p className="text-[10px] font-bold uppercase tracking-widest text-white/35">Platform 5% movements</p><div className="mt-3 space-y-1 text-[11px] text-white/45"><p>Gross {asset.grossAmount}</p><p>Creator net {asset.creatorNetAmount}</p></div></div>)}</div> : <p className="p-6 text-sm text-white/40">No settled platform-revenue movements have been recorded.</p>}</article>
           </> : <div className="rounded-2xl border border-red-300/20 bg-red-400/[0.05] p-5 text-sm text-red-100"><p className="font-black">The owner overview could not load</p><p className="mt-1 leading-relaxed text-red-100/70">Kryv cannot safely summarize the platform command state while the authoritative overview is unavailable.</p><Button type="button" variant="outline" onClick={() => commandOverviewQuery.refetch()} className="mt-4 border-red-200/25 bg-red-200/[0.08] font-black text-red-50 hover:bg-red-200/[0.14] hover:text-red-50">Retry overview</Button></div>}
+        </section>
+      )}
+
+      {tab === 'focus' && (
+        <section className="space-y-5">
+          <div className="rounded-2xl border border-primary/20 bg-primary/[0.045] p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2 text-primary"><Eye className="h-5 w-5" /><h2 className="text-lg font-bold text-white">Owner Focus Mode</h2></div><p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/55">Present one selected live channel or published Cinema title as Kryv&apos;s public focus experience. Header and footer remain available. This changes discovery presentation only; it does not create publishing rights or alter commerce, custody, payout, or advertising controls.</p></div><span className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold ${focusModeQuery.data?.isEnabled ? 'border-primary/35 bg-primary/10 text-primary' : 'border-white/[0.1] bg-white/[0.03] text-white/50'}`}><Power className="h-3.5 w-3.5" /> {focusModeQuery.data?.isEnabled ? 'Public focus on' : 'Public focus off'}</span></div>
+          </div>
+          {focusModeQuery.isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div> : focusModeQuery.isError ? <div className="rounded-2xl border border-red-300/20 bg-red-400/[0.05] p-5 text-sm text-red-100"><p className="font-bold">Focus Mode settings could not load</p><p className="mt-1 leading-relaxed text-red-100/70">No public Focus Mode configuration is displayed or changed until the owner-only settings query is available.</p><Button type="button" variant="outline" onClick={() => focusModeQuery.refetch()} className="mt-4 border-red-200/25 bg-red-200/[0.08] font-bold text-red-50 hover:bg-red-200/[0.14] hover:text-red-50">Retry Focus Mode</Button></div> : <form onSubmit={saveFocusMode} className="rounded-2xl border border-white/[0.08] bg-black/25 p-5 sm:p-6"><div className="grid gap-5 lg:grid-cols-2"><section><h3 className="text-sm font-bold text-white">Presentation source</h3><p className="mt-1 text-xs leading-relaxed text-white/45">Choose one existing live channel or published Cinema title. The server validates the selection again before it can go public.</p><div className="mt-4 grid gap-3"><div className="rounded-xl border border-white/[0.1] bg-white/[0.02] p-3"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold text-white">Focus Mode</p><p className="mt-1 text-xs leading-relaxed text-white/45">Replace normal multi-creator discovery with the selected single-source shell.</p></div><button type="button" onClick={() => setFocusEnabled((value) => !value)} className={`inline-flex min-h-11 items-center rounded-full border px-4 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${focusEnabled ? 'border-primary/50 bg-primary text-primary-foreground' : 'border-white/[0.12] bg-white/[0.04] text-white/65 hover:border-primary/45 hover:text-primary'}`} aria-pressed={focusEnabled}>{focusEnabled ? 'Enabled' : 'Disabled'}</button></div></div><label className="text-xs font-bold text-white/65">Source type<select value={focusSourceType} onChange={(event) => { setFocusSourceType(event.target.value as 'live' | 'cinema'); setFocusSourceId(''); }} className="mt-1.5 min-h-11 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="live">Live channel</option><option value="cinema">Published Cinema title</option></select></label><label className="text-xs font-bold text-white/65">Selected source<select value={focusSourceId} onChange={(event) => setFocusSourceId(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60"><option value="">Choose a source</option>{focusSourceType === 'live' ? focusChannelOptionsQuery.data?.items.map((channel) => <option key={channel.id} value={channel.id}>{channel.displayName}</option>) : focusCinemaOptionsQuery.data?.items.map((title) => <option key={title.id} value={title.id}>{title.title}</option>)}</select></label></div></section><section><h3 className="text-sm font-bold text-white">Viewer context</h3><p className="mt-1 text-xs leading-relaxed text-white/45">Chat can be included only with a live source. It uses the existing moderated REST chat path and does not claim realtime delivery.</p><div className="mt-4 grid gap-3"><div className={`rounded-xl border p-3 ${focusSourceType === 'live' ? 'border-white/[0.1] bg-white/[0.02]' : 'border-white/[0.06] bg-white/[0.01] opacity-65'}`}><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold text-white">Include stream chat</p><p className="mt-1 text-xs leading-relaxed text-white/45">Uses the selected room&apos;s existing REST list and moderation rules.</p></div><button type="button" onClick={() => setFocusChatEnabled((value) => !value)} disabled={focusSourceType !== 'live'} className={`inline-flex min-h-11 items-center rounded-full border px-4 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed ${focusChatEnabled && focusSourceType === 'live' ? 'border-primary/50 bg-primary text-primary-foreground' : 'border-white/[0.12] bg-white/[0.04] text-white/65 hover:border-primary/45 hover:text-primary'}`} aria-pressed={focusChatEnabled && focusSourceType === 'live'}>{focusChatEnabled && focusSourceType === 'live' ? 'Included' : 'Hidden'}</button></div></div><label className="text-xs font-bold text-white/65">Announcement<textarea value={focusAnnouncement} onChange={(event) => setFocusAnnouncement(event.target.value)} maxLength={500} rows={5} placeholder="Optional viewer-facing operating note" className="mt-1.5 w-full resize-y rounded-xl border border-white/[0.1] bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-primary/60" /></label><p className="text-[10px] text-white/35">{focusAnnouncement.length}/500 characters</p></div></section></div><div className="mt-6 flex flex-col gap-3 border-t border-white/[0.08] pt-5 sm:flex-row sm:items-center sm:justify-between"><p className="max-w-3xl text-[11px] leading-relaxed text-amber-100/75">Safety boundary: a Focus Mode source is validated by the API. If it is unavailable later, the public shell returns a truthful fallback rather than inventing a stream or Cinema release.</p><Button type="submit" disabled={updateAdminFocusMode.isPending || focusModeQuery.isLoading} className="min-h-11 shrink-0 font-bold">{updateAdminFocusMode.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save Focus Mode</Button></div></form>}
         </section>
       )}
 

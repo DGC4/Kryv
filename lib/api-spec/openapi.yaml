@@ -2208,6 +2208,65 @@ paths:
         "403": { description: Not an owner }
         "404": { description: Moderation case not found }
 
+  /platform/focus:
+    get:
+      operationId: getPlatformFocusMode
+      tags: [platform]
+      summary: Public, read-only Focus Mode presentation state. Returns no owner controls or credentials.
+      responses:
+        "200":
+          description: Current public Focus Mode state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformFocusMode"
+  /admin/focus-mode:
+    get:
+      operationId: getAdminFocusMode
+      tags: [admin]
+      summary: Owner-only Focus Mode settings
+      responses:
+        "200":
+          description: Focus Mode settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminFocusMode"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      operationId: updateAdminFocusMode
+      tags: [admin]
+      summary: Owner-only update to the public Focus Mode presentation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAdminFocusModeInput"
+      responses:
+        "200":
+          description: Updated Focus Mode settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminFocusMode"
+        "400":
+          description: Invalid Focus Mode configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /admin/overview:
     get:
       operationId: getAdminCommandOverview
@@ -4291,6 +4350,35 @@ components:
         decision: { type: string, enum: [approved, rejected, held] }
         reason: { type: string, maxLength: 500 }
 
+    PlatformFocusMode:
+      type: object
+      required: [isEnabled, sourceType, sourceId, chatEnabled, announcementText, updatedAt]
+      properties:
+        isEnabled: { type: boolean }
+        sourceType: { type: ["string", "null"], enum: [live, cinema, null] }
+        sourceId: { type: ["integer", "null"] }
+        chatEnabled: { type: boolean }
+        announcementText: { type: ["string", "null"], maxLength: 500 }
+        updatedAt: { type: string, format: date-time }
+    AdminFocusMode:
+      type: object
+      required: [isEnabled, sourceType, sourceId, chatEnabled, announcementText, updatedAt]
+      properties:
+        isEnabled: { type: boolean }
+        sourceType: { type: string, enum: [live, cinema] }
+        sourceId: { type: ["integer", "null"] }
+        chatEnabled: { type: boolean }
+        announcementText: { type: ["string", "null"], maxLength: 500 }
+        updatedAt: { type: string, format: date-time }
+    UpdateAdminFocusModeInput:
+      type: object
+      required: [isEnabled, sourceType, chatEnabled]
+      properties:
+        isEnabled: { type: boolean }
+        sourceType: { type: string, enum: [live, cinema] }
+        sourceId: { type: ["integer", "null"], minimum: 1 }
+        chatEnabled: { type: boolean }
+        announcementText: { type: ["string", "null"], maxLength: 500 }
     AdminFeatureFlag:
       type: object
       required: [key, enabled, description, updatedAt]

@@ -3,7 +3,7 @@ import { useLocation, Link } from 'wouter';
 import { useAuthStore } from '../lib/auth-store';
 import { useGetMe, useGetNotificationInbox, useMarkNotificationRead } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
-import { Bell, Menu, Radio, PlaySquare, Tv, Search, Palette, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, Users, WalletCards } from 'lucide-react';
+import { Bell, Menu, Radio, PlaySquare, Tv, Search, Palette, Lock, RefreshCw, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, Users, WalletCards } from 'lucide-react';
 import { KryvLogo, GoldenDBadge } from './brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,8 @@ export function Header() {
   const notificationInbox = useGetNotificationInbox({ limit: 12 }, { query: { enabled: isSignedIn, refetchInterval: isSignedIn ? 30000 : false } });
   const markNotificationRead = useMarkNotificationRead();
   const cycleTheme = useThemeStore((s) => s.cycleTheme);
+  const themePreference = useThemeStore((s) => s.preference);
+  const setThemePreference = useThemeStore((s) => s.setPreference);
   const [searchQuery, setSearchQuery] = useState('');
 
   const submitSearch = (e: React.FormEvent) => {
@@ -109,16 +111,40 @@ export function Header() {
             </Button>
           </Link>
 
-          {/* Theme cycle */}
+          {/* Theme controls: palette cycles immediately; the adjacent control records Auto or Locked behavior for route changes. */}
           <Button
             variant="ghost" size="icon"
             onClick={cycleTheme}
             aria-label="Cycle color theme"
-            className="h-10 w-10 text-white/40 hover:text-primary hover:bg-white/[0.06] rounded-full"
+            className="h-10 w-10 shrink-0 rounded-full text-white/40 hover:bg-white/[0.06] hover:text-primary"
             title="Cycle theme"
           >
-            <Palette className="w-4 h-4" />
+            <Palette className="h-4 w-4" />
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Theme rotation is ${themePreference === 'auto' ? 'automatic' : 'locked'}`}
+                className="h-10 w-10 shrink-0 rounded-full text-white/40 hover:bg-white/[0.06] hover:text-primary"
+                title={themePreference === 'auto' ? 'Theme rotation: automatic' : 'Theme rotation: locked'}
+              >
+                {themePreference === 'auto' ? <RefreshCw className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72 border-white/10 bg-black/95 p-1.5 text-white backdrop-blur-xl">
+              <DropdownMenuLabel className="px-2.5 py-2 text-sm font-semibold text-white">Theme rotation</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => setThemePreference('auto')} className={`mb-1 flex cursor-pointer items-start gap-3 rounded-lg px-2.5 py-2.5 ${themePreference === 'auto' ? 'bg-primary/[0.12] text-white focus:bg-primary/[0.16]' : 'text-white/65 focus:bg-white/[0.08] focus:text-white'}`}>
+                <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span><span className="block text-sm font-semibold">Auto</span><span className="mt-0.5 block text-[11px] leading-relaxed text-white/45">Advance to the next Kryv theme after navigation.</span></span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setThemePreference('locked')} className={`flex cursor-pointer items-start gap-3 rounded-lg px-2.5 py-2.5 ${themePreference === 'locked' ? 'bg-primary/[0.12] text-white focus:bg-primary/[0.16]' : 'text-white/65 focus:bg-white/[0.08] focus:text-white'}`}>
+                <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span><span className="block text-sm font-semibold">Locked</span><span className="mt-0.5 block text-[11px] leading-relaxed text-white/45">Keep your current theme until you choose another palette color.</span></span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {isSignedIn ? (
             <>
