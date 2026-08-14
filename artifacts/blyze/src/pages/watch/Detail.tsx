@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useParams, Link } from 'wouter';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useParams, Link } from 'wouter';
 import {
   getGetChannelEngagementQueryKey,
   getListVideoCommentsQueryKey,
@@ -19,11 +19,14 @@ import { UserChip } from '@/components/identity/UserChip';
 import {
   Award,
   Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Clapperboard,
   Eye,
   ExternalLink,
   Film,
+  ListVideo,
   Loader2,
   MessageSquareText,
   Play,
@@ -31,7 +34,6 @@ import {
   Share2,
   ShieldAlert,
   Sparkles,
-  Users,
   Reply,
   Trash2,
 } from 'lucide-react';
@@ -64,6 +66,7 @@ type WatchCommentNode = {
 
 export default function WatchDetail() {
   const { id } = useParams<{ id: string }>();
+  const [location, navigate] = useLocation();
   const videoId = parseInt(id || '0', 10);
   const { data: video, isLoading, refetch: refetchVideo } = useGetVideo(videoId, { query: { enabled: !!videoId } });
   const { data: allUploads = [] } = useListVideos({ contentType: 'upload' }, { query: { enabled: !!videoId } });
@@ -88,6 +91,8 @@ export default function WatchDetail() {
   const [commentDraft, setCommentDraft] = useState('');
   const [replyTargetId, setReplyTargetId] = useState<number | null>(null);
   const [replyDraft, setReplyDraft] = useState('');
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [autoplayEnabled, setAutoplayEnabled] = useState(() => window.localStorage.getItem('kryv-watch-autoplay') !== 'off');
   usePageMetadata({
     title: video?.title ?? 'Watch video',
     description: video?.description?.trim() || 'Watch a creator release on Kryv Watch.',
@@ -106,6 +111,21 @@ export default function WatchDetail() {
       })
       .slice(0, 6);
   }, [allUploads, video]);
+
+  useEffect(() => {
+    setDetailsExpanded(false);
+  }, [videoId]);
+
+
+  const setAutoplayPreference = useCallback((nextValue: boolean) => {
+    setAutoplayEnabled(nextValue);
+    window.localStorage.setItem('kryv-watch-autoplay', nextValue ? 'on' : 'off');
+  }, []);
+  const upNext = recommendations.find((candidate) => candidate.playbackSource === 'fastpix' && Boolean(candidate.playbackId));
+  const continueToUpNext = useCallback(() => {
+    if (!autoplayEnabled || !upNext) return;
+    navigate(`/watch/${upNext.id}?autoplay=1`);
+  }, [autoplayEnabled, navigate, upNext]);
 
   const requestClip = (event: React.FormEvent) => {
     event.preventDefault();
@@ -215,13 +235,15 @@ export default function WatchDetail() {
   const duration = formatDuration(video.durationSeconds);
   const discussion = comments as unknown as WatchCommentNode[];
   const discussionCount = discussion.reduce((count, comment) => count + 1 + comment.replies.length, 0);
+  const hasInlineDetails = Boolean(video.description?.trim() || video.categoryName || duration);
+  const autoplayFromQueue = new URLSearchParams(location.split('?')[1] ?? '').get('autoplay') === '1';
 
   return (
     <div className="relative z-10 mx-auto max-w-[1600px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
         <div className="min-w-0">
           <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/[0.1] bg-black shadow-2xl sm:rounded-3xl">
-            {video.playbackSource === 'youtube' && video.youtubeVideoId ? <iframe src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}?rel=0&modestbranding=1`} title={`${video.title} on YouTube`} className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /> : video.playbackId ? <KryvPlayer src={`https://stream.fastpix.com/${video.playbackId}.m3u8`} poster={video.thumbnailUrl || undefined} className="h-full w-full object-contain" ariaLabel={`${video.title} player`} /> : <div className="flex h-full w-full flex-col items-center justify-center bg-[#050609] px-5 text-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /><h3 className="mt-4 text-xl font-bold text-white">Video is processing</h3><p className="mt-2 max-w-md text-sm leading-relaxed text-white/50">This upload does not have a playable source yet. Kryv will make it available after media processing is complete.</p></div>}
+            {video.playbackSource === 'youtube' && video.youtubeVideoId ? <iframe src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}?rel=0&modestbranding=1`} title={`${video.title} on YouTube`} className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /> : video.playbackId ? <KryvPlayer src={`https://stream.fastpix.com/${video.playbackId}.m3u8`} poster={video.thumbnailUrl || undefined} autoPlay={autoplayFromQueue && autoplayEnabled} onEnded={continueToUpNext} className="h-full w-full object-contain" ariaLabel={`${video.title} player`} /> : <div className="flex h-full w-full flex-col items-center justify-center bg-[#050609] px-5 text-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /><h3 className="mt-4 text-xl font-bold text-white">Video is processing</h3><p className="mt-2 max-w-md text-sm leading-relaxed text-white/50">This upload does not have a playable source yet. Kryv will make it available after media processing is complete.</p></div>}
           </div>
           {video.playbackSource === 'youtube' && video.youtubeVideoId && <div className="mt-3 flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2.5 text-xs leading-relaxed text-white/45 sm:flex-row sm:items-center sm:justify-between"><span>This rights-cleared release plays through YouTube&apos;s privacy-enhanced embed. If the publisher blocks embedding, use the official source.</span><a href={`https://www.youtube.com/watch?v=${video.youtubeVideoId}`} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1.5 font-black text-primary hover:text-white">Open on YouTube <ExternalLink className="h-3.5 w-3.5" /></a></div>}
 
@@ -229,9 +251,13 @@ export default function WatchDetail() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2 text-primary"><span className="inline-flex items-center gap-1.5 text-xs font-semibold"><Play className="h-3.5 w-3.5 fill-current" /> Kryv Watch</span>{video.categoryName && <span className="rounded-full border border-white/[0.1] bg-black/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/55">{video.categoryName}</span>}</div><h1 className="mt-2 text-xl font-bold leading-tight text-white sm:text-3xl">{video.title}</h1><div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-white/45"><span className="inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5 text-primary" />{video.viewCount.toLocaleString()} views</span><span>{formatDistanceToNow(new Date(video.createdAt), { addSuffix: true })}</span>{duration && <span>{duration}</span>}</div></div><div className="flex flex-wrap gap-2"><Button type="button" variant="secondary" onClick={shareVideo} aria-label="Copy Watch link" className="h-10 gap-2 rounded-xl px-3 sm:px-4"><Share2 className="h-4 w-4" /><span>Share</span></Button>{!video.isOwner && (signedInUser ? <Button type="button" variant="ghost" onClick={() => setReportOpen(true)} className="h-10 rounded-xl px-3 text-white/45 hover:bg-red-400/10 hover:text-red-200 sm:px-4"><ShieldAlert className="mr-2 h-4 w-4" /><span>Report</span></Button> : <Link href="/sign-in" className="inline-flex h-10 items-center rounded-xl px-3 text-sm font-bold text-white/45 transition hover:bg-red-400/10 hover:text-red-200 sm:px-4"><ShieldAlert className="mr-2 h-4 w-4" />Report</Link>)}{video.isOwner && video.playbackSource === 'fastpix' && video.playbackId && <Button type="button" variant="secondary" aria-label="Create a native clip" className="h-10 gap-2 rounded-xl border border-primary/30 px-3 text-primary hover:text-primary sm:px-4" onClick={() => { setClipTitle(`${video.title} · Clip`); setClipStart(0); setClipEnd(Math.min(video.durationSeconds || 30, 30)); }}><Clapperboard className="h-4 w-4" /><span className="hidden sm:inline">Make Clip</span></Button>}</div></div>
           </div>
 
+          {hasInlineDetails && <section id="watch-details" className="mt-3 rounded-2xl border border-white/[0.08] bg-black/20 px-4 py-3.5 sm:px-5" aria-label="About this Watch release"><div className="flex items-start justify-between gap-4"><div className="min-w-0 flex-1">{detailsExpanded ? <div className="space-y-3"><div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-white/50"><span>Published {formatDistanceToNow(new Date(video.createdAt), { addSuffix: true })}</span>{duration && <span className="rounded-full border border-white/[0.1] bg-white/[0.03] px-2 py-0.5 text-[10px] text-white/60">{duration}</span>}{video.categoryName && <span className="rounded-full border border-white/[0.1] bg-white/[0.03] px-2 py-0.5 text-[10px] text-white/60">{video.categoryName}</span>}</div>{video.description?.trim() ? <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/72">{video.description}</p> : <p className="text-sm leading-relaxed text-white/50">This release does not include a creator description.</p>}</div> : <p className="line-clamp-2 text-sm leading-relaxed text-white/62">{video.description?.trim() || `${video.categoryName ? `${video.categoryName} release` : 'Kryv Watch release'} · ${duration ?? 'duration unavailable'}`}</p>}</div><button type="button" onClick={() => setDetailsExpanded((expanded) => !expanded)} aria-expanded={detailsExpanded} aria-controls="watch-details" className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-primary transition hover:bg-primary/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{detailsExpanded ? <>Less <ChevronUp className="h-3.5 w-3.5" /></> : <>More <ChevronDown className="h-3.5 w-3.5" /></>}</button></div></section>}
+
           {!video.isOwner && signedInUser && <Dialog open={reportOpen} onOpenChange={setReportOpen}><DialogContent className="border-white/[0.12] bg-[#0b0e14] text-white sm:max-w-md"><DialogHeader><DialogTitle className="text-white">Report this Watch video</DialogTitle><DialogDescription className="leading-relaxed text-white/50">Reports are recorded for owner safety review. Provide only information relevant to this published Watch release.</DialogDescription></DialogHeader><form onSubmit={submitSafetyReport} className="space-y-4"><label className="block text-xs font-black uppercase tracking-wider text-white/55">Reason<select value={reportReason} onChange={(event) => setReportReason(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-white/[0.1] bg-black/35 px-3 text-sm font-semibold text-white outline-none focus:border-primary/60"><option value="harassment">Harassment</option><option value="hate_or_harm">Hate or harm</option><option value="spam_or_scam">Spam or scam</option><option value="sexual_content">Sexual content</option><option value="violence_or_threat">Violence or threat</option><option value="impersonation">Impersonation</option><option value="other">Other</option></select></label><label className="block text-xs font-black uppercase tracking-wider text-white/55">Optional details<Textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={500} placeholder="What should the safety reviewer know?" className="mt-2 min-h-28 border-white/[0.1] bg-black/35 text-white placeholder:text-white/30 focus-visible:ring-primary" /></label><p className="text-right text-[10px] text-white/30">{reportDetails.length}/500</p><DialogFooter><Button type="button" variant="ghost" onClick={() => setReportOpen(false)} disabled={createVideoSafetyReport.isPending} className="text-white/60">Cancel</Button><Button type="submit" disabled={createVideoSafetyReport.isPending} className="font-black">{createVideoSafetyReport.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}Send report</Button></DialogFooter></form></DialogContent></Dialog>}
 
-          <section className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><Link href={`/profile/${video.channelSlug}`} className="group flex min-w-0 items-center gap-3"><div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-primary/15">{video.channelAvatarUrl ? <img src={video.channelAvatarUrl} alt={video.channelName} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-lg font-black text-primary">{video.channelName?.[0]}</span>}</div><div className="min-w-0"><p className="truncate text-base font-bold text-white transition group-hover:text-primary">{video.channelName}</p><p className="mt-0.5 text-xs text-white/40">Creator profile · releases, live room, and curated credits</p></div></Link><Link href={`/live/${video.channelSlug}`} className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-3 text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground"><Radio className="h-4 w-4" /> Visit live room</Link></div>{video.description && <p className="mt-5 border-t border-white/[0.07] pt-5 text-sm leading-relaxed text-white/70 whitespace-pre-wrap">{video.description}</p>}</section>
+          <section className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><Link href={`/profile/${video.channelSlug}`} className="group flex min-w-0 items-center gap-3"><div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-primary/15">{video.channelAvatarUrl ? <img src={video.channelAvatarUrl} alt={video.channelName} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-lg font-black text-primary">{video.channelName?.[0]}</span>}</div><div className="min-w-0"><p className="truncate text-base font-bold text-white transition group-hover:text-primary">{video.channelName}</p><p className="mt-0.5 text-xs text-white/40">Creator profile · releases, live room, and curated credits</p></div></Link><Link href={`/live/${video.channelSlug}`} className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-3 text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground"><Radio className="h-4 w-4" /> Visit live room</Link></div></section>
+
+          <section className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-3 sm:hidden"><button type="button" onClick={() => document.getElementById('watch-discussion')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="flex min-h-14 w-full items-center gap-3 text-left"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary"><MessageSquareText className="h-4 w-4" /></div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-white">Discussion · {discussionCount.toLocaleString()}</p><p className="mt-0.5 truncate text-xs text-white/45">{discussion[0] ? `${discussion[0].username}: ${discussion[0].message}` : 'Be the first to start the conversation.'}</p></div><ChevronDown className="h-4 w-4 shrink-0 text-white/45" /></button></section>
 
           <section className="mt-5 rounded-2xl border border-white/[0.08] bg-[#0a0c11]/[0.72] p-4 sm:mt-6 sm:p-5" aria-labelledby="watch-discussion">
             <div className="flex items-end justify-between gap-4"><div><div className="flex items-center gap-2 text-primary"><MessageSquareText className="h-4 w-4" /><span className="text-xs font-semibold">Watch discussion</span></div><h2 id="watch-discussion" className="mt-1 text-lg font-bold text-white">{discussionCount.toLocaleString()} {discussionCount === 1 ? 'comment' : 'comments'}</h2></div><span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[10px] font-bold text-white/45">Newest first</span></div>
@@ -250,7 +276,7 @@ export default function WatchDetail() {
 
           {activePoll && <section className="rounded-2xl border border-white/[0.08] bg-black/25 p-4"><div className="flex items-center gap-2"><MessageSquareText className="h-4 w-4 text-primary" /><h2 className="text-sm font-black text-white">Live community poll</h2></div><p className="mt-3 text-sm font-bold text-white/80">{activePoll.title}</p><div className="mt-3 space-y-2">{activePoll.choices.map(choice => <button key={choice.id} type="button" onClick={() => votePoll(activePoll.id, choice.id)} disabled={engagementAction.isPending} className="flex min-h-10 w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-left text-xs font-bold text-white/70 transition hover:border-primary/45 hover:bg-primary/[0.07] hover:text-white"><span>{choice.title}</span><span className="text-white/35">{choice.votes} votes</span></button>)}</div></section>}
 
-          <section className="rounded-2xl border border-white/[0.08] bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><div><div className="flex items-center gap-2"><Users className="h-4 w-4 text-primary" /><h2 className="text-sm font-black text-white">More to watch</h2></div><p className="mt-1 text-xs text-white/40">Ready creator uploads from Kryv Watch.</p></div><Link href="/watch" className="text-xs font-black text-primary hover:text-white">Browse</Link></div><div className="mt-4 space-y-3">{recommendations.map(candidate => <Link key={candidate.id} href={`/watch/${candidate.id}`} className="group flex gap-3"><div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.04]">{candidate.thumbnailUrl ? <img src={candidate.thumbnailUrl} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <Film className="absolute inset-0 m-auto h-5 w-5 text-white/20" />}{formatDuration(candidate.durationSeconds) && <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 py-0.5 text-[9px] font-bold text-white">{formatDuration(candidate.durationSeconds)}</span>}</div><div className="min-w-0"><p className="line-clamp-2 text-xs font-black leading-snug text-white transition group-hover:text-primary">{candidate.title}</p><p className="mt-1 truncate text-[10px] text-white/42">{candidate.channelName} · {candidate.viewCount.toLocaleString()} views</p></div></Link>)}{recommendations.length === 0 && <div className="rounded-xl border border-dashed border-white/[0.12] p-4 text-center text-xs leading-relaxed text-white/40">More ready uploads will appear here as creators publish them.</div>}</div></section></aside>
+          <section className="rounded-2xl border border-white/[0.08] bg-black/25 p-4"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><ListVideo className="h-4 w-4 text-primary" /><h2 className="text-sm font-black text-white">Up next</h2></div><p className="mt-1 text-xs leading-relaxed text-white/40">Ready Watch releases, prioritized by this creator and category.</p></div><div className="flex shrink-0 items-center gap-2">{upNext && <button type="button" onClick={() => setAutoplayPreference(!autoplayEnabled)} aria-pressed={autoplayEnabled} className={`inline-flex min-h-8 items-center gap-1.5 rounded-lg px-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${autoplayEnabled ? 'bg-primary/15 text-primary hover:bg-primary/25' : 'bg-white/[0.05] text-white/45 hover:bg-white/[0.1] hover:text-white'}`}><span>Autoplay</span>{autoplayEnabled ? <Check className="h-3.5 w-3.5" /> : <span>Off</span>}</button>}<Link href="/watch" className="text-xs font-black text-primary hover:text-white">Browse</Link></div></div><div className="mt-4 space-y-3">{recommendations.map((candidate) => <Link key={candidate.id} href={`/watch/${candidate.id}`} className="group flex gap-3 rounded-xl outline-none transition focus-visible:ring-2 focus-visible:ring-primary"><div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.04]">{candidate.thumbnailUrl ? <img src={candidate.thumbnailUrl} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <Film className="absolute inset-0 m-auto h-5 w-5 text-white/20" />}{formatDuration(candidate.durationSeconds) && <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 py-0.5 text-[9px] font-bold text-white">{formatDuration(candidate.durationSeconds)}</span>}{candidate.id === upNext?.id && <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[8px] font-black text-primary-foreground">NEXT</span>}</div><div className="min-w-0"><p className="line-clamp-2 text-xs font-black leading-snug text-white transition group-hover:text-primary">{candidate.title}</p><p className="mt-1 truncate text-[10px] text-white/42">{candidate.channelName} · {candidate.viewCount.toLocaleString()} views</p></div></Link>)}{recommendations.length === 0 && <div className="rounded-xl border border-dashed border-white/[0.12] p-4 text-center text-xs leading-relaxed text-white/40">A next release will appear here when another ready upload is available.</div>}</div></section></aside>
       </section>
     </div>
   );

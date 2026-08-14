@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import type Hls from 'hls.js';
-import { Gauge, Maximize2, Minimize2, Pause, Play, RotateCcw, Settings2, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
+import { Gauge, Maximize2, Minimize2, Pause, Play, Repeat2, RotateCcw, Settings2, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 
 export interface KryvPlayerProps {
   src: string;
@@ -14,6 +14,7 @@ export interface KryvPlayerProps {
    */
   live?: boolean;
   ariaLabel?: string;
+  onEnded?: () => void;
 }
 
 const VOD_SEEK_SECONDS = 10;
@@ -43,11 +44,17 @@ export default function KryvPlayer({
   poster,
   live = false,
   ariaLabel = live ? 'Kryv live broadcast player' : 'Kryv video player',
+  onEnded,
 }: KryvPlayerProps) {
   const playerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimeoutRef = useRef<number | null>(null);
+  const touchTapTimeoutRef = useRef<number | null>(null);
+  const touchFeedbackTimeoutRef = useRef<number | null>(null);
+  const lastTouchTapRef = useRef<{ time: number; x: number } | null>(null);
+  const suppressVideoClickRef = useRef(false);
+  const onEndedRef = useRef(onEnded);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(muted);
@@ -59,8 +66,14 @@ export default function KryvPlayer({
   const [showControls, setShowControls] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [isLooping, setIsLooping] = useState(false);
+  const [touchFeedback, setTouchFeedback] = useState<'back' | 'forward' | null>(null);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
+
+  useEffect(() => {
+    onEndedRef.current = onEnded;
+  }, [onEnded]);
 
   const showControlsTemporarily = useCallback(() => {
     setShowControls(true);
@@ -112,6 +125,60 @@ export default function KryvPlayer({
     setIsMuted(nextMuted);
     setVolume(video.volume);
   }, []);
+
+  const toggleLoop = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || live) return;
+    const nextLooping = !video.loop;
+    video.loop = nextLooping;
+    setIsLooping(nextLooping);
+    showControlsTemporarily();
+  }, [live, showControlsTemporarily]);
+
+  const showTouchFeedback = useCallback((direction: 'back' | 'forward') => {
+    setTouchFeedback(direction);
+    if (touchFeedbackTimeoutRef.current) window.clearTimeout(touchFeedbackTimeoutRef.current);
+    touchFeedbackTimeoutRef.current = window.setTimeout(() => setTouchFeedback(null), 760);
+  }, []);
+
+  const handleVideoPointerUp = useCallback((event: React.PointerEvent<HTMLVideoElement>) => {
+    if (event.pointerType !== 'touch') return;
+
+    const now = performance.now();
+    const previousTap = lastTouchTapRef.current;
+    const isDoubleTap = Boolean(previousTap && now - previousTap.time <= 290 && Math.abs(event.clientX - previousTap.x) <= 96);
+    suppressVideoClickRef.current = true;
+
+    if (isDoubleTap) {
+      if (touchTapTimeoutRef.current) window.clearTimeout(touchTapTimeoutRef.current);
+      touchTapTimeoutRef.current = null;
+      lastTouchTapRef.current = null;
+      if (!live) {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const direction = event.clientX < bounds.left + bounds.width / 2 ? 'back' : 'forward';
+        seekBy(direction === 'back' ? -VOD_SEEK_SECONDS : VOD_SEEK_SECONDS);
+        showTouchFeedback(direction);
+      }
+      return;
+    }
+
+    lastTouchTapRef.current = { time: now, x: event.clientX };
+    if (touchTapTimeoutRef.current) window.clearTimeout(touchTapTimeoutRef.current);
+    touchTapTimeoutRef.current = window.setTimeout(() => {
+      touchTapTimeoutRef.current = null;
+      lastTouchTapRef.current = null;
+      togglePlayback();
+      showControlsTemporarily();
+    }, 290);
+  }, [live, seekBy, showControlsTemporarily, showTouchFeedback, togglePlayback]);
+
+  const handleVideoClick = useCallback(() => {
+    if (suppressVideoClickRef.current) {
+      suppressVideoClickRef.current = false;
+      return;
+    }
+    togglePlayback();
+  }, [togglePlayback]);
 
   const updateVolume = useCallback((nextVolume: number) => {
     const video = videoRef.current;
@@ -179,6 +246,7 @@ export default function KryvPlayer({
     };
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => onEndedRef.current?.();
     const handleVolumeChange = () => {
       setIsMuted(video.muted);
       setVolume(video.volume);
@@ -189,6 +257,8 @@ export default function KryvPlayer({
     setCurrentTime(0);
     setDuration(0);
     setBufferedPercent(0);
+    setIsLooping(false);
+    video.loop = false;
     video.muted = muted;
     video.volume = muted ? 0 : volume;
 
@@ -198,6 +268,7 @@ export default function KryvPlayer({
     video.addEventListener('progress', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
     video.addEventListener('volumechange', handleVolumeChange);
     video.addEventListener('error', handleError);
 
@@ -245,6 +316,7 @@ export default function KryvPlayer({
       video.removeEventListener('progress', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
       video.removeEventListener('volumechange', handleVolumeChange);
       video.removeEventListener('error', handleError);
       // Clear the media element as well as destroying hls.js. This prevents a
@@ -276,6 +348,8 @@ export default function KryvPlayer({
 
   useEffect(() => () => {
     if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
+    if (touchTapTimeoutRef.current) window.clearTimeout(touchTapTimeoutRef.current);
+    if (touchFeedbackTimeoutRef.current) window.clearTimeout(touchFeedbackTimeoutRef.current);
   }, []);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -335,13 +409,23 @@ export default function KryvPlayer({
     >
       <video
         ref={videoRef}
-        className={className}
+        className={`${className ?? ''} touch-manipulation`}
         muted={muted}
         poster={poster}
         playsInline
-        onClick={togglePlayback}
+        onPointerUp={handleVideoPointerUp}
+        onClick={handleVideoClick}
         aria-label={ariaLabel}
       />
+
+      {touchFeedback && (
+        <div className={`pointer-events-none absolute inset-y-0 ${touchFeedback === 'back' ? 'left-[16%]' : 'right-[16%]'} flex items-center`} aria-hidden="true">
+          <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-black/65 text-white shadow-xl backdrop-blur-sm sm:h-[4.5rem] sm:w-[4.5rem]">
+            {touchFeedback === 'back' ? <SkipBack className="h-6 w-6" /> : <SkipForward className="h-6 w-6" />}
+          </span>
+        </div>
+      )}
+      <span className="sr-only" role="status" aria-live="polite">{touchFeedback === 'back' ? 'Rewound 10 seconds' : touchFeedback === 'forward' ? 'Forwarded 10 seconds' : ''}</span>
 
       <div className={`pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent px-3 pb-3 pt-16 transition-opacity duration-200 sm:px-4 sm:pb-4 ${showControls || !isPlaying || showSettings ? 'opacity-100' : 'opacity-0'}`}>
         <div className="pointer-events-auto mx-auto flex max-w-[1800px] flex-col gap-2.5">
@@ -408,7 +492,7 @@ export default function KryvPlayer({
                   <div className="absolute bottom-12 right-0 w-56 rounded-xl border border-white/15 bg-[#0b0d13]/95 p-2 text-sm text-white shadow-2xl backdrop-blur-xl">
                     <div className="flex items-center gap-2 border-b border-white/[0.08] px-2.5 py-2 text-xs font-semibold text-white/75"><Gauge className="h-3.5 w-3.5 text-primary" />Playback settings</div>
                     <div className="px-2.5 py-2.5 text-[11px] leading-relaxed text-white/50">Quality follows the source made available by the provider.</div>
-                    {!live && <div className="border-t border-white/[0.08] px-2.5 pb-1 pt-2"><div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-white/70"><span>Speed</span><span className="text-primary">{playbackRate}×</span></div><div className="grid grid-cols-5 gap-1">{SPEED_OPTIONS.map((speed) => <button key={speed} type="button" onClick={() => setSpeed(speed)} className={`min-h-9 rounded-md text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${playbackRate === speed ? 'bg-primary text-primary-foreground' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.12] hover:text-white'}`}>{speed}×</button>)}</div></div>}
+                    {!live && <div className="border-t border-white/[0.08] px-2.5 pb-1 pt-2"><div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-white/70"><span>Speed</span><span className="text-primary">{playbackRate}×</span></div><div className="grid grid-cols-5 gap-1">{SPEED_OPTIONS.map((speed) => <button key={speed} type="button" onClick={() => setSpeed(speed)} className={`min-h-9 rounded-md text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${playbackRate === speed ? 'bg-primary text-primary-foreground' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.12] hover:text-white'}`}>{speed}×</button>)}</div><button type="button" onClick={toggleLoop} aria-pressed={isLooping} className={`mt-2 inline-flex min-h-9 w-full items-center justify-between rounded-lg px-2.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isLooping ? 'bg-primary/18 text-primary' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.12] hover:text-white'}`}><span className="inline-flex items-center gap-1.5"><Repeat2 className="h-3.5 w-3.5" />Loop video</span><span>{isLooping ? 'On' : 'Off'}</span></button></div>}
                   </div>
                 )}
               </div>

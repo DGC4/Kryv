@@ -1,6 +1,7 @@
 import { Link } from 'wouter';
 import type { VideoSummary } from '@workspace/api-client-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Play } from 'lucide-react';
 
 function fmtDuration(s: number | null) {
   if (!s) return '';
@@ -18,7 +19,7 @@ export function VideoCard({ video }: { video: VideoSummary }) {
   return (
     <Link href={href} className="group block">
       {/* Thumbnail */}
-      <div className="relative aspect-video rounded-xl overflow-hidden bg-white/[0.04] mb-3 border border-white/[0.06] group-hover:border-primary/30 transition-all duration-300 group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+      <div className="relative mb-3 aspect-video overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.04] transition-all duration-300 group-hover:border-primary/30 group-hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
         {video.thumbnailUrl ? (
           <img
             src={video.thumbnailUrl}
@@ -26,13 +27,15 @@ export function VideoCard({ video }: { video: VideoSummary }) {
             className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-black/60">
-            <span className="font-black text-5xl text-white/10 select-none">{video.title[0]}</span>
+          <div className="flex h-full w-full items-center justify-center bg-black/25">
+            <span className="select-none text-5xl font-black text-white/10">{video.title[0]}</span>
           </div>
         )}
 
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition duration-200 group-hover:bg-black/35 group-hover:opacity-100 group-focus-visible:bg-black/35 group-focus-visible:opacity-100"><span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/65 text-white shadow-xl backdrop-blur-sm"><Play className="ml-0.5 h-4 w-4 fill-current" /></span></span>
+
         {duration && (
-          <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-sm text-white text-[11px] font-bold px-1.5 py-0.5 rounded">
+          <div className="absolute bottom-2 right-2 rounded bg-black/85 px-1.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
             {duration}
           </div>
         )}
