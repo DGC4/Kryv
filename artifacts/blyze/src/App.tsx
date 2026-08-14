@@ -133,6 +133,11 @@ function AppRoutes() {
           <Layout><DashboardStudio /></Layout>
         </ProtectedRoute>
       </Route>
+      <Route path="/dashboard/studio">
+        <ProtectedRoute>
+          <Redirect to="/dashboard" />
+        </ProtectedRoute>
+      </Route>
       <Route path="/dashboard/live">
         <ProtectedRoute>
           <Layout><DashboardLive /></Layout>
