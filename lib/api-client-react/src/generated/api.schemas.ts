@@ -529,6 +529,48 @@ export interface CryptoTipInput {
   message?: string;
 }
 
+export interface GuestCryptoTipInput {
+  /**
+     * USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.
+     * @maximum 100000
+     * @exclusiveMinimum 0
+     */
+  amount: number;
+  cryptoCurrency?: CryptoCurrency;
+  /**
+     * Optional note attached to the guest support record after confirmed settlement.
+     * @maxLength 500
+     */
+  message?: string;
+  /**
+     * Optional unverified guest display name recorded only for this support action; it is not a Kryv account identity.
+     * @minLength 2
+     * @maxLength 48
+     */
+  guestDisplayName?: string;
+}
+
+export interface GuestCryptoSubscriptionGiftInput {
+  /**
+     * @minimum 1
+     * @maximum 3
+     */
+  tier?: number;
+  cryptoCurrency?: CryptoCurrency;
+  /**
+     * Existing Kryv account username that will receive the membership only after signed provider confirmation.
+     * @minLength 3
+     * @maxLength 32
+     */
+  recipientUsername: string;
+  /**
+     * Optional unverified guest display name recorded only for this gift action; it is not a Kryv account identity.
+     * @minLength 2
+     * @maxLength 48
+     */
+  guestDisplayName?: string;
+}
+
 export interface WalletTipInput {
   currency: CryptoCurrency;
   /**
@@ -687,10 +729,81 @@ export interface AdminVideoPage {
   offset: number;
 }
 
+export type VideoMusicCreditMetadataSource = typeof VideoMusicCreditMetadataSource[keyof typeof VideoMusicCreditMetadataSource];
+
+
+export const VideoMusicCreditMetadataSource = {
+  publisher_attested: 'publisher_attested',
+  musicbrainz: 'musicbrainz',
+} as const;
+
+export interface VideoMusicCredit {
+  id: number;
+  trackTitle: string;
+  artistName: string;
+  /** @nullable */
+  albumTitle: string | null;
+  /** @nullable */
+  labelName: string | null;
+  /** @nullable */
+  artworkUrl: string | null;
+  /** @nullable */
+  sourceUrl: string | null;
+  /** @nullable */
+  musicbrainzRecordingId: string | null;
+  /** @nullable */
+  musicbrainzReleaseId: string | null;
+  metadataSource: VideoMusicCreditMetadataSource;
+  rightsAttestedAt: string;
+  /** @minimum 0 */
+  displayOrder: number;
+}
+
+export type VideoMusicCreditInputMetadataSource = typeof VideoMusicCreditInputMetadataSource[keyof typeof VideoMusicCreditInputMetadataSource];
+
+
+export const VideoMusicCreditInputMetadataSource = {
+  publisher_attested: 'publisher_attested',
+  musicbrainz: 'musicbrainz',
+} as const;
+
+export interface VideoMusicCreditInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  trackTitle: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  artistName: string;
+  /** @maxLength 200 */
+  albumTitle?: string;
+  /** @maxLength 200 */
+  labelName?: string;
+  /** @maxLength 2048 */
+  artworkUrl?: string;
+  /** @maxLength 2048 */
+  sourceUrl?: string;
+  musicbrainzRecordingId?: string;
+  musicbrainzReleaseId?: string;
+  metadataSource?: VideoMusicCreditInputMetadataSource;
+  /**
+     * @minimum 0
+     * @maximum 1000
+     */
+  displayOrder?: number;
+  /** The owner confirms these credits and any linked artwork/source are appropriate to display with this Watch release. */
+  rightsAttested: boolean;
+}
+
 export type VideoDetail = VideoSummary & ({
   /** @nullable */
   description: string | null;
   isOwner: boolean;
+  /** Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published. */
+  musicCredits: VideoMusicCredit[];
 });
 
 export interface VideoComment {

@@ -1,9 +1,11 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import {
   db,
   categoriesTable,
   channelsTable,
+  videoMusicCreditsTable,
   type Video,
+  type VideoMusicCredit,
 } from "@workspace/db";
 import { categoryNameFor } from "./channelSerializer";
 
@@ -55,19 +57,45 @@ export async function toVideoSummary(video: Video) {
   };
 }
 
+export function toVideoMusicCredit(credit: VideoMusicCredit) {
+  return {
+    id: credit.id,
+    trackTitle: credit.trackTitle,
+    artistName: credit.artistName,
+    albumTitle: credit.albumTitle,
+    labelName: credit.labelName,
+    artworkUrl: credit.artworkUrl,
+    sourceUrl: credit.sourceUrl,
+    musicbrainzRecordingId: credit.musicbrainzRecordingId,
+    musicbrainzReleaseId: credit.musicbrainzReleaseId,
+    metadataSource: credit.metadataSource === "musicbrainz" ? "musicbrainz" as const : "publisher_attested" as const,
+    rightsAttestedAt: credit.rightsAttestedAt,
+    displayOrder: credit.displayOrder,
+  };
+}
+
 export async function toVideoDetail(
   video: Video,
   viewerUserId: number | undefined,
 ) {
   const summary = await toVideoSummary(video);
-  const [channel] = await db
-    .select()
-    .from(channelsTable)
-    .where(eq(channelsTable.id, video.channelId));
+  const [channel, musicCredits] = await Promise.all([
+    db
+      .select()
+      .from(channelsTable)
+      .where(eq(channelsTable.id, video.channelId))
+      .then((rows) => rows[0]),
+    db
+      .select()
+      .from(videoMusicCreditsTable)
+      .where(eq(videoMusicCreditsTable.videoId, video.id))
+      .orderBy(asc(videoMusicCreditsTable.displayOrder), asc(videoMusicCreditsTable.createdAt)),
+  ]);
   return {
     ...summary,
     description: video.description,
     isOwner: !!viewerUserId && viewerUserId === channel?.ownerUserId,
+    musicCredits: musicCredits.map(toVideoMusicCredit),
   };
 }
 

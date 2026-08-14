@@ -2,6 +2,7 @@ export * from "./users";
 export * from "./categories";
 export * from "./channels";
 export * from "./videos";
+export * from "./videoMusicCredits";
 export * from "./videoComments";
 export * from "./cinemaComments";
 export * from "./chatMessages";

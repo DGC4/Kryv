@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 
-import { adCampaignFundingsTable, adCampaignsTable, adRevenueMovementsTable, cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, followsTable, notificationPreferencesTable, notificationsTable, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { adCampaignFundingsTable, adCampaignsTable, adRevenueMovementsTable, cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, followsTable, notificationPreferencesTable, notificationsTable, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, usersTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { addCryptoAmounts, compareCryptoAmounts, KRYV_PLATFORM_FEE_BPS, normalizeCryptoAmount, quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
 import { enqueueDurableJob } from "../lib/jobs";
 import { deleteSharedKey, publishRealtimeEvent } from "../lib/realtime";
@@ -121,6 +121,13 @@ type VerifiedPlisioSettlementTerms = {
   invoiceTotal: string;
   currency: string;
 };
+
+function settledGuestDisplayName(metadata: Record<string, unknown>) {
+  if (metadata.guestCheckout !== true || typeof metadata.senderDisplayName !== "string") return null;
+  const normalized = metadata.senderDisplayName.replace(/\s+/g, " ").trim();
+  if (normalized.length < 2 || normalized.length > 48 || /[\u0000-\u001F\u007F]/.test(normalized)) return null;
+  return normalized;
+}
 
 function verifiedPlisioSettlementTerms(callback: Record<string, unknown>): VerifiedPlisioSettlementTerms {
   const value = (field: "amount" | "invoice_sum" | "invoice_commission" | "invoice_total_sum") => {
@@ -546,22 +553,35 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
         .returning();
       if (!settledIntent) return { duplicate: true };
 
-      if (settledIntent.paymentKind === "subscription" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
+      if (settledIntent.paymentKind === "subscription" && settledIntent.receiverChannelId) {
         const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
         const tier = typeof metadata.tier === "number" && Number.isInteger(metadata.tier) ? metadata.tier : 1;
-        const [active] = await txn
-          .select()
-          .from(subscriptionsTable)
-          .where(and(eq(subscriptionsTable.userId, settledIntent.purchaserUserId), eq(subscriptionsTable.channelId, settledIntent.receiverChannelId), eq(subscriptionsTable.status, "active")))
-          .limit(1);
-        const base = active?.expiresAt && active.expiresAt > new Date() ? active.expiresAt : new Date();
-        const expiresAt = new Date(base);
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
-        if (active) {
-          await txn.update(subscriptionsTable).set({ tier, provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt }).where(eq(subscriptionsTable.id, active.id));
-        } else {
-          await txn.insert(subscriptionsTable).values({ userId: settledIntent.purchaserUserId, channelId: settledIntent.receiverChannelId, tier, status: "active", provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt });
+        const giftRecipientUserId = typeof metadata.giftRecipientUserId === "number" && Number.isSafeInteger(metadata.giftRecipientUserId)
+          ? metadata.giftRecipientUserId
+          : null;
+        const intendedRecipientUserId = settledIntent.purchaserUserId ?? giftRecipientUserId;
+        let settledRecipientUserId: number | null = null;
+
+        if (intendedRecipientUserId) {
+          const [recipient] = await txn.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, intendedRecipientUserId)).limit(1);
+          if (recipient) {
+            const [active] = await txn
+              .select()
+              .from(subscriptionsTable)
+              .where(and(eq(subscriptionsTable.userId, recipient.id), eq(subscriptionsTable.channelId, settledIntent.receiverChannelId), eq(subscriptionsTable.status, "active")))
+              .limit(1);
+            const base = active?.expiresAt && active.expiresAt > new Date() ? active.expiresAt : new Date();
+            const expiresAt = new Date(base);
+            expiresAt.setMonth(expiresAt.getMonth() + 1);
+            if (active) {
+              await txn.update(subscriptionsTable).set({ tier, provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt }).where(eq(subscriptionsTable.id, active.id));
+            } else {
+              await txn.insert(subscriptionsTable).values({ userId: recipient.id, channelId: settledIntent.receiverChannelId, tier, status: "active", provider: "plisio", providerSubscriptionId: transactionId, providerPriceId: `tier_${tier}`, currentPeriodEnd: expiresAt, expiresAt });
+            }
+            settledRecipientUserId = recipient.id;
+          }
         }
+
         const allocation = await quoteActiveSettlementFee(txn, "subscription", terms.invoiceAmount);
         await recordCreatorSettlement(txn, {
           channelId: settledIntent.receiverChannelId,
@@ -572,17 +592,25 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
           providerPaymentId: transactionId,
           paymentIntentId: settledIntent.id,
           allocation,
-          metadata: { tier, ...terms, providerFeePaidBy: "client" },
+          metadata: {
+            tier,
+            ...terms,
+            providerFeePaidBy: "client",
+            guestCheckout: metadata.guestCheckout === true,
+            senderDisplayName: settledGuestDisplayName(metadata),
+            recipientUserId: settledRecipientUserId,
+            recipientUsername: typeof metadata.giftRecipientUsername === "string" ? metadata.giftRecipientUsername : null,
+          },
         });
       }
 
-      if (settledIntent.paymentKind === "tip" && settledIntent.purchaserUserId && settledIntent.receiverChannelId) {
+      if (settledIntent.paymentKind === "tip" && settledIntent.receiverChannelId) {
         const allocation = await quoteActiveSettlementFee(txn, "tip", terms.invoiceAmount);
         const metadata = (settledIntent.metadata ?? {}) as Record<string, unknown>;
         const [tip] = await txn
           .insert(tipsTable)
           .values({
-            senderUserId: settledIntent.purchaserUserId,
+            senderUserId: settledIntent.purchaserUserId ?? null,
             receiverChannelId: settledIntent.receiverChannelId,
             amount: terms.invoiceAmount,
             currency: terms.currency,
@@ -604,7 +632,12 @@ router.post("/webhooks/plisio", async (req, res): Promise<void> => {
           providerPaymentId: transactionId,
           paymentIntentId: settledIntent.id,
           allocation,
-          metadata: { ...terms, providerFeePaidBy: "client" },
+          metadata: {
+            ...terms,
+            providerFeePaidBy: "client",
+            guestCheckout: metadata.guestCheckout === true,
+            senderDisplayName: settledGuestDisplayName(metadata),
+          },
         });
       }
       return { duplicate: false };

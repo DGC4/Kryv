@@ -20,6 +20,18 @@ export interface KryvPlayerProps {
 const VOD_SEEK_SECONDS = 10;
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 2];
 
+type QualityOption = {
+  level: number;
+  label: string;
+  height: number;
+};
+
+function formatQualityLabel(height: number, width: number) {
+  if (Number.isFinite(height) && height > 0) return `${Math.round(height)}p`;
+  if (Number.isFinite(width) && width > 0) return `${Math.round(width)}w`;
+  return 'Source';
+}
+
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
   const wholeSeconds = Math.floor(seconds);
@@ -67,6 +79,8 @@ export default function KryvPlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isLooping, setIsLooping] = useState(false);
+  const [qualityOptions, setQualityOptions] = useState<QualityOption[]>([]);
+  const [selectedQuality, setSelectedQuality] = useState<number | 'auto'>('auto');
   const [touchFeedback, setTouchFeedback] = useState<'back' | 'forward' | null>(null);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
@@ -189,6 +203,13 @@ export default function KryvPlayer({
     setIsMuted(nextVolume === 0);
   }, []);
 
+  const selectQuality = useCallback((nextQuality: number | 'auto') => {
+    const hls = hlsRef.current;
+    if (hls) hls.currentLevel = nextQuality === 'auto' ? -1 : nextQuality;
+    setSelectedQuality(nextQuality);
+    showControlsTemporarily();
+  }, [showControlsTemporarily]);
+
   const setSpeed = useCallback((nextSpeed: number) => {
     const video = videoRef.current;
     if (!video) return;
@@ -258,6 +279,8 @@ export default function KryvPlayer({
     setDuration(0);
     setBufferedPercent(0);
     setIsLooping(false);
+    setQualityOptions([]);
+    setSelectedQuality('auto');
     video.loop = false;
     video.muted = muted;
     video.volume = muted ? 0 : volume;
@@ -310,6 +333,21 @@ export default function KryvPlayer({
       hls.loadSource(src);
       hls.attachMedia(video);
       hls.on(HlsModule.Events.MANIFEST_PARSED, () => {
+        const uniqueLabels = new Set<string>();
+        const discoveredQualities = hls.levels
+          .map((level, index) => ({
+            level: index,
+            label: formatQualityLabel(level.height, level.width),
+            height: Number.isFinite(level.height) ? level.height : 0,
+          }))
+          .filter((option) => {
+            if (uniqueLabels.has(option.label)) return false;
+            uniqueLabels.add(option.label);
+            return true;
+          })
+          .sort((left, right) => right.height - left.height);
+        setQualityOptions(discoveredQualities);
+        setSelectedQuality('auto');
         if (autoPlay) video.play().catch(() => undefined);
       });
       hls.on(HlsModule.Events.LEVEL_LOADED, (_event, data) => {
@@ -521,8 +559,8 @@ export default function KryvPlayer({
                 {showSettings && (
                   <div className="absolute bottom-12 right-0 w-56 rounded-xl border border-white/15 bg-[#0b0d13]/95 p-2 text-sm text-white shadow-2xl backdrop-blur-xl">
                     <div className="flex items-center gap-2 border-b border-white/[0.08] px-2.5 py-2 text-xs font-semibold text-white/75"><Gauge className="h-3.5 w-3.5 text-primary" />Playback settings</div>
-                    <div className="px-2.5 py-2.5 text-[11px] leading-relaxed text-white/50">Quality follows the source made available by the provider.</div>
-                    {!live && <div className="border-t border-white/[0.08] px-2.5 pb-1 pt-2"><div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-white/70"><span>Speed</span><span className="text-primary">{playbackRate}×</span></div><div className="grid grid-cols-5 gap-1">{SPEED_OPTIONS.map((speed) => <button key={speed} type="button" onClick={() => setSpeed(speed)} className={`min-h-9 rounded-md text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${playbackRate === speed ? 'bg-primary text-primary-foreground' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.12] hover:text-white'}`}>{speed}×</button>)}</div><button type="button" onClick={toggleLoop} aria-pressed={isLooping} className={`mt-2 inline-flex min-h-9 w-full items-center justify-between rounded-lg px-2.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isLooping ? 'bg-primary/18 text-primary' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.12] hover:text-white'}`}><span className="inline-flex items-center gap-1.5"><Repeat2 className="h-3.5 w-3.5" />Loop video</span><span>{isLooping ? 'On' : 'Off'}</span></button></div>}
+                    <div className="border-b border-white/[0.08] px-2.5 py-2.5"><div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-white/70"><span>Quality</span><span className="text-primary">{selectedQuality === 'auto' ? 'Auto' : qualityOptions.find((option) => option.level === selectedQuality)?.label ?? 'Auto'}</span></div><div className="grid grid-cols-3 gap-1"><button type="button" onClick={() => selectQuality('auto')} aria-pressed={selectedQuality === 'auto'} className={`min-h-9 rounded-md px-1 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selectedQuality === 'auto' ? 'bg-primary text-primary-foreground' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.12] hover:text-white'}`}>Auto</button>{qualityOptions.map((option) => <button key={option.level} type="button" onClick={() => selectQuality(option.level)} aria-pressed={selectedQuality === option.level} className={`min-h-9 rounded-md px-1 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selectedQuality === option.level ? 'bg-primary text-primary-foreground' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.12] hover:text-white'}`}>{option.label}</button>)}</div>{qualityOptions.length === 0 && <p className="mt-2 text-[11px] leading-relaxed text-white/50">Manual renditions appear when the source publishes them.</p>}<p className="mt-2 text-[10px] leading-relaxed text-white/40">Auto adapts only among source renditions that are available for this playback.</p></div>
+                    {!live && <div className="px-2.5 pb-1 pt-2"><div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-white/70"><span>Speed</span><span className="text-primary">{playbackRate}×</span></div><div className="grid grid-cols-5 gap-1">{SPEED_OPTIONS.map((speed) => <button key={speed} type="button" onClick={() => setSpeed(speed)} className={`min-h-9 rounded-md text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${playbackRate === speed ? 'bg-primary text-primary-foreground' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.12] hover:text-white'}`}>{speed}×</button>)}</div><button type="button" onClick={toggleLoop} aria-pressed={isLooping} className={`mt-2 inline-flex min-h-9 w-full items-center justify-between rounded-lg px-2.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isLooping ? 'bg-primary/18 text-primary' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.12] hover:text-white'}`}><span className="inline-flex items-center gap-1.5"><Repeat2 className="h-3.5 w-3.5" />Loop video</span><span>{isLooping ? 'On' : 'Off'}</span></button></div>}
                   </div>
                 )}
               </div>

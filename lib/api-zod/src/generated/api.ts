@@ -1539,6 +1539,107 @@ export const CreateCryptoTipResponse = zod.object({
 
 
 /**
+ * @summary Start an anonymous one-time crypto creator-support invoice; no ledger movement occurs until a signed provider callback settles it
+ */
+export const CreateGuestCryptoTipParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createGuestCryptoTipBodyAmountExclusiveMin = 0;
+export const createGuestCryptoTipBodyAmountMax = 100000;
+
+export const createGuestCryptoTipBodyMessageMax = 500;
+
+export const createGuestCryptoTipBodyGuestDisplayNameMin = 2;
+export const createGuestCryptoTipBodyGuestDisplayNameMax = 48;
+
+
+
+export const CreateGuestCryptoTipBody = zod.object({
+  "amount": zod.number().gt(createGuestCryptoTipBodyAmountExclusiveMin).max(createGuestCryptoTipBodyAmountMax).describe('USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.'),
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional(),
+  "message": zod.string().max(createGuestCryptoTipBodyMessageMax).optional().describe('Optional note attached to the guest support record after confirmed settlement.'),
+  "guestDisplayName": zod.string().min(createGuestCryptoTipBodyGuestDisplayNameMin).max(createGuestCryptoTipBodyGuestDisplayNameMax).optional().describe('Optional unverified guest display name recorded only for this support action; it is not a Kryv account identity.')
+})
+
+export const createGuestCryptoTipResponseCreatorShareBpsMin = 0;
+export const createGuestCryptoTipResponseCreatorShareBpsMax = 10000;
+
+export const createGuestCryptoTipResponsePlatformFeeBpsMin = 0;
+export const createGuestCryptoTipResponsePlatformFeeBpsMax = 10000;
+
+
+
+export const CreateGuestCryptoTipResponse = zod.object({
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
+  "provider": zod.enum(['crypto']).describe('Customer-facing payment method label; payment-provider identity is not displayed to viewers.'),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice public payment address. It is never a creator payout destination.'),
+  "qrCodeDataUrl": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice QR image data URL for Kryv checkout presentation.'),
+  "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
+  "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
+  "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
+  "providerFeePaidBy": zod.enum(['client']).optional(),
+  "creatorShareBps": zod.number().min(createGuestCryptoTipResponseCreatorShareBpsMin).max(createGuestCryptoTipResponseCreatorShareBpsMax).optional().describe('Creator share in basis points under the active Kryv settlement policy.'),
+  "platformFeeBps": zod.number().min(createGuestCryptoTipResponsePlatformFeeBpsMin).max(createGuestCryptoTipResponsePlatformFeeBpsMax).optional().describe('Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.')
+})
+
+
+/**
+ * @summary Start an anonymous crypto membership gift for a named Kryv account; the recipient receives no entitlement until a signed provider callback settles it
+ */
+export const CreateGuestCryptoSubscriptionGiftParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createGuestCryptoSubscriptionGiftBodyTierDefault = 1;
+export const createGuestCryptoSubscriptionGiftBodyTierMax = 3;
+
+export const createGuestCryptoSubscriptionGiftBodyRecipientUsernameMin = 3;
+export const createGuestCryptoSubscriptionGiftBodyRecipientUsernameMax = 32;
+
+export const createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMin = 2;
+export const createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMax = 48;
+
+
+
+export const CreateGuestCryptoSubscriptionGiftBody = zod.object({
+  "tier": zod.number().min(1).max(createGuestCryptoSubscriptionGiftBodyTierMax).default(createGuestCryptoSubscriptionGiftBodyTierDefault),
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional(),
+  "recipientUsername": zod.string().min(createGuestCryptoSubscriptionGiftBodyRecipientUsernameMin).max(createGuestCryptoSubscriptionGiftBodyRecipientUsernameMax).describe('Existing Kryv account username that will receive the membership only after signed provider confirmation.'),
+  "guestDisplayName": zod.string().min(createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMin).max(createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMax).optional().describe('Optional unverified guest display name recorded only for this gift action; it is not a Kryv account identity.')
+})
+
+export const createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMin = 0;
+export const createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMax = 10000;
+
+export const createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMin = 0;
+export const createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMax = 10000;
+
+
+
+export const CreateGuestCryptoSubscriptionGiftResponse = zod.object({
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
+  "provider": zod.enum(['crypto']).describe('Customer-facing payment method label; payment-provider identity is not displayed to viewers.'),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice public payment address. It is never a creator payout destination.'),
+  "qrCodeDataUrl": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice QR image data URL for Kryv checkout presentation.'),
+  "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
+  "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
+  "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
+  "providerFeePaidBy": zod.enum(['client']).optional(),
+  "creatorShareBps": zod.number().min(createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMin).max(createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMax).optional().describe('Creator share in basis points under the active Kryv settlement policy.'),
+  "platformFeeBps": zod.number().min(createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMin).max(createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMax).optional().describe('Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.')
+})
+
+
+/**
  * @summary Debit a customer’s confirmed Kryv wallet balance and settle a creator tip atomically in the crypto ledger
  */
 export const CreateWalletTipParams = zod.object({
@@ -1950,6 +2051,10 @@ export const CreateVideoBody = zod.object({
   "rightsAttested": zod.boolean().optional().describe('Creator attests they have the rights to embed the official YouTube source in Kryv Watch.')
 })
 
+export const createVideoResponseOneTwoMusicCreditsItemDisplayOrderMin = 0;
+
+
+
 export const CreateVideoResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
@@ -1972,7 +2077,21 @@ export const CreateVideoResponse = zod.object({
   "createdAt": zod.coerce.date()
 }).and(zod.object({
   "description": zod.string().nullable(),
-  "isOwner": zod.boolean()
+  "isOwner": zod.boolean(),
+  "musicCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(createVideoResponseOneTwoMusicCreditsItemDisplayOrderMin)
+})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
 })).and(zod.object({
   "uploadUrl": zod.string().nullable().describe('FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.')
 }))
@@ -1984,6 +2103,10 @@ export const CreateVideoResponse = zod.object({
 export const RefreshVideoProviderStatusParams = zod.object({
   "id": zod.coerce.number()
 })
+
+export const refreshVideoProviderStatusResponseTwoMusicCreditsItemDisplayOrderMin = 0;
+
+
 
 export const RefreshVideoProviderStatusResponse = zod.object({
   "id": zod.number(),
@@ -2007,7 +2130,21 @@ export const RefreshVideoProviderStatusResponse = zod.object({
   "createdAt": zod.coerce.date()
 }).and(zod.object({
   "description": zod.string().nullable(),
-  "isOwner": zod.boolean()
+  "isOwner": zod.boolean(),
+  "musicCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(refreshVideoProviderStatusResponseTwoMusicCreditsItemDisplayOrderMin)
+})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
 }))
 
 
@@ -2074,11 +2211,114 @@ export const DeleteVideoCommentResponse = zod.void()
 
 
 /**
+ * @summary List owner-attested music acknowledgements for a Watch release (owner only)
+ */
+export const ListVideoMusicCreditsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const listVideoMusicCreditsResponseDisplayOrderMin = 0;
+
+
+
+export const ListVideoMusicCreditsResponseItem = zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(listVideoMusicCreditsResponseDisplayOrderMin)
+})
+export const ListVideoMusicCreditsResponse = zod.array(ListVideoMusicCreditsResponseItem)
+
+
+/**
+ * @summary Add an owner-attested music acknowledgement to a Watch release
+ */
+export const CreateVideoMusicCreditParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createVideoMusicCreditBodyTrackTitleMax = 200;
+
+export const createVideoMusicCreditBodyArtistNameMax = 200;
+
+export const createVideoMusicCreditBodyAlbumTitleMax = 200;
+
+export const createVideoMusicCreditBodyLabelNameMax = 200;
+
+export const createVideoMusicCreditBodyArtworkUrlMax = 2048;
+
+export const createVideoMusicCreditBodySourceUrlMax = 2048;
+
+export const createVideoMusicCreditBodyMetadataSourceDefault = `publisher_attested`;
+export const createVideoMusicCreditBodyDisplayOrderDefault = 0;
+export const createVideoMusicCreditBodyDisplayOrderMin = 0;
+export const createVideoMusicCreditBodyDisplayOrderMax = 1000;
+
+
+
+export const CreateVideoMusicCreditBody = zod.object({
+  "trackTitle": zod.string().min(1).max(createVideoMusicCreditBodyTrackTitleMax),
+  "artistName": zod.string().min(1).max(createVideoMusicCreditBodyArtistNameMax),
+  "albumTitle": zod.string().max(createVideoMusicCreditBodyAlbumTitleMax).optional(),
+  "labelName": zod.string().max(createVideoMusicCreditBodyLabelNameMax).optional(),
+  "artworkUrl": zod.string().url().max(createVideoMusicCreditBodyArtworkUrlMax).optional(),
+  "sourceUrl": zod.string().url().max(createVideoMusicCreditBodySourceUrlMax).optional(),
+  "musicbrainzRecordingId": zod.string().uuid().optional(),
+  "musicbrainzReleaseId": zod.string().uuid().optional(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']).default(createVideoMusicCreditBodyMetadataSourceDefault),
+  "displayOrder": zod.number().min(createVideoMusicCreditBodyDisplayOrderMin).max(createVideoMusicCreditBodyDisplayOrderMax).default(createVideoMusicCreditBodyDisplayOrderDefault),
+  "rightsAttested": zod.boolean().describe('The owner confirms these credits and any linked artwork\/source are appropriate to display with this Watch release.')
+})
+
+export const createVideoMusicCreditResponseDisplayOrderMin = 0;
+
+
+
+export const CreateVideoMusicCreditResponse = zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(createVideoMusicCreditResponseDisplayOrderMin)
+})
+
+
+/**
+ * @summary Remove an owner-attested music acknowledgement from a Watch release
+ */
+export const DeleteVideoMusicCreditParams = zod.object({
+  "id": zod.coerce.number(),
+  "creditId": zod.coerce.number()
+})
+
+export const DeleteVideoMusicCreditResponse = zod.void()
+
+
+/**
  * @summary Get a single video's detail and register a view
  */
 export const GetVideoParams = zod.object({
   "id": zod.coerce.number()
 })
+
+export const getVideoResponseTwoMusicCreditsItemDisplayOrderMin = 0;
+
+
 
 export const GetVideoResponse = zod.object({
   "id": zod.number(),
@@ -2102,7 +2342,21 @@ export const GetVideoResponse = zod.object({
   "createdAt": zod.coerce.date()
 }).and(zod.object({
   "description": zod.string().nullable(),
-  "isOwner": zod.boolean()
+  "isOwner": zod.boolean(),
+  "musicCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(getVideoResponseTwoMusicCreditsItemDisplayOrderMin)
+})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
 }))
 
 
@@ -2124,6 +2378,10 @@ export const UpdateVideoBody = zod.object({
   "description": zod.string().max(updateVideoBodyDescriptionMax).optional(),
   "categoryId": zod.number().optional()
 })
+
+export const updateVideoResponseTwoMusicCreditsItemDisplayOrderMin = 0;
+
+
 
 export const UpdateVideoResponse = zod.object({
   "id": zod.number(),
@@ -2147,7 +2405,21 @@ export const UpdateVideoResponse = zod.object({
   "createdAt": zod.coerce.date()
 }).and(zod.object({
   "description": zod.string().nullable(),
-  "isOwner": zod.boolean()
+  "isOwner": zod.boolean(),
+  "musicCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(updateVideoResponseTwoMusicCreditsItemDisplayOrderMin)
+})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
 }))
 
 

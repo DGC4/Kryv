@@ -108,6 +108,8 @@ import type {
   GetAdDecisionParams,
   GetAdminAnalyticsParams,
   GetNotificationInboxParams,
+  GuestCryptoSubscriptionGiftInput,
+  GuestCryptoTipInput,
   HealthStatus,
   ListAdminChannelsParams,
   ListAdminCinemaTitlesParams,
@@ -139,6 +141,8 @@ import type {
   VideoCreateResponse,
   VideoDetail,
   VideoInput,
+  VideoMusicCredit,
+  VideoMusicCreditInput,
   VideoSafetyReport,
   VideoSummary,
   VideoUpdate,
@@ -3619,6 +3623,150 @@ export const useCreateCryptoTip = <TError = ErrorType<void>,
       return useMutation(getCreateCryptoTipMutationOptions(options));
     }
 
+export const getCreateGuestCryptoTipUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/guest-tip`
+}
+
+/**
+ * @summary Start an anonymous one-time crypto creator-support invoice; no ledger movement occurs until a signed provider callback settles it
+ */
+export const createGuestCryptoTip = async (id: number,
+    guestCryptoTipInput: GuestCryptoTipInput, options?: RequestInit): Promise<CryptoCheckout> => {
+
+  return customFetch<CryptoCheckout>(getCreateGuestCryptoTipUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(guestCryptoTipInput)
+  }
+);}
+
+
+
+
+
+export const getCreateGuestCryptoTipMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGuestCryptoTip>>, TError,{id: number;data: BodyType<GuestCryptoTipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGuestCryptoTip>>, TError,{id: number;data: BodyType<GuestCryptoTipInput>}, TContext> => {
+
+const mutationKey = ['createGuestCryptoTip'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGuestCryptoTip>>, {id: number;data: BodyType<GuestCryptoTipInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createGuestCryptoTip(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGuestCryptoTipMutationResult = NonNullable<Awaited<ReturnType<typeof createGuestCryptoTip>>>
+    export type CreateGuestCryptoTipMutationBody = BodyType<GuestCryptoTipInput>
+    export type CreateGuestCryptoTipMutationError = ErrorType<void>
+
+    /**
+ * @summary Start an anonymous one-time crypto creator-support invoice; no ledger movement occurs until a signed provider callback settles it
+ */
+export const useCreateGuestCryptoTip = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGuestCryptoTip>>, TError,{id: number;data: BodyType<GuestCryptoTipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGuestCryptoTip>>,
+        TError,
+        {id: number;data: BodyType<GuestCryptoTipInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGuestCryptoTipMutationOptions(options));
+    }
+
+export const getCreateGuestCryptoSubscriptionGiftUrl = (id: number,) => {
+
+
+
+
+  return `/api/channels/${id}/guest-subscription-gift`
+}
+
+/**
+ * @summary Start an anonymous crypto membership gift for a named Kryv account; the recipient receives no entitlement until a signed provider callback settles it
+ */
+export const createGuestCryptoSubscriptionGift = async (id: number,
+    guestCryptoSubscriptionGiftInput: GuestCryptoSubscriptionGiftInput, options?: RequestInit): Promise<CryptoCheckout> => {
+
+  return customFetch<CryptoCheckout>(getCreateGuestCryptoSubscriptionGiftUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(guestCryptoSubscriptionGiftInput)
+  }
+);}
+
+
+
+
+
+export const getCreateGuestCryptoSubscriptionGiftMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGuestCryptoSubscriptionGift>>, TError,{id: number;data: BodyType<GuestCryptoSubscriptionGiftInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGuestCryptoSubscriptionGift>>, TError,{id: number;data: BodyType<GuestCryptoSubscriptionGiftInput>}, TContext> => {
+
+const mutationKey = ['createGuestCryptoSubscriptionGift'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGuestCryptoSubscriptionGift>>, {id: number;data: BodyType<GuestCryptoSubscriptionGiftInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createGuestCryptoSubscriptionGift(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGuestCryptoSubscriptionGiftMutationResult = NonNullable<Awaited<ReturnType<typeof createGuestCryptoSubscriptionGift>>>
+    export type CreateGuestCryptoSubscriptionGiftMutationBody = BodyType<GuestCryptoSubscriptionGiftInput>
+    export type CreateGuestCryptoSubscriptionGiftMutationError = ErrorType<void>
+
+    /**
+ * @summary Start an anonymous crypto membership gift for a named Kryv account; the recipient receives no entitlement until a signed provider callback settles it
+ */
+export const useCreateGuestCryptoSubscriptionGift = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGuestCryptoSubscriptionGift>>, TError,{id: number;data: BodyType<GuestCryptoSubscriptionGiftInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGuestCryptoSubscriptionGift>>,
+        TError,
+        {id: number;data: BodyType<GuestCryptoSubscriptionGiftInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGuestCryptoSubscriptionGiftMutationOptions(options));
+    }
+
 export const getCreateWalletTipUrl = (id: number,) => {
 
 
@@ -4955,6 +5103,228 @@ export const useDeleteVideoComment = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getDeleteVideoCommentMutationOptions(options));
+    }
+
+export const getListVideoMusicCreditsUrl = (id: number,) => {
+
+
+
+
+  return `/api/videos/${id}/music-credits`
+}
+
+/**
+ * @summary List owner-attested music acknowledgements for a Watch release (owner only)
+ */
+export const listVideoMusicCredits = async (id: number, options?: RequestInit): Promise<VideoMusicCredit[]> => {
+
+  return customFetch<VideoMusicCredit[]>(getListVideoMusicCreditsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListVideoMusicCreditsQueryKey = (id: number,) => {
+    return [
+    `/api/videos/${id}/music-credits`
+    ] as const;
+    }
+
+
+export const getListVideoMusicCreditsQueryOptions = <TData = Awaited<ReturnType<typeof listVideoMusicCredits>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideoMusicCredits>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVideoMusicCreditsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVideoMusicCredits>>> = ({ signal }) => listVideoMusicCredits(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listVideoMusicCredits>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListVideoMusicCreditsQueryResult = NonNullable<Awaited<ReturnType<typeof listVideoMusicCredits>>>
+export type ListVideoMusicCreditsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary List owner-attested music acknowledgements for a Watch release (owner only)
+ */
+
+export function useListVideoMusicCredits<TData = Awaited<ReturnType<typeof listVideoMusicCredits>>, TError = ErrorType<Error>>(
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideoMusicCredits>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListVideoMusicCreditsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateVideoMusicCreditUrl = (id: number,) => {
+
+
+
+
+  return `/api/videos/${id}/music-credits`
+}
+
+/**
+ * @summary Add an owner-attested music acknowledgement to a Watch release
+ */
+export const createVideoMusicCredit = async (id: number,
+    videoMusicCreditInput: VideoMusicCreditInput, options?: RequestInit): Promise<VideoMusicCredit> => {
+
+  return customFetch<VideoMusicCredit>(getCreateVideoMusicCreditUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(videoMusicCreditInput)
+  }
+);}
+
+
+
+
+
+export const getCreateVideoMusicCreditMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVideoMusicCredit>>, TError,{id: number;data: BodyType<VideoMusicCreditInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createVideoMusicCredit>>, TError,{id: number;data: BodyType<VideoMusicCreditInput>}, TContext> => {
+
+const mutationKey = ['createVideoMusicCredit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createVideoMusicCredit>>, {id: number;data: BodyType<VideoMusicCreditInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createVideoMusicCredit(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateVideoMusicCreditMutationResult = NonNullable<Awaited<ReturnType<typeof createVideoMusicCredit>>>
+    export type CreateVideoMusicCreditMutationBody = BodyType<VideoMusicCreditInput>
+    export type CreateVideoMusicCreditMutationError = ErrorType<Error>
+
+    /**
+ * @summary Add an owner-attested music acknowledgement to a Watch release
+ */
+export const useCreateVideoMusicCredit = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVideoMusicCredit>>, TError,{id: number;data: BodyType<VideoMusicCreditInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createVideoMusicCredit>>,
+        TError,
+        {id: number;data: BodyType<VideoMusicCreditInput>},
+        TContext
+      > => {
+      return useMutation(getCreateVideoMusicCreditMutationOptions(options));
+    }
+
+export const getDeleteVideoMusicCreditUrl = (id: number,
+    creditId: number,) => {
+
+
+
+
+  return `/api/videos/${id}/music-credits/${creditId}`
+}
+
+/**
+ * @summary Remove an owner-attested music acknowledgement from a Watch release
+ */
+export const deleteVideoMusicCredit = async (id: number,
+    creditId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteVideoMusicCreditUrl(id,creditId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteVideoMusicCreditMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVideoMusicCredit>>, TError,{id: number;creditId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteVideoMusicCredit>>, TError,{id: number;creditId: number}, TContext> => {
+
+const mutationKey = ['deleteVideoMusicCredit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteVideoMusicCredit>>, {id: number;creditId: number}> = (props) => {
+          const {id,creditId} = props ?? {};
+
+          return  deleteVideoMusicCredit(id,creditId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteVideoMusicCreditMutationResult = NonNullable<Awaited<ReturnType<typeof deleteVideoMusicCredit>>>
+
+    export type DeleteVideoMusicCreditMutationError = ErrorType<Error>
+
+    /**
+ * @summary Remove an owner-attested music acknowledgement from a Watch release
+ */
+export const useDeleteVideoMusicCredit = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVideoMusicCredit>>, TError,{id: number;creditId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteVideoMusicCredit>>,
+        TError,
+        {id: number;creditId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteVideoMusicCreditMutationOptions(options));
     }
 
 export const getGetVideoUrl = (id: number,) => {

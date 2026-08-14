@@ -14,6 +14,7 @@ import {
   paymentIntentsTable,
   platformRevenueMovementsTable,
   tipsTable,
+  usersTable,
 } from "@workspace/db";
 import {
   ListEmotesResponse,
@@ -23,6 +24,10 @@ import {
   TipResponse,
   CreateWalletTipBody,
   CreateWalletTipResponse,
+  CreateGuestCryptoTipBody,
+  CreateGuestCryptoTipResponse,
+  CreateGuestCryptoSubscriptionGiftBody,
+  CreateGuestCryptoSubscriptionGiftResponse,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
 import { compareCryptoAmounts, KRYV_PLATFORM_FEE_BPS, normalizeCryptoAmount, quoteCreatorPlatformFee } from "../lib/creatorFees";
@@ -76,6 +81,13 @@ async function requireCryptoCommerceReadiness(_req: Request, res: Response, next
 // Customer wallet custody is hard-disabled at runtime and unavailable through this service.
 const CUSTOMER_WALLET_RUNTIME_ENABLED = false;
 
+function normalizeGuestDisplayName(value: string | undefined) {
+  const normalized = value?.replace(/\s+/g, " ").trim() ?? "";
+  if (!normalized) return "Kryv Anonymous";
+  if (normalized.length < 2 || normalized.length > 48 || /[\u0000-\u001F\u007F]/.test(normalized)) return null;
+  return normalized;
+}
+
 function configuredSubscriptionAmount(tier: number) {
   const value = process.env[`KRYV_CRYPTO_SUB_TIER_${tier}_USD`]?.trim();
   if (!value || !/^\d+(\.\d{1,2})?$/.test(value) || Number(value) <= 0) {
@@ -121,7 +133,7 @@ async function assertChannelExists(channelId: number) {
 }
 
 async function createCryptoCheckout(input: {
-  userId: number;
+  userId: number | null;
   channelId: number;
   channelName: string;
   channelSlug: string;
@@ -133,7 +145,8 @@ async function createCryptoCheckout(input: {
   if (!isPlisioConfigured()) throw new PlisioNotConfiguredError();
   await assertCryptoCommerceEnabled();
 
-  const orderNumber = `kryv_${input.paymentKind}_${input.userId}_${crypto.randomUUID()}`;
+  const purchaserReference = input.userId ? `user_${input.userId}` : "guest";
+  const orderNumber = `kryv_${input.paymentKind}_${purchaserReference}_${crypto.randomUUID()}`;
   const [intent] = await db
     .insert(paymentIntentsTable)
     .values({
@@ -423,6 +436,94 @@ router.post("/channels/:id/wallet-tip", requireAuth, async (req, res) => {
     if (error instanceof CryptoCommerceDisabledError) return res.status(403).json({ error: error.message });
     console.error("Wallet tip settlement failed", error);
     res.status(500).json({ error: "Kryv could not complete this wallet support payment." });
+  }
+});
+
+router.post("/channels/:id/guest-tip", requireCryptoCommerceReadiness, async (req, res) => {
+  const channelId = Number(req.params.id);
+  const parsed = CreateGuestCryptoTipBody.safeParse(req.body);
+  if (!Number.isSafeInteger(channelId) || channelId < 1) return res.status(400).json({ error: "Invalid channel ID" });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+
+  const channel = await assertChannelExists(channelId);
+  if (!channel) return res.status(404).json({ error: "Channel not found" });
+  const senderDisplayName = normalizeGuestDisplayName(parsed.data.guestDisplayName);
+  if (!senderDisplayName) return res.status(400).json({ error: "Enter a guest display name between 2 and 48 characters, or choose anonymous support." });
+
+  try {
+    const checkout = await createCryptoCheckout({
+      userId: null,
+      channelId,
+      channelName: channel.displayName,
+      channelSlug: channel.slug,
+      paymentKind: "tip",
+      sourceAmountUsd: parsed.data.amount.toFixed(2),
+      cryptoCurrency: parsed.data.cryptoCurrency,
+      metadata: {
+        message: parsed.data.message?.trim() || null,
+        guestCheckout: true,
+        senderDisplayName,
+        senderIdentityType: senderDisplayName === "Kryv Anonymous" ? "anonymous" : "guest_named",
+      },
+    });
+    logActivity(req, "guest_tip_checkout_started", { channelId, amount: parsed.data.amount, paymentIntentId: checkout.paymentIntentId }).catch(console.error);
+    res.status(201).json(CreateGuestCryptoTipResponse.parse(checkout));
+  } catch (error) {
+    if (error instanceof PlisioNotConfiguredError || error instanceof CryptoCommerceDisabledError) return res.status(503).json({ error: error.message });
+    console.error("Guest crypto tip checkout creation failed", error);
+    res.status(502).json({ error: "Anonymous crypto support could not be started. Please try again." });
+  }
+});
+
+router.post("/channels/:id/guest-subscription-gift", requireCryptoCommerceReadiness, async (req, res) => {
+  const channelId = Number(req.params.id);
+  const parsed = CreateGuestCryptoSubscriptionGiftBody.safeParse(req.body);
+  if (!Number.isSafeInteger(channelId) || channelId < 1) return res.status(400).json({ error: "Invalid channel ID" });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+
+  const recipientUsername = parsed.data.recipientUsername.trim();
+  const senderDisplayName = normalizeGuestDisplayName(parsed.data.guestDisplayName);
+  if (!senderDisplayName) return res.status(400).json({ error: "Enter a guest display name between 2 and 48 characters, or choose anonymous support." });
+  if (!/^[a-zA-Z0-9_]{3,32}$/.test(recipientUsername)) {
+    return res.status(400).json({ error: "Enter the recipient's Kryv username." });
+  }
+
+  const [channel, recipient] = await Promise.all([
+    assertChannelExists(channelId),
+    db.select({ id: usersTable.id, username: usersTable.username })
+      .from(usersTable)
+      .where(sql`lower(${usersTable.username}) = lower(${recipientUsername})`)
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+  ]);
+  if (!channel) return res.status(404).json({ error: "Channel not found" });
+  if (!recipient) return res.status(404).json({ error: "That Kryv recipient account was not found." });
+
+  try {
+    const amount = configuredSubscriptionAmount(parsed.data.tier);
+    const checkout = await createCryptoCheckout({
+      userId: null,
+      channelId,
+      channelName: channel.displayName,
+      channelSlug: channel.slug,
+      paymentKind: "subscription",
+      sourceAmountUsd: amount,
+      cryptoCurrency: parsed.data.cryptoCurrency,
+      metadata: {
+        tier: parsed.data.tier,
+        guestCheckout: true,
+        senderDisplayName,
+        senderIdentityType: senderDisplayName === "Kryv Anonymous" ? "anonymous" : "guest_named",
+        giftRecipientUserId: recipient.id,
+        giftRecipientUsername: recipient.username,
+      },
+    });
+    logActivity(req, "guest_subscription_gift_checkout_started", { channelId, tier: parsed.data.tier, recipientUserId: recipient.id, paymentIntentId: checkout.paymentIntentId }).catch(console.error);
+    res.status(201).json(CreateGuestCryptoSubscriptionGiftResponse.parse(checkout));
+  } catch (error) {
+    if (error instanceof PlisioNotConfiguredError || error instanceof CryptoCommerceDisabledError) return res.status(503).json({ error: error.message });
+    console.error("Guest crypto membership gift checkout creation failed", error);
+    res.status(502).json({ error: "Anonymous membership gifting could not be started. Please try again." });
   }
 });
 

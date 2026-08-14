@@ -5,10 +5,13 @@
  * Kryv live streaming platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { VideoMusicCredit } from './videoMusicCredit';
 import type { VideoSummary } from './videoSummary';
 
 export type VideoDetail = VideoSummary & ({
   /** @nullable */
   description: string | null;
   isOwner: boolean;
+  /** Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published. */
+  musicCredits: VideoMusicCredit[];
 });

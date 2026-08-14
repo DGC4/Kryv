@@ -187,6 +187,17 @@ const chatMessageLimiter = rateLimit({
 });
 
 // General API limiter — prevents DDoS / scraping
+// Guest invoice creation is intentionally stricter than general API traffic because it
+// creates provider-side payment intents for unauthenticated visitors.
+const guestCheckoutLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:guest-checkout:"),
+  windowMs: 15 * 60 * 1000,
+  max: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many guest checkout attempts. Please wait before trying again." },
+});
+
 const apiLimiter = rateLimit({
   store: sharedRateLimitStore("kryv:rate:api:"),
   windowMs: 60 * 1000, // 1 minute
@@ -204,6 +215,7 @@ app.use("/api/login", authLimiter);
 app.use("/api/channels", (req, res, next) => {
   if (req.path.includes("/stream")) return streamKeyLimiter(req, res, next);
   if (/^\/\d+\/messages\/?$/.test(req.path)) return chatMessageLimiter(req, res, next);
+  if (/^\/\d+\/guest-(tip|subscription-gift)\/?$/.test(req.path)) return guestCheckoutLimiter(req, res, next);
   next();
 });
 app.use("/api", apiLimiter);

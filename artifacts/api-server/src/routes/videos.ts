@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
-import { db, categoriesTable, channelsTable, moderationCasesTable, videoCommentsTable, videosTable, usersTable } from "@workspace/db";
+import { db, categoriesTable, channelsTable, moderationCasesTable, videoCommentsTable, videoMusicCreditsTable, videosTable, usersTable } from "@workspace/db";
 import {
   ListVideosQueryParams,
   ListVideosResponse,
@@ -11,6 +11,12 @@ import {
   CreateVideoSafetyReportResponse,
   GetVideoParams,
   GetVideoResponse,
+  ListVideoMusicCreditsParams,
+  ListVideoMusicCreditsResponse,
+  CreateVideoMusicCreditBody,
+  CreateVideoMusicCreditParams,
+  CreateVideoMusicCreditResponse,
+  DeleteVideoMusicCreditParams,
   UpdateVideoParams,
   UpdateVideoBody,
   UpdateVideoResponse,
@@ -23,13 +29,29 @@ import {
   ListVideoCommentsResponse,
 } from "@workspace/api-zod";
 import { requireAuth, attachUserId } from "../lib/auth";
-import { toVideoSummary, toVideoDetail } from "../lib/videoSerializer";
+import { toVideoSummary, toVideoDetail, toVideoMusicCredit } from "../lib/videoSerializer";
 import { createFastPixDirectUpload, FastPixNotConfiguredError, getFastPixOnDemandMediaStatus } from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
 import { writeAuditLog } from "../lib/operations";
 import { watchHistoryTable } from "@workspace/db";
 
 const router: IRouter = Router();
+
+function optionalTrimmed(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function optionalHttpsUrl(value: string | undefined) {
+  const trimmed = optionalTrimmed(value);
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "https:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
 
 router.get("/videos", attachUserId, async (req, res): Promise<void> => {
   const query = ListVideosQueryParams.safeParse(req.query);
@@ -495,6 +517,148 @@ router.post("/videos/:id/provider-status", requireAuth, async (req, res): Promis
     const message = err instanceof Error ? err.message : "Unable to read the FastPix media status.";
     res.status(502).json({ error: message });
   }
+});
+
+router.get("/videos/:id/music-credits", requireAuth, async (req, res): Promise<void> => {
+  const params = ListVideoMusicCreditsParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const [video] = await db.select().from(videosTable).where(eq(videosTable.id, params.data.id));
+  if (!video) {
+    res.status(404).json({ error: "Video not found" });
+    return;
+  }
+  const [channel] = await db.select().from(channelsTable).where(eq(channelsTable.id, video.channelId));
+  if (channel?.ownerUserId !== req.user!.userId) {
+    res.status(403).json({ error: "Not the video owner" });
+    return;
+  }
+  const credits = await db
+    .select()
+    .from(videoMusicCreditsTable)
+    .where(eq(videoMusicCreditsTable.videoId, video.id))
+    .orderBy(videoMusicCreditsTable.displayOrder, videoMusicCreditsTable.createdAt);
+  res.json(ListVideoMusicCreditsResponse.parse(credits.map(toVideoMusicCredit)));
+});
+
+router.post("/videos/:id/music-credits", requireAuth, async (req, res): Promise<void> => {
+  const params = CreateVideoMusicCreditParams.safeParse(req.params);
+  const body = CreateVideoMusicCreditBody.safeParse(req.body);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+  if (!body.data.rightsAttested) {
+    res.status(400).json({ error: "Confirm the music-credit attestation before publishing a credit." });
+    return;
+  }
+
+  const trackTitle = body.data.trackTitle.trim();
+  const artistName = body.data.artistName.trim();
+  if (!trackTitle || !artistName) {
+    res.status(400).json({ error: "Track title and artist name are required." });
+    return;
+  }
+
+  const artworkUrl = optionalHttpsUrl(body.data.artworkUrl);
+  const sourceUrl = optionalHttpsUrl(body.data.sourceUrl);
+  if ((body.data.artworkUrl && !artworkUrl) || (body.data.sourceUrl && !sourceUrl)) {
+    res.status(400).json({ error: "Artwork and source links must use HTTPS." });
+    return;
+  }
+  if (body.data.metadataSource === "musicbrainz" && !body.data.musicbrainzRecordingId && !body.data.musicbrainzReleaseId) {
+    res.status(400).json({ error: "A MusicBrainz credit needs a recording or release ID." });
+    return;
+  }
+
+  const [video] = await db.select().from(videosTable).where(eq(videosTable.id, params.data.id));
+  if (!video) {
+    res.status(404).json({ error: "Video not found" });
+    return;
+  }
+  const [channel] = await db.select().from(channelsTable).where(eq(channelsTable.id, video.channelId));
+  if (channel?.ownerUserId !== req.user!.userId) {
+    res.status(403).json({ error: "Not the video owner" });
+    return;
+  }
+
+  const recordingId = optionalTrimmed(body.data.musicbrainzRecordingId);
+  if (recordingId) {
+    const [existing] = await db
+      .select({ id: videoMusicCreditsTable.id })
+      .from(videoMusicCreditsTable)
+      .where(and(eq(videoMusicCreditsTable.videoId, video.id), eq(videoMusicCreditsTable.musicbrainzRecordingId, recordingId)))
+      .limit(1);
+    if (existing) {
+      res.status(409).json({ error: "This MusicBrainz recording is already credited on the release." });
+      return;
+    }
+  }
+
+  const [created] = await db.insert(videoMusicCreditsTable).values({
+    videoId: video.id,
+    trackTitle,
+    artistName,
+    albumTitle: optionalTrimmed(body.data.albumTitle),
+    labelName: optionalTrimmed(body.data.labelName),
+    artworkUrl,
+    sourceUrl,
+    musicbrainzRecordingId: recordingId,
+    musicbrainzReleaseId: optionalTrimmed(body.data.musicbrainzReleaseId),
+    metadataSource: body.data.metadataSource,
+    rightsAttestedAt: new Date(),
+    createdByUserId: req.user!.userId,
+    displayOrder: body.data.displayOrder,
+  }).returning();
+
+  await writeAuditLog(req, {
+    action: "video_music_credit.created",
+    targetType: "video",
+    targetId: String(video.id),
+    afterState: { creditId: created.id, metadataSource: created.metadataSource, musicbrainzRecordingId: created.musicbrainzRecordingId, displayOrder: created.displayOrder },
+  });
+  res.status(201).json(CreateVideoMusicCreditResponse.parse(toVideoMusicCredit(created)));
+});
+
+router.delete("/videos/:id/music-credits/:creditId", requireAuth, async (req, res): Promise<void> => {
+  const params = DeleteVideoMusicCreditParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const [video] = await db.select().from(videosTable).where(eq(videosTable.id, params.data.id));
+  if (!video) {
+    res.status(404).json({ error: "Video not found" });
+    return;
+  }
+  const [channel] = await db.select().from(channelsTable).where(eq(channelsTable.id, video.channelId));
+  if (channel?.ownerUserId !== req.user!.userId) {
+    res.status(403).json({ error: "Not the video owner" });
+    return;
+  }
+  const [credit] = await db
+    .select()
+    .from(videoMusicCreditsTable)
+    .where(and(eq(videoMusicCreditsTable.id, params.data.creditId), eq(videoMusicCreditsTable.videoId, video.id)));
+  if (!credit) {
+    res.status(404).json({ error: "Music credit not found" });
+    return;
+  }
+
+  await db.delete(videoMusicCreditsTable).where(eq(videoMusicCreditsTable.id, credit.id));
+  await writeAuditLog(req, {
+    action: "video_music_credit.deleted",
+    targetType: "video",
+    targetId: String(video.id),
+    beforeState: { creditId: credit.id, metadataSource: credit.metadataSource, musicbrainzRecordingId: credit.musicbrainzRecordingId, displayOrder: credit.displayOrder },
+  });
+  res.sendStatus(204);
 });
 
 router.get("/videos/:id", attachUserId, async (req, res): Promise<void> => {

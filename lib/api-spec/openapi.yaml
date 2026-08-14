@@ -1295,6 +1295,60 @@ paths:
         "404": { description: Channel not found }
         "503": { description: Crypto commerce is not configured or active }
 
+  /channels/{id}/guest-tip:
+    post:
+      operationId: createGuestCryptoTip
+      tags: [channels]
+      summary: Start an anonymous one-time crypto creator-support invoice; no ledger movement occurs until a signed provider callback settles it
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestCryptoTipInput"
+      responses:
+        "201":
+          description: Pending anonymous crypto invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptoCheckout"
+        "404": { description: Channel not found }
+        "429": { description: Guest checkout rate limit reached }
+        "503": { description: Crypto commerce is not configured or active }
+
+  /channels/{id}/guest-subscription-gift:
+    post:
+      operationId: createGuestCryptoSubscriptionGift
+      tags: [channels]
+      summary: Start an anonymous crypto membership gift for a named Kryv account; the recipient receives no entitlement until a signed provider callback settles it
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestCryptoSubscriptionGiftInput"
+      responses:
+        "201":
+          description: Pending anonymous gift-membership invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptoCheckout"
+        "404": { description: Channel or recipient account not found }
+        "429": { description: Guest checkout rate limit reached }
+        "503": { description: Crypto commerce is not configured or active }
+
   /channels/{id}/wallet-tip:
     post:
       operationId: createWalletTip
@@ -1944,6 +1998,130 @@ paths:
                 $ref: "#/components/schemas/Error"
         "404":
           description: Comment or Watch release not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /videos/{id}/music-credits:
+    get:
+      operationId: listVideoMusicCredits
+      tags: [videos]
+      summary: List owner-attested music acknowledgements for a Watch release (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ordered music credits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VideoMusicCredit"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the video owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      operationId: createVideoMusicCredit
+      tags: [videos]
+      summary: Add an owner-attested music acknowledgement to a Watch release
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VideoMusicCreditInput"
+      responses:
+        "201":
+          description: Music credit created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoMusicCredit"
+        "400":
+          description: Invalid credit or missing rights attestation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the video owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /videos/{id}/music-credits/{creditId}:
+    delete:
+      operationId: deleteVideoMusicCredit
+      tags: [videos]
+      summary: Remove an owner-attested music acknowledgement from a Watch release
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: creditId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Music credit deleted
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the video owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Music credit or video not found
           content:
             application/json:
               schema:
@@ -3363,6 +3541,24 @@ components:
         cryptoCurrency: { $ref: "#/components/schemas/CryptoCurrency" }
         message: { type: string, maxLength: 500 }
 
+    GuestCryptoTipInput:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, exclusiveMinimum: 0, maximum: 100000, description: USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout. }
+        cryptoCurrency: { $ref: "#/components/schemas/CryptoCurrency" }
+        message: { type: string, maxLength: 500, description: Optional note attached to the guest support record after confirmed settlement. }
+        guestDisplayName: { type: string, minLength: 2, maxLength: 48, description: Optional unverified guest display name recorded only for this support action; it is not a Kryv account identity. }
+
+    GuestCryptoSubscriptionGiftInput:
+      type: object
+      required: [recipientUsername]
+      properties:
+        tier: { type: integer, minimum: 1, maximum: 3, default: 1 }
+        cryptoCurrency: { $ref: "#/components/schemas/CryptoCurrency" }
+        recipientUsername: { type: string, minLength: 3, maxLength: 32, description: Existing Kryv account username that will receive the membership only after signed provider confirmation. }
+        guestDisplayName: { type: string, minLength: 2, maxLength: 48, description: Optional unverified guest display name recorded only for this gift action; it is not a Kryv account identity. }
+
     WalletTipInput:
       type: object
       required: [currency, amount]
@@ -3591,14 +3787,59 @@ components:
         limit: { type: integer, minimum: 1 }
         offset: { type: integer, minimum: 0 }
 
+    VideoMusicCredit:
+      type: object
+      required: [id, trackTitle, artistName, albumTitle, labelName, artworkUrl, sourceUrl, musicbrainzRecordingId, musicbrainzReleaseId, metadataSource, rightsAttestedAt, displayOrder]
+      properties:
+        id: { type: integer }
+        trackTitle: { type: string }
+        artistName: { type: string }
+        albumTitle: { type: ["string", "null"] }
+        labelName: { type: ["string", "null"] }
+        artworkUrl: { type: ["string", "null"], format: uri }
+        sourceUrl: { type: ["string", "null"], format: uri }
+        musicbrainzRecordingId: { type: ["string", "null"], format: uuid }
+        musicbrainzReleaseId: { type: ["string", "null"], format: uuid }
+        metadataSource:
+          type: string
+          enum: [publisher_attested, musicbrainz]
+        rightsAttestedAt: { type: string, format: date-time }
+        displayOrder: { type: integer, minimum: 0 }
+
+    VideoMusicCreditInput:
+      type: object
+      required: [trackTitle, artistName, rightsAttested]
+      properties:
+        trackTitle: { type: string, minLength: 1, maxLength: 200 }
+        artistName: { type: string, minLength: 1, maxLength: 200 }
+        albumTitle: { type: string, maxLength: 200 }
+        labelName: { type: string, maxLength: 200 }
+        artworkUrl: { type: string, format: uri, maxLength: 2048 }
+        sourceUrl: { type: string, format: uri, maxLength: 2048 }
+        musicbrainzRecordingId: { type: string, format: uuid }
+        musicbrainzReleaseId: { type: string, format: uuid }
+        metadataSource:
+          type: string
+          enum: [publisher_attested, musicbrainz]
+          default: publisher_attested
+        displayOrder: { type: integer, minimum: 0, maximum: 1000, default: 0 }
+        rightsAttested:
+          description: The owner confirms these credits and any linked artwork/source are appropriate to display with this Watch release.
+          type: boolean
+
     VideoDetail:
       allOf:
         - $ref: "#/components/schemas/VideoSummary"
         - type: object
-          required: [description, isOwner]
+          required: [description, isOwner, musicCredits]
           properties:
             description: { type: ["string", "null"] }
             isOwner: { type: boolean }
+            musicCredits:
+              type: array
+              description: Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.
+              items:
+                $ref: "#/components/schemas/VideoMusicCredit"
 
     VideoComment:
       type: object

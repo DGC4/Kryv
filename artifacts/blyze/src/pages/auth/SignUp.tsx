@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout";
 import { getApiUrl } from "@/lib/api";
+import { buildAuthPath, getSafeReturnPath } from "@/lib/auth-return";
 
 export default function SignUpPage() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const returnTo = getSafeReturnPath(location);
   const setAuth = useAuthStore((s) => s.setAuth);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -36,7 +38,7 @@ export default function SignUpPage() {
 
       setAuth(data.token, data.user);
       toast.success("Account created successfully!");
-      setLocation("/live");
+      setLocation(returnTo);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -103,7 +105,7 @@ export default function SignUpPage() {
 
             <div className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link href="/sign-in" className="text-primary hover:text-primary/80 font-medium">
+              <Link href={buildAuthPath("/sign-in", returnTo)} className="text-primary hover:text-primary/80 font-medium">
                 Log in
               </Link>
             </div>

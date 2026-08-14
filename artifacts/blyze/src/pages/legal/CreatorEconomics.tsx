@@ -9,7 +9,7 @@ export default function CreatorEconomics() {
         <header className="mb-10 border-b border-white/[0.08] pb-10 sm:mb-14">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Creator Economics</div>
           <h1 className="mb-4 text-3xl font-black tracking-tight text-white sm:text-5xl">Clear crypto economics. No hidden split.</h1>
-          <p className="max-w-3xl text-sm font-medium leading-relaxed text-white/55 sm:text-base">Kryv is crypto-only. This page explains how eligible, provider-confirmed tips and subscriptions are allocated, what payment fees are separate from the creator split, and what must happen before a creator payout can leave the platform.</p>
+          <p className="max-w-3xl text-sm font-medium leading-relaxed text-white/55 sm:text-base">Kryv is crypto-only. This page explains how eligible, provider-confirmed tips and subscriptions are allocated, what payment fees are separate from the creator split, how guest support is labeled, and what must happen before a creator payout can leave the platform.</p>
         </header>
 
         <div className="space-y-7 sm:space-y-10">
@@ -28,6 +28,8 @@ export default function CreatorEconomics() {
               <article className="rounded-xl border border-white/[0.08] bg-black/25 p-4"><span className="text-xs font-black text-primary">03</span><h3 className="mt-3 font-bold text-white">Immutable allocation</h3><p className="mt-2 text-sm leading-relaxed text-white/55">The confirmed crypto subtotal is allocated 95% to the creator and 5% to Kryv through separate asset-denominated ledger movements.</p></article>
             </div>
           </section>
+
+          <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 sm:p-8"><h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">Guest support and identity labels</h2><div className="mt-4 space-y-3 text-sm leading-relaxed text-white/60"><p>Anyone may request an eligible one-time crypto-support invoice without a Kryv account. A guest may remain labeled <strong className="text-white">Kryv Anonymous</strong> or supply an optional display name. Both are unverified supporter labels and are not a verified Kryv account identity.</p><p>Gift memberships require a named existing Kryv recipient so the entitlement can be issued to an accountable account. After requesting a guest invoice, a supporter may choose to create an account; the later account action does not rewrite the original invoice or its immutable settlement record.</p></div></section>
 
           <section className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-6 sm:p-8">
             <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">Fees are not all the same thing</h2>
