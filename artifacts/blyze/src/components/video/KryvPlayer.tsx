@@ -273,38 +273,68 @@ export default function KryvPlayer({
     video.addEventListener('error', handleError);
 
     let cancelled = false;
-    const hasNativeHls = Boolean(video.canPlayType('application/vnd.apple.mpegurl'));
-
-    if (hasNativeHls) {
-      // Native HLS (Safari/iOS) needs an explicit seek to the end of the
-      // provider's active window; otherwise a DVR-enabled manifest can reopen
-      // at an earlier segment. Do not download hls.js for this native path.
+    const attachNativeHls = () => {
+      if (cancelled || !video.canPlayType('application/vnd.apple.mpegurl')) {
+        if (!cancelled) setHasPlaybackError(true);
+        return;
+      }
+      // Safari and iOS supply their own HLS transport. Chromium-family
+      // browsers can advertise partial HLS support while still requiring
+      // Media Source Extensions, so native playback is deliberately a fallback
+      // after hls.js support has been checked.
       video.src = src;
-    } else {
-      void import('hls.js').then(({ default: HlsModule }) => {
-        if (cancelled || !HlsModule.isSupported()) return;
-        const hls = new HlsModule({
-          enableWorker: true,
-          lowLatencyMode: live,
-          startPosition: live ? -1 : undefined,
-          // These values tell hls.js to join a live manifest near the provider
-          // edge, then recover naturally if buffering/network drift occurs.
-          liveSyncDurationCount: live ? 2 : undefined,
-          liveMaxLatencyDurationCount: live ? 6 : undefined,
-          maxLiveSyncPlaybackRate: live ? 1.5 : 1,
-          backBufferLength: live ? 30 : undefined,
-        });
-        hlsRef.current = hls;
-        hls.loadSource(src);
-        hls.attachMedia(video);
-        hls.on(HlsModule.Events.MANIFEST_PARSED, () => {
-          if (autoPlay) video.play().catch(() => undefined);
-        });
-        // The live synchronization position is finalized after level details
-        // arrive, not merely when the manifest shell is parsed.
-        hls.on(HlsModule.Events.LEVEL_UPDATED, runInitialLiveSync);
-      }).catch(() => setHasPlaybackError(true));
-    }
+    };
+
+    void import('hls.js').then(({ default: HlsModule }) => {
+      if (cancelled) return;
+      if (!HlsModule.isSupported()) {
+        attachNativeHls();
+        return;
+      }
+
+      const hls = new HlsModule({
+        enableWorker: true,
+        lowLatencyMode: live,
+        startPosition: live ? -1 : undefined,
+        // These values tell hls.js to join a live manifest near the provider
+        // edge, then recover naturally if buffering/network drift occurs.
+        liveSyncDurationCount: live ? 2 : undefined,
+        liveMaxLatencyDurationCount: live ? 6 : undefined,
+        maxLiveSyncPlaybackRate: live ? 1.5 : 1,
+        backBufferLength: live ? 30 : undefined,
+      });
+      hlsRef.current = hls;
+      let networkRecoveryAttempts = 0;
+      let mediaRecoveryAttempts = 0;
+
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(HlsModule.Events.MANIFEST_PARSED, () => {
+        if (autoPlay) video.play().catch(() => undefined);
+      });
+      hls.on(HlsModule.Events.LEVEL_LOADED, (_event, data) => {
+        if (!live && Number.isFinite(data.details.totalduration)) {
+          setDuration(data.details.totalduration);
+        }
+      });
+      // The live synchronization position is finalized after level details
+      // arrive, not merely when the manifest shell is parsed.
+      hls.on(HlsModule.Events.LEVEL_UPDATED, runInitialLiveSync);
+      hls.on(HlsModule.Events.ERROR, (_event, data) => {
+        if (!data.fatal || cancelled) return;
+        if (data.type === HlsModule.ErrorTypes.NETWORK_ERROR && networkRecoveryAttempts < 1) {
+          networkRecoveryAttempts += 1;
+          hls.startLoad();
+          return;
+        }
+        if (data.type === HlsModule.ErrorTypes.MEDIA_ERROR && mediaRecoveryAttempts < 1) {
+          mediaRecoveryAttempts += 1;
+          hls.recoverMediaError();
+          return;
+        }
+        setHasPlaybackError(true);
+      });
+    }).catch(attachNativeHls);
 
     return () => {
       cancelled = true;

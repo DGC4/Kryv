@@ -364,7 +364,13 @@ router.get("/admin/overview", requireOwner, async (_req, res): Promise<void> => 
 });
 
 router.get("/admin/analytics", requireOwner, async (req, res): Promise<void> => {
-  const params = GetAdminAnalyticsQueryParams.safeParse(req.query);
+  // Express exposes URL query values as strings. The generated contract keeps
+  // rangeDays numeric so callers inside the app retain a precise 1/7/30-day
+  // type; normalize only a single scalar query string at this HTTP boundary.
+  // Arrays, malformed text, and unsupported values still fail contract validation.
+  const rawRangeDays = req.query.rangeDays;
+  const normalizedRangeDays = typeof rawRangeDays === "string" ? Number(rawRangeDays) : rawRangeDays;
+  const params = GetAdminAnalyticsQueryParams.safeParse({ ...req.query, rangeDays: normalizedRangeDays });
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
