@@ -46,6 +46,68 @@ function asNonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function parseFastPixDurationSeconds(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value);
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  if (/^\d+(?:\.\d+)?$/.test(value.trim())) {
+    return Math.round(Number(value));
+  }
+
+  const parts = value.trim().split(":").map(Number);
+  if (!parts.length || parts.some((part) => !Number.isFinite(part) || part < 0)) return null;
+  if (parts.length === 3) return Math.round((parts[0] * 3600) + (parts[1] * 60) + parts[2]);
+  if (parts.length === 2) return Math.round((parts[0] * 60) + parts[1]);
+  return null;
+}
+
+export type FastPixUploadMetadata = Record<string, string>;
+
+export type FastPixOnDemandMediaStatus = {
+  providerStatus: "waiting" | "processing" | "ready" | "errored";
+  fastpixAssetId: string | null;
+  fastpixPlaybackId: string | null;
+  durationSeconds: number | null;
+  thumbnailUrl: string | null;
+};
+
+function normalizeFastPixMediaStatus(status: unknown): FastPixOnDemandMediaStatus["providerStatus"] {
+  const normalized = typeof status === "string" ? status.trim().toLowerCase() : "";
+  if (normalized === "ready") return "ready";
+  if (normalized === "failed" || normalized === "error" || normalized === "errored") return "errored";
+  if (normalized === "" || normalized === "waiting" || normalized === "created") return "waiting";
+  return "processing";
+}
+
+/**
+ * Read one FastPix on-demand media record by either the upload ID or media ID.
+ * This is intentionally separate from webhook delivery so an owner can recover
+ * a completed asset if the service was unavailable when FastPix sent an event.
+ */
+export async function getFastPixOnDemandMediaStatus(mediaId: string): Promise<FastPixOnDemandMediaStatus> {
+  if (!username || !password) {
+    throw new FastPixNotConfiguredError();
+  }
+
+  const response = await fastpix.manageVideos.get({ mediaId });
+  const media = asRecord((response as any).data ?? response);
+  if (!media) {
+    throw new Error("FastPix returned no media record for this upload.");
+  }
+
+  const firstPlayback = Array.isArray(media.playbackIds)
+    ? asRecord(media.playbackIds[0])
+    : null;
+
+  return {
+    providerStatus: normalizeFastPixMediaStatus(media.status),
+    fastpixAssetId: asNonEmptyString(media.id),
+    fastpixPlaybackId: asNonEmptyString(firstPlayback?.id),
+    durationSeconds: parseFastPixDurationSeconds(media.duration),
+    thumbnailUrl: asNonEmptyString(media.thumbnail),
+  };
+}
+
 /**
  * Fetch the FastPix near-real-time viewer count with a short server-side cache.
  * This lets public listings refresh frequently without multiplying FastPix API calls
@@ -157,17 +219,31 @@ export async function getFastPixLiveStream(streamId: string) {
  * FastPix SDK v2: fastpix.inputVideo.upload({ corsOrigin, pushMediaSettings })
  * Response: { success, data: { uploadId, url, ... } }
  */
-export async function createFastPixDirectUpload(corsOrigin: string) {
+export async function createFastPixDirectUpload(input: {
+  corsOrigin: string;
+  title: string;
+  metadata: FastPixUploadMetadata;
+}) {
   if (!username || !password) {
     throw new FastPixNotConfiguredError();
   }
 
+  const metadataEntries = Object.entries(input.metadata);
+  if (metadataEntries.length > 10) {
+    throw new Error("FastPix Watch upload metadata cannot exceed 10 key-value pairs.");
+  }
+  if (metadataEntries.some(([key, value]) => !key || (typeof value !== "string" && typeof value !== "number"))) {
+    throw new Error("FastPix Watch upload metadata must use flat string or number values.");
+  }
+
   const response = await fastpix.inputVideo.upload({
-    corsOrigin,
+    corsOrigin: input.corsOrigin,
     pushMediaSettings: {
       accessPolicy: "public",
       maxResolution: "1080p",
       mediaQuality: "standard",
+      title: input.title,
+      metadata: input.metadata,
     },
   });
 

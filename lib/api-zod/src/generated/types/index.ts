@@ -214,6 +214,8 @@ export * from './searchKryvParams';
 export * from './searchResults';
 export * from './streamCredentials';
 export * from './updateAdminFeatureFlagInput';
+export * from './videoComment';
+export * from './videoCommentInput';
 export * from './videoCreateResponse';
 export * from './videoDetail';
 export * from './videoInput';

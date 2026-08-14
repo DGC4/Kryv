@@ -1953,6 +1953,101 @@ export const CreateVideoResponse = zod.object({
 
 
 /**
+ * @summary Refresh the FastPix processing and playback state for a Watch upload (owner only)
+ */
+export const RefreshVideoProviderStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RefreshVideoProviderStatusResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "isOwner": zod.boolean()
+}))
+
+
+/**
+ * @summary List visible discussion for a published Kryv Watch release
+ */
+export const ListVideoCommentsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListVideoCommentsResponseItem = zod.object({
+  "id": zod.number(),
+  "videoId": zod.number(),
+  "parentCommentId": zod.number().nullable(),
+  "userId": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "replies": zod.array(zod.unknown())
+})
+export const ListVideoCommentsResponse = zod.array(ListVideoCommentsResponseItem)
+
+
+/**
+ * @summary Add a comment or reply to a published Kryv Watch release
+ */
+export const CreateVideoCommentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createVideoCommentBodyMessageMax = 1000;
+
+
+
+
+export const CreateVideoCommentBody = zod.object({
+  "message": zod.string().min(1).max(createVideoCommentBodyMessageMax),
+  "parentCommentId": zod.number().min(1).optional()
+})
+
+export const CreateVideoCommentResponse = zod.object({
+  "id": zod.number(),
+  "videoId": zod.number(),
+  "parentCommentId": zod.number().nullable(),
+  "userId": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "replies": zod.array(zod.unknown())
+})
+
+
+/**
+ * @summary Remove a Watch comment or reply (author or channel owner only)
+ */
+export const DeleteVideoCommentParams = zod.object({
+  "id": zod.coerce.number(),
+  "commentId": zod.coerce.number()
+})
+
+export const DeleteVideoCommentResponse = zod.void()
+
+
+/**
  * @summary Get a single video's detail and register a view
  */
 export const GetVideoParams = zod.object({

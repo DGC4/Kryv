@@ -128,6 +128,8 @@ import type {
   SearchResults,
   StreamCredentials,
   UpdateAdminFeatureFlagInput,
+  VideoComment,
+  VideoCommentInput,
   VideoCreateResponse,
   VideoDetail,
   VideoInput,
@@ -4577,6 +4579,299 @@ export const useCreateVideo = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getCreateVideoMutationOptions(options));
+    }
+
+export const getRefreshVideoProviderStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/videos/${id}/provider-status`
+}
+
+/**
+ * @summary Refresh the FastPix processing and playback state for a Watch upload (owner only)
+ */
+export const refreshVideoProviderStatus = async (id: number, options?: RequestInit): Promise<VideoDetail> => {
+
+  return customFetch<VideoDetail>(getRefreshVideoProviderStatusUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRefreshVideoProviderStatusMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshVideoProviderStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshVideoProviderStatus>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['refreshVideoProviderStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshVideoProviderStatus>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  refreshVideoProviderStatus(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshVideoProviderStatusMutationResult = NonNullable<Awaited<ReturnType<typeof refreshVideoProviderStatus>>>
+
+    export type RefreshVideoProviderStatusMutationError = ErrorType<Error>
+
+    /**
+ * @summary Refresh the FastPix processing and playback state for a Watch upload (owner only)
+ */
+export const useRefreshVideoProviderStatus = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshVideoProviderStatus>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refreshVideoProviderStatus>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRefreshVideoProviderStatusMutationOptions(options));
+    }
+
+export const getListVideoCommentsUrl = (id: number,) => {
+
+
+
+
+  return `/api/videos/${id}/comments`
+}
+
+/**
+ * @summary List visible discussion for a published Kryv Watch release
+ */
+export const listVideoComments = async (id: number, options?: RequestInit): Promise<VideoComment[]> => {
+
+  return customFetch<VideoComment[]>(getListVideoCommentsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListVideoCommentsQueryKey = (id: number,) => {
+    return [
+    `/api/videos/${id}/comments`
+    ] as const;
+    }
+
+
+export const getListVideoCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listVideoComments>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideoComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVideoCommentsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVideoComments>>> = ({ signal }) => listVideoComments(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listVideoComments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListVideoCommentsQueryResult = NonNullable<Awaited<ReturnType<typeof listVideoComments>>>
+export type ListVideoCommentsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary List visible discussion for a published Kryv Watch release
+ */
+
+export function useListVideoComments<TData = Awaited<ReturnType<typeof listVideoComments>>, TError = ErrorType<Error>>(
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideoComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListVideoCommentsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateVideoCommentUrl = (id: number,) => {
+
+
+
+
+  return `/api/videos/${id}/comments`
+}
+
+/**
+ * @summary Add a comment or reply to a published Kryv Watch release
+ */
+export const createVideoComment = async (id: number,
+    videoCommentInput: VideoCommentInput, options?: RequestInit): Promise<VideoComment> => {
+
+  return customFetch<VideoComment>(getCreateVideoCommentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(videoCommentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateVideoCommentMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVideoComment>>, TError,{id: number;data: BodyType<VideoCommentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createVideoComment>>, TError,{id: number;data: BodyType<VideoCommentInput>}, TContext> => {
+
+const mutationKey = ['createVideoComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createVideoComment>>, {id: number;data: BodyType<VideoCommentInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createVideoComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateVideoCommentMutationResult = NonNullable<Awaited<ReturnType<typeof createVideoComment>>>
+    export type CreateVideoCommentMutationBody = BodyType<VideoCommentInput>
+    export type CreateVideoCommentMutationError = ErrorType<Error>
+
+    /**
+ * @summary Add a comment or reply to a published Kryv Watch release
+ */
+export const useCreateVideoComment = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVideoComment>>, TError,{id: number;data: BodyType<VideoCommentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createVideoComment>>,
+        TError,
+        {id: number;data: BodyType<VideoCommentInput>},
+        TContext
+      > => {
+      return useMutation(getCreateVideoCommentMutationOptions(options));
+    }
+
+export const getDeleteVideoCommentUrl = (id: number,
+    commentId: number,) => {
+
+
+
+
+  return `/api/videos/${id}/comments/${commentId}`
+}
+
+/**
+ * @summary Remove a Watch comment or reply (author or channel owner only)
+ */
+export const deleteVideoComment = async (id: number,
+    commentId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteVideoCommentUrl(id,commentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteVideoCommentMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVideoComment>>, TError,{id: number;commentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteVideoComment>>, TError,{id: number;commentId: number}, TContext> => {
+
+const mutationKey = ['deleteVideoComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteVideoComment>>, {id: number;commentId: number}> = (props) => {
+          const {id,commentId} = props ?? {};
+
+          return  deleteVideoComment(id,commentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteVideoCommentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteVideoComment>>>
+
+    export type DeleteVideoCommentMutationError = ErrorType<Error>
+
+    /**
+ * @summary Remove a Watch comment or reply (author or channel owner only)
+ */
+export const useDeleteVideoComment = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVideoComment>>, TError,{id: number;commentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteVideoComment>>,
+        TError,
+        {id: number;commentId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteVideoCommentMutationOptions(options));
     }
 
 export const getGetVideoUrl = (id: number,) => {

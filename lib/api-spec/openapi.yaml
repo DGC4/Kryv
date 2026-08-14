@@ -1761,6 +1761,169 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /videos/{id}/provider-status:
+    post:
+      operationId: refreshVideoProviderStatus
+      tags: [videos]
+      summary: Refresh the FastPix processing and playback state for a Watch upload (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Provider state reconciled into the Watch release
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoDetail"
+        "400":
+          description: This release cannot be refreshed from FastPix
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not the video owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: The release has no provider upload reference yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: The media provider could not be reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: FastPix is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /videos/{id}/comments:
+    get:
+      operationId: listVideoComments
+      tags: [videos]
+      summary: List visible discussion for a published Kryv Watch release
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Top-level comments with nested replies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VideoComment"
+        "404":
+          description: Published Watch release not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      operationId: createVideoComment
+      tags: [videos]
+      summary: Add a comment or reply to a published Kryv Watch release
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VideoCommentInput"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoComment"
+        "400":
+          description: Invalid comment or reply target
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Published Watch release not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /videos/{id}/comments/{commentId}:
+    delete:
+      operationId: deleteVideoComment
+      tags: [videos]
+      summary: Remove a Watch comment or reply (author or channel owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: commentId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Comment removed from public discussion
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not authorized to remove this comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Comment or Watch release not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /videos/{id}:
     get:
       operationId: getVideo
@@ -3223,6 +3386,30 @@ components:
           properties:
             description: { type: ["string", "null"] }
             isOwner: { type: boolean }
+
+    VideoComment:
+      type: object
+      required: [id, videoId, parentCommentId, userId, username, avatarUrl, message, createdAt, replies]
+      properties:
+        id: { type: integer }
+        videoId: { type: integer }
+        parentCommentId: { type: ["integer", "null"] }
+        userId: { type: integer }
+        username: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        message: { type: string }
+        createdAt: { type: string, format: date-time }
+        replies:
+          type: array
+          items:
+            $ref: "#/components/schemas/VideoComment"
+
+    VideoCommentInput:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 1000 }
+        parentCommentId: { type: integer, minimum: 1 }
 
     VideoInput:
       type: object

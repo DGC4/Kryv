@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { and, eq, sql } from "drizzle-orm";
-import { db, categoriesTable, channelsTable, moderationCasesTable, videosTable, usersTable } from "@workspace/db";
+import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { db, categoriesTable, channelsTable, moderationCasesTable, videoCommentsTable, videosTable, usersTable } from "@workspace/db";
 import {
   ListVideosQueryParams,
   ListVideosResponse,
@@ -14,11 +14,17 @@ import {
   UpdateVideoParams,
   UpdateVideoBody,
   UpdateVideoResponse,
+  DeleteVideoCommentParams,
   DeleteVideoParams,
+  CreateVideoCommentBody,
+  CreateVideoCommentParams,
+  CreateVideoCommentResponse,
+  ListVideoCommentsParams,
+  ListVideoCommentsResponse,
 } from "@workspace/api-zod";
 import { requireAuth, attachUserId } from "../lib/auth";
 import { toVideoSummary, toVideoDetail } from "../lib/videoSerializer";
-import { createFastPixDirectUpload, FastPixNotConfiguredError } from "../lib/fastpix";
+import { createFastPixDirectUpload, FastPixNotConfiguredError, getFastPixOnDemandMediaStatus } from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
 import { writeAuditLog } from "../lib/operations";
 import { watchHistoryTable } from "@workspace/db";
@@ -195,11 +201,12 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  let pendingVideo: typeof videosTable.$inferSelect | null = null;
   try {
-    const origin = req.get("origin") || "*";
-    const { fastpixUploadId, uploadUrl } = await createFastPixDirectUpload(origin);
-
-    const [video] = await db
+    // A Kryv record is created first so the FastPix direct-upload session can carry
+    // durable correlation metadata. That makes webhook delivery and manual recovery
+    // deterministic even when a provider event arrives after an application restart.
+    [pendingVideo] = await db
       .insert(videosTable)
       .values({
         channelId: channel.id,
@@ -209,18 +216,282 @@ router.post("/videos", requireAuth, async (req, res): Promise<void> => {
         contentType: "upload",
         uploadStatus: "waiting",
         playbackSource: "fastpix",
-        fastpixUploadId,
       })
+      .returning();
+
+    const origin = req.get("origin") || "*";
+    const { fastpixUploadId, uploadUrl } = await createFastPixDirectUpload({
+      corsOrigin: origin,
+      title: pendingVideo.title,
+      metadata: {
+        source: "kryv",
+        kryv_surface: "watch",
+        kryv_video_id: String(pendingVideo.id),
+        kryv_channel_id: String(channel.id),
+        kryv_owner_user_id: String(userId),
+        kryv_playback_source: "fastpix",
+      },
+    });
+
+    const [video] = await db
+      .update(videosTable)
+      .set({ fastpixUploadId })
+      .where(eq(videosTable.id, pendingVideo.id))
       .returning();
 
     const detail = await toVideoDetail(video, userId);
     res.status(201).json(CreateVideoResponse.parse({ ...detail, uploadUrl }));
   } catch (err) {
+    // No browser upload exists if FastPix cannot issue the signed session. Remove
+    // the short-lived correlation record rather than leaving an unplayable release
+    // in the creator library.
+    if (pendingVideo) {
+      await db.delete(videosTable).where(eq(videosTable.id, pendingVideo.id));
+    }
     if (err instanceof FastPixNotConfiguredError) {
       res.status(503).json({ error: err.message });
       return;
     }
     throw err;
+  }
+});
+
+router.get("/videos/:id/comments", async (req, res): Promise<void> => {
+  const params = ListVideoCommentsParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [video] = await db
+    .select({ id: videosTable.id })
+    .from(videosTable)
+    .where(and(eq(videosTable.id, params.data.id), eq(videosTable.contentType, "upload"), eq(videosTable.uploadStatus, "ready")))
+    .limit(1);
+  if (!video) {
+    res.status(404).json({ error: "Published Watch video not found." });
+    return;
+  }
+
+  const rows = await db
+    .select({
+      id: videoCommentsTable.id,
+      videoId: videoCommentsTable.videoId,
+      parentCommentId: videoCommentsTable.parentCommentId,
+      userId: videoCommentsTable.userId,
+      username: usersTable.username,
+      avatarUrl: usersTable.avatarUrl,
+      message: videoCommentsTable.message,
+      createdAt: videoCommentsTable.createdAt,
+    })
+    .from(videoCommentsTable)
+    .innerJoin(usersTable, eq(usersTable.id, videoCommentsTable.userId))
+    .where(and(eq(videoCommentsTable.videoId, video.id), isNull(videoCommentsTable.deletedAt)))
+    .orderBy(desc(videoCommentsTable.createdAt), desc(videoCommentsTable.id));
+
+  type CommentNode = (typeof rows)[number] & { replies: Array<(typeof rows)[number] & { replies: [] }> };
+  const parentComments = new Map<number, CommentNode>();
+  const replyRows: Array<(typeof rows)[number]> = [];
+  for (const row of rows) {
+    if (row.parentCommentId === null) parentComments.set(row.id, { ...row, replies: [] });
+    else replyRows.push(row);
+  }
+  for (const reply of replyRows) {
+    const parent = parentComments.get(reply.parentCommentId!);
+    if (parent) parent.replies.push({ ...reply, replies: [] });
+  }
+
+  res.json(ListVideoCommentsResponse.parse(Array.from(parentComments.values())));
+});
+
+router.post("/videos/:id/comments", requireAuth, async (req, res): Promise<void> => {
+  const params = CreateVideoCommentParams.safeParse(req.params);
+  const body = CreateVideoCommentBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: !params.success ? params.error.message : body.error?.message ?? "Invalid comment body" });
+    return;
+  }
+
+  const message = body.data.message.trim();
+  if (!message) {
+    res.status(400).json({ error: "A comment cannot be empty." });
+    return;
+  }
+
+  const [video] = await db
+    .select({ id: videosTable.id, channelId: videosTable.channelId })
+    .from(videosTable)
+    .where(and(eq(videosTable.id, params.data.id), eq(videosTable.contentType, "upload"), eq(videosTable.uploadStatus, "ready")))
+    .limit(1);
+  if (!video) {
+    res.status(404).json({ error: "Published Watch video not found." });
+    return;
+  }
+
+  if (body.data.parentCommentId) {
+    const [parent] = await db
+      .select({ videoId: videoCommentsTable.videoId, parentCommentId: videoCommentsTable.parentCommentId, deletedAt: videoCommentsTable.deletedAt })
+      .from(videoCommentsTable)
+      .where(eq(videoCommentsTable.id, body.data.parentCommentId))
+      .limit(1);
+    if (!parent || parent.videoId !== video.id || parent.deletedAt || parent.parentCommentId !== null) {
+      res.status(400).json({ error: "Replies must target a visible top-level comment on this Watch release." });
+      return;
+    }
+  }
+
+  const [created] = await db
+    .insert(videoCommentsTable)
+    .values({
+      videoId: video.id,
+      channelId: video.channelId,
+      userId: req.user!.userId,
+      parentCommentId: body.data.parentCommentId ?? null,
+      message,
+    })
+    .returning();
+  const [author] = await db
+    .select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl })
+    .from(usersTable)
+    .where(eq(usersTable.id, created.userId))
+    .limit(1);
+
+  await writeAuditLog(req, {
+    action: "video_comment_created",
+    targetType: "video_comment",
+    targetId: created.id,
+    afterState: { videoId: video.id, parentCommentId: created.parentCommentId },
+  });
+
+  res.status(201).json(CreateVideoCommentResponse.parse({
+    id: created.id,
+    videoId: created.videoId,
+    parentCommentId: created.parentCommentId,
+    userId: created.userId,
+    username: author?.username ?? "Kryv viewer",
+    avatarUrl: author?.avatarUrl ?? null,
+    message: created.message,
+    createdAt: created.createdAt,
+    replies: [],
+  }));
+});
+
+router.delete("/videos/:id/comments/:commentId", requireAuth, async (req, res): Promise<void> => {
+  const params = DeleteVideoCommentParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [comment] = await db
+    .select({ comment: videoCommentsTable, channelOwnerUserId: channelsTable.ownerUserId })
+    .from(videoCommentsTable)
+    .innerJoin(channelsTable, eq(channelsTable.id, videoCommentsTable.channelId))
+    .where(and(eq(videoCommentsTable.id, params.data.commentId), eq(videoCommentsTable.videoId, params.data.id)))
+    .limit(1);
+  if (!comment || comment.comment.deletedAt) {
+    res.status(404).json({ error: "Watch comment not found." });
+    return;
+  }
+  if (comment.comment.userId !== req.user!.userId && comment.channelOwnerUserId !== req.user!.userId) {
+    res.status(403).json({ error: "Only the comment author or channel owner can remove this comment." });
+    return;
+  }
+
+  const deletedAt = new Date();
+  await db
+    .update(videoCommentsTable)
+    .set({ deletedAt, deletedByUserId: req.user!.userId })
+    .where(or(eq(videoCommentsTable.id, comment.comment.id), eq(videoCommentsTable.parentCommentId, comment.comment.id)));
+
+  await writeAuditLog(req, {
+    action: "video_comment_deleted",
+    targetType: "video_comment",
+    targetId: comment.comment.id,
+    afterState: { videoId: params.data.id, deletedAt: deletedAt.toISOString(), removedByChannelOwner: comment.channelOwnerUserId === req.user!.userId },
+  });
+
+  res.sendStatus(204);
+});
+
+router.post("/videos/:id/provider-status", requireAuth, async (req, res): Promise<void> => {
+  const params = GetVideoParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [video] = await db
+    .select()
+    .from(videosTable)
+    .where(eq(videosTable.id, params.data.id))
+    .limit(1);
+  if (!video) {
+    res.status(404).json({ error: "Video not found" });
+    return;
+  }
+
+  const [channel] = await db
+    .select({ ownerUserId: channelsTable.ownerUserId })
+    .from(channelsTable)
+    .where(eq(channelsTable.id, video.channelId))
+    .limit(1);
+  if (channel?.ownerUserId !== req.user!.userId) {
+    res.status(403).json({ error: "Not the video owner" });
+    return;
+  }
+  if (video.playbackSource !== "fastpix") {
+    res.status(400).json({ error: "Only FastPix Watch uploads can refresh provider status." });
+    return;
+  }
+
+  const providerReference = video.fastpixAssetId || video.fastpixUploadId;
+  if (!providerReference) {
+    res.status(409).json({ error: "This Watch release has no FastPix upload reference yet." });
+    return;
+  }
+
+  try {
+    const providerMedia = await getFastPixOnDemandMediaStatus(providerReference);
+    // A Ready state without a playback ID is not publicly playable. Preserve a
+    // processing state until FastPix returns the delivery credential required by
+    // the Watch player instead of publishing a blank player shell.
+    const uploadStatus = providerMedia.providerStatus === "ready" && providerMedia.fastpixPlaybackId
+      ? "ready"
+      : providerMedia.providerStatus === "errored"
+        ? "errored"
+        : "processing";
+    const [updated] = await db
+      .update(videosTable)
+      .set({
+        uploadStatus,
+        ...(providerMedia.fastpixAssetId ? { fastpixAssetId: providerMedia.fastpixAssetId } : {}),
+        ...(providerMedia.fastpixPlaybackId ? { fastpixPlaybackId: providerMedia.fastpixPlaybackId } : {}),
+        ...(providerMedia.durationSeconds !== null ? { durationSeconds: providerMedia.durationSeconds } : {}),
+        ...(providerMedia.thumbnailUrl ? { thumbnailUrl: providerMedia.thumbnailUrl } : {}),
+      })
+      .where(eq(videosTable.id, video.id))
+      .returning();
+
+    await writeAuditLog(req, {
+      action: "video_provider_status_refreshed",
+      targetType: "video",
+      targetId: updated.id,
+      afterState: {
+        uploadStatus: updated.uploadStatus,
+        providerStatus: providerMedia.providerStatus,
+        hasPlaybackId: Boolean(updated.fastpixPlaybackId),
+      },
+    });
+
+    res.json(GetVideoResponse.parse(await toVideoDetail(updated, req.user!.userId)));
+  } catch (err) {
+    if (err instanceof FastPixNotConfiguredError) {
+      res.status(503).json({ error: err.message });
+      return;
+    }
+    const message = err instanceof Error ? err.message : "Unable to read the FastPix media status.";
+    res.status(502).json({ error: message });
   }
 });
 

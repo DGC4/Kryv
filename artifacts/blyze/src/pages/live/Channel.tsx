@@ -25,7 +25,7 @@ import { getApiUrl } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { usePageMetadata } from '@/hooks/use-page-metadata';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronDown, ChevronRight, ChevronUp, CircleDot, MoreHorizontal, RefreshCw } from 'lucide-react';
+import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronDown, ChevronRight, ChevronUp, CircleDot, MoreHorizontal, RefreshCw, MessageCircleMore } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -46,6 +46,12 @@ const SUBSCRIPTION_TIERS = {
 
 type CryptoCoin = (typeof CRYPTO_COINS)[number]['code'];
 type SubscriptionTier = keyof typeof SUBSCRIPTION_TIERS;
+
+function formatChatTimestamp(value: Date | string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
 
 export default function LiveChannel() {
   const { channelSlugOrId } = useParams<{ channelSlugOrId: string }>();
@@ -704,16 +710,20 @@ export default function LiveChannel() {
       </div>
 
       {/* Chat is always reachable: fixed above mobile content and sticky beside desktop content. */}
-      <aside aria-label="Stream chat" className={`fixed inset-x-0 bottom-0 z-40 flex min-h-0 flex-col overflow-hidden border-t border-white/10 bg-[#090b11]/[0.98] shadow-[0_-18px_48px_rgba(0,0,0,0.46)] backdrop-blur-xl ${chatCollapsed ? 'h-[var(--kryv-mobile-chat-collapsed-height)]' : 'h-[var(--kryv-mobile-chat-expanded-height)]'} sm:h-[40dvh] lg:sticky lg:top-0 lg:z-20 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:w-80 lg:shrink-0 lg:self-start lg:border-l lg:border-t-0 lg:bg-black/40 lg:shadow-none xl:w-96 ${theaterMode ? 'xl:fixed xl:inset-y-0 xl:right-0 xl:left-auto xl:z-40 xl:h-dvh xl:w-96 xl:border-l xl:border-t-0 xl:bg-[#090b11]/[0.98] xl:shadow-[-18px_0_48px_rgba(0,0,0,0.46)]' : ''}`}>
-        <div className="flex items-center justify-between gap-3 border-b border-white/10 p-2 sm:p-4">
-          <div className="min-w-0">
-            <h3 className="font-display text-sm font-bold text-white sm:text-base">Stream chat</h3>
-            <p className="mt-0.5 truncate text-[10px] text-white/40">
-              {isRefreshingMessages ? 'Refreshing via REST…' : 'Updates via REST every 15 seconds'}
-              {(chatSettings?.slowModeSeconds || chatSettings?.followersOnly) ? ` · ${chatSettings.followersOnly ? 'Followers only' : ''}${chatSettings.followersOnly && chatSettings.slowModeSeconds ? ' · ' : ''}${chatSettings.slowModeSeconds ? `${chatSettings.slowModeSeconds}s slow mode` : ''}` : ''}
-            </p>
+      <aside aria-label="Stream chat" className={`fixed inset-x-0 bottom-0 z-40 flex min-h-0 flex-col overflow-hidden rounded-t-[1.35rem] border-x border-t border-white/[0.12] bg-[#090b11]/[0.985] shadow-[0_-18px_48px_rgba(0,0,0,0.5)] backdrop-blur-xl ${chatCollapsed ? 'h-[var(--kryv-mobile-chat-collapsed-height)]' : 'h-[var(--kryv-mobile-chat-expanded-height)]'} sm:h-[40dvh] sm:rounded-none sm:border-x-0 lg:sticky lg:top-0 lg:z-20 lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:w-80 lg:shrink-0 lg:self-start lg:border-l lg:border-t-0 lg:bg-black/40 lg:shadow-none xl:w-96 ${theaterMode ? 'xl:fixed xl:inset-y-0 xl:right-0 xl:left-auto xl:z-40 xl:h-dvh xl:w-96 xl:border-l xl:border-t-0 xl:bg-[#090b11]/[0.98] xl:shadow-[-18px_0_48px_rgba(0,0,0,0.46)]' : ''}`}>
+        <div className="relative flex items-center justify-between gap-3 border-b border-white/10 px-3 pb-2.5 pt-4 sm:p-4">
+          <span aria-hidden="true" className="absolute left-1/2 top-1 h-1 w-9 -translate-x-1/2 rounded-full bg-white/20 sm:hidden" />
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary"><MessageCircleMore className="h-4 w-4" /></div>
+            <div className="min-w-0">
+              <h3 className="font-display text-sm font-black text-white sm:text-base">Stream chat</h3>
+              <p className="mt-0.5 truncate text-[10px] leading-none text-white/42">
+                {isRefreshingMessages ? 'Checking for messages…' : `${messages?.length ?? 0} visible · REST updates every 15s`}
+                {(chatSettings?.slowModeSeconds || chatSettings?.followersOnly) ? ` · ${chatSettings.followersOnly ? 'Followers only' : ''}${chatSettings.followersOnly && chatSettings.slowModeSeconds ? ' · ' : ''}${chatSettings.slowModeSeconds ? `${chatSettings.slowModeSeconds}s slow mode` : ''}` : ''}
+              </p>
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => setChatCollapsed((current) => !current)} className="inline-flex min-h-11 items-center gap-1 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[10px] font-black text-white/65 transition hover:border-primary/40 hover:text-primary sm:hidden" aria-expanded={!chatCollapsed} aria-label={chatCollapsed ? 'Expand stream chat' : 'Collapse stream chat'}>{chatCollapsed ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}{chatCollapsed ? 'Open' : 'Hide'}</button><button type="button" onClick={() => { void refetchMessages(); void refetchChannel(); }} disabled={isRefreshingMessages} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 text-[10px] font-black text-white/50 transition hover:border-primary/40 hover:text-primary disabled:cursor-wait disabled:opacity-60" title="Refresh chat and stream status" aria-label="Refresh chat and stream status"><RefreshCw className={`h-3 w-3 ${isRefreshingMessages ? 'animate-spin' : ''}`} />Refresh</button>{channel.isOwner ? <Shield className="w-4 h-4 text-primary" /> : <Users className="w-4 h-4 text-muted-foreground" />}</div>
+          <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => setChatCollapsed((current) => !current)} className="inline-flex min-h-10 items-center gap-1 rounded-full border border-white/[0.1] bg-white/[0.035] px-3 text-[10px] font-black text-white/70 transition hover:border-primary/45 hover:text-primary sm:hidden" aria-expanded={!chatCollapsed} aria-label={chatCollapsed ? 'Expand stream chat' : 'Collapse stream chat'}>{chatCollapsed ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}{chatCollapsed ? 'Chat' : 'Minimize'}</button><button type="button" onClick={() => { void refetchMessages(); void refetchChannel(); }} disabled={isRefreshingMessages} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.035] px-3 text-[10px] font-black text-white/55 transition hover:border-primary/45 hover:text-primary disabled:cursor-wait disabled:opacity-60" title="Refresh chat and stream status" aria-label="Refresh chat and stream status"><RefreshCw className={`h-3 w-3 ${isRefreshingMessages ? 'animate-spin' : ''}`} /><span className="hidden sm:inline">Refresh</span></button>{channel.isOwner ? <Shield className="ml-0.5 h-4 w-4 text-primary" aria-label="Channel owner moderation tools active" /> : <Users className="ml-0.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />}</div>
         </div>
 
         <div className={`${chatCollapsed ? 'hidden' : 'relative flex-1 min-h-0'}`}>
@@ -727,13 +737,20 @@ export default function LiveChannel() {
               }
             }}
           >
-          {messages?.map((msg) => (
-            <div key={msg.id} className="text-xs sm:text-sm flex flex-col gap-0.5 group">
-              <div className="flex items-center gap-1 min-w-0">
+          {messages?.map((msg) => {
+            const isChannelOwnerMessage = Number(msg.userId) === Number(channel.ownerUserId);
+            const sentAt = formatChatTimestamp(msg.createdAt);
+            return (
+            <article key={msg.id} className="group flex gap-2.5 rounded-xl px-1.5 py-2 text-xs transition-colors hover:bg-white/[0.025] sm:px-0 sm:py-1.5 sm:text-sm">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/[0.1] bg-primary/10 text-[10px] font-black text-primary">{msg.avatarUrl ? <img src={msg.avatarUrl} alt="" className="h-full w-full object-cover" /> : msg.username.slice(0, 1).toUpperCase()}</div>
+              <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-center gap-1.5">
                 {msg.username.toLowerCase().includes('fano') && (
-                  <GoldenDBadge className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                  <GoldenDBadge className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
                 )}
-                <span className="font-bold text-primary truncate">{msg.username}</span>
+                <span className="truncate font-black text-primary">{msg.username}</span>
+                {isChannelOwnerMessage && <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-primary">Host</span>}
+                {sentAt && <time dateTime={new Date(msg.createdAt).toISOString()} className="shrink-0 text-[9px] font-medium text-white/30">{sentAt}</time>}
                 {channel.isOwner && Number(msg.userId) !== Number(channel.ownerUserId) && (
                   <div className="ml-auto flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button type="button" title="Timeout for 10 minutes" onClick={() => handleModerationAction('timeout', msg)} disabled={moderateMessage.isPending} className="p-1 rounded text-white/35 hover:text-amber-300 hover:bg-amber-400/10 disabled:opacity-40">
@@ -751,17 +768,19 @@ export default function LiveChannel() {
                   <button type="button" title="Report message" onClick={() => setReportTarget({ id: msg.id, username: msg.username })} className="ml-auto rounded p-1 text-white/25 opacity-100 transition-colors hover:bg-red-400/10 hover:text-red-300 sm:opacity-0 sm:group-hover:opacity-100"><Flag className="h-3 w-3" /></button>
                 )}
               </div>
-              <span className="text-white/90 break-words text-xs sm:text-sm">{msg.message}</span>
+              <p className="mt-0.5 break-words text-xs leading-relaxed text-white/[0.9] sm:text-sm">{msg.message}</p>
               {reportTarget?.id === msg.id && (
                 <div className="mt-2 rounded-lg border border-red-300/15 bg-red-400/[0.06] p-2.5"><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-black uppercase tracking-wider text-red-100/75">Report {reportTarget.username}&apos;s message</p><button type="button" onClick={() => setReportTarget(null)} className="rounded p-0.5 text-white/35 hover:text-white"><X className="h-3 w-3" /></button></div><p className="mt-1 text-[11px] leading-relaxed text-white/45">Choose the closest reason. Reports are recorded for safety review.</p><div className="mt-2 flex flex-wrap gap-1.5">{([{ key: 'harassment', label: 'Harassment' }, { key: 'hate_or_harm', label: 'Hate / harm' }, { key: 'spam_or_scam', label: 'Spam / scam' }, { key: 'sexual_content', label: 'Sexual' }, { key: 'violence_or_threat', label: 'Threat' }, { key: 'other', label: 'Other' }] as const).map((option) => <button key={option.key} type="button" disabled={createChatReport.isPending} onClick={() => handleReportMessage(option.key)} className="rounded-md border border-white/[0.1] bg-black/20 px-2 py-1 text-[10px] font-bold text-white/70 transition-colors hover:border-red-300/35 hover:text-red-100 disabled:opacity-40">{option.label}</button>)}</div></div>
               )}
-            </div>
-          ))}
+              </div>
+            </article>
+            );
+          })}
           {(!messages || messages.length === 0) && (
             <div className="flex h-full flex-col items-center justify-center px-5 text-center">
-              <Send className="h-5 w-5 text-white/20" />
-              <p className="mt-3 text-sm font-bold text-white/60">No messages yet</p>
-              <p className="mt-1 max-w-56 text-xs leading-relaxed text-white/35">Be the first to welcome the creator when chat is open.</p>
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/[0.07] text-primary"><MessageCircleMore className="h-5 w-5" /></div>
+              <p className="mt-3 text-sm font-black text-white/75">Chat is ready for the room</p>
+              <p className="mt-1 max-w-60 text-xs leading-relaxed text-white/40">Be the first to welcome {channel.displayName}. Kryv checks for new messages every 15 seconds while this room is open.</p>
             </div>
           )}
           </div>
@@ -779,37 +798,37 @@ export default function LiveChannel() {
           )}
         </div>
 
-        <div className={`${chatCollapsed ? 'hidden' : ''} border-t border-white/10 bg-black/20 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:block sm:p-4`}>
+        <div className={`${chatCollapsed ? 'hidden' : ''} border-t border-white/10 bg-[#0b0d13]/[0.98] p-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] sm:block sm:bg-black/20 sm:p-4`}>
           {isSignedIn ? (
-            <form onSubmit={handleSendMessage} className="flex gap-1 sm:gap-2">
+            <form onSubmit={handleSendMessage} className="flex items-center gap-2">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Send a message…"
+                placeholder={chatSettings?.followersOnly ? 'Followers-only chat' : 'Send a message'}
                 aria-label="Send a chat message"
                 maxLength={500}
                 disabled={createMessage.isPending}
-                className="min-h-11 flex-1 rounded-lg border border-white/10 bg-white/5 px-2 text-xs text-white transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-wait disabled:opacity-70 sm:px-3 sm:py-2 sm:text-sm"
+                className="min-h-11 flex-1 rounded-xl border border-white/[0.12] bg-white/[0.055] px-3 text-xs text-white shadow-inner transition focus:border-primary/70 focus:bg-white/[0.075] focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-wait disabled:opacity-70 sm:px-3 sm:py-2 sm:text-sm"
               />
               <Button
                 type="submit"
                 size="sm"
-                className="min-h-11 shrink-0"
+                className="min-h-11 w-11 shrink-0 rounded-xl px-0"
+                aria-label="Send message"
                 disabled={!chatInput.trim() || createMessage.isPending}
               >
                 {createMessage.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
               </Button>
             </form>
           ) : (
-            <div className="text-center p-2 sm:p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
-              <p className="text-xs sm:text-sm text-muted-foreground">Sign in to join the chat</p>
-              <div className="flex gap-2 justify-center">
-                <a href="/sign-in" className="text-[11px] sm:text-xs font-bold text-primary hover:underline">Sign In</a>
-                <span className="text-white/20 text-xs">·</span>
-                <a href="/sign-up" className="text-[11px] sm:text-xs font-bold text-white/50 hover:text-white hover:underline">Sign Up</a>
+            <div className="space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.035] p-2.5 text-center sm:p-3">
+              <p className="text-xs font-bold text-white/70 sm:text-sm">Sign in to join the conversation</p>
+              <div className="flex justify-center gap-2">
+                <a href="/sign-in" className="inline-flex min-h-8 items-center rounded-lg bg-primary px-3 text-[11px] font-black text-primary-foreground transition hover:brightness-110">Sign in</a>
+                <a href="/sign-up" className="inline-flex min-h-8 items-center rounded-lg border border-white/[0.12] px-3 text-[11px] font-black text-white/70 transition hover:border-primary/40 hover:text-white">Create account</a>
               </div>
-              <p className="text-[10px] text-white/30">Viewers can watch without signing in</p>
+              <p className="text-[10px] leading-relaxed text-white/35">Watching remains available without an account.</p>
             </div>
           )}
         </div>

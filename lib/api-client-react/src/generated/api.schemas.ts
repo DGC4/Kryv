@@ -662,6 +662,30 @@ export type VideoDetail = VideoSummary & ({
   isOwner: boolean;
 });
 
+export interface VideoComment {
+  id: number;
+  videoId: number;
+  /** @nullable */
+  parentCommentId: number | null;
+  userId: number;
+  username: string;
+  /** @nullable */
+  avatarUrl: string | null;
+  message: string;
+  createdAt: string;
+  replies: VideoComment[];
+}
+
+export interface VideoCommentInput {
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  message: string;
+  /** @minimum 1 */
+  parentCommentId?: number;
+}
+
 export type VideoInputContentType = typeof VideoInputContentType[keyof typeof VideoInputContentType];
 
 

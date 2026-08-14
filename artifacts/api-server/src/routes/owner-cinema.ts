@@ -237,7 +237,16 @@ router.post("/admin/cinema/titles/:id/upload-sessions", requireOwner, async (req
     // It is sent directly to the owner browser and is never exposed through a
     // public/creator API response.
     const origin = req.get("origin") || "*";
-    const { fastpixUploadId, uploadUrl } = await createFastPixDirectUpload(origin);
+    const { fastpixUploadId, uploadUrl } = await createFastPixDirectUpload({
+      corsOrigin: origin,
+      title: `${title.title} · ${parsed.data.assetKind}`,
+      metadata: {
+        source: "kryv",
+        kryv_surface: "cinema",
+        kryv_cinema_title_id: String(title.id),
+        kryv_asset_kind: parsed.data.assetKind,
+      },
+    });
     const [asset] = await db.insert(cinemaTitleAssetsTable).values({
       cinemaTitleId: title.id,
       assetKind: parsed.data.assetKind,
