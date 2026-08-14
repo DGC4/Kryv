@@ -418,7 +418,7 @@ router.get("/admin/analytics", requireOwner, async (req, res): Promise<void> => 
       .innerJoin(channelsTable, eq(videosTable.channelId, channelsTable.id))
       .where(gte(watchHistoryTable.watchedAt, periodStart))
       .groupBy(watchHistoryTable.videoId, videosTable.title, channelsTable.displayName)
-      .orderBy(desc(sql`count(*)`), desc(videosTable.id))
+      .orderBy(desc(sql`count(*)`), desc(watchHistoryTable.videoId))
       .limit(8),
   ]);
   const chatByBucket = new Map(dailyChats.map((row) => [row.bucket, row.chatMessages]));
