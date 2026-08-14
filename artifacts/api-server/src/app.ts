@@ -41,16 +41,21 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
-        // Allow HLS media from FastPix CDN
+        // FastPix serves a public entry manifest from stream.fastpix.com, then
+        // delegates signed rendition playlists and fMP4 segments to provider
+        // subdomains. hls.js retrieves those playlists/segments through fetch,
+        // so both media and connect policies must allow the FastPix domain family.
         mediaSrc: [
           "'self'",
           "https://stream.fastpix.com",
+          "https://*.fastpix.com",
           "blob:",
         ],
         connectSrc: [
           "'self'",
           "https://stream.fastpix.com",
           "https://api.fastpix.com",
+          "https://*.fastpix.com",
         ],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
