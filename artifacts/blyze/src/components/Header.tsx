@@ -56,7 +56,7 @@ export function Header() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="Browse Kryv" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/60 transition hover:bg-white/[0.06] hover:text-primary sm:hidden"><Menu className="h-4 w-4" /></button>
+              <button type="button" aria-label="Browse Kryv" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/60 transition hover:bg-white/[0.06] hover:text-primary sm:hidden"><Menu className="h-4 w-4" /></button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48 border-white/10 bg-black/95 p-1 backdrop-blur-xl">{NAV.map((item) => <DropdownMenuItem key={item.path} asChild><Link href={item.path} className="flex cursor-pointer items-center gap-2.5"><item.icon className="h-4 w-4 text-primary" /><span>{item.label}</span></Link></DropdownMenuItem>)}</DropdownMenuContent>
           </DropdownMenu>
@@ -104,7 +104,7 @@ export function Header() {
           </form>
 
           <Link href="/search" className="md:hidden">
-            <Button variant="ghost" size="icon" aria-label="Search Kryv" className="h-8 w-8 rounded-full text-white/50 hover:bg-white/[0.06] hover:text-primary" title="Search Kryv">
+            <Button variant="ghost" size="icon" aria-label="Search Kryv" className="h-10 w-10 rounded-full text-white/50 hover:bg-white/[0.06] hover:text-primary" title="Search Kryv">
               <Search className="h-4 w-4" />
             </Button>
           </Link>
@@ -114,7 +114,7 @@ export function Header() {
             variant="ghost" size="icon"
             onClick={cycleTheme}
             aria-label="Cycle color theme"
-            className="h-8 w-8 text-white/40 hover:text-primary hover:bg-white/[0.06] rounded-full"
+            className="h-10 w-10 text-white/40 hover:text-primary hover:bg-white/[0.06] rounded-full"
             title="Cycle theme"
           >
             <Palette className="w-4 h-4" />
@@ -124,7 +124,7 @@ export function Header() {
             <>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button type="button" aria-label={`Notifications${notificationInbox.data?.unreadCount ? `, ${notificationInbox.data.unreadCount} unread` : ''}`} className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/55 transition hover:bg-white/[0.06] hover:text-primary"><Bell className="h-4 w-4" />{Boolean(notificationInbox.data?.unreadCount) && <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full border border-black bg-primary px-1 text-[9px] font-black leading-4 text-primary-foreground">{notificationInbox.data!.unreadCount > 9 ? '9+' : notificationInbox.data!.unreadCount}</span>}</button>
+                  <button type="button" aria-label={`Notifications${notificationInbox.data?.unreadCount ? `, ${notificationInbox.data.unreadCount} unread` : ''}`} className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/55 transition hover:bg-white/[0.06] hover:text-primary"><Bell className="h-4 w-4" />{Boolean(notificationInbox.data?.unreadCount) && <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full border border-black bg-primary px-1 text-[9px] font-black leading-4 text-primary-foreground">{notificationInbox.data!.unreadCount > 9 ? '9+' : notificationInbox.data!.unreadCount}</span>}</button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[min(22rem,calc(100vw-1rem))] border-white/10 bg-black/95 p-1 backdrop-blur-xl"><DropdownMenuLabel className="flex items-center justify-between gap-3 px-3 py-2"><span className="text-sm font-black text-white">Notifications</span><span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{notificationInbox.data?.unreadCount ?? 0} unread</span></DropdownMenuLabel><DropdownMenuSeparator className="bg-white/[0.07]" />{notificationInbox.isLoading ? <div className="px-3 py-6 text-center text-xs text-white/40">Loading notifications…</div> : notificationInbox.data?.items.length ? <div className="max-h-[min(60vh,28rem)] overflow-y-auto">{notificationInbox.data.items.map((notification) => <DropdownMenuItem key={notification.id} onSelect={() => openNotification(notification)} className={`mb-1 flex cursor-pointer items-start gap-3 rounded-xl px-3 py-3 focus:bg-white/[0.08] ${notification.isRead ? 'text-white/55' : 'bg-primary/[0.07] text-white'}`}><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${notification.isRead ? 'bg-white/20' : 'bg-primary'}`} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{notification.title}</span>{notification.message && <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-white/45">{notification.message}</span>}<span className="mt-1.5 block text-[10px] text-white/30">{new Date(notification.createdAt).toLocaleString()}</span></span></DropdownMenuItem>)}</div> : <div className="px-4 py-8 text-center"><Bell className="mx-auto h-5 w-5 text-white/20" /><p className="mt-2 text-xs font-bold text-white/50">Your inbox is clear.</p><p className="mt-1 text-[11px] leading-relaxed text-white/35">Followed creator live alerts will appear here after a confirmed broadcast start.</p></div>}</DropdownMenuContent>
               </DropdownMenu>
@@ -143,7 +143,7 @@ export function Header() {
               {/* User menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button type="button" aria-label="Open account menu" className="w-8 h-8 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
+                  <button type="button" aria-label="Open account menu" className="h-10 w-10 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
                     {user?.avatarUrl
                       ? <img src={user.avatarUrl} alt={user.username || ''} className="w-full h-full object-cover" />
                       : <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">{user?.username?.[0]?.toUpperCase()}</div>
@@ -213,7 +213,7 @@ export function Header() {
                 </Button>
               </Link>
               <Link href="/sign-up">
-                <Button size="sm" className="h-8 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs sm:text-sm px-3 sm:px-4 rounded-full shadow-[0_0_12px_hsl(var(--primary)/0.35)]">
+                <Button size="sm" className="h-10 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs sm:text-sm px-3 sm:px-4 rounded-full shadow-[0_0_12px_hsl(var(--primary)/0.35)]">
                   Sign Up
                 </Button>
               </Link>

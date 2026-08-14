@@ -26,7 +26,7 @@ export function CreatorStudioNav({ active, className = '' }: CreatorStudioNavPro
             href={href}
             aria-current={isActive ? 'page' : undefined}
             title={label}
-            className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors sm:px-3 ${
+            className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors sm:px-3 ${
               isActive
                 ? 'bg-primary text-primary-foreground'
                 : 'text-white/55 hover:bg-white/[0.06] hover:text-white'
