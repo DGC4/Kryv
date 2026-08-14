@@ -12,6 +12,7 @@ import {
   useDeleteAdminChannel,
   useListAdminVideos,
   useDeleteAdminVideo,
+  useRefreshVideoProviderStatus,
   getGetAdminStatsQueryKey,
   getListAdminUsersQueryKey,
   getListAdminChannelsQueryKey,
@@ -212,6 +213,7 @@ export default function DashboardAdmin() {
   const updateUser = useUpdateAdminUser();
   const deleteChannel = useDeleteAdminChannel();
   const deleteVideo = useDeleteAdminVideo();
+  const refreshVideoProviderStatus = useRefreshVideoProviderStatus();
   const createCinemaTitle = useCreateAdminCinemaTitle();
   const updateCinemaTitle = useUpdateAdminCinemaTitle();
   const createCinemaRightsWindow = useCreateAdminCinemaRightsWindow();
@@ -281,6 +283,24 @@ export default function DashboardAdmin() {
     deleteVideo.mutate({ id }, {
       onSuccess: () => { toast({ title: 'Video removed' }); invalidateAll(); },
       onError: (err: any) => toast({ title: 'Failed', description: err?.body?.error || err.message, variant: 'destructive' }),
+    });
+  };
+
+  const refreshWatchProviderStatus = (id: number) => {
+    refreshVideoProviderStatus.mutate({ id }, {
+      onSuccess: (video) => {
+        queryClient.invalidateQueries({ queryKey: getListAdminVideosQueryKey() });
+        if (video.uploadStatus === 'ready') {
+          toast({ title: 'Watch release is ready', description: 'FastPix returned a playable source and Kryv synchronized it.' });
+          return;
+        }
+        if (video.uploadStatus === 'errored') {
+          toast({ title: 'FastPix reported a processing failure', description: 'The Watch release remains unavailable. Review the source file before re-uploading.', variant: 'destructive' });
+          return;
+        }
+        toast({ title: 'FastPix is still processing', description: 'Kryv did not publish this release because no playable source was returned yet.' });
+      },
+      onError: (err: any) => toast({ title: 'FastPix status could not be refreshed', description: err?.body?.error || err?.message || 'Try again in a moment.', variant: 'destructive' }),
     });
   };
 
@@ -893,7 +913,7 @@ export default function DashboardAdmin() {
       {tab === 'videos' && (
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-black uppercase tracking-widest text-white/40">Watch sources &amp; Cinema assets</h3><p className="mt-1 text-xs text-white/35">Server-searched moderation inventory with official-source rights evidence.</p></div><Button onClick={handleAddOriginal} size="sm" className="min-h-11 w-fit rounded-lg bg-primary text-[10px] font-black uppercase tracking-widest text-primary-foreground sm:h-8 sm:min-h-0"><Plus className="w-3.5 h-3.5 mr-1.5" /> Add Cinema Original</Button></div><input value={adminVideoSearch} onChange={event => { setAdminVideoSearch(event.target.value); setAdminVideoOffset(0); }} maxLength={100} placeholder="Search Watch title" className="h-10 w-full rounded-xl border border-white/[0.1] bg-black/30 px-3 text-sm text-white outline-none focus:border-primary/60" aria-label="Search Watch moderation registry" />
-          <div className="space-y-3 md:hidden">{videosLoading ? <div className="flex justify-center rounded-xl border border-white/[0.08] bg-black/30 p-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : videos?.length ? videos.map((v) => <article key={v.id} className="rounded-2xl border border-white/[0.08] bg-black/30 p-4"><div className="flex items-start gap-3"><div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${v.contentType === 'original' ? 'bg-primary/10 text-primary' : 'bg-white/[0.05] text-white/35'}`}>{v.contentType === 'original' ? <Tv className="h-4 w-4" /> : <PlaySquare className="h-4 w-4" />}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{v.title}</p><div className="mt-1 flex flex-wrap gap-1.5"><span className={`rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider ${v.contentType === 'original' ? 'border border-primary/20 bg-primary/10 text-primary' : 'bg-white/[0.06] text-white/50'}`}>{v.contentType}</span><span className="rounded bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white/50">{v.uploadStatus}</span></div></div></div><div className="mt-3 grid grid-cols-2 gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 text-xs"><div><p className="text-[10px] font-semibold text-white/35">Source</p><p className="mt-1 font-bold text-white/75">{v.playbackSource}</p></div><div><p className="text-[10px] font-semibold text-white/35">Views</p><p className="mt-1 font-bold text-white/75">{v.viewCount.toLocaleString()}</p></div></div>{v.playbackSource === 'youtube' && <p className={`mt-3 flex items-center gap-1.5 text-xs font-bold ${v.rightsAttestedAt ? 'text-emerald-200' : 'text-amber-100'}`}>{v.rightsAttestedAt ? <><CircleCheck className="h-3.5 w-3.5" />Rights attested {new Date(v.rightsAttestedAt).toLocaleDateString()}</> : <><CircleAlert className="h-3.5 w-3.5" />Rights attestation missing</>}</p>}<Button type="button" variant="destructive" onClick={() => removeVideo(v.id)} disabled={deleteVideo.isPending} className="mt-3 min-h-11 w-full text-xs font-black"><Trash2 className="mr-1.5 h-3.5 w-3.5" />Remove video</Button></article>) : <div className="rounded-xl border border-dashed border-white/[0.12] bg-black/20 p-6 text-center text-sm text-white/40">No video records have been created yet.</div>}</div><div className="hidden overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur md:block">
+          <div className="space-y-3 md:hidden">{videosLoading ? <div className="flex justify-center rounded-xl border border-white/[0.08] bg-black/30 p-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : videos?.length ? videos.map((v) => <article key={v.id} className="rounded-2xl border border-white/[0.08] bg-black/30 p-4"><div className="flex items-start gap-3"><div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${v.contentType === 'original' ? 'bg-primary/10 text-primary' : 'bg-white/[0.05] text-white/35'}`}>{v.contentType === 'original' ? <Tv className="h-4 w-4" /> : <PlaySquare className="h-4 w-4" />}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{v.title}</p><div className="mt-1 flex flex-wrap gap-1.5"><span className={`rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider ${v.contentType === 'original' ? 'border border-primary/20 bg-primary/10 text-primary' : 'bg-white/[0.06] text-white/50'}`}>{v.contentType}</span><span className="rounded bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white/50">{v.uploadStatus}</span></div></div></div><div className="mt-3 grid grid-cols-2 gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 text-xs"><div><p className="text-[10px] font-semibold text-white/35">Source</p><p className="mt-1 font-bold text-white/75">{v.playbackSource}</p></div><div><p className="text-[10px] font-semibold text-white/35">Views</p><p className="mt-1 font-bold text-white/75">{v.viewCount.toLocaleString()}</p></div></div>{v.playbackSource === 'youtube' && <p className={`mt-3 flex items-center gap-1.5 text-xs font-bold ${v.rightsAttestedAt ? 'text-emerald-200' : 'text-amber-100'}`}>{v.rightsAttestedAt ? <><CircleCheck className="h-3.5 w-3.5" />Rights attested {new Date(v.rightsAttestedAt).toLocaleDateString()}</> : <><CircleAlert className="h-3.5 w-3.5" />Rights attestation missing</>}</p>}<div className="mt-3 grid gap-2">{v.playbackSource === 'fastpix' && (v.uploadStatus === 'waiting' || v.uploadStatus === 'processing') && <Button type="button" variant="secondary" onClick={() => refreshWatchProviderStatus(v.id)} disabled={refreshVideoProviderStatus.isPending} className="min-h-11 border border-primary/25 bg-primary/[0.08] text-xs font-black text-primary hover:bg-primary/15 hover:text-white">{refreshVideoProviderStatus.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}Check FastPix status</Button>}<Button type="button" variant="destructive" onClick={() => removeVideo(v.id)} disabled={deleteVideo.isPending} className="min-h-11 w-full text-xs font-black"><Trash2 className="mr-1.5 h-3.5 w-3.5" />Remove video</Button></div></article>) : <div className="rounded-xl border border-dashed border-white/[0.12] bg-black/20 p-6 text-center text-sm text-white/40">No video records have been created yet.</div>}</div><div className="hidden overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur md:block">
             {videosLoading ? (
               <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
             ) : (
@@ -929,11 +949,7 @@ export default function DashboardAdmin() {
                       </td>
                       <td className="p-3"><div className="space-y-1"><span className={`inline-flex rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wider ${v.playbackSource === 'youtube' ? 'bg-red-400/10 text-red-200' : 'bg-primary/10 text-primary'}`}>{v.playbackSource}</span>{v.playbackSource === 'youtube' && <p className={`flex items-center gap-1 text-[10px] ${v.rightsAttestedAt ? 'text-emerald-200' : 'text-amber-100'}`}>{v.rightsAttestedAt ? <><CircleCheck className="h-3 w-3" /> Attested {new Date(v.rightsAttestedAt).toLocaleDateString()}</> : <><CircleAlert className="h-3 w-3" /> Missing record</>}</p>}</div></td>
                       <td className="p-3 text-white/40 text-xs">{v.viewCount}</td>
-                      <td className="p-3 text-right">
-                        <Button size="sm" variant="destructive" onClick={() => removeVideo(v.id)} disabled={deleteVideo.isPending} className="text-xs h-7 px-3">
-                          <Trash2 className="w-3 h-3 mr-1.5" /> Remove
-                        </Button>
-                      </td>
+                      <td className="p-3 text-right"><div className="flex justify-end gap-2">{v.playbackSource === 'fastpix' && (v.uploadStatus === 'waiting' || v.uploadStatus === 'processing') && <Button size="sm" variant="secondary" onClick={() => refreshWatchProviderStatus(v.id)} disabled={refreshVideoProviderStatus.isPending} className="h-7 border border-primary/25 bg-primary/[0.08] px-2.5 text-[10px] font-black text-primary hover:bg-primary/15 hover:text-white">{refreshVideoProviderStatus.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}Sync FastPix</Button>}<Button size="sm" variant="destructive" onClick={() => removeVideo(v.id)} disabled={deleteVideo.isPending} className="h-7 px-3 text-xs"><Trash2 className="mr-1.5 h-3 w-3" /> Remove</Button></div></td>
                     </tr>
                   ))}
                   {videos?.length === 0 && (

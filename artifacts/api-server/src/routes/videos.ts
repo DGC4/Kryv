@@ -436,8 +436,10 @@ router.post("/videos/:id/provider-status", requireAuth, async (req, res): Promis
     .from(channelsTable)
     .where(eq(channelsTable.id, video.channelId))
     .limit(1);
-  if (channel?.ownerUserId !== req.user!.userId) {
-    res.status(403).json({ error: "Not the video owner" });
+  const isChannelOwner = channel?.ownerUserId === req.user!.userId;
+  const isPlatformOwner = req.user!.role === "owner";
+  if (!isChannelOwner && !isPlatformOwner) {
+    res.status(403).json({ error: "Only the channel owner or platform owner can refresh this media status." });
     return;
   }
   if (video.playbackSource !== "fastpix") {
