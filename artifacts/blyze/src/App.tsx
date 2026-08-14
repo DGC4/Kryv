@@ -22,6 +22,7 @@ const LiveCategory = lazy(() => import('@/pages/live/Category'));
 const LiveCategories = lazy(() => import('@/pages/live/Categories'));
 const LiveChannel = lazy(() => import('@/pages/live/Channel'));
 const CreatorProfile = lazy(() => import('@/pages/profile/CreatorProfile'));
+const UserProfile = lazy(() => import('@/pages/profile/UserProfile'));
 const CreatorDirectory = lazy(() => import('@/pages/creators/Directory'));
 const WatchHome = lazy(() => import('@/pages/watch/Home'));
 const WatchDetail = lazy(() => import('@/pages/watch/Detail'));
@@ -94,6 +95,9 @@ function AppRoutes() {
       </Route>
       <Route path="/profile/:slug">
         <Layout><CreatorProfile /></Layout>
+      </Route>
+      <Route path="/u/:username">
+        <Layout><UserProfile /></Layout>
       </Route>
       <Route path="/creators">
         <Layout><CreatorDirectory /></Layout>

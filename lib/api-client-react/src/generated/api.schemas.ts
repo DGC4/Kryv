@@ -89,6 +89,37 @@ export type ChannelDetail = ChannelSummary & ({
   createdAt: string;
 });
 
+export type UserProfileRole = typeof UserProfileRole[keyof typeof UserProfileRole];
+
+
+export const UserProfileRole = {
+  owner: 'owner',
+  user: 'user',
+} as const;
+
+export interface UserProfileChannel {
+  id: number;
+  slug: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl: string | null;
+  isLive: boolean;
+  /** @nullable */
+  streamTitle: string | null;
+  viewerCount: number;
+  followerCount: number;
+}
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  /** @nullable */
+  avatarUrl: string | null;
+  role: UserProfileRole;
+  createdAt: string;
+  creatorChannel: UserProfileChannel | null;
+}
+
 export interface CreatorProfileStream {
   id: number;
   /** @nullable */
@@ -754,6 +785,30 @@ export interface CinemaCredit {
 export type CinemaTitleDetail = CinemaTitle & {
   credits: CinemaCredit[];
 };
+
+export interface CinemaComment {
+  id: number;
+  cinemaTitleId: number;
+  /** @nullable */
+  parentCommentId: number | null;
+  userId: number;
+  username: string;
+  /** @nullable */
+  avatarUrl: string | null;
+  message: string;
+  createdAt: string;
+  replies: CinemaComment[];
+}
+
+export interface CinemaCommentInput {
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  message: string;
+  /** @minimum 1 */
+  parentCommentId?: number;
+}
 
 export interface CinemaRow {
   title: string;

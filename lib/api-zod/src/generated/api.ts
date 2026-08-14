@@ -1064,6 +1064,32 @@ export const GetCreatorProfileResponse = zod.object({
 
 
 /**
+ * @summary Get a public Kryv account identity with optional creator-channel linkage
+ */
+export const GetUserProfileParams = zod.object({
+  "username": zod.coerce.string()
+})
+
+export const GetUserProfileResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['owner', 'user']),
+  "createdAt": zod.coerce.date(),
+  "creatorChannel": zod.union([zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "streamTitle": zod.string().nullable(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number()
+}),zod.null()])
+})
+
+
+/**
  * @summary Get a single channel's detail
  */
 export const GetChannelParams = zod.object({
@@ -2167,6 +2193,68 @@ export const GetCinemaTitleResponse = zod.object({
   "role": zod.string()
 }))
 }))
+
+
+/**
+ * @summary List visible discussion for a published Kryv Cinema title
+ */
+export const ListCinemaCommentsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListCinemaCommentsResponseItem = zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "parentCommentId": zod.number().nullable(),
+  "userId": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "replies": zod.array(zod.unknown())
+})
+export const ListCinemaCommentsResponse = zod.array(ListCinemaCommentsResponseItem)
+
+
+/**
+ * @summary Add a comment or reply to a published Kryv Cinema title
+ */
+export const CreateCinemaCommentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createCinemaCommentBodyMessageMax = 1000;
+
+
+
+
+export const CreateCinemaCommentBody = zod.object({
+  "message": zod.string().min(1).max(createCinemaCommentBodyMessageMax),
+  "parentCommentId": zod.number().min(1).optional()
+})
+
+export const CreateCinemaCommentResponse = zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "parentCommentId": zod.number().nullable(),
+  "userId": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "replies": zod.array(zod.unknown())
+})
+
+
+/**
+ * @summary Remove a Cinema comment or reply (author or owner only)
+ */
+export const DeleteCinemaCommentParams = zod.object({
+  "id": zod.coerce.number(),
+  "commentId": zod.coerce.number()
+})
+
+export const DeleteCinemaCommentResponse = zod.void()
 
 
 /**

@@ -5,11 +5,14 @@ import {
   cinemaCreditsTable,
   db,
   streamSessionsTable,
+  usersTable,
   videosTable,
 } from "@workspace/db";
 import {
   GetCreatorProfileParams,
   GetCreatorProfileResponse,
+  GetUserProfileParams,
+  GetUserProfileResponse,
 } from "@workspace/api-zod";
 import { attachUserId } from "../lib/auth";
 import { toChannelDetail } from "../lib/channelSerializer";
@@ -88,6 +91,51 @@ router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
     },
     watch,
     cinemaCredits,
+  }));
+});
+
+router.get("/profiles/users/:username", async (req, res): Promise<void> => {
+  const params = GetUserProfileParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [user] = await db
+    .select({
+      id: usersTable.id,
+      username: usersTable.username,
+      avatarUrl: usersTable.avatarUrl,
+      role: usersTable.role,
+      createdAt: usersTable.createdAt,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.username, params.data.username))
+    .limit(1);
+  if (!user) {
+    res.status(404).json({ error: "Kryv account not found." });
+    return;
+  }
+
+  const [channel] = await db
+    .select({
+      id: channelsTable.id,
+      slug: channelsTable.slug,
+      displayName: channelsTable.displayName,
+      avatarUrl: channelsTable.avatarUrl,
+      isLive: channelsTable.isLive,
+      streamTitle: channelsTable.streamTitle,
+      viewerCount: channelsTable.viewerCount,
+      followerCount: channelsTable.followerCount,
+    })
+    .from(channelsTable)
+    .where(eq(channelsTable.ownerUserId, user.id))
+    .limit(1);
+
+  res.json(GetUserProfileResponse.parse({
+    ...user,
+    role: user.role === "owner" ? "owner" : "user",
+    creatorChannel: channel ?? null,
   }));
 });
 

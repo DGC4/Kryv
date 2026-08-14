@@ -3,6 +3,7 @@ export * from "./categories";
 export * from "./channels";
 export * from "./videos";
 export * from "./videoComments";
+export * from "./cinemaComments";
 export * from "./chatMessages";
 export * from "./follows";
 

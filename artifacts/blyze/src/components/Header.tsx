@@ -14,7 +14,7 @@ import {
 const NAV = [
   { label: 'Live',   path: '/live',   icon: Radio,       match: ['/', '/live'] },
   { label: 'Watch',  path: '/watch',  icon: PlaySquare,  match: ['/watch'] },
-  { label: 'Creators', path: '/creators', icon: Users, match: ['/creators', '/profile'] },
+  { label: 'Creators', path: '/creators', icon: Users, match: ['/creators', '/profile', '/u'] },
   { label: 'Clips',  path: '/clips',  icon: Clapperboard, match: ['/clips'] },
   { label: 'Cinema', path: '/cinema', icon: Tv,          match: ['/cinema'] },
 ];
@@ -80,7 +80,7 @@ export function Header() {
                   <item.icon className="w-4 h-4 shrink-0" />
                   <span className="hidden md:block">{item.label}</span>
                   {active && (
-                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-primary rounded-full shadow-[0_0_6px_hsl(var(--primary))]" />
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
                   )}
                 </Link>
               );
@@ -159,7 +159,7 @@ export function Header() {
               <Link href="/dashboard/live">
                 <Button
                   size="sm"
-                  className="hidden sm:flex h-8 items-center gap-1.5 bg-destructive hover:bg-destructive/90 text-white font-bold text-xs px-3 rounded-full shadow-[0_0_12px_hsl(0_84%_60%/0.4)]"
+                  className="hidden sm:flex min-h-10 items-center gap-1.5 bg-destructive hover:bg-destructive/90 text-white font-semibold text-xs px-3 rounded-full"
                 >
                   <Radio className="w-3.5 h-3.5" />
                   Go Live
@@ -185,6 +185,12 @@ export function Header() {
                     <p className="text-xs text-white/40 truncate">{user?.email}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-white/[0.07]" />
+                  <DropdownMenuItem asChild>
+                    <Link href={`/u/${encodeURIComponent(user?.username || '')}`} className="flex items-center gap-2 cursor-pointer">
+                      <Users className="w-4 h-4 text-primary" />
+                      <span>Public Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard/live" className="flex items-center gap-2 cursor-pointer">
                       <Radio className="w-4 h-4 text-destructive" />
@@ -239,7 +245,7 @@ export function Header() {
                 </Button>
               </Link>
               <Link href="/sign-up">
-                <Button size="sm" className="h-10 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs sm:text-sm px-3 sm:px-4 rounded-full shadow-[0_0_12px_hsl(var(--primary)/0.35)]">
+                <Button size="sm" className="h-10 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs sm:text-sm px-3 sm:px-4 rounded-full">
                   Sign Up
                 </Button>
               </Link>

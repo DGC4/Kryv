@@ -82,6 +82,8 @@ import type {
   ChatMessageInput,
   ChatReport,
   ChatReportInput,
+  CinemaComment,
+  CinemaCommentInput,
   CinemaHome,
   CinemaTitleDetail,
   ClipInput,
@@ -131,6 +133,7 @@ import type {
   StreamCredentials,
   UpdateAdminFeatureFlagInput,
   UpdateAdminFocusModeInput,
+  UserProfile,
   VideoComment,
   VideoCommentInput,
   VideoCreateResponse,
@@ -2504,6 +2507,83 @@ export function useGetCreatorProfile<TData = Awaited<ReturnType<typeof getCreato
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetCreatorProfileQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetUserProfileUrl = (username: string,) => {
+
+
+
+
+  return `/api/profiles/users/${username}`
+}
+
+/**
+ * @summary Get a public Kryv account identity with optional creator-channel linkage
+ */
+export const getUserProfile = async (username: string, options?: RequestInit): Promise<UserProfile> => {
+
+  return customFetch<UserProfile>(getGetUserProfileUrl(username),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserProfileQueryKey = (username: string,) => {
+    return [
+    `/api/profiles/users/${username}`
+    ] as const;
+    }
+
+
+export const getGetUserProfileQueryOptions = <TData = Awaited<ReturnType<typeof getUserProfile>>, TError = ErrorType<Error>>(username: string, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getUserProfile>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserProfileQueryKey(username);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserProfile>>> = ({ signal }) => getUserProfile(username, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: username !== null && username !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getUserProfile>>>
+export type GetUserProfileQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get a public Kryv account identity with optional creator-channel linkage
+ */
+
+export function useGetUserProfile<TData = Awaited<ReturnType<typeof getUserProfile>>, TError = ErrorType<Error>>(
+ username: string, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getUserProfile>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserProfileQueryOptions(username,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -5173,6 +5253,228 @@ export function useGetCinemaTitle<TData = Awaited<ReturnType<typeof getCinemaTit
 
 
 
+
+export const getListCinemaCommentsUrl = (id: number,) => {
+
+
+
+
+  return `/api/cinema/titles/${id}/comments`
+}
+
+/**
+ * @summary List visible discussion for a published Kryv Cinema title
+ */
+export const listCinemaComments = async (id: number, options?: RequestInit): Promise<CinemaComment[]> => {
+
+  return customFetch<CinemaComment[]>(getListCinemaCommentsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCinemaCommentsQueryKey = (id: number,) => {
+    return [
+    `/api/cinema/titles/${id}/comments`
+    ] as const;
+    }
+
+
+export const getListCinemaCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listCinemaComments>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listCinemaComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCinemaCommentsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCinemaComments>>> = ({ signal }) => listCinemaComments(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCinemaComments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCinemaCommentsQueryResult = NonNullable<Awaited<ReturnType<typeof listCinemaComments>>>
+export type ListCinemaCommentsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary List visible discussion for a published Kryv Cinema title
+ */
+
+export function useListCinemaComments<TData = Awaited<ReturnType<typeof listCinemaComments>>, TError = ErrorType<Error>>(
+ id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listCinemaComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCinemaCommentsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCinemaCommentUrl = (id: number,) => {
+
+
+
+
+  return `/api/cinema/titles/${id}/comments`
+}
+
+/**
+ * @summary Add a comment or reply to a published Kryv Cinema title
+ */
+export const createCinemaComment = async (id: number,
+    cinemaCommentInput: CinemaCommentInput, options?: RequestInit): Promise<CinemaComment> => {
+
+  return customFetch<CinemaComment>(getCreateCinemaCommentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(cinemaCommentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCinemaCommentMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCinemaComment>>, TError,{id: number;data: BodyType<CinemaCommentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCinemaComment>>, TError,{id: number;data: BodyType<CinemaCommentInput>}, TContext> => {
+
+const mutationKey = ['createCinemaComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCinemaComment>>, {id: number;data: BodyType<CinemaCommentInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createCinemaComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCinemaCommentMutationResult = NonNullable<Awaited<ReturnType<typeof createCinemaComment>>>
+    export type CreateCinemaCommentMutationBody = BodyType<CinemaCommentInput>
+    export type CreateCinemaCommentMutationError = ErrorType<Error>
+
+    /**
+ * @summary Add a comment or reply to a published Kryv Cinema title
+ */
+export const useCreateCinemaComment = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCinemaComment>>, TError,{id: number;data: BodyType<CinemaCommentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCinemaComment>>,
+        TError,
+        {id: number;data: BodyType<CinemaCommentInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCinemaCommentMutationOptions(options));
+    }
+
+export const getDeleteCinemaCommentUrl = (id: number,
+    commentId: number,) => {
+
+
+
+
+  return `/api/cinema/titles/${id}/comments/${commentId}`
+}
+
+/**
+ * @summary Remove a Cinema comment or reply (author or owner only)
+ */
+export const deleteCinemaComment = async (id: number,
+    commentId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteCinemaCommentUrl(id,commentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteCinemaCommentMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCinemaComment>>, TError,{id: number;commentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCinemaComment>>, TError,{id: number;commentId: number}, TContext> => {
+
+const mutationKey = ['deleteCinemaComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCinemaComment>>, {id: number;commentId: number}> = (props) => {
+          const {id,commentId} = props ?? {};
+
+          return  deleteCinemaComment(id,commentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCinemaCommentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCinemaComment>>>
+
+    export type DeleteCinemaCommentMutationError = ErrorType<Error>
+
+    /**
+ * @summary Remove a Cinema comment or reply (author or owner only)
+ */
+export const useDeleteCinemaComment = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCinemaComment>>, TError,{id: number;commentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCinemaComment>>,
+        TError,
+        {id: number;commentId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteCinemaCommentMutationOptions(options));
+    }
 
 export const getGetCinemaHomeUrl = () => {
 

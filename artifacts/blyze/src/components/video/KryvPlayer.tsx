@@ -60,6 +60,7 @@ export default function KryvPlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
 
   const showControlsTemporarily = useCallback(() => {
     setShowControls(true);
@@ -132,17 +133,28 @@ export default function KryvPlayer({
 
   const toggleFullscreen = useCallback(async () => {
     const player = playerRef.current;
+    const video = videoRef.current;
     if (!player) return;
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
       } else if (player.requestFullscreen) {
         await player.requestFullscreen();
+      } else if (video && 'webkitEnterFullscreen' in video) {
+        // iPhone Safari exposes fullscreen on the media element rather than
+        // the wrapper. Use it when the standards-based API is unavailable.
+        (video as HTMLVideoElement & { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
       }
     } catch {
       // Fullscreen is browser- and embedding-policy-dependent. The control
       // remains available without pretending the operation succeeded.
     }
+  }, []);
+
+  const retryPlayback = useCallback(() => {
+    setHasPlaybackError(false);
+    setShowSettings(false);
+    setRetryToken((value) => value + 1);
   }, []);
 
   useEffect(() => {
@@ -245,12 +257,21 @@ export default function KryvPlayer({
   // `volume` is intentionally handled by the user-facing volume control. It
   // must not tear down and rebuild hls.js after every slider movement.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPlay, live, moveToLiveEdge, muted, src]);
+  }, [autoPlay, live, moveToLiveEdge, muted, retryToken, src]);
 
   useEffect(() => {
+    const video = videoRef.current;
     const handleFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    const handleWebkitBeginFullscreen = () => setIsFullscreen(true);
+    const handleWebkitEndFullscreen = () => setIsFullscreen(false);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    video?.addEventListener('webkitbeginfullscreen', handleWebkitBeginFullscreen as EventListener);
+    video?.addEventListener('webkitendfullscreen', handleWebkitEndFullscreen as EventListener);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      video?.removeEventListener('webkitbeginfullscreen', handleWebkitBeginFullscreen as EventListener);
+      video?.removeEventListener('webkitendfullscreen', handleWebkitEndFullscreen as EventListener);
+    };
   }, []);
 
   useEffect(() => () => {
@@ -279,6 +300,22 @@ export default function KryvPlayer({
     if (!live && event.key === 'ArrowRight') {
       event.preventDefault();
       seekBy(VOD_SEEK_SECONDS);
+    }
+    if (!live && event.key === 'Home') {
+      event.preventDefault();
+      const video = videoRef.current;
+      if (video) video.currentTime = 0;
+      showControlsTemporarily();
+    }
+    if (!live && event.key === 'End') {
+      event.preventDefault();
+      const video = videoRef.current;
+      if (video && Number.isFinite(video.duration)) video.currentTime = video.duration;
+      showControlsTemporarily();
+    }
+    if (event.key === 'Escape' && showSettings) {
+      event.preventDefault();
+      setShowSettings(false);
     }
   };
 
@@ -390,7 +427,7 @@ export default function KryvPlayer({
       )}
 
       {hasPlaybackError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/75 px-5 text-center"><div className="max-w-sm"><p className="text-sm font-semibold text-white">Playback is unavailable right now.</p><p className="mt-2 text-xs leading-relaxed text-white/60">The media source did not load. Try refreshing this page in a moment.</p></div></div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/75 px-5 text-center" role="alert" aria-live="assertive"><div className="max-w-sm"><p className="text-sm font-semibold text-white">Playback is unavailable right now.</p><p className="mt-2 text-xs leading-relaxed text-white/60">The media source did not load. Retry the player or refresh this page in a moment.</p><button type="button" onClick={retryPlayback} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-primary/45 bg-primary/15 px-4 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><RotateCcw className="h-4 w-4" /> Retry playback</button></div></div>
       )}
     </div>
   );

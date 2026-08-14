@@ -27,6 +27,7 @@ import { usePageMetadata } from '@/hooks/use-page-metadata';
 import KryvPlayer from '@/components/video/KryvPlayer';
 import { Loader2, Users, Heart, Share2, Send, Shield, Clock3, Ban, Trash2, Trophy, Vote, Sparkles, Wallet, Scissors, Copy, X, Flag, Maximize2, Minimize2, Globe2, Youtube, Instagram, ExternalLink, Bell, BellOff, Languages, Tag, Megaphone, Radio, ChevronDown, ChevronRight, ChevronUp, CircleDot, MoreHorizontal, RefreshCw, MessageCircleMore } from 'lucide-react';
 import { GoldenDBadge } from '@/components/brand/BrandIdentity';
+import { UserChip } from '@/components/identity/UserChip';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -743,13 +744,13 @@ export default function LiveChannel() {
             const sentAt = formatChatTimestamp(msg.createdAt);
             return (
             <article key={msg.id} className="group flex gap-2.5 rounded-xl px-1.5 py-2 text-xs transition-colors hover:bg-white/[0.025] sm:px-0 sm:py-1.5 sm:text-sm">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/[0.1] bg-primary/10 text-[10px] font-black text-primary">{msg.avatarUrl ? <img src={msg.avatarUrl} alt="" className="h-full w-full object-cover" /> : msg.username.slice(0, 1).toUpperCase()}</div>
+              <UserChip username={msg.username} avatarUrl={msg.avatarUrl} size="sm" showName={false} />
               <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-1.5">
                 {msg.username.toLowerCase().includes('fano') && (
                   <GoldenDBadge className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
                 )}
-                <span className="truncate font-black text-primary">{msg.username}</span>
+                <UserChip username={msg.username} avatarUrl={msg.avatarUrl} size="sm" showAvatar={false} className="text-primary" />
                 {isChannelOwnerMessage && <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-primary">Host</span>}
                 {sentAt && <time dateTime={new Date(msg.createdAt).toISOString()} className="shrink-0 text-[9px] font-medium text-white/30">{sentAt}</time>}
                 {channel.isOwner && Number(msg.userId) !== Number(channel.ownerUserId) && (

@@ -820,6 +820,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /profiles/users/{username}:
+    get:
+      operationId: getUserProfile
+      tags: [profiles]
+      summary: Get a public Kryv account identity with optional creator-channel linkage
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public account profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /channels/{id}:
     get:
       operationId: getChannel
@@ -2040,6 +2065,108 @@ paths:
                 $ref: "#/components/schemas/CinemaTitleDetail"
         "404": { description: Cinema title is unavailable }
 
+  /cinema/titles/{id}/comments:
+    get:
+      operationId: listCinemaComments
+      tags: [cinema]
+      summary: List visible discussion for a published Kryv Cinema title
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Top-level Cinema comments with nested replies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CinemaComment"
+        "404":
+          description: Published Cinema title not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      operationId: createCinemaComment
+      tags: [cinema]
+      summary: Add a comment or reply to a published Kryv Cinema title
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CinemaCommentInput"
+      responses:
+        "201":
+          description: Cinema comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CinemaComment"
+        "400":
+          description: Invalid comment or reply target
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Published Cinema title not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /cinema/titles/{id}/comments/{commentId}:
+    delete:
+      operationId: deleteCinemaComment
+      tags: [cinema]
+      summary: Remove a Cinema comment or reply (author or owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: commentId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Cinema comment removed from public discussion
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not authorized to remove this comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Cinema comment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /cinema/home:
     get:
       operationId: getCinemaHome
@@ -2956,6 +3083,33 @@ components:
             ownerUserId: { type: integer }
             createdAt: { type: string, format: date-time }
 
+    UserProfile:
+      type: object
+      required: [id, username, avatarUrl, role, createdAt, creatorChannel]
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        role: { type: string, enum: [owner, user] }
+        createdAt: { type: string, format: date-time }
+        creatorChannel:
+          oneOf:
+            - $ref: "#/components/schemas/UserProfileChannel"
+            - type: "null"
+
+    UserProfileChannel:
+      type: object
+      required: [id, slug, displayName, avatarUrl, isLive, streamTitle, viewerCount, followerCount]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        displayName: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        isLive: { type: boolean }
+        streamTitle: { type: ["string", "null"] }
+        viewerCount: { type: integer }
+        followerCount: { type: integer }
+
     CreatorProfile:
       type: object
       required: [channel, live, watch, cinemaCredits]
@@ -3552,6 +3706,30 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/CinemaCredit"
+
+    CinemaComment:
+      type: object
+      required: [id, cinemaTitleId, parentCommentId, userId, username, avatarUrl, message, createdAt, replies]
+      properties:
+        id: { type: integer }
+        cinemaTitleId: { type: integer }
+        parentCommentId: { type: ["integer", "null"] }
+        userId: { type: integer }
+        username: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        message: { type: string }
+        createdAt: { type: string, format: date-time }
+        replies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CinemaComment"
+
+    CinemaCommentInput:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 1000 }
+        parentCommentId: { type: integer, minimum: 1 }
 
     CinemaRow:
       type: object
