@@ -111,6 +111,8 @@ function validatedInvoiceUrl(value: unknown) {
   }
   if (
     invoiceUrl.protocol !== "https:" ||
+    invoiceUrl.username ||
+    invoiceUrl.password ||
     !isAllowedInvoiceHost(invoiceUrl.hostname.toLowerCase(), allowedInvoiceHosts())
   ) {
     throw new Error("Plisio returned an untrusted invoice URL.");

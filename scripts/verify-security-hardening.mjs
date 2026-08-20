@@ -575,6 +575,11 @@ requireMatch(
 );
 requireMatch(
   plisioLib,
+  /invoiceUrl\.username \|\|[\s\S]*?invoiceUrl\.password/,
+  "Provider invoice URLs must reject embedded user-info credentials.",
+);
+requireMatch(
+  plisioLib,
   /invoiceUrl: validatedInvoiceUrl\(payload\.data\.invoice_url\)/,
   "Kryv checkout responses must use the validated provider invoice URL.",
 );
