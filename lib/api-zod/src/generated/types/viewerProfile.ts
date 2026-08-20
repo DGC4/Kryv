@@ -5,7 +5,7 @@
  * Kryv live streaming platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { ViewerProfileMaturityLevel } from './viewerProfileMaturityLevel';
+import type { ViewerProfileMaturityLevel } from "./viewerProfileMaturityLevel";
 
 export interface ViewerProfile {
   id: number;
@@ -15,5 +15,6 @@ export interface ViewerProfile {
   maturityLevel: ViewerProfileMaturityLevel;
   isKidsProfile: boolean;
   isDefault: boolean;
+  isLocked: boolean;
   createdAt: Date;
 }

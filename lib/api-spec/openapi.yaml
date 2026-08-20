@@ -114,6 +114,107 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /me/profiles/active:
+    get:
+      operationId: getActiveViewerProfile
+      tags: [me]
+      summary: Get the signed-in browser session's short-lived active viewer profile grant
+      responses:
+        "200":
+          description: Active profile when a valid session-bound selection grant exists
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [profile]
+                properties:
+                  profile:
+                    oneOf:
+                      - $ref: "#/components/schemas/ViewerProfile"
+                      - type: "null"
+        "401":
+          description: Not authenticated
+
+  /me/profiles/{id}/select:
+    post:
+      operationId: selectViewerProfile
+      tags: [me]
+      summary: Select an owned viewer profile and issue a short-lived session-bound HttpOnly grant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pin:
+                  {
+                    type: string,
+                    minLength: 4,
+                    maxLength: 8,
+                    pattern: "^[0-9]+$",
+                  }
+      responses:
+        "200":
+          description: Profile selected
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [profile]
+                properties:
+                  profile: { $ref: "#/components/schemas/ViewerProfile" }
+        "401": { description: Not authenticated }
+        "423": { description: Profile PIN is required or invalid }
+        "429": { description: Too many PIN attempts }
+        "404": { description: Viewer profile not found }
+
+  /me/profiles/{id}/pin:
+    post:
+      operationId: updateViewerProfilePin
+      tags: [me]
+      summary: Set, rotate, or remove an owned viewer profile PIN after account-password re-authentication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPin]
+              properties:
+                currentPassword: { type: string, minLength: 1, maxLength: 128 }
+                newPin:
+                  oneOf:
+                    - {
+                        type: string,
+                        minLength: 4,
+                        maxLength: 8,
+                        pattern: "^[0-9]+$",
+                      }
+                    - { type: "null" }
+      responses:
+        "200":
+          description: Profile PIN updated and selection grant cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [profile]
+                properties:
+                  profile: { $ref: "#/components/schemas/ViewerProfile" }
+        "401": { description: Account re-authentication failed }
+        "404": { description: Viewer profile not found }
+
   /me/profiles/{id}:
     patch:
       operationId: updateViewerProfile
@@ -465,7 +566,8 @@ paths:
         "401": { description: Not authenticated }
         "403": { description: Owner access required }
         "404": { description: Cinema title or creator channel not found }
-        "409": { description: This creator already has the same role on this title }
+        "409":
+          { description: This creator already has the same role on this title }
 
   /admin/cinema/titles/{id}/credits/{creditId}:
     delete:
@@ -2447,7 +2549,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreatorPayoutRequest"
         "400": { description: Payout request cannot be created }
-        "403": { description: Payout requests are disabled or creator channel is not ready }
+        "403":
+          {
+            description: Payout requests are disabled or creator channel is not ready,
+          }
 
   /creator/achievements:
     get:
@@ -2869,7 +2974,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminAdCampaign"
         "403": { description: Not an owner }
-        "409": { description: Funding or delivery-window requirement is not met }
+        "409":
+          { description: Funding or delivery-window requirement is not met }
 
   /admin/stats:
     get:
@@ -3248,7 +3354,19 @@ components:
       allOf:
         - $ref: "#/components/schemas/ChannelSummary"
         - type: object
-          required: [description, websiteUrl, youtubeUrl, instagramUrl, xUrl, isFollowing, isSubscribed, isOwner, ownerUserId, createdAt]
+          required:
+            [
+              description,
+              websiteUrl,
+              youtubeUrl,
+              instagramUrl,
+              xUrl,
+              isFollowing,
+              isSubscribed,
+              isOwner,
+              ownerUserId,
+              createdAt,
+            ]
           properties:
             description: { type: ["string", "null"] }
             websiteUrl: { type: ["string", "null"], format: uri }
@@ -3277,7 +3395,17 @@ components:
 
     UserProfileChannel:
       type: object
-      required: [id, slug, displayName, avatarUrl, isLive, streamTitle, viewerCount, followerCount]
+      required:
+        [
+          id,
+          slug,
+          displayName,
+          avatarUrl,
+          isLive,
+          streamTitle,
+          viewerCount,
+          followerCount,
+        ]
       properties:
         id: { type: integer }
         slug: { type: string }
@@ -3349,10 +3477,26 @@ components:
       properties:
         displayName: { type: string, minLength: 1, maxLength: 60 }
         description: { type: string, maxLength: 500 }
-        websiteUrl: { type: ["string", "null"], format: uri, pattern: '^https://.+' }
-        youtubeUrl: { type: ["string", "null"], format: uri, pattern: '^https://(www\\.)?(youtube\\.com|youtu\\.be)/.+' }
-        instagramUrl: { type: ["string", "null"], format: uri, pattern: '^https://(www\\.)?instagram\\.com/.+' }
-        xUrl: { type: ["string", "null"], format: uri, pattern: '^https://(www\\.)?(x\\.com|twitter\\.com)/.+' }
+        websiteUrl:
+          { type: ["string", "null"], format: uri, pattern: "^https://.+" }
+        youtubeUrl:
+          {
+            type: ["string", "null"],
+            format: uri,
+            pattern: '^https://(www\\.)?(youtube\\.com|youtu\\.be)/.+',
+          }
+        instagramUrl:
+          {
+            type: ["string", "null"],
+            format: uri,
+            pattern: '^https://(www\\.)?instagram\\.com/.+',
+          }
+        xUrl:
+          {
+            type: ["string", "null"],
+            format: uri,
+            pattern: '^https://(www\\.)?(x\\.com|twitter\\.com)/.+',
+          }
         avatarUrl: { type: string }
         bannerUrl: { type: string }
         categoryId: { type: integer }
@@ -3377,7 +3521,11 @@ components:
           recentStreams,
         ]
       properties:
-        periodDays: { type: integer, description: Rolling measurement period in calendar days }
+        periodDays:
+          {
+            type: integer,
+            description: Rolling measurement period in calendar days,
+          }
         isLive: { type: boolean }
         currentViewerCount: { type: integer }
         followerCount: { type: integer }
@@ -3387,13 +3535,31 @@ components:
         peakViewers: { type: integer }
         averageViewers: { type: integer }
         totalChatMessages: { type: integer }
-        completedTipCount: { type: integer, description: Completed tip records received during the rolling measurement period; does not aggregate asset amounts across currencies }
-        activeSubscriptionCount: { type: integer, description: Current active subscriptions whose expiry is absent or in the future }
+        completedTipCount:
+          {
+            type: integer,
+            description: Completed tip records received during the rolling measurement period; does not aggregate asset amounts across currencies,
+          }
+        activeSubscriptionCount:
+          {
+            type: integer,
+            description: Current active subscriptions whose expiry is absent or in the future,
+          }
         recentStreams:
           type: array
           items:
             type: object
-            required: [id, title, startedAt, endedAt, durationSeconds, peakViewers, averageViewers, totalChatMessages]
+            required:
+              [
+                id,
+                title,
+                startedAt,
+                endedAt,
+                durationSeconds,
+                peakViewers,
+                averageViewers,
+                totalChatMessages,
+              ]
             properties:
               id: { type: integer }
               title: { type: ["string", "null"] }
@@ -3483,11 +3649,28 @@ components:
 
     CryptoCheckout:
       type: object
-      required: [paymentIntentId, invoiceUrl, provider, status, selectedCurrency, expiresAt]
+      required:
+        [
+          paymentIntentId,
+          invoiceUrl,
+          provider,
+          status,
+          selectedCurrency,
+          expiresAt,
+        ]
       properties:
         paymentIntentId: { type: integer }
-        invoiceUrl: { type: string, description: Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available. }
-        provider: { type: string, enum: [crypto], description: Customer-facing payment method label; payment-provider identity is not displayed to viewers. }
+        invoiceUrl:
+          {
+            type: string,
+            description: Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.,
+          }
+        provider:
+          {
+            type: string,
+            enum: [crypto],
+            description: Customer-facing payment method label; payment-provider identity is not displayed to viewers.,
+          }
         status: { type: string, enum: [pending] }
         selectedCurrency:
           oneOf:
@@ -3524,8 +3707,20 @@ components:
             - type: "null"
           description: Provider-confirmed total amount the customer must send in the selected cryptocurrency.
         providerFeePaidBy: { type: string, enum: [client] }
-        creatorShareBps: { type: integer, minimum: 0, maximum: 10000, description: Creator share in basis points under the active Kryv settlement policy. }
-        platformFeeBps: { type: integer, minimum: 0, maximum: 10000, description: Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission. }
+        creatorShareBps:
+          {
+            type: integer,
+            minimum: 0,
+            maximum: 10000,
+            description: Creator share in basis points under the active Kryv settlement policy.,
+          }
+        platformFeeBps:
+          {
+            type: integer,
+            minimum: 0,
+            maximum: 10000,
+            description: Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.,
+          }
 
     CryptoSubscriptionInput:
       type: object
@@ -3537,7 +3732,13 @@ components:
       type: object
       required: [amount]
       properties:
-        amount: { type: number, exclusiveMinimum: 0, maximum: 100000, description: USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout. }
+        amount:
+          {
+            type: number,
+            exclusiveMinimum: 0,
+            maximum: 100000,
+            description: USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.,
+          }
         cryptoCurrency: { $ref: "#/components/schemas/CryptoCurrency" }
         message: { type: string, maxLength: 500 }
 
@@ -3545,10 +3746,27 @@ components:
       type: object
       required: [amount]
       properties:
-        amount: { type: number, exclusiveMinimum: 0, maximum: 100000, description: USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout. }
+        amount:
+          {
+            type: number,
+            exclusiveMinimum: 0,
+            maximum: 100000,
+            description: USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.,
+          }
         cryptoCurrency: { $ref: "#/components/schemas/CryptoCurrency" }
-        message: { type: string, maxLength: 500, description: Optional note attached to the guest support record after confirmed settlement. }
-        guestDisplayName: { type: string, minLength: 2, maxLength: 48, description: Optional unverified guest display name recorded only for this support action; it is not a Kryv account identity. }
+        message:
+          {
+            type: string,
+            maxLength: 500,
+            description: Optional note attached to the guest support record after confirmed settlement.,
+          }
+        guestDisplayName:
+          {
+            type: string,
+            minLength: 2,
+            maxLength: 48,
+            description: Optional unverified guest display name recorded only for this support action; it is not a Kryv account identity.,
+          }
 
     GuestCryptoSubscriptionGiftInput:
       type: object
@@ -3556,20 +3774,46 @@ components:
       properties:
         tier: { type: integer, minimum: 1, maximum: 3, default: 1 }
         cryptoCurrency: { $ref: "#/components/schemas/CryptoCurrency" }
-        recipientUsername: { type: string, minLength: 3, maxLength: 32, description: Existing Kryv account username that will receive the membership only after signed provider confirmation. }
-        guestDisplayName: { type: string, minLength: 2, maxLength: 48, description: Optional unverified guest display name recorded only for this gift action; it is not a Kryv account identity. }
+        recipientUsername:
+          {
+            type: string,
+            minLength: 3,
+            maxLength: 32,
+            description: Existing Kryv account username that will receive the membership only after signed provider confirmation.,
+          }
+        guestDisplayName:
+          {
+            type: string,
+            minLength: 2,
+            maxLength: 48,
+            description: Optional unverified guest display name recorded only for this gift action; it is not a Kryv account identity.,
+          }
 
     WalletTipInput:
       type: object
       required: [currency, amount]
       properties:
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
-        amount: { type: string, pattern: "^\\d+(\\.\\d{1,8})?$", description: Exact crypto amount to debit from the customer’s confirmed Kryv wallet balance. }
+        amount:
+          {
+            type: string,
+            pattern: "^\\d+(\\.\\d{1,8})?$",
+            description: Exact crypto amount to debit from the customer’s confirmed Kryv wallet balance.,
+          }
         message: { type: string, maxLength: 500 }
 
     WalletTipPayment:
       type: object
-      required: [paymentIntentId, tipId, currency, grossAmount, platformFeeAmount, creatorNetAmount, status]
+      required:
+        [
+          paymentIntentId,
+          tipId,
+          currency,
+          grossAmount,
+          platformFeeAmount,
+          creatorNetAmount,
+          status,
+        ]
       properties:
         paymentIntentId: { type: integer }
         tipId: { type: integer }
@@ -3605,7 +3849,8 @@ components:
 
     ChannelEngagementPrediction:
       type: object
-      required: [id, title, status, predictionWindowSeconds, startedAt, outcomes]
+      required:
+        [id, title, status, predictionWindowSeconds, startedAt, outcomes]
       properties:
         id: { type: integer }
         title: { type: string }
@@ -3637,7 +3882,22 @@ components:
       properties:
         action:
           type: string
-          enum: [claim_points, create_reward, redeem_reward, create_poll, vote_poll, end_poll, create_prediction, enter_prediction, lock_prediction, resolve_prediction, raid, set_host, clear_host]
+          enum:
+            [
+              claim_points,
+              create_reward,
+              redeem_reward,
+              create_poll,
+              vote_poll,
+              end_poll,
+              create_prediction,
+              enter_prediction,
+              lock_prediction,
+              resolve_prediction,
+              raid,
+              set_host,
+              clear_host,
+            ]
         title: { type: string, maxLength: 140 }
         description: { type: string, maxLength: 500 }
         choices:
@@ -3669,7 +3929,20 @@ components:
 
     ClipSummary:
       type: object
-      required: [id, title, thumbnailUrl, durationSeconds, viewCount, channelId, channelName, channelSlug, processingStatus, playbackId, createdAt]
+      required:
+        [
+          id,
+          title,
+          thumbnailUrl,
+          durationSeconds,
+          viewCount,
+          channelId,
+          channelName,
+          channelSlug,
+          processingStatus,
+          playbackId,
+          createdAt,
+        ]
       properties:
         id: { type: integer }
         title: { type: string }
@@ -3789,7 +4062,21 @@ components:
 
     VideoMusicCredit:
       type: object
-      required: [id, trackTitle, artistName, albumTitle, labelName, artworkUrl, sourceUrl, musicbrainzRecordingId, musicbrainzReleaseId, metadataSource, rightsAttestedAt, displayOrder]
+      required:
+        [
+          id,
+          trackTitle,
+          artistName,
+          albumTitle,
+          labelName,
+          artworkUrl,
+          sourceUrl,
+          musicbrainzRecordingId,
+          musicbrainzReleaseId,
+          metadataSource,
+          rightsAttestedAt,
+          displayOrder,
+        ]
       properties:
         id: { type: integer }
         trackTitle: { type: string }
@@ -3843,7 +4130,18 @@ components:
 
     VideoComment:
       type: object
-      required: [id, videoId, parentCommentId, userId, username, avatarUrl, message, createdAt, replies]
+      required:
+        [
+          id,
+          videoId,
+          parentCommentId,
+          userId,
+          username,
+          avatarUrl,
+          message,
+          createdAt,
+          replies,
+        ]
       properties:
         id: { type: integer }
         videoId: { type: integer }
@@ -3907,7 +4205,24 @@ components:
 
     CinemaTitle:
       type: object
-      required: [id, slug, title, synopsis, maturityLevel, genres, posterUrl, backdropUrl, runtimeSeconds, featurePlaybackId, playbackAvailable, playbackBlockedReason, trailerPlaybackId, entitlementType, publishedAt]
+      required:
+        [
+          id,
+          slug,
+          title,
+          synopsis,
+          maturityLevel,
+          genres,
+          posterUrl,
+          backdropUrl,
+          runtimeSeconds,
+          featurePlaybackId,
+          playbackAvailable,
+          playbackBlockedReason,
+          trailerPlaybackId,
+          entitlementType,
+          publishedAt,
+        ]
       properties:
         id: { type: integer }
         slug: { type: string }
@@ -3920,16 +4235,27 @@ components:
         posterUrl: { type: ["string", "null"] }
         backdropUrl: { type: ["string", "null"] }
         runtimeSeconds: { type: ["integer", "null"] }
-        featurePlaybackId: { type: ["string", "null"], description: Feature playback identifier, returned only when viewing is currently permitted }
+        featurePlaybackId:
+          {
+            type: ["string", "null"],
+            description: Feature playback identifier,
+            returned only when viewing is currently permitted,
+          }
         playbackAvailable: { type: boolean }
-        playbackBlockedReason: { type: ["string", "null"], description: Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled }
+        playbackBlockedReason:
+          {
+            type: ["string", "null"],
+            description: Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled,
+          }
         trailerPlaybackId: { type: ["string", "null"] }
-        entitlementType: { type: string, enum: [free, subscription, rental, purchase] }
+        entitlementType:
+          { type: string, enum: [free, subscription, rental, purchase] }
         publishedAt: { type: ["string", "null"], format: date-time }
 
     CinemaCredit:
       type: object
-      required: [channelId, channelSlug, channelDisplayName, channelAvatarUrl, role]
+      required:
+        [channelId, channelSlug, channelDisplayName, channelAvatarUrl, role]
       properties:
         channelId: { type: integer }
         channelSlug: { type: string }
@@ -3950,7 +4276,18 @@ components:
 
     CinemaComment:
       type: object
-      required: [id, cinemaTitleId, parentCommentId, userId, username, avatarUrl, message, createdAt, replies]
+      required:
+        [
+          id,
+          cinemaTitleId,
+          parentCommentId,
+          userId,
+          username,
+          avatarUrl,
+          message,
+          createdAt,
+          replies,
+        ]
       properties:
         id: { type: integer }
         cinemaTitleId: { type: integer }
@@ -4014,7 +4351,15 @@ components:
       properties:
         action:
           type: string
-          enum: [add_moderator, remove_moderator, timeout, ban, unban, delete_message]
+          enum:
+            [
+              add_moderator,
+              remove_moderator,
+              timeout,
+              ban,
+              unban,
+              delete_message,
+            ]
         targetUserId: { type: integer }
         messageId: { type: integer }
         durationSeconds: { type: integer, minimum: 1, maximum: 2592000 }
@@ -4026,7 +4371,15 @@ components:
       properties:
         action:
           type: string
-          enum: [add_moderator, remove_moderator, timeout, ban, unban, delete_message]
+          enum:
+            [
+              add_moderator,
+              remove_moderator,
+              timeout,
+              ban,
+              unban,
+              delete_message,
+            ]
         targetUserId: { type: ["integer", "null"] }
         messageId: { type: ["integer", "null"] }
         expiresAt: { type: ["string", "null"], format: date-time }
@@ -4056,7 +4409,15 @@ components:
         messageId: { type: integer, minimum: 1 }
         reason:
           type: string
-          enum: [harassment, hate_or_harm, spam_or_scam, sexual_content, violence_or_threat, other]
+          enum:
+            [
+              harassment,
+              hate_or_harm,
+              spam_or_scam,
+              sexual_content,
+              violence_or_threat,
+              other,
+            ]
         details: { type: string, maxLength: 500 }
 
     ChatReport:
@@ -4076,7 +4437,16 @@ components:
       properties:
         reason:
           type: string
-          enum: [harassment, hate_or_harm, spam_or_scam, sexual_content, violence_or_threat, impersonation, other]
+          enum:
+            [
+              harassment,
+              hate_or_harm,
+              spam_or_scam,
+              sexual_content,
+              violence_or_threat,
+              impersonation,
+              other,
+            ]
         details: { type: string, maxLength: 500 }
 
     ChannelSafetyReport:
@@ -4113,7 +4483,19 @@ components:
 
     AdminModerationCase:
       type: object
-      required: [id, channelId, reporterUserId, subjectUserId, caseType, status, summary, evidence, createdAt, updatedAt]
+      required:
+        [
+          id,
+          channelId,
+          reporterUserId,
+          subjectUserId,
+          caseType,
+          status,
+          summary,
+          evidence,
+          createdAt,
+          updatedAt,
+        ]
       properties:
         id: { type: integer }
         channelId: { type: ["integer", "null"] }
@@ -4140,13 +4522,26 @@ components:
 
     AdminCinemaTitle:
       type: object
-      required: [id, slug, title, synopsis, publishState, maturityLevel, editorialRank, adEligible, createdAt, updatedAt]
+      required:
+        [
+          id,
+          slug,
+          title,
+          synopsis,
+          publishState,
+          maturityLevel,
+          editorialRank,
+          adEligible,
+          createdAt,
+          updatedAt,
+        ]
       properties:
         id: { type: integer }
         slug: { type: string }
         title: { type: string }
         synopsis: { type: ["string", "null"] }
-        publishState: { type: string, enum: [draft, review, published, archived] }
+        publishState:
+          { type: string, enum: [draft, review, published, archived] }
         maturityLevel: { type: string, enum: [kids, standard, mature] }
         editorialRank: { type: integer }
         adEligible: { type: boolean }
@@ -4183,12 +4578,14 @@ components:
 
     AdminCinemaAsset:
       type: object
-      required: [id, cinemaTitleId, assetKind, processingStatus, fastpixPlaybackId]
+      required:
+        [id, cinemaTitleId, assetKind, processingStatus, fastpixPlaybackId]
       properties:
         id: { type: integer }
         cinemaTitleId: { type: integer }
         assetKind: { type: string, enum: [feature, trailer, preview, captions] }
-        processingStatus: { type: string, enum: [waiting, processing, ready, errored] }
+        processingStatus:
+          { type: string, enum: [waiting, processing, ready, errored] }
         fastpixMediaId: { type: ["string", "null"] }
         fastpixPlaybackId: { type: ["string", "null"] }
 
@@ -4221,7 +4618,15 @@ components:
       allOf:
         - $ref: "#/components/schemas/AdminCinemaAsset"
         - type: object
-          required: [sourceProvenance, language, durationSeconds, approvedAt, createdAt, updatedAt]
+          required:
+            [
+              sourceProvenance,
+              language,
+              durationSeconds,
+              approvedAt,
+              createdAt,
+              updatedAt,
+            ]
           properties:
             sourceProvenance: { type: ["string", "null"] }
             language: { type: string }
@@ -4232,14 +4637,28 @@ components:
 
     AdminCinemaRightsWindow:
       type: object
-      required: [id, cinemaTitleId, territoryCodes, entitlementType, rightsReference, startsAt, endsAt, createdAt]
+      required:
+        [
+          id,
+          cinemaTitleId,
+          territoryCodes,
+          entitlementType,
+          rightsReference,
+          startsAt,
+          endsAt,
+          createdAt,
+        ]
       properties:
         id: { type: integer }
         cinemaTitleId: { type: integer }
         territoryCodes:
           type: array
           items: { type: string }
-        entitlementType: { type: string, enum: [unconfigured, free, subscription, rental, purchase] }
+        entitlementType:
+          {
+            type: string,
+            enum: [unconfigured, free, subscription, rental, purchase],
+          }
         rightsReference: { type: string }
         startsAt: { type: string, format: date-time }
         endsAt: { type: ["string", "null"], format: date-time }
@@ -4247,7 +4666,13 @@ components:
 
     AdminCinemaReadiness:
       type: object
-      required: [hasReadyFeature, hasActiveRightsWindow, isPublishEligible, blockingReasons]
+      required:
+        [
+          hasReadyFeature,
+          hasActiveRightsWindow,
+          isPublishEligible,
+          blockingReasons,
+        ]
       properties:
         hasReadyFeature: { type: boolean }
         hasActiveRightsWindow: { type: boolean }
@@ -4271,7 +4696,22 @@ components:
       allOf:
         - $ref: "#/components/schemas/AdminCinemaTitle"
         - type: object
-          required: [releaseYear, runtimeSeconds, contentRating, genres, castMembers, crew, logoUrl, publishedAt, assets, rightsWindows, credits, readiness, activity]
+          required:
+            [
+              releaseYear,
+              runtimeSeconds,
+              contentRating,
+              genres,
+              castMembers,
+              crew,
+              logoUrl,
+              publishedAt,
+              assets,
+              rightsWindows,
+              credits,
+              readiness,
+              activity,
+            ]
           properties:
             releaseYear: { type: ["integer", "null"] }
             runtimeSeconds: { type: ["integer", "null"] }
@@ -4303,7 +4743,17 @@ components:
 
     AdminCinemaCredit:
       type: object
-      required: [id, cinemaTitleId, channelId, channelSlug, channelDisplayName, role, displayOrder, createdAt]
+      required:
+        [
+          id,
+          cinemaTitleId,
+          channelId,
+          channelSlug,
+          channelDisplayName,
+          role,
+          displayOrder,
+          createdAt,
+        ]
       properties:
         id: { type: integer }
         cinemaTitleId: { type: integer }
@@ -4336,7 +4786,8 @@ components:
         releaseYear: { type: ["integer", "null"], minimum: 1888, maximum: 2200 }
         editorialRank: { type: integer, minimum: -100000, maximum: 100000 }
         adEligible: { type: boolean }
-        publishState: { type: string, enum: [draft, review, published, archived] }
+        publishState:
+          { type: string, enum: [draft, review, published, archived] }
         reason: { type: string, minLength: 1, maxLength: 500 }
 
     AdminCinemaRightsWindowInput:
@@ -4346,7 +4797,8 @@ components:
         territoryCodes:
           type: array
           items: { type: string, minLength: 2, maxLength: 3 }
-        entitlementType: { type: string, enum: [free, subscription, rental, purchase] }
+        entitlementType:
+          { type: string, enum: [free, subscription, rental, purchase] }
         rightsReference: { type: string, minLength: 1, maxLength: 500 }
         startsAt: { type: string, format: date-time }
         endsAt: { type: ["string", "null"], format: date-time }
@@ -4379,12 +4831,17 @@ components:
 
     AdBreak:
       type: object
-      required: [id, surface, triggerType, status, scheduledAt, maxPodDurationSeconds]
+      required:
+        [id, surface, triggerType, status, scheduledAt, maxPodDurationSeconds]
       properties:
         id: { type: integer }
         surface: { type: string, enum: [live, watch, cinema, clip] }
         triggerType: { type: string, enum: [scheduled, creator, system] }
-        status: { type: string, enum: [scheduled, serving, completed, deferred, cancelled] }
+        status:
+          {
+            type: string,
+            enum: [scheduled, serving, completed, deferred, cancelled],
+          }
         scheduledAt: { type: ["string", "null"], format: date-time }
         maxPodDurationSeconds: { type: ["integer", "null"] }
 
@@ -4397,7 +4854,17 @@ components:
 
     ViewerProfile:
       type: object
-      required: [id, name, avatarUrl, maturityLevel, isKidsProfile, isDefault, createdAt]
+      required:
+        [
+          id,
+          name,
+          avatarUrl,
+          maturityLevel,
+          isKidsProfile,
+          isDefault,
+          isLocked,
+          createdAt,
+        ]
       properties:
         id: { type: integer }
         name: { type: string }
@@ -4405,6 +4872,11 @@ components:
         maturityLevel: { type: string, enum: [kids, standard, mature] }
         isKidsProfile: { type: boolean }
         isDefault: { type: boolean }
+        isLocked:
+          {
+            type: boolean,
+            description: True when the profile has a PIN. PIN data is never returned.,
+          }
         createdAt: { type: string, format: date-time }
 
     ViewerProfileInput:
@@ -4445,13 +4917,25 @@ components:
 
     CustomerWalletBalance:
       type: object
-      required: [currency, pendingAmount, availableAmount, heldAmount, usdReferenceValue, rateUpdatedAt]
+      required:
+        [
+          currency,
+          pendingAmount,
+          availableAmount,
+          heldAmount,
+          usdReferenceValue,
+          rateUpdatedAt,
+        ]
       properties:
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
         pendingAmount: { type: string }
         availableAmount: { type: string }
         heldAmount: { type: string }
-        usdReferenceValue: { type: ["string", "null"], description: Provider-rate reference only; never used to settle crypto balances. }
+        usdReferenceValue:
+          {
+            type: ["string", "null"],
+            description: Provider-rate reference only; never used to settle crypto balances.,
+          }
         rateUpdatedAt: { type: ["string", "null"], format: date-time }
 
     CustomerWalletDepositAddress:
@@ -4459,13 +4943,28 @@ components:
       required: [currency, address, status, createdAt]
       properties:
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
-        address: { type: string, minLength: 10, maxLength: 256, description: Kryv-managed customer deposit address; it is not a creator payout address. }
+        address:
+          {
+            type: string,
+            minLength: 10,
+            maxLength: 256,
+            description: Kryv-managed customer deposit address; it is not a creator payout address.,
+          }
         status: { type: string, enum: [active, disabled] }
         createdAt: { type: string, format: date-time }
 
     CustomerWalletMovement:
       type: object
-      required: [id, currency, movementType, availableDelta, heldDelta, pendingDelta, createdAt]
+      required:
+        [
+          id,
+          currency,
+          movementType,
+          availableDelta,
+          heldDelta,
+          pendingDelta,
+          createdAt,
+        ]
       properties:
         id: { type: integer }
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
@@ -4477,7 +4976,14 @@ components:
 
     CustomerWalletOverview:
       type: object
-      required: [balances, depositAddresses, movements, depositsEnabled, providerRateAvailable]
+      required:
+        [
+          balances,
+          depositAddresses,
+          movements,
+          depositsEnabled,
+          providerRateAvailable,
+        ]
       properties:
         balances:
           type: array
@@ -4499,7 +5005,15 @@ components:
 
     CreatorBalance:
       type: object
-      required: [currency, pendingAmount, availableAmount, heldAmount, usdReferenceValue, rateUpdatedAt]
+      required:
+        [
+          currency,
+          pendingAmount,
+          availableAmount,
+          heldAmount,
+          usdReferenceValue,
+          rateUpdatedAt,
+        ]
       properties:
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
         pendingAmount: { type: string }
@@ -4510,21 +5024,36 @@ components:
 
     CreatorPayoutProfile:
       type: object
-      required: [id, currency, addressMasked, confirmationStatus, reviewStatus, updatedAt]
+      required:
+        [
+          id,
+          currency,
+          addressMasked,
+          confirmationStatus,
+          reviewStatus,
+          updatedAt,
+        ]
       properties:
         id: { type: integer }
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
         addressMasked: { type: string }
-        confirmationStatus: { type: string, enum: [pending, confirmed, rejected] }
+        confirmationStatus:
+          { type: string, enum: [pending, confirmed, rejected] }
         reviewStatus: { type: string, enum: [pending, approved, rejected] }
         confirmedAt: { type: ["string", "null"], format: date-time }
         updatedAt: { type: string, format: date-time }
 
     CreatorPayoutPreference:
       type: object
-      required: [cadence, minimumAmount, timezone, enabled, nextRunAt, updatedAt]
+      required:
+        [cadence, minimumAmount, timezone, enabled, nextRunAt, updatedAt]
       properties:
-        cadence: { type: string, enum: [manual], description: Scheduled cadence is unavailable because scheduled payout requests are hard-disabled. }
+        cadence:
+          {
+            type: string,
+            enum: [manual],
+            description: Scheduled cadence is unavailable because scheduled payout requests are hard-disabled.,
+          }
         minimumAmount: { type: string }
         weekday: { type: ["integer", "null"], minimum: 0, maximum: 6 }
         monthDay: { type: ["integer", "null"], minimum: 1, maximum: 28 }
@@ -4535,7 +5064,16 @@ components:
 
     CreatorPayoutRequest:
       type: object
-      required: [id, currency, amount, destinationMasked, requestSource, status, requestedAt]
+      required:
+        [
+          id,
+          currency,
+          amount,
+          destinationMasked,
+          requestSource,
+          status,
+          requestedAt,
+        ]
       properties:
         id: { type: integer }
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
@@ -4554,7 +5092,16 @@ components:
 
     CreatorAchievement:
       type: object
-      required: [key, title, description, currentValue, targetValue, completed, evidence]
+      required:
+        [
+          key,
+          title,
+          description,
+          currentValue,
+          targetValue,
+          completed,
+          evidence,
+        ]
       properties:
         key: { type: string }
         title: { type: string }
@@ -4566,7 +5113,16 @@ components:
 
     CreatorFinanceOverview:
       type: object
-      required: [channelId, balances, payoutProfiles, payoutPreference, payoutRequests, achievements, payoutRequestsEnabled]
+      required:
+        [
+          channelId,
+          balances,
+          payoutProfiles,
+          payoutPreference,
+          payoutRequests,
+          achievements,
+          payoutRequestsEnabled,
+        ]
       properties:
         channelId: { type: integer }
         balances:
@@ -4575,7 +5131,8 @@ components:
         payoutProfiles:
           type: array
           items: { $ref: "#/components/schemas/CreatorPayoutProfile" }
-        payoutPreference: { $ref: "#/components/schemas/CreatorPayoutPreference" }
+        payoutPreference:
+          { $ref: "#/components/schemas/CreatorPayoutPreference" }
         payoutRequests:
           type: array
           items: { $ref: "#/components/schemas/CreatorPayoutRequest" }
@@ -4603,7 +5160,8 @@ components:
       allOf:
         - $ref: "#/components/schemas/CreatorPayoutProfile"
         - type: object
-          required: [channelId, channelSlug, channelDisplayName, creatorUsername]
+          required:
+            [channelId, channelSlug, channelDisplayName, creatorUsername]
           properties:
             channelId: { type: integer }
             channelSlug: { type: string }
@@ -4614,7 +5172,8 @@ components:
       allOf:
         - $ref: "#/components/schemas/CreatorPayoutRequest"
         - type: object
-          required: [channelId, channelSlug, channelDisplayName, creatorUsername]
+          required:
+            [channelId, channelSlug, channelDisplayName, creatorUsername]
           properties:
             channelId: { type: integer }
             channelSlug: { type: string }
@@ -4623,7 +5182,16 @@ components:
 
     AdminFinanceAssetLiability:
       type: object
-      required: [currency, pendingAmount, availableAmount, heldAmount, providerTreasuryBalance, priceUsd, rateUpdatedAt]
+      required:
+        [
+          currency,
+          pendingAmount,
+          availableAmount,
+          heldAmount,
+          providerTreasuryBalance,
+          priceUsd,
+          rateUpdatedAt,
+        ]
       properties:
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
         pendingAmount: { type: string }
@@ -4637,8 +5205,18 @@ components:
       type: object
       required: [label, notes, updatedAt]
       properties:
-        label: { type: ["string", "null"], maxLength: 120, description: Owner-visible non-secret treasury label only }
-        notes: { type: ["string", "null"], maxLength: 2000, description: Owner-visible non-secret operational notes only }
+        label:
+          {
+            type: ["string", "null"],
+            maxLength: 120,
+            description: Owner-visible non-secret treasury label only,
+          }
+        notes:
+          {
+            type: ["string", "null"],
+            maxLength: 2000,
+            description: Owner-visible non-secret operational notes only,
+          }
         updatedAt: { type: ["string", "null"], format: date-time }
 
     AdminTreasuryContextUpdate:
@@ -4656,7 +5234,19 @@ components:
           type: array
           items:
             type: object
-            required: [id, channelId, channelDisplayName, currency, paymentKind, grossAmount, platformFeeAmount, creatorNetAmount, sourceType, createdAt]
+            required:
+              [
+                id,
+                channelId,
+                channelDisplayName,
+                currency,
+                paymentKind,
+                grossAmount,
+                platformFeeAmount,
+                creatorNetAmount,
+                sourceType,
+                createdAt,
+              ]
             properties:
               id: { type: integer }
               channelId: { type: integer }
@@ -4672,7 +5262,19 @@ components:
           type: array
           items:
             type: object
-            required: [id, channelId, channelDisplayName, currency, movementType, availableDelta, heldDelta, pendingDelta, sourceType, createdAt]
+            required:
+              [
+                id,
+                channelId,
+                channelDisplayName,
+                currency,
+                movementType,
+                availableDelta,
+                heldDelta,
+                pendingDelta,
+                sourceType,
+                createdAt,
+              ]
             properties:
               id: { type: integer }
               channelId: { type: integer }
@@ -4688,7 +5290,16 @@ components:
           type: array
           items:
             type: object
-            required: [id, provider, eventType, processingStatus, errorCode, processedAt, createdAt]
+            required:
+              [
+                id,
+                provider,
+                eventType,
+                processingStatus,
+                errorCode,
+                processedAt,
+                createdAt,
+              ]
             properties:
               id: { type: integer }
               provider: { type: string }
@@ -4700,7 +5311,18 @@ components:
 
     AdminCreatorBalance:
       type: object
-      required: [channelId, channelSlug, channelDisplayName, creatorUsername, currency, pendingAmount, availableAmount, heldAmount, updatedAt]
+      required:
+        [
+          channelId,
+          channelSlug,
+          channelDisplayName,
+          creatorUsername,
+          currency,
+          pendingAmount,
+          availableAmount,
+          heldAmount,
+          updatedAt,
+        ]
       properties:
         channelId: { type: integer }
         channelSlug: { type: string }
@@ -4714,7 +5336,17 @@ components:
 
     AdminCreatorBalanceMovement:
       type: object
-      required: [id, currency, movementType, availableDelta, heldDelta, pendingDelta, sourceType, createdAt]
+      required:
+        [
+          id,
+          currency,
+          movementType,
+          availableDelta,
+          heldDelta,
+          pendingDelta,
+          sourceType,
+          createdAt,
+        ]
       properties:
         id: { type: integer }
         currency: { $ref: "#/components/schemas/CryptoCurrency" }
@@ -4727,7 +5359,15 @@ components:
 
     AdminCreatorBalanceDetail:
       type: object
-      required: [channelId, channelSlug, channelDisplayName, creatorUsername, balances, movements]
+      required:
+        [
+          channelId,
+          channelSlug,
+          channelDisplayName,
+          creatorUsername,
+          balances,
+          movements,
+        ]
       properties:
         channelId: { type: integer }
         channelSlug: { type: string }
@@ -4742,7 +5382,17 @@ components:
 
     AdminFinanceOverview:
       type: object
-      required: [assetLiabilities, pendingProfileReviews, requestedPayouts, cryptoCommerceEnabled, payoutRequestsEnabled, scheduledPayoutRequestsEnabled, providerWithdrawalsEnabled, providerConfigured]
+      required:
+        [
+          assetLiabilities,
+          pendingProfileReviews,
+          requestedPayouts,
+          cryptoCommerceEnabled,
+          payoutRequestsEnabled,
+          scheduledPayoutRequestsEnabled,
+          providerWithdrawalsEnabled,
+          providerConfigured,
+        ]
       properties:
         assetLiabilities:
           type: array
@@ -4771,7 +5421,15 @@ components:
 
     PlatformFocusMode:
       type: object
-      required: [isEnabled, sourceType, sourceId, chatEnabled, announcementText, updatedAt]
+      required:
+        [
+          isEnabled,
+          sourceType,
+          sourceId,
+          chatEnabled,
+          announcementText,
+          updatedAt,
+        ]
       properties:
         isEnabled: { type: boolean }
         sourceType: { type: ["string", "null"], enum: [live, cinema, null] }
@@ -4781,7 +5439,15 @@ components:
         updatedAt: { type: string, format: date-time }
     AdminFocusMode:
       type: object
-      required: [isEnabled, sourceType, sourceId, chatEnabled, announcementText, updatedAt]
+      required:
+        [
+          isEnabled,
+          sourceType,
+          sourceId,
+          chatEnabled,
+          announcementText,
+          updatedAt,
+        ]
       properties:
         isEnabled: { type: boolean }
         sourceType: { type: string, enum: [live, cinema] }
@@ -4821,15 +5487,47 @@ components:
 
     AdminAdCampaign:
       type: object
-      required: [id, name, advertiserName, campaignType, status, fundingMode, fundingStatus, budgetAmount, budgetCurrency, budgetSpentAmount, creatorShareBps, startsAt, endsAt, approvedAt, createdAt]
+      required:
+        [
+          id,
+          name,
+          advertiserName,
+          campaignType,
+          status,
+          fundingMode,
+          fundingStatus,
+          budgetAmount,
+          budgetCurrency,
+          budgetSpentAmount,
+          creatorShareBps,
+          startsAt,
+          endsAt,
+          approvedAt,
+          createdAt,
+        ]
       properties:
         id: { type: integer }
         name: { type: string }
         advertiserName: { type: ["string", "null"] }
         campaignType: { type: string, enum: [house, sponsored] }
-        status: { type: string, enum: [draft, active, paused, completed, cancelled] }
+        status:
+          { type: string, enum: [draft, active, paused, completed, cancelled] }
         fundingMode: { type: string, enum: [promotional, paid] }
-        fundingStatus: { type: string, enum: [not_required, promotional_pending, promotional_approved, unfunded, invoice_pending, funded, cancelled, failed] }
+        fundingStatus:
+          {
+            type: string,
+            enum:
+              [
+                not_required,
+                promotional_pending,
+                promotional_approved,
+                unfunded,
+                invoice_pending,
+                funded,
+                cancelled,
+                failed,
+              ],
+          }
         budgetAmount: { type: ["string", "null"] }
         budgetCurrency: { type: ["string", "null"] }
         budgetSpentAmount: { type: string }
@@ -4850,7 +5548,15 @@ components:
 
     AdminAdsOverview:
       type: object
-      required: [campaigns, pendingFundings, confirmedFundings, revenue, deliveryEnabled, policy]
+      required:
+        [
+          campaigns,
+          pendingFundings,
+          confirmedFundings,
+          revenue,
+          deliveryEnabled,
+          policy,
+        ]
       properties:
         campaigns:
           type: array
@@ -4876,8 +5582,14 @@ components:
         name: { type: string, minLength: 2, maxLength: 140 }
         advertiserName: { type: string, minLength: 2, maxLength: 140 }
         fundingMode: { type: string, enum: [promotional, paid] }
-        budgetUsd: { type: string, pattern: "^\\d+(\\.\\d{1,2})?$", description: USD reference amount used only to obtain a crypto funding invoice; it is not a fiat charge. }
-        creatorShareBps: { type: integer, minimum: 0, maximum: 10000, default: 0 }
+        budgetUsd:
+          {
+            type: string,
+            pattern: "^\\d+(\\.\\d{1,2})?$",
+            description: USD reference amount used only to obtain a crypto funding invoice; it is not a fiat charge.,
+          }
+        creatorShareBps:
+          { type: integer, minimum: 0, maximum: 10000, default: 0 }
         startsAt: { type: string, format: date-time }
         endsAt: { type: string, format: date-time }
 
@@ -4888,7 +5600,23 @@ components:
 
     AdminAdFundingInvoice:
       type: object
-      required: [campaignId, fundingId, paymentIntentId, invoiceUrl, provider, status, selectedCurrency, expiresAt, paymentAddress, qrCodeDataUrl, invoiceAmount, invoiceCommission, invoiceTotal, providerFeePaidBy]
+      required:
+        [
+          campaignId,
+          fundingId,
+          paymentIntentId,
+          invoiceUrl,
+          provider,
+          status,
+          selectedCurrency,
+          expiresAt,
+          paymentAddress,
+          qrCodeDataUrl,
+          invoiceAmount,
+          invoiceCommission,
+          invoiceTotal,
+          providerFeePaidBy,
+        ]
       properties:
         campaignId: { type: integer }
         fundingId: { type: integer }
@@ -4914,12 +5642,27 @@ components:
 
     AdminAnalytics:
       type: object
-      required: [rangeDays, summary, activity, topCreators, topWatchVideos, revenueByAsset]
+      required:
+        [
+          rangeDays,
+          summary,
+          activity,
+          topCreators,
+          topWatchVideos,
+          revenueByAsset,
+        ]
       properties:
         rangeDays: { type: integer, enum: [1, 7, 30] }
         summary:
           type: object
-          required: [streamSessions, streamSeconds, chatMessages, activeCreators, activeSubscriptions]
+          required:
+            [
+              streamSessions,
+              streamSeconds,
+              chatMessages,
+              activeCreators,
+              activeSubscriptions,
+            ]
           properties:
             streamSessions: { type: integer }
             streamSeconds: { type: integer }
@@ -4939,7 +5682,14 @@ components:
           type: array
           items:
             type: object
-            required: [channelId, channelDisplayName, streamSessions, streamSeconds, chatMessages]
+            required:
+              [
+                channelId,
+                channelDisplayName,
+                streamSessions,
+                streamSeconds,
+                chatMessages,
+              ]
             properties:
               channelId: { type: integer }
               channelDisplayName: { type: string }
@@ -4951,7 +5701,8 @@ components:
           type: array
           items:
             type: object
-            required: [videoId, videoTitle, channelDisplayName, recordedViewerCount]
+            required:
+              [videoId, videoTitle, channelDisplayName, recordedViewerCount]
             properties:
               videoId: { type: integer }
               videoTitle: { type: string }
@@ -4961,7 +5712,8 @@ components:
           type: array
           items:
             type: object
-            required: [currency, grossAmount, platformFeeAmount, creatorNetAmount]
+            required:
+              [currency, grossAmount, platformFeeAmount, creatorNetAmount]
             properties:
               currency: { type: string }
               grossAmount: { type: string }
@@ -4970,11 +5722,27 @@ components:
 
     AdminCommandOverview:
       type: object
-      required: [platform, commerce, payments, revenueByAsset, payoutStatusCounts, safety]
+      required:
+        [
+          platform,
+          commerce,
+          payments,
+          revenueByAsset,
+          payoutStatusCounts,
+          safety,
+        ]
       properties:
         platform:
           type: object
-          required: [creatorChannels, liveChannels, watchItems, readyWatchItems, cinemaTitles, totalViews]
+          required:
+            [
+              creatorChannels,
+              liveChannels,
+              watchItems,
+              readyWatchItems,
+              cinemaTitles,
+              totalViews,
+            ]
           properties:
             creatorChannels: { type: integer }
             liveChannels: { type: integer }
@@ -4984,7 +5752,18 @@ components:
             totalViews: { type: integer }
         commerce:
           type: object
-          required: [providerConfigured, cryptoCommerceEnabled, payoutRequestsEnabled, scheduledPayoutRequestsEnabled, providerWithdrawalsEnabled, customerWalletCustodyEnabled, adsDeliveryEnabled, pendingProfileReviews, pendingPayoutReviews]
+          required:
+            [
+              providerConfigured,
+              cryptoCommerceEnabled,
+              payoutRequestsEnabled,
+              scheduledPayoutRequestsEnabled,
+              providerWithdrawalsEnabled,
+              customerWalletCustodyEnabled,
+              adsDeliveryEnabled,
+              pendingProfileReviews,
+              pendingPayoutReviews,
+            ]
           properties:
             providerConfigured: { type: boolean }
             cryptoCommerceEnabled: { type: boolean }
@@ -5007,7 +5786,8 @@ components:
           type: array
           items:
             type: object
-            required: [currency, grossAmount, platformFeeAmount, creatorNetAmount]
+            required:
+              [currency, grossAmount, platformFeeAmount, creatorNetAmount]
             properties:
               currency: { type: string }
               grossAmount: { type: string }
@@ -5064,7 +5844,23 @@ components:
       properties:
         routeKey:
           type: string
-          enum: [live_home, live_categories, live_category, live_channel, watch_home, watch_detail, clips_home, clip_detail, cinema_catalog, cinema_detail, creator_studio, creator_wallet, creator_achievements, account_settings]
+          enum:
+            [
+              live_home,
+              live_categories,
+              live_category,
+              live_channel,
+              watch_home,
+              watch_detail,
+              clips_home,
+              clip_detail,
+              cinema_catalog,
+              cinema_detail,
+              creator_studio,
+              creator_wallet,
+              creator_achievements,
+              account_settings,
+            ]
         deviceClass:
           type: string
           enum: [desktop, tablet, mobile, other]
@@ -5096,7 +5892,15 @@ components:
 
     AdminUserActivityDetail:
       type: object
-      required: [user, activityObservabilityEnabled, currentPresence, devices, activity, channels]
+      required:
+        [
+          user,
+          activityObservabilityEnabled,
+          currentPresence,
+          devices,
+          activity,
+          channels,
+        ]
       properties:
         user:
           $ref: "#/components/schemas/AdminUser"
@@ -5160,7 +5964,8 @@ components:
 
     DiscoverSummary:
       type: object
-      required: [featuredChannels, topCategories, totalLiveChannels, totalViewers]
+      required:
+        [featuredChannels, topCategories, totalLiveChannels, totalViewers]
       properties:
         featuredChannels:
           type: array

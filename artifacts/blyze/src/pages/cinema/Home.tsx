@@ -16,8 +16,9 @@ import {
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/auth-store";
+import { getApiUrl } from "@/lib/api";
 import { MediaRail, MediaRailSkeleton } from "@/components/media/MediaRail";
 import { AdSlot } from "@/components/ads/AdSlot";
 
@@ -101,19 +102,47 @@ function CinemaProfileGate({
   onSelect,
   onCreate,
   isCreating,
+  isSelecting,
+  selectionError,
 }: {
   profiles: ViewerProfile[];
-  onSelect: (profile: ViewerProfile) => void;
+  onSelect: (profile: ViewerProfile, pin?: string) => Promise<boolean>;
   onCreate: (name: string) => void;
   isCreating: boolean;
+  isSelecting: boolean;
+  selectionError: string | null;
 }) {
   const [name, setName] = useState("");
-  const submit = (event: React.FormEvent) => {
+  const [lockedProfile, setLockedProfile] = useState<ViewerProfile | null>(
+    null,
+  );
+  const [pin, setPin] = useState("");
+
+  const submit = (event: FormEvent) => {
     event.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
     onCreate(trimmed);
     setName("");
+  };
+
+  const chooseProfile = (profile: ViewerProfile) => {
+    if (profile.isLocked) {
+      setLockedProfile(profile);
+      setPin("");
+      return;
+    }
+    void onSelect(profile);
+  };
+
+  const unlockProfile = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!lockedProfile || !pin) return;
+    const selected = await onSelect(lockedProfile, pin);
+    if (selected) {
+      setLockedProfile(null);
+      setPin("");
+    }
   };
 
   return (
@@ -131,17 +160,18 @@ function CinemaProfileGate({
           Who&apos;s watching?
         </h1>
         <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-white/55">
-          Choose a profile for a personal Cinema session. Profile choices are
-          private to your account and are used for viewing state and maturity
-          settings.
+          Choose a profile for a personal Cinema session. Profile selection is
+          private to this signed-in browser session and keeps maturity settings
+          separate.
         </p>
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
           {profiles.map((profile) => (
             <button
               key={profile.id}
               type="button"
-              onClick={() => onSelect(profile)}
-              className="group rounded-2xl p-2 text-center transition-transform hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => chooseProfile(profile)}
+              disabled={isSelecting}
+              className="group rounded-2xl p-2 text-center transition-transform hover:-translate-y-1 disabled:cursor-wait disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <div className="relative mx-auto aspect-square w-full max-w-32 overflow-hidden rounded-2xl border border-white/[0.12] bg-gradient-to-br from-primary/25 to-indigo-500/25 shadow-lg transition-colors group-hover:border-primary/70">
                 {profile.avatarUrl ? (
@@ -160,9 +190,22 @@ function CinemaProfileGate({
                     Kids
                   </span>
                 )}
+                {profile.isLocked && (
+                  <span className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/65 text-white backdrop-blur">
+                    <LockKeyhole className="h-3.5 w-3.5" />
+                    <span className="sr-only">Locked profile</span>
+                  </span>
+                )}
               </div>
               <span className="mt-3 block truncate text-sm font-black text-white group-hover:text-primary">
                 {profile.name}
+              </span>
+              <span className="mt-1 block text-[10px] font-semibold text-white/45">
+                {profile.isLocked
+                  ? "PIN protected"
+                  : profile.isKidsProfile
+                    ? "Kids profile"
+                    : "Select profile"}
               </span>
             </button>
           ))}
@@ -187,10 +230,82 @@ function CinemaProfileGate({
           </Button>
         </form>
         <p className="mt-4 text-xs text-white/30">
-          You can manage profile details from your account controls as Cinema
-          expands.
+          Profile PIN changes require your account password again. Selecting a
+          profile never stores its ID or PIN in browser storage.
         </p>
       </main>
+
+      {lockedProfile && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
+          role="presentation"
+        >
+          <form
+            onSubmit={unlockProfile}
+            className="w-full max-w-sm rounded-3xl border border-white/[0.12] bg-[#0c1017] p-6 text-left shadow-2xl"
+            aria-labelledby="profile-pin-heading"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/35 bg-primary/10 text-primary">
+              <LockKeyhole className="h-5 w-5" />
+            </div>
+            <h2
+              id="profile-pin-heading"
+              className="mt-4 text-xl font-black text-white"
+            >
+              Enter {lockedProfile.name}&apos;s PIN
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/55">
+              This profile is protected. Attempts are rate limited for your
+              account.
+            </p>
+            <label htmlFor="viewer-profile-pin" className="sr-only">
+              Profile PIN
+            </label>
+            <input
+              id="viewer-profile-pin"
+              value={pin}
+              onChange={(event) =>
+                setPin(event.target.value.replace(/\D/g, "").slice(0, 8))
+              }
+              inputMode="numeric"
+              autoComplete="off"
+              pattern="[0-9]*"
+              maxLength={8}
+              autoFocus
+              className="mt-5 h-12 w-full rounded-xl border border-white/[0.14] bg-black/30 px-4 text-center font-mono text-lg tracking-[0.35em] text-white outline-none placeholder:tracking-normal placeholder:text-white/30 focus:border-primary focus:ring-2 focus:ring-primary/35"
+              placeholder="PIN"
+            />
+            {selectionError && (
+              <p
+                className="mt-3 text-xs font-semibold text-red-200"
+                role="alert"
+              >
+                {selectionError}
+              </p>
+            )}
+            <div className="mt-5 flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setLockedProfile(null);
+                  setPin("");
+                }}
+                className="flex-1 border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSelecting || pin.length < 4}
+                className="flex-1 font-black"
+              >
+                {isSelecting ? "Checking…" : "Continue"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
@@ -215,24 +330,86 @@ export default function CinemaHome() {
   const createViewerProfile = useCreateViewerProfile();
   const [activeProfileId, setActiveProfileId] = useState<number | null>(null);
   const [activeGenre, setActiveGenre] = useState<string | null>(null);
-  const profileStorageKey = user
-    ? `kryv:cinema-profile:${user.username}`
-    : null;
+  const [profileGrantResolved, setProfileGrantResolved] = useState(false);
+  const [isSelectingProfile, setIsSelectingProfile] = useState(false);
+  const [profileSelectionError, setProfileSelectionError] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
-    if (!profileStorageKey || !profilesQuery.data?.length) return;
-    const saved = Number(window.localStorage.getItem(profileStorageKey));
-    const selected =
-      profilesQuery.data.find((profile) => profile.id === saved) ||
-      profilesQuery.data.find((profile) => profile.isDefault) ||
-      profilesQuery.data[0];
-    if (selected) setActiveProfileId(selected.id);
-  }, [profileStorageKey, profilesQuery.data]);
+    let active = true;
+    if (!user) {
+      setActiveProfileId(null);
+      setProfileGrantResolved(true);
+      return () => {
+        active = false;
+      };
+    }
+    if (!profilesQuery.data) {
+      setProfileGrantResolved(false);
+      return () => {
+        active = false;
+      };
+    }
 
-  const selectProfile = (profile: ViewerProfile) => {
-    setActiveProfileId(profile.id);
-    if (profileStorageKey)
-      window.localStorage.setItem(profileStorageKey, String(profile.id));
+    setProfileGrantResolved(false);
+    void fetch(getApiUrl("/api/me/profiles/active"), { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok)
+          throw new Error("Unable to restore profile selection");
+        return response.json() as Promise<{ profile: ViewerProfile | null }>;
+      })
+      .then(({ profile }) => {
+        if (!active) return;
+        setActiveProfileId(profile?.id ?? null);
+      })
+      .catch(() => {
+        if (active) setActiveProfileId(null);
+      })
+      .finally(() => {
+        if (active) setProfileGrantResolved(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [profilesQuery.data, user?.id]);
+
+  const selectProfile = async (
+    profile: ViewerProfile,
+    pin?: string,
+  ): Promise<boolean> => {
+    setIsSelectingProfile(true);
+    setProfileSelectionError(null);
+    try {
+      const response = await fetch(
+        getApiUrl(`/api/me/profiles/${profile.id}/select`),
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(pin ? { pin } : {}),
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        profile?: ViewerProfile;
+      };
+      if (!response.ok || !payload.profile) {
+        throw new Error(payload.error || "Unable to select this profile.");
+      }
+      setActiveProfileId(payload.profile.id);
+      return true;
+    } catch (error) {
+      setProfileSelectionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to select this profile.",
+      );
+      return false;
+    } finally {
+      setIsSelectingProfile(false);
+    }
   };
 
   const createProfile = (name: string) => {
@@ -241,13 +418,17 @@ export default function CinemaHome() {
       {
         onSuccess: async (profile) => {
           await profilesQuery.refetch();
-          selectProfile(profile);
+          await selectProfile(profile);
         },
       },
     );
   };
 
-  if (homeLoading || genresLoading || (user && profilesQuery.isLoading))
+  if (
+    homeLoading ||
+    genresLoading ||
+    (user && (profilesQuery.isLoading || !profileGrantResolved))
+  )
     return (
       <div className="mx-auto w-full max-w-[1600px] space-y-8 px-4 py-10 sm:px-6 lg:px-8">
         <div className="h-[48vh] animate-pulse rounded-3xl border border-white/[0.06] bg-white/[0.035]" />
@@ -292,6 +473,8 @@ export default function CinemaHome() {
         onSelect={selectProfile}
         onCreate={createProfile}
         isCreating={createViewerProfile.isPending}
+        isSelecting={isSelectingProfile}
+        selectionError={profileSelectionError}
       />
     );
 

@@ -2,17 +2,32 @@ import crypto from "crypto";
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { and, eq, gt, isNull, or } from "drizzle-orm";
-import { db, platformRolesTable, userSessionsTable, usersTable } from "@workspace/db";
+import {
+  db,
+  platformRolesTable,
+  userSessionsTable,
+  usersTable,
+} from "@workspace/db";
 
-const JWT_SECRET = process.env.JWT_SECRET || "kryv-dev-only-secret-do-not-use-in-production";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "kryv-dev-only-secret-do-not-use-in-production";
 const REALTIME_TOKEN_SECRET = process.env.KRYV_REALTIME_TOKEN_SECRET?.trim();
 const SESSION_DAYS = Number.parseInt(process.env.KRYV_SESSION_DAYS ?? "7", 10);
-const SESSION_TTL_MS = Math.max(
-  1,
-  Math.min(Number.isFinite(SESSION_DAYS) ? SESSION_DAYS : 7, 30),
-) * 24 * 60 * 60 * 1000;
+const SESSION_TTL_MS =
+  Math.max(1, Math.min(Number.isFinite(SESSION_DAYS) ? SESSION_DAYS : 7, 30)) *
+  24 *
+  60 *
+  60 *
+  1000;
 const SESSION_COOKIE_NAME =
-  process.env.NODE_ENV === "production" ? "__Host-kryv_session" : "kryv_session";
+  process.env.NODE_ENV === "production"
+    ? "__Host-kryv_session"
+    : "kryv_session";
+const PROFILE_GRANT_COOKIE_NAME =
+  process.env.NODE_ENV === "production"
+    ? "__Host-kryv_profile"
+    : "kryv_profile";
+const PROFILE_GRANT_TTL_MS = 15 * 60 * 1000;
 
 export interface AuthPayload {
   userId: number;
@@ -26,6 +41,7 @@ declare global {
     interface Request {
       user?: AuthPayload;
       authMethod?: "session" | "bearer";
+      activeProfileId?: number;
     }
   }
 }
@@ -95,7 +111,9 @@ export function verifyToken(token: string): AuthPayload | null {
 }
 
 export function signRealtimeToken(payload: AuthPayload): string {
-  return jwt.sign(payload, REALTIME_TOKEN_SECRET || JWT_SECRET, { expiresIn: "15m" });
+  return jwt.sign(payload, REALTIME_TOKEN_SECRET || JWT_SECRET, {
+    expiresIn: "15m",
+  });
 }
 
 export function verifyRealtimeToken(token: string): AuthPayload | null {
@@ -110,7 +128,10 @@ export function verifyRealtimeToken(token: string): AuthPayload | null {
   return verifyToken(token);
 }
 
-async function resolvePlatformRole(userId: number, now: Date): Promise<"user" | "owner"> {
+async function resolvePlatformRole(
+  userId: number,
+  now: Date,
+): Promise<"user" | "owner"> {
   const [ownerGrant] = await db
     .select({ id: platformRolesTable.id })
     .from(platformRolesTable)
@@ -119,7 +140,10 @@ async function resolvePlatformRole(userId: number, now: Date): Promise<"user" | 
         eq(platformRolesTable.userId, userId),
         eq(platformRolesTable.role, "owner"),
         isNull(platformRolesTable.revokedAt),
-        or(isNull(platformRolesTable.expiresAt), gt(platformRolesTable.expiresAt, now)),
+        or(
+          isNull(platformRolesTable.expiresAt),
+          gt(platformRolesTable.expiresAt, now),
+        ),
       ),
     )
     .limit(1);
@@ -150,17 +174,28 @@ export async function establishSession(
 }
 
 /** Revokes only the browser session presented by this request. */
-export async function revokeCurrentSession(req: Request, reason = "logout"): Promise<void> {
+export async function revokeCurrentSession(
+  req: Request,
+  reason = "logout",
+): Promise<void> {
   const token = req.cookies?.[SESSION_COOKIE_NAME];
   if (typeof token !== "string" || !token) return;
   await db
     .update(userSessionsTable)
     .set({ revokedAt: new Date(), revokedReason: reason })
-    .where(and(eq(userSessionsTable.tokenHash, hashOpaqueToken(token)), isNull(userSessionsTable.revokedAt)));
+    .where(
+      and(
+        eq(userSessionsTable.tokenHash, hashOpaqueToken(token)),
+        isNull(userSessionsTable.revokedAt),
+      ),
+    );
 }
 
 /** Invalidates all active sessions for an account, for use after bans, role changes, or credential recovery. */
-export async function revokeAllUserSessions(userId: number, reason: string): Promise<void> {
+export async function revokeAllUserSessions(
+  userId: number,
+  reason: string,
+): Promise<void> {
   await db.transaction(async (txn) => {
     await txn
       .update(usersTable)
@@ -169,16 +204,58 @@ export async function revokeAllUserSessions(userId: number, reason: string): Pro
     await txn
       .update(userSessionsTable)
       .set({ revokedAt: new Date(), revokedReason: reason })
-      .where(and(eq(userSessionsTable.userId, userId), isNull(userSessionsTable.revokedAt)));
+      .where(
+        and(
+          eq(userSessionsTable.userId, userId),
+          isNull(userSessionsTable.revokedAt),
+        ),
+      );
   });
 }
 
 export function clearSessionCookie(res: Response): void {
   res.clearCookie(SESSION_COOKIE_NAME, sessionClearCookieOptions());
+  res.clearCookie(PROFILE_GRANT_COOKIE_NAME, sessionClearCookieOptions());
+}
+
+/**
+ * Stores only a short-lived, signed profile selection in an HttpOnly cookie.
+ * The grant is bound to the current opaque session identifier, so revoking or
+ * rotating the account session automatically invalidates profile selection.
+ */
+export function establishActiveProfileGrant(
+  req: Request,
+  res: Response,
+  profileId: number,
+): void {
+  if (!req.user?.sessionId)
+    throw new Error(
+      "An active session is required to select a viewer profile.",
+    );
+  const expiresAt = new Date(Date.now() + PROFILE_GRANT_TTL_MS);
+  const token = jwt.sign(
+    {
+      userId: req.user.userId,
+      sessionId: req.user.sessionId,
+      profileId,
+      purpose: "viewer_profile",
+    },
+    JWT_SECRET,
+    { expiresIn: Math.floor(PROFILE_GRANT_TTL_MS / 1000) },
+  );
+  res.cookie(PROFILE_GRANT_COOKIE_NAME, token, sessionCookieOptions(expiresAt));
+}
+
+export function clearActiveProfileGrant(res: Response): void {
+  res.clearCookie(PROFILE_GRANT_COOKIE_NAME, sessionClearCookieOptions());
 }
 
 /** Attaches a current, non-banned user from a revocable opaque session cookie. */
-export async function attachUserId(req: Request, _res: Response, next: NextFunction): Promise<void> {
+export async function attachUserId(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const token = req.cookies?.[SESSION_COOKIE_NAME];
     if (typeof token !== "string" || !token) {
@@ -200,13 +277,19 @@ export async function attachUserId(req: Request, _res: Response, next: NextFunct
       )
       .limit(1);
 
-    if (!row || row.user.banned || row.session.sessionVersion !== row.user.sessionVersion) {
+    if (
+      !row ||
+      row.user.banned ||
+      row.session.sessionVersion !== row.user.sessionVersion
+    ) {
       if (row) {
         await db
           .update(userSessionsTable)
           .set({
             revokedAt: now,
-            revokedReason: row.user.banned ? "account_banned" : "session_version_changed",
+            revokedReason: row.user.banned
+              ? "account_banned"
+              : "session_version_changed",
           })
           .where(eq(userSessionsTable.id, row.session.id));
       }
@@ -223,8 +306,35 @@ export async function attachUserId(req: Request, _res: Response, next: NextFunct
     };
     req.authMethod = "session";
 
+    const profileGrant = req.cookies?.[PROFILE_GRANT_COOKIE_NAME];
+    if (typeof profileGrant === "string" && profileGrant) {
+      try {
+        const payload = jwt.verify(profileGrant, JWT_SECRET) as {
+          userId?: unknown;
+          sessionId?: unknown;
+          profileId?: unknown;
+          purpose?: unknown;
+        };
+        if (
+          payload.purpose === "viewer_profile" &&
+          payload.userId === row.user.id &&
+          payload.sessionId === row.session.id &&
+          Number.isInteger(payload.profileId) &&
+          (payload.profileId as number) > 0
+        ) {
+          req.activeProfileId = payload.profileId as number;
+        }
+      } catch {
+        // A stale, expired, or malformed selection grant is ignored. It never
+        // changes account authentication and will be replaced on profile select.
+      }
+    }
+
     // Opportunistic activity tracking never changes the authorization decision.
-    void db.update(userSessionsTable).set({ lastSeenAt: now }).where(eq(userSessionsTable.id, row.session.id));
+    void db
+      .update(userSessionsTable)
+      .set({ lastSeenAt: now })
+      .where(eq(userSessionsTable.id, row.session.id));
   } catch (error) {
     // Authentication failures must not make public routes unavailable.
     console.error("Session authentication failed", error);
@@ -236,8 +346,16 @@ export async function attachUserId(req: Request, _res: Response, next: NextFunct
  * Cookie-authenticated unsafe requests must carry a trusted Origin. This blocks
  * cross-site form/fetch requests from exercising a signed-in browser session.
  */
-export function requireTrustedSessionOrigin(req: Request, res: Response, next: NextFunction): void {
-  if (!req.user || req.authMethod !== "session" || ["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+export function requireTrustedSessionOrigin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (
+    !req.user ||
+    req.authMethod !== "session" ||
+    ["GET", "HEAD", "OPTIONS"].includes(req.method)
+  ) {
     next();
     return;
   }
@@ -250,7 +368,11 @@ export function requireTrustedSessionOrigin(req: Request, res: Response, next: N
   next();
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export function requireAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (!req.user) {
     res.status(401).json({ error: "Unauthorized" });
     return;
@@ -258,7 +380,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   next();
 }
 
-export function requireOwner(req: Request, res: Response, next: NextFunction): void {
+export function requireOwner(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (!req.user) {
     res.status(401).json({ error: "Unauthorized" });
     return;
