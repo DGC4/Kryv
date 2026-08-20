@@ -48,7 +48,8 @@ const ALLOWED_CREATIVE_TYPES = new Set([
 function isHttpsUrl(value: string | null) {
   if (!value) return true;
   try {
-    return new URL(value).protocol === "https:";
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password;
   } catch {
     return false;
   }

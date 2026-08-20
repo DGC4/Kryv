@@ -363,7 +363,12 @@ requireMatch(
 requireMatch(
   adsRoute,
   /ALLOWED_CREATIVE_TYPES/,
-  "Future ad creatives must use an explicit type allowlist.",
+  "Ad decisions must restrict creative types to the reviewed allowlist.",
+);
+requireMatch(
+  adsRoute,
+  /parsed\.protocol === "https:" && !parsed\.username && !parsed\.password/,
+  "Advertising creative and landing URLs must require clean HTTPS authorities.",
 );
 requireMatch(
   adsRoute,
