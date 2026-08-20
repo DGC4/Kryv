@@ -7,27 +7,45 @@ export const THEMES: Theme[] = ['cyan', 'pink', 'green', 'purple', 'orange'];
 const THEME_STORAGE_KEY = 'kryv-theme';
 const THEME_PREFERENCE_STORAGE_KEY = 'kryv-theme-preference';
 
+// Theme values are device-local presentation preferences only. They must never
+// be repurposed for session, profile, entitlement, or identity state.
+function readThemeStorage(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeThemeStorage(key: string, value: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Browser privacy controls may block storage. The current in-memory theme
+    // remains available without changing any authorization state.
+  }
+}
+
 function resolveInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'cyan';
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return THEMES.includes(stored as Theme) ? stored as Theme : 'cyan';
+  const stored = readThemeStorage(THEME_STORAGE_KEY);
+  return THEMES.includes(stored as Theme) ? (stored as Theme) : 'cyan';
 }
 
 function resolveInitialPreference(): ThemePreference {
-  if (typeof window === 'undefined') return 'auto';
-  return window.localStorage.getItem(THEME_PREFERENCE_STORAGE_KEY) === 'locked' ? 'locked' : 'auto';
+  return readThemeStorage(THEME_PREFERENCE_STORAGE_KEY) === 'locked' ? 'locked' : 'auto';
 }
 
 export function applyTheme(theme: Theme) {
   if (typeof document === 'undefined') return;
   document.documentElement.setAttribute('data-theme', theme);
   document.documentElement.classList.add('dark');
-  window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  writeThemeStorage(THEME_STORAGE_KEY, theme);
 }
 
 function persistPreference(preference: ThemePreference) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, preference);
+  writeThemeStorage(THEME_PREFERENCE_STORAGE_KEY, preference);
 }
 
 function nextTheme(theme: Theme): Theme {

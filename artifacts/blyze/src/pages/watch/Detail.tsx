@@ -53,6 +53,30 @@ function formatDuration(value: number | null) {
   return minutes ? `${minutes}:${String(seconds).padStart(2, '0')}` : `0:${String(seconds).padStart(2, '0')}`;
 }
 
+const WATCH_AUTOPLAY_PREFERENCE_KEY = 'kryv-watch-autoplay';
+
+// This is a device-local presentation preference only. It must never hold
+// session, profile, entitlement, playback, or identity data.
+function readAutoplayPreference(): boolean {
+  try {
+    return window.localStorage.getItem(WATCH_AUTOPLAY_PREFERENCE_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+function persistAutoplayPreference(nextValue: boolean): void {
+  try {
+    window.localStorage.setItem(
+      WATCH_AUTOPLAY_PREFERENCE_KEY,
+      nextValue ? 'on' : 'off',
+    );
+  } catch {
+    // Storage can be disabled by browser privacy controls. The in-memory setting
+    // remains effective for this view without changing any authorization state.
+  }
+}
+
 type WatchCommentNode = {
   id: number;
   videoId: number;
@@ -93,7 +117,7 @@ export default function WatchDetail() {
   const [replyTargetId, setReplyTargetId] = useState<number | null>(null);
   const [replyDraft, setReplyDraft] = useState('');
   const [detailsExpanded, setDetailsExpanded] = useState(false);
-  const [autoplayEnabled, setAutoplayEnabled] = useState(() => window.localStorage.getItem('kryv-watch-autoplay') !== 'off');
+  const [autoplayEnabled, setAutoplayEnabled] = useState(readAutoplayPreference);
   usePageMetadata({
     title: video?.title ?? 'Watch video',
     description: video?.description?.trim() || 'Watch a creator release on Kryv Watch.',
@@ -120,7 +144,7 @@ export default function WatchDetail() {
 
   const setAutoplayPreference = useCallback((nextValue: boolean) => {
     setAutoplayEnabled(nextValue);
-    window.localStorage.setItem('kryv-watch-autoplay', nextValue ? 'on' : 'off');
+    persistAutoplayPreference(nextValue);
   }, []);
   const upNext = recommendations.find((candidate) => candidate.playbackSource === 'fastpix' && Boolean(candidate.playbackId));
   const continueToUpNext = useCallback(() => {

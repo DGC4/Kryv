@@ -62,12 +62,30 @@ app.use(
         ],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
+        // Production pages must never retain a silent HTTP subresource path.
+        // Keeping this disabled during local development avoids rewriting the Vite
+        // server or other explicit local HTTP tooling to unavailable HTTPS URLs.
+        upgradeInsecureRequests:
+          process.env.NODE_ENV === "production" ? [] : null,
       },
     },
     // Required for HLS.js to work (uses SharedArrayBuffer / cross-origin isolation)
     crossOriginEmbedderPolicy: false,
-  })
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  }),
 );
+
+// Kryv does not request direct browser access to these sensitive capabilities.
+// Live publishing uses provider-managed streaming credentials rather than camera or
+// microphone capture from this web surface, and crypto checkout does not use the
+// browser Payment Request API. Keep this boundary explicit as new pages are added.
+app.use((_req, res, next) => {
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+  );
+  next();
+});
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // In production, only allow the Render-hosted origin.

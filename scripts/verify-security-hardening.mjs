@@ -42,6 +42,9 @@ const [
   focusModeShell,
   discoverRoute,
   meRoute,
+  appServer,
+  watchDetail,
+  themeStore,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -67,6 +70,9 @@ const [
   source("artifacts/blyze/src/components/focus/FocusModeShell.tsx"),
   source("artifacts/api-server/src/routes/discover.ts"),
   source("artifacts/api-server/src/routes/me.ts"),
+  source("artifacts/api-server/src/app.ts"),
+  source("artifacts/blyze/src/pages/watch/Detail.tsx"),
+  source("artifacts/blyze/src/store/theme.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -450,6 +456,81 @@ requireMatch(
   meRoute,
   /!channel\.matureContent \|\| profileMaturity === "mature"/,
   "Account-summary followed channels must filter mature Live rooms by active profile maturity.",
+);
+requireMatch(
+  appServer,
+  /baseUri:\s*\["'self'"\]/,
+  "Content Security Policy must lock the document base URI to the current origin.",
+);
+requireMatch(
+  appServer,
+  /formAction:\s*\["'self'"\]/,
+  "Content Security Policy must prevent cross-origin form submissions.",
+);
+requireMatch(
+  appServer,
+  /frameAncestors:\s*\["'self'"\]/,
+  "Content Security Policy must prevent third-party framing.",
+);
+requireMatch(
+  appServer,
+  /objectSrc:\s*\["'none'"\]/,
+  "Content Security Policy must prohibit plugin content.",
+);
+requireMatch(
+  appServer,
+  /upgradeInsecureRequests/,
+  "Production Content Security Policy must upgrade insecure subresource requests.",
+);
+requireMatch(
+  appServer,
+  /strict-origin-when-cross-origin/,
+  "Referrer policy must limit cross-origin URL disclosure.",
+);
+requireMatch(
+  appServer,
+  /Permissions-Policy/,
+  "Server responses must set an explicit sensitive-browser-capability policy.",
+);
+requireMatch(
+  appServer,
+  /camera=\(\), geolocation=\(\), microphone=\(\), payment=\(\), usb=\(\)/,
+  "Sensitive browser capabilities must remain disabled unless separately reviewed.",
+);
+requireMatch(
+  watchDetail,
+  /WATCH_AUTOPLAY_PREFERENCE_KEY/,
+  "Watch browser storage must be limited to an explicit autoplay presentation preference key.",
+);
+requireMatch(
+  watchDetail,
+  /function readAutoplayPreference\(\): boolean[\s\S]*?catch[\s\S]*?return true/,
+  "Watch autoplay must safely default when browser storage is unavailable.",
+);
+requireMatch(
+  watchDetail,
+  /function persistAutoplayPreference[\s\S]*?catch/,
+  "Watch autoplay persistence must not turn browser privacy controls into a page failure.",
+);
+forbidMatch(
+  watchDetail,
+  /localStorage\.(getItem|setItem)\([^\n]*(auth|session|profile|entitlement)/i,
+  "Watch local storage must never hold authentication, profile, or entitlement state.",
+);
+requireMatch(
+  themeStore,
+  /function readThemeStorage[\s\S]*?catch[\s\S]*?return null/,
+  "Theme storage reads must safely default when browser storage is unavailable.",
+);
+requireMatch(
+  themeStore,
+  /function writeThemeStorage[\s\S]*?catch/,
+  "Theme storage writes must not turn browser privacy controls into a page failure.",
+);
+forbidMatch(
+  themeStore,
+  /localStorage\.(getItem|setItem)\([^\n]*(auth|session|profile|entitlement)/i,
+  "Theme storage must never hold authentication, profile, or entitlement state.",
 );
 
 requireMatch(
