@@ -88,6 +88,7 @@ export default function KryvPlayer({
 }: KryvPlayerProps) {
   const playerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const settingsId = useId();
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimeoutRef = useRef<number | null>(null);
@@ -768,6 +769,7 @@ export default function KryvPlayer({
               <div className="relative">
                 <button
                   type="button"
+                  ref={settingsButtonRef}
                   onClick={() => setShowSettings((current) => !current)}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full text-white/80 transition hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label="Player settings"
@@ -782,6 +784,15 @@ export default function KryvPlayer({
                     id={settingsId}
                     role="dialog"
                     aria-label="Playback settings"
+                    onKeyDown={(event) => {
+                      if (event.key !== "Escape") return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setShowSettings(false);
+                      requestAnimationFrame(() =>
+                        settingsButtonRef.current?.focus(),
+                      );
+                    }}
                     className="absolute bottom-12 right-0 w-56 rounded-xl border border-white/15 bg-[#0b0d13]/95 p-2 text-sm text-white shadow-2xl backdrop-blur-xl"
                   >
                     <div className="flex items-center gap-2 border-b border-white/[0.08] px-2.5 py-2 text-xs font-semibold text-white/75">
