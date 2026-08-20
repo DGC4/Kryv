@@ -49,6 +49,7 @@ const [
   routeRegistry,
   worker,
   videosRoute,
+  videoSerializer,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -81,6 +82,7 @@ const [
   source("artifacts/api-server/src/routes/index.ts"),
   source("artifacts/api-server/src/worker.ts"),
   source("artifacts/api-server/src/routes/videos.ts"),
+  source("artifacts/api-server/src/lib/videoSerializer.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -649,6 +651,31 @@ requireMatch(
   videosRoute,
   /clean HTTPS URLs/,
   "Watch music-credit validation must clearly reject malformed or credential-bearing external URLs.",
+);
+requireMatch(
+  videosRoute,
+  /\.innerJoin\(channelsTable, eq\(channelsTable\.id, videosTable\.channelId\)\)/,
+  "Watch browse must hydrate channel summaries through a database join rather than per-video queries.",
+);
+requireMatch(
+  videosRoute,
+  /\.leftJoin\(categoriesTable, eq\(categoriesTable\.id, videosTable\.categoryId\)\)/,
+  "Watch browse must hydrate category names through a database join rather than per-video queries.",
+);
+requireMatch(
+  videosRoute,
+  /ilike\(videosTable\.title, literalIlikePattern/,
+  "Watch search must run as a database-side literal case-insensitive filter.",
+);
+requireMatch(
+  videosRoute,
+  /toVideoSummaryFromRelations/,
+  "Watch browse must use the batched relation-aware serializer.",
+);
+requireMatch(
+  videoSerializer,
+  /export function toVideoSummaryFromRelations/,
+  "The relation-aware Watch summary serializer must remain available for batched browse results.",
 );
 
 requireMatch(

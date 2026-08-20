@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { db, categoriesTable, channelsTable, moderationCasesTable, videoCommentsTable, videoMusicCreditsTable, videosTable, usersTable } from "@workspace/db";
 import {
   ListVideosQueryParams,
@@ -29,7 +29,11 @@ import {
   ListVideoCommentsResponse,
 } from "@workspace/api-zod";
 import { requireAuth, attachUserId } from "../lib/auth";
-import { toVideoSummary, toVideoDetail, toVideoMusicCredit } from "../lib/videoSerializer";
+import {
+  toVideoSummaryFromRelations,
+  toVideoDetail,
+  toVideoMusicCredit,
+} from "../lib/videoSerializer";
 import { createFastPixDirectUpload, FastPixNotConfiguredError, getFastPixOnDemandMediaStatus } from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
 import { writeAuditLog } from "../lib/operations";
@@ -55,31 +59,15 @@ function optionalHttpsUrl(value: string | undefined) {
   }
 }
 
+function literalIlikePattern(value: string) {
+  return `%${value.replace(/[\\%_]/g, "\\$&")}%`;
+}
+
 router.get("/videos", attachUserId, async (req, res): Promise<void> => {
   const query = ListVideosQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
     return;
-  }
-
-  let rows = await db.select().from(videosTable);
-
-  if (query.data.channelId !== undefined) {
-    rows = rows.filter((v) => v.channelId === query.data.channelId);
-  }
-  if (query.data.contentType) {
-    rows = rows.filter((v) => v.contentType === query.data.contentType);
-  }
-  if (query.data.search) {
-    const needle = query.data.search.toLowerCase();
-    rows = rows.filter((v) => v.title.toLowerCase().includes(needle));
-  }
-  if (query.data.categorySlug) {
-    const [category] = await db
-      .select()
-      .from(categoriesTable)
-      .where(eq(categoriesTable.slug, query.data.categorySlug));
-    rows = category ? rows.filter((v) => v.categoryId === category.id) : [];
   }
 
   let ownChannelId: number | null = null;
@@ -95,12 +83,59 @@ router.get("/videos", attachUserId, async (req, res): Promise<void> => {
   // Watch browse is public inventory: only ready creator uploads are public.
   // A signed-in channel owner may retain visibility of their own in-progress
   // uploads for Creator Studio, but no other unfinished or Cinema media leaks.
-  rows = rows.filter((video) => (
-    video.contentType === "upload"
-    && (video.uploadStatus === "ready" || video.channelId === ownChannelId)
-  ));
+  const conditions = [
+    eq(videosTable.contentType, "upload"),
+    ownChannelId === null
+      ? eq(videosTable.uploadStatus, "ready")
+      : or(
+          eq(videosTable.uploadStatus, "ready"),
+          eq(videosTable.channelId, ownChannelId),
+        ),
+  ];
 
-  const results = await Promise.all(rows.map(toVideoSummary));
+  if (query.data.channelId !== undefined) {
+    conditions.push(eq(videosTable.channelId, query.data.channelId));
+  }
+  if (query.data.contentType) {
+    conditions.push(eq(videosTable.contentType, query.data.contentType));
+  }
+  if (query.data.search?.trim()) {
+    conditions.push(
+      ilike(videosTable.title, literalIlikePattern(query.data.search.trim())),
+    );
+  }
+  if (query.data.categorySlug) {
+    const [category] = await db
+      .select({ id: categoriesTable.id })
+      .from(categoriesTable)
+      .where(eq(categoriesTable.slug, query.data.categorySlug))
+      .limit(1);
+    if (!category) {
+      res.json(ListVideosResponse.parse([]));
+      return;
+    }
+    conditions.push(eq(videosTable.categoryId, category.id));
+  }
+
+  const rows = await db
+    .select({
+      video: videosTable,
+      channel: {
+        slug: channelsTable.slug,
+        displayName: channelsTable.displayName,
+        avatarUrl: channelsTable.avatarUrl,
+      },
+      categoryName: categoriesTable.name,
+    })
+    .from(videosTable)
+    .innerJoin(channelsTable, eq(channelsTable.id, videosTable.channelId))
+    .leftJoin(categoriesTable, eq(categoriesTable.id, videosTable.categoryId))
+    .where(and(...conditions))
+    .orderBy(desc(videosTable.createdAt));
+
+  const results = rows.map((row) =>
+    toVideoSummaryFromRelations(row.video, row.channel, row.categoryName),
+  );
   res.json(ListVideosResponse.parse(results));
 });
 

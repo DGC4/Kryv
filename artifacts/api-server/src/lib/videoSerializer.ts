@@ -4,10 +4,14 @@ import {
   categoriesTable,
   channelsTable,
   videoMusicCreditsTable,
+  type Channel,
   type Video,
   type VideoMusicCredit,
 } from "@workspace/db";
-import { categoryNameFor } from "./channelSerializer";
+type VideoSummaryChannel =
+  | Pick<Channel, "slug" | "displayName" | "avatarUrl">
+  | null
+  | undefined;
 
 function publicPlaybackSource(video: Video): "fastpix" | "youtube" {
   // `playback_source` was introduced after early Watch records existed and is
@@ -19,16 +23,11 @@ function publicPlaybackSource(video: Video): "fastpix" | "youtube" {
     : "fastpix";
 }
 
-export async function toVideoSummary(video: Video) {
-  const [channel, categoryName] = await Promise.all([
-    db
-      .select()
-      .from(channelsTable)
-      .where(eq(channelsTable.id, video.channelId))
-      .then((rows) => rows[0]),
-    categoryNameFor(video.categoryId),
-  ]);
-
+export function toVideoSummaryFromRelations(
+  video: Video,
+  channel: VideoSummaryChannel,
+  categoryName: string | null,
+) {
   return {
     id: video.id,
     title: video.title,
@@ -55,6 +54,29 @@ export async function toVideoSummary(video: Video) {
       | "errored",
     createdAt: video.createdAt,
   };
+}
+
+export async function toVideoSummary(video: Video) {
+  const [channel, category] = await Promise.all([
+    db
+      .select({
+        slug: channelsTable.slug,
+        displayName: channelsTable.displayName,
+        avatarUrl: channelsTable.avatarUrl,
+      })
+      .from(channelsTable)
+      .where(eq(channelsTable.id, video.channelId))
+      .then((rows) => rows[0]),
+    video.categoryId === null
+      ? Promise.resolve(null)
+      : db
+          .select({ name: categoriesTable.name })
+          .from(categoriesTable)
+          .where(eq(categoriesTable.id, video.categoryId))
+          .then((rows) => rows[0] ?? null),
+  ]);
+
+  return toVideoSummaryFromRelations(video, channel, category?.name ?? null);
 }
 
 export function toVideoMusicCredit(credit: VideoMusicCredit) {
