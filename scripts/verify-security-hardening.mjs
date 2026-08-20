@@ -33,6 +33,7 @@ const [
   cinemaRoute,
   apiSpec,
   adsRoute,
+  adReceiptDesign,
   adSlot,
   chartComponent,
   liveChannelRoute,
@@ -88,6 +89,7 @@ const [
   source("artifacts/api-server/src/routes/cinema.ts"),
   source("lib/api-spec/openapi.yaml"),
   source("artifacts/api-server/src/routes/ads.ts"),
+  source("KRYV_AD_SIGNED_DELIVERY_RECEIPT_DESIGN.md"),
   source("artifacts/blyze/src/components/ads/AdSlot.tsx"),
   source("artifacts/blyze/src/components/ui/chart.tsx"),
   source("artifacts/api-server/src/routes/channels.ts"),
@@ -370,6 +372,31 @@ requireMatch(
   adsRoute,
   /AD_DELIVERY_RUNTIME_ENABLED\s*=\s*false/,
   "Advertising delivery must remain explicitly disabled during control-plane work.",
+);
+requireMatch(
+  adReceiptDesign,
+  /Advertising delivery remains hard-disabled[\s\S]*?has \*\*not\*\* been promoted to production/,
+  "The signed receipt design must preserve hard-disabled delivery and no-production-promotion status.",
+);
+requireMatch(
+  adReceiptDesign,
+  /Browser events are untrusted telemetry[\s\S]*?must never directly create qualified delivery, bill a campaign, credit a creator, consume a frequency cap, or alter revenue allocation/,
+  "Signed receipt design must prohibit client telemetry from directly affecting delivery accounting or frequency controls.",
+);
+requireMatch(
+  adReceiptDesign,
+  /intentionally not mapped into the active Drizzle application schema and no receipt route exists/,
+  "Signed receipt design must preserve the no-active-schema-and-endpoint boundary before production promotion and launch approval.",
+);
+requireMatch(
+  adReceiptDesign,
+  /HMAC-SHA-256[\s\S]*?constant-time comparison/,
+  "Signed receipt design must require versioned server-side HMAC verification with constant-time comparison.",
+);
+requireMatch(
+  adReceiptDesign,
+  /Required Reconciliation Separation[\s\S]*?Receipt issuance and browser requests do not update these records/,
+  "Signed receipt design must keep impression, budget, creator balance, and revenue state behind separate reconciliation.",
 );
 requireMatch(
   adsRoute,
