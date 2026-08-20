@@ -26,6 +26,7 @@ const [
   renderBlueprint,
   ownerBootstrap,
   channelPage,
+  liveDashboard,
   profileRoute,
   cinemaHome,
   cinemaDetail,
@@ -43,6 +44,7 @@ const [
   source("render.yaml"),
   source("scripts/seed-owner.ts"),
   source("artifacts/blyze/src/pages/live/Channel.tsx"),
+  source("artifacts/blyze/src/pages/dashboard/Live.tsx"),
   source("artifacts/api-server/src/routes/me.ts"),
   source("artifacts/blyze/src/pages/cinema/Home.tsx"),
   source("artifacts/blyze/src/pages/cinema/Detail.tsx"),
@@ -134,6 +136,16 @@ forbidMatch(
   channelPage,
   /Authorization:\s*`Bearer/,
   "Direct client calls must not inject a browser bearer token.",
+);
+forbidMatch(
+  liveDashboard,
+  /navigator\.geolocation/,
+  "Live creator setup must not trigger browser geolocation without a separately reviewed consent flow.",
+);
+forbidMatch(
+  liveDashboard,
+  /fetch\(['"]\/api\/location/,
+  "Live creator setup must not silently collect approximate IP location.",
 );
 forbidMatch(
   cinemaHome,

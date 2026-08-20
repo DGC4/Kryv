@@ -31,9 +31,9 @@ import HlsPlayer from '@/components/video/HlsPlayer';
 import { Button } from '@/components/ui/button';
 import {
   Loader2, Copy, RefreshCcw, Save, Radio, CheckCircle2,
-  Monitor, ExternalLink, MapPin, Wifi,
+  Monitor, ExternalLink, Wifi,
   Settings, BarChart2, Users, MessageSquare, Eye, EyeOff,
-  ChevronRight, Lock, Unlock, Globe, Signal, CreditCard,
+  ChevronRight, Lock, Unlock, Signal, CreditCard,
   Zap, Shield, Crown, Trophy, Vote, Sparkles, Swords, RadioTower, Bell, Wallet,
   Clapperboard, Library, Search, X, LayoutDashboard, Send, Trash2, Clock3, Ban, Camera, Mic, Square,
 } from 'lucide-react';
@@ -41,14 +41,6 @@ import { useToast } from '@/hooks/use-toast';
 import { CreatorStudioNav } from '@/components/CreatorStudioNav';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-interface LocationData {
-  ip: string;
-  city: string | null;
-  region: string | null;
-  country: string | null;
-  resolved: boolean;
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -128,32 +120,6 @@ function SidebarItem({
   );
 }
 
-// ─── Location hook ────────────────────────────────────────────────────────────
-
-function useIpLocation() {
-  const [location, setLocation] = useState<LocationData | null>(null);
-  const [geoGranted, setGeoGranted] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    // IP-based lookup from our backend
-    fetch('/api/location')
-      .then(r => r.json())
-      .then((data: LocationData) => setLocation(data))
-      .catch(() => {});
-
-    // Browser geolocation (non-blocking, best-effort)
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        () => setGeoGranted(true),
-        () => setGeoGranted(false),
-        { timeout: 5000 },
-      );
-    }
-  }, []);
-
-  return { location, geoGranted };
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 type DashTab = 'stream' | 'content' | 'settings' | 'engagement' | 'analytics' | 'revenue' | 'achievements';
@@ -211,7 +177,6 @@ export default function DashboardLive() {
   const [browserPreviewState, setBrowserPreviewState] = useState<'idle' | 'requesting' | 'ready' | 'blocked'>('idle');
   const [browserPreviewError, setBrowserPreviewError] = useState<string | null>(null);
   // Location is intentionally not collected or required for broadcast setup.
-  const [location] = useState<LocationData | null>(null);
   const { data: channelDetail } = useGetChannelBySlug(me?.channel?.slug ?? '', {
     query: { enabled: Boolean(me?.channel) },
   });
@@ -604,20 +569,6 @@ export default function DashboardLive() {
           <p className="text-white/40">Create your channel to start streaming live on Kryv</p>
         </div>
 
-        {/* Location display on creation screen */}
-        {location?.resolved && (
-          <div className="flex items-center gap-2 justify-center mb-6 text-sm text-white/40">
-            <MapPin className="w-3.5 h-3.5 text-primary" />
-            <span>
-              {[location.city, location.region].filter(Boolean).join(', ')}
-              {location.country ? ` · ${location.country}` : ''}
-            </span>
-            <span className="text-white/20 mx-1">·</span>
-            <Globe className="w-3 h-3" />
-            <span className="text-xs">Approximate region</span>
-          </div>
-        )}
-
         <div className="p-6 border border-white/[0.08] rounded-2xl bg-white/[0.02] backdrop-blur">
           <form onSubmit={handleCreateChannel} className="space-y-4">
             <div>
@@ -666,29 +617,6 @@ export default function DashboardLive() {
         <SidebarItem icon={Trophy} label="Achievements" active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')} />
         <SidebarItem icon={BarChart2} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
         <SidebarItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-
-        {/* Location pill at bottom of sidebar */}
-        <div className="mt-auto pt-4 border-t border-white/[0.06]">
-          {location?.resolved ? (
-            <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <MapPin className="w-3 h-3 text-primary" />
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Location</span>
-              </div>
-              <p className="text-xs text-white/70 font-medium">
-                {[location.city, location.region].filter(Boolean).join(', ') || location.country || 'Unknown'}
-              </p>
-              <p className="text-[10px] text-white/30 mt-0.5">Approximate region only</p>
-            </div>
-          ) : (
-            <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-              <div className="flex items-center gap-1.5">
-                <Globe className="w-3 h-3 text-white/30" />
-                <span className="text-[10px] text-white/30">Location sharing is optional</span>
-              </div>
-            </div>
-          )}
-        </div>
       </aside>
 
       {/* ── Main content area ── */}
@@ -701,12 +629,6 @@ export default function DashboardLive() {
             <StatusBadge live={isLive} />
           </div>
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            {location?.resolved && (
-              <div className="hidden sm:flex items-center gap-1.5 text-xs text-white/40">
-                <MapPin className="w-3 h-3 text-primary" />
-                <span>{[location.city, location.region].filter(Boolean).join(', ') || location.country}</span>
-              </div>
-            )}
             <div className="hidden md:block"><CreatorStudioNav active="live" /></div>
             <Button
               onClick={handleGoLive}
