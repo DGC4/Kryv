@@ -149,6 +149,11 @@ requireMatch(
   "Cinema profile selection must call the server-owned selection endpoint.",
 );
 requireMatch(
+  cinemaHome,
+  /maturityFilteredRows/,
+  "Cinema discovery must filter the active profile's hero and rails by maturity setting.",
+);
+requireMatch(
   cinemaDetail,
   /\/me\/profiles\/active/,
   "Cinema detail must hydrate the server-issued active-profile grant before requesting playback data.",

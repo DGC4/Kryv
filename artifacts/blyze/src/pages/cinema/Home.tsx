@@ -23,6 +23,8 @@ import { MediaRail, MediaRailSkeleton } from "@/components/media/MediaRail";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { ViewerProfileManager } from "@/components/cinema/ViewerProfileManager";
 
+const maturityRank = { kids: 0, standard: 1, mature: 2 } as const;
+
 const GENRE_THEMES = [
   "from-red-500/80 via-orange-500/30 to-black",
   "from-violet-500/80 via-fuchsia-500/30 to-black",
@@ -523,9 +525,24 @@ export default function CinemaHome() {
       />
     );
 
-  const { hero, rows } = home || { hero: null, rows: [] };
-  const visibleRows = activeGenre
+  const { hero: catalogHero, rows } = home || { hero: null, rows: [] };
+  const maturityFilteredRows = activeProfile
     ? rows
+        .map((row) => ({
+          ...row,
+          items: row.items.filter(
+            (title) =>
+              maturityRank[title.maturityLevel] <=
+              maturityRank[activeProfile.maturityLevel],
+          ),
+        }))
+        .filter((row) => row.items.length > 0)
+    : rows;
+  const hero = activeProfile
+    ? (maturityFilteredRows[0]?.items[0] ?? null)
+    : catalogHero;
+  const visibleRows = activeGenre
+    ? maturityFilteredRows
         .map((row) => ({
           ...row,
           items: row.items.filter((title) =>
@@ -536,7 +553,7 @@ export default function CinemaHome() {
           ),
         }))
         .filter((row) => row.items.length > 0)
-    : rows;
+    : maturityFilteredRows;
   const hasVisibleTitles = activeGenre
     ? visibleRows.some((row) => row.items.length > 0)
     : Boolean(hero) || visibleRows.some((row) => row.items.length > 0);
