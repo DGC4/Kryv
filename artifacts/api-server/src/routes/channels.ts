@@ -23,6 +23,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, attachUserId } from "../lib/auth";
 import {
+  toChannelSummaries,
   toChannelSummary,
   toChannelDetail,
   uniqueChannelSlug,
@@ -98,7 +99,7 @@ router.get("/channels", attachUserId, async (req, res): Promise<void> => {
   // Most-viewed broadcasts lead every live list, including category pages.
   rows.sort((a, b) => b.viewerCount - a.viewerCount);
 
-  const results = await Promise.all(rows.map(toChannelSummary));
+  const results = await toChannelSummaries(rows);
   res.json(ListChannelsResponse.parse(results));
 });
 

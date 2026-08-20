@@ -1,4 +1,4 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import {
   db,
   categoriesTable,
@@ -44,15 +44,19 @@ type ChannelAccess = {
   playbackBlockedReason?: string | null;
 };
 
-async function toChannelSummaryWithAccess(
+type ChannelSummaryMetrics = {
+  followerCount: number;
+  subscriberCount: number;
+  categoryName: string | null;
+};
+
+type ChannelCategoryRow = { id: number; name: string };
+
+export function toChannelSummaryFromMetrics(
   channel: Channel,
+  metrics: ChannelSummaryMetrics,
   access: ChannelAccess = {},
 ) {
-  const [followerCount, subscriberCount, categoryName] = await Promise.all([
-    followerCountFor(channel.id),
-    subscriberCountFor(channel.id),
-    categoryNameFor(channel.categoryId),
-  ]);
   const playbackBlockedReason = access.playbackBlockedReason ?? null;
   const playbackAvailable =
     Boolean(channel.fastpixPlaybackId) && !playbackBlockedReason;
@@ -66,10 +70,10 @@ async function toChannelSummaryWithAccess(
     streamTitle: channel.streamTitle,
     isLive: channel.isLive,
     viewerCount: channel.viewerCount,
-    followerCount,
-    subscriberCount,
+    followerCount: metrics.followerCount,
+    subscriberCount: metrics.subscriberCount,
     categoryId: channel.categoryId,
-    categoryName,
+    categoryName: metrics.categoryName,
     lastStreamAt: channel.lastStreamAt,
     matureContent: channel.matureContent,
     playbackId: playbackAvailable ? channel.fastpixPlaybackId : null,
@@ -77,6 +81,78 @@ async function toChannelSummaryWithAccess(
     playbackAvailable,
     playbackBlockedReason,
   };
+}
+
+export async function toChannelSummaries(channels: Channel[]) {
+  if (channels.length === 0) return [];
+
+  const channelIds = channels.map((channel) => channel.id);
+  const categoryIds = [
+    ...new Set(
+      channels.flatMap((channel) =>
+        channel.categoryId === null ? [] : [channel.categoryId],
+      ),
+    ),
+  ];
+  const [followerRows, subscriberRows, categoryRows] = await Promise.all([
+    db
+      .select({ channelId: followsTable.channelId, n: count() })
+      .from(followsTable)
+      .where(inArray(followsTable.channelId, channelIds))
+      .groupBy(followsTable.channelId),
+    db
+      .select({ channelId: subscriptionsTable.channelId, n: count() })
+      .from(subscriptionsTable)
+      .where(
+        and(
+          inArray(subscriptionsTable.channelId, channelIds),
+          eq(subscriptionsTable.status, "active"),
+        ),
+      )
+      .groupBy(subscriptionsTable.channelId),
+    categoryIds.length === 0
+      ? Promise.resolve<ChannelCategoryRow[]>([])
+      : db
+          .select({ id: categoriesTable.id, name: categoriesTable.name })
+          .from(categoriesTable)
+          .where(inArray(categoriesTable.id, categoryIds)),
+  ]);
+  const followerCounts = new Map(
+    followerRows.map((row) => [row.channelId, Number(row.n)]),
+  );
+  const subscriberCounts = new Map(
+    subscriberRows.map((row) => [row.channelId, Number(row.n)]),
+  );
+  const categoryNames = new Map<number, string>(
+    categoryRows.map((row): [number, string] => [row.id, row.name]),
+  );
+
+  return channels.map((channel) =>
+    toChannelSummaryFromMetrics(channel, {
+      followerCount: followerCounts.get(channel.id) ?? 0,
+      subscriberCount: subscriberCounts.get(channel.id) ?? 0,
+      categoryName:
+        channel.categoryId === null
+          ? null
+          : (categoryNames.get(channel.categoryId) ?? null),
+    }),
+  );
+}
+
+async function toChannelSummaryWithAccess(
+  channel: Channel,
+  access: ChannelAccess = {},
+) {
+  const [followerCount, subscriberCount, categoryName] = await Promise.all([
+    followerCountFor(channel.id),
+    subscriberCountFor(channel.id),
+    categoryNameFor(channel.categoryId),
+  ]);
+  return toChannelSummaryFromMetrics(
+    channel,
+    { followerCount, subscriberCount, categoryName },
+    access,
+  );
 }
 
 export async function toChannelSummary(channel: Channel) {

@@ -50,6 +50,7 @@ const [
   worker,
   videosRoute,
   videoSerializer,
+  channelSerializer,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -83,6 +84,7 @@ const [
   source("artifacts/api-server/src/worker.ts"),
   source("artifacts/api-server/src/routes/videos.ts"),
   source("artifacts/api-server/src/lib/videoSerializer.ts"),
+  source("artifacts/api-server/src/lib/channelSerializer.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -676,6 +678,31 @@ requireMatch(
   videoSerializer,
   /export function toVideoSummaryFromRelations/,
   "The relation-aware Watch summary serializer must remain available for batched browse results.",
+);
+requireMatch(
+  liveChannelRoute,
+  /toChannelSummaries\(rows\)/,
+  "The primary Live directory must use the batched channel summary path.",
+);
+requireMatch(
+  channelSerializer,
+  /export async function toChannelSummaries/,
+  "The batched Live channel summary helper must remain available for directory-scale hydration.",
+);
+requireMatch(
+  channelSerializer,
+  /groupBy\(followsTable\.channelId\)/,
+  "Live summary follower counts must aggregate by channel in the database.",
+);
+requireMatch(
+  channelSerializer,
+  /groupBy\(subscriptionsTable\.channelId\)/,
+  "Live summary active-subscriber counts must aggregate by channel in the database.",
+);
+requireMatch(
+  channelSerializer,
+  /inArray\(categoriesTable\.id, categoryIds\)/,
+  "Live summary category names must be hydrated in one bounded database query.",
 );
 
 requireMatch(
