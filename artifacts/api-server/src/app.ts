@@ -213,6 +213,18 @@ const chatMessageLimiter = rateLimit({
   message: { error: "You are sending chat messages too quickly. Please slow down." },
 });
 
+// Profile unlock and PIN-reset operations perform password-hash verification. Keep a
+// separate network-level brake in addition to the persistent per-profile PIN-failure
+// throttle, so a distributed client cannot turn expensive verification into abuse.
+const profileSecurityLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:profile-security:"),
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many profile security requests. Please try again later." },
+});
+
 // General API limiter — prevents DDoS / scraping
 // Guest invoice creation is intentionally stricter than general API traffic because it
 // creates provider-side payment intents for unauthenticated visitors.
@@ -243,6 +255,12 @@ app.use("/api/channels", (req, res, next) => {
   if (req.path.includes("/stream")) return streamKeyLimiter(req, res, next);
   if (/^\/\d+\/messages\/?$/.test(req.path)) return chatMessageLimiter(req, res, next);
   if (/^\/\d+\/guest-(tip|subscription-gift)\/?$/.test(req.path)) return guestCheckoutLimiter(req, res, next);
+  next();
+});
+app.use("/api/me/profiles", (req, res, next) => {
+  if (req.method === "POST" && /^\/\d+\/(select|pin)\/?$/.test(req.path)) {
+    return profileSecurityLimiter(req, res, next);
+  }
   next();
 });
 app.use("/api", apiLimiter);

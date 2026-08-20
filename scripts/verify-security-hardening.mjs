@@ -45,6 +45,7 @@ const [
   appServer,
   watchDetail,
   themeStore,
+  plisioLib,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -73,6 +74,7 @@ const [
   source("artifacts/api-server/src/app.ts"),
   source("artifacts/blyze/src/pages/watch/Detail.tsx"),
   source("artifacts/blyze/src/store/theme.ts"),
+  source("artifacts/api-server/src/lib/plisio.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -498,6 +500,26 @@ requireMatch(
   "Sensitive browser capabilities must remain disabled unless separately reviewed.",
 );
 requireMatch(
+  appServer,
+  /const profileSecurityLimiter = rateLimit/,
+  "Profile unlock and PIN-reset routes must retain a dedicated network-level rate limiter.",
+);
+requireMatch(
+  appServer,
+  /kryv:rate:profile-security:/,
+  "Profile security rate-limit state must be independently scoped.",
+);
+requireMatch(
+  appServer,
+  /app\.use\("\/api\/me\/profiles"[\s\S]*?req\.method === "POST"[\s\S]*?\(select\|pin\)[\s\S]*?profileSecurityLimiter/,
+  "Profile security rate limiting must remain narrowly scoped to POST select and PIN-reset paths.",
+);
+requireMatch(
+  profileRoute,
+  /PROFILE_PIN_MAX_ATTEMPTS/,
+  "Profile PIN verification must retain its persistent per-profile failure throttle.",
+);
+requireMatch(
   watchDetail,
   /WATCH_AUTOPLAY_PREFERENCE_KEY/,
   "Watch browser storage must be limited to an explicit autoplay presentation preference key.",
@@ -531,6 +553,26 @@ forbidMatch(
   themeStore,
   /localStorage\.(getItem|setItem)\([^\n]*(auth|session|profile|entitlement)/i,
   "Theme storage must never hold authentication, profile, or entitlement state.",
+);
+requireMatch(
+  plisioLib,
+  /function validatedInvoiceUrl/,
+  "Provider invoice URLs must pass a dedicated server-side validation boundary.",
+);
+requireMatch(
+  plisioLib,
+  /invoiceUrl\.protocol !== "https:"/,
+  "Provider invoice URLs must require HTTPS.",
+);
+requireMatch(
+  plisioLib,
+  /isAllowedInvoiceHost/,
+  "Provider invoice URLs must be host allowlisted before client delivery.",
+);
+requireMatch(
+  plisioLib,
+  /invoiceUrl: validatedInvoiceUrl\(payload\.data\.invoice_url\)/,
+  "Kryv checkout responses must use the validated provider invoice URL.",
 );
 
 requireMatch(

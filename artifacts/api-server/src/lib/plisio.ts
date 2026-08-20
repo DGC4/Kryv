@@ -84,6 +84,40 @@ function getAppUrl() {
   return appUrl.origin;
 }
 
+function allowedInvoiceHosts() {
+  const configured = process.env.PLISIO_CHECKOUT_ALLOWED_HOSTS
+    ?.split(",")
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean);
+  return configured?.length ? configured : ["plisio.net"];
+}
+
+function isAllowedInvoiceHost(hostname: string, allowedHosts: string[]) {
+  return allowedHosts.some(
+    (allowedHost) =>
+      hostname === allowedHost || hostname.endsWith(`.${allowedHost}`),
+  );
+}
+
+function validatedInvoiceUrl(value: unknown) {
+  if (typeof value !== "string" || value.length > 2_048) {
+    throw new Error("Plisio returned an invalid invoice URL.");
+  }
+  let invoiceUrl: URL;
+  try {
+    invoiceUrl = new URL(value);
+  } catch {
+    throw new Error("Plisio returned an invalid invoice URL.");
+  }
+  if (
+    invoiceUrl.protocol !== "https:" ||
+    !isAllowedInvoiceHost(invoiceUrl.hostname.toLowerCase(), allowedInvoiceHosts())
+  ) {
+    throw new Error("Plisio returned an untrusted invoice URL.");
+  }
+  return invoiceUrl.toString();
+}
+
 function allowedCoins() {
   const configured = process.env.PLISIO_ALLOWED_COINS
     ?.split(",")
@@ -353,7 +387,7 @@ export async function createPlisioInvoice(input: {
     const expiresAt = payload.data.expire_utc ? new Date(Number(payload.data.expire_utc) * 1000) : null;
     return {
       transactionId: String(payload.data.txn_id),
-      invoiceUrl: String(payload.data.invoice_url),
+      invoiceUrl: validatedInvoiceUrl(payload.data.invoice_url),
       selectedCurrency: isSupportedKryvCryptoCode(payload.data.currency) ? payload.data.currency.toUpperCase() : selectedCurrency ?? null,
       expiresAt: expiresAt && !Number.isNaN(expiresAt.getTime()) ? expiresAt : null,
       paymentAddress: typeof payload.data.wallet_hash === "string" && payload.data.wallet_hash.length <= 256 ? payload.data.wallet_hash : null,
