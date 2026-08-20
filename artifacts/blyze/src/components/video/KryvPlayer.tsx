@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type CSSProperties,
@@ -87,6 +88,7 @@ export default function KryvPlayer({
 }: KryvPlayerProps) {
   const playerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const settingsId = useId();
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimeoutRef = useRef<number | null>(null);
   const touchTapTimeoutRef = useRef<number | null>(null);
@@ -770,11 +772,18 @@ export default function KryvPlayer({
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full text-white/80 transition hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label="Player settings"
                   aria-expanded={showSettings}
+                  aria-haspopup="dialog"
+                  aria-controls={settingsId}
                 >
                   <Settings2 className="h-4 w-4" />
                 </button>
                 {showSettings && (
-                  <div className="absolute bottom-12 right-0 w-56 rounded-xl border border-white/15 bg-[#0b0d13]/95 p-2 text-sm text-white shadow-2xl backdrop-blur-xl">
+                  <div
+                    id={settingsId}
+                    role="dialog"
+                    aria-label="Playback settings"
+                    className="absolute bottom-12 right-0 w-56 rounded-xl border border-white/15 bg-[#0b0d13]/95 p-2 text-sm text-white shadow-2xl backdrop-blur-xl"
+                  >
                     <div className="flex items-center gap-2 border-b border-white/[0.08] px-2.5 py-2 text-xs font-semibold text-white/75">
                       <Gauge className="h-3.5 w-3.5 text-primary" />
                       Playback settings
