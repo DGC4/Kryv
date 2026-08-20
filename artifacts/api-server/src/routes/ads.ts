@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import {
   adBreaksTable,
   adCampaignsTable,
   adCreativesTable,
+  adImpressionsTable,
   adRulesTable,
   channelsTable,
   consentPreferencesTable,
@@ -30,6 +31,32 @@ type AdSurface = "live" | "watch" | "cinema" | "clip";
 
 function noDecision(reason: string) {
   return GetAdDecisionResponse.parse({ eligible: false, reason, adBreak: null, creative: null });
+}
+
+type FrequencyPolicy = {
+  maxImpressionsPerViewer: number;
+  windowMinutes: number;
+};
+
+function parseFrequencyPolicy(value: unknown): FrequencyPolicy | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  const maxImpressionsPerViewer = candidate.maxImpressionsPerViewer;
+  const windowMinutes = candidate.windowMinutes;
+  if (
+    !Number.isInteger(maxImpressionsPerViewer) ||
+    !Number.isInteger(windowMinutes) ||
+    (maxImpressionsPerViewer as number) < 1 ||
+    (maxImpressionsPerViewer as number) > 1000 ||
+    (windowMinutes as number) < 1 ||
+    (windowMinutes as number) > 43_200
+  ) {
+    return null;
+  }
+  return {
+    maxImpressionsPerViewer: maxImpressionsPerViewer as number,
+    windowMinutes: windowMinutes as number,
+  };
 }
 
 function toAdBreak(row: typeof adBreaksTable.$inferSelect) {
@@ -127,6 +154,7 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
       fundingStatus: adCampaignsTable.fundingStatus,
       startsAt: adCampaignsTable.startsAt,
       endsAt: adCampaignsTable.endsAt,
+      frequencyPolicy: adCampaignsTable.frequencyPolicy,
     })
     .from(adCampaignsTable)
     .where(eq(adCampaignsTable.id, rule.campaignId))
@@ -147,6 +175,46 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
     res.json(noDecision("ad_campaign_promotion_not_approved"));
     return;
   }
+
+  // Future delivery is fail-closed: campaigns need an explicit bounded policy.
+  // Only qualified/completed impressions count toward a viewer's cap.
+  const frequencyPolicy = parseFrequencyPolicy(campaign.frequencyPolicy);
+  if (!frequencyPolicy) {
+    res.json(noDecision("frequency_policy_required"));
+    return;
+  }
+  if (!userId) {
+    res.json(noDecision("viewer_identity_required_for_frequency_cap"));
+    return;
+  }
+  const frequencyCutoff = new Date(
+    now.getTime() - frequencyPolicy.windowMinutes * 60_000,
+  );
+  const viewerScope =
+    profileId !== undefined
+      ? eq(adImpressionsTable.profileId, profileId)
+      : eq(adImpressionsTable.userId, userId);
+  const [frequency] = await db
+    .select({ count: sql<number>`COALESCE(COUNT(*), 0)::int` })
+    .from(adImpressionsTable)
+    .innerJoin(adBreaksTable, eq(adImpressionsTable.adBreakId, adBreaksTable.id))
+    .innerJoin(adRulesTable, eq(adBreaksTable.adRuleId, adRulesTable.id))
+    .where(
+      and(
+        eq(adRulesTable.campaignId, campaign.id),
+        viewerScope,
+        gte(adImpressionsTable.createdAt, frequencyCutoff),
+        sql`${adImpressionsTable.deliveryStatus} IN ('qualified', 'completed')`,
+      ),
+    );
+  if (
+    Number(frequency?.count ?? 0) >=
+    frequencyPolicy.maxImpressionsPerViewer
+  ) {
+    res.json(noDecision("frequency_cap_reached"));
+    return;
+  }
+
   const [creative] = await db
     .select({ id: adCreativesTable.id, label: adCreativesTable.label, creativeType: adCreativesTable.creativeType, assetUrl: adCreativesTable.assetUrl, durationSeconds: adCreativesTable.durationSeconds, landingUrl: adCreativesTable.landingUrl })
     .from(adCreativesTable)

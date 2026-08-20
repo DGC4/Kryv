@@ -205,6 +205,21 @@ requireMatch(
   "Future profile-aware advertising decisions must require the session-bound active profile grant.",
 );
 requireMatch(
+  adsRoute,
+  /frequency_policy_required/,
+  "Future advertising decisions must fail closed when campaign frequency policy is absent or malformed.",
+);
+requireMatch(
+  adsRoute,
+  /frequency_cap_reached/,
+  "Future advertising decisions must enforce a qualified-delivery frequency cap.",
+);
+requireMatch(
+  adsRoute,
+  /deliveryStatus\} IN \('qualified', 'completed'\)/,
+  "Only qualified or completed delivery records may count toward advertising frequency policy.",
+);
+requireMatch(
   adSlot,
   /AD_DELIVERY_PRESENTATION_ENABLED\s*=\s*false/,
   "Advertising presentation must remain independently disabled by default.",
