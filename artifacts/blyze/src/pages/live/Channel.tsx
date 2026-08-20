@@ -89,6 +89,7 @@ export default function LiveChannel() {
   const { data: chatSettings } = useGetChannelChatSettings(channelId!, {
     query: { enabled: !!channelId, refetchInterval: 10000 },
   });
+  const chatRequiresFollow = Boolean(chatSettings?.followersOnly && !channel?.isFollowing && !channel?.isOwner);
   const { data: engagement, refetch: refetchEngagement } = useGetChannelEngagement(channelId!, {
     query: { enabled: !!channelId, refetchInterval: 10000 },
   });
@@ -229,6 +230,13 @@ export default function LiveChannel() {
     if (!chatInput.trim() || !channelId) return;
     if (!isSignedIn) {
       openAccountEntry('chat');
+      return;
+    }
+    if (chatRequiresFollow) {
+      toast({
+        title: 'Follow to chat',
+        description: 'This creator has enabled follower-only chat. Follow the channel, then try again.',
+      });
       return;
     }
     createMessage.mutate(
@@ -883,7 +891,13 @@ export default function LiveChannel() {
         </div>
 
         <div className={`${chatCollapsed ? 'hidden' : ''} border-t border-white/10 bg-[#0b0d13]/[0.98] p-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] sm:block sm:bg-black/20 sm:p-4`}>
-          {isSignedIn ? (
+          {isSignedIn && chatRequiresFollow ? (
+            <div className="rounded-xl border border-primary/20 bg-primary/[0.06] p-3 text-center">
+              <p className="text-xs font-black text-white">This creator uses follower-only chat</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-white/50">Follow {channel.displayName} to participate. Watching and safety reporting remain available.</p>
+              <Button type="button" size="sm" onClick={handleFollowToggle} disabled={follow.isPending || unfollow.isPending} className="mt-3 min-h-9 font-black">{follow.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Heart className="mr-1.5 h-3.5 w-3.5" />} Follow channel</Button>
+            </div>
+          ) : isSignedIn ? (
             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
               <input
                 type="text"

@@ -172,6 +172,11 @@ requireMatch(
   /AD_DELIVERY_RUNTIME_ENABLED\s*=\s*false/,
   "Advertising delivery must remain explicitly disabled during control-plane work.",
 );
+requireMatch(
+  adsRoute,
+  /req\.activeProfileId !== profileId/,
+  "Future profile-aware advertising decisions must require the session-bound active profile grant.",
+);
 
 requireMatch(
   migration,

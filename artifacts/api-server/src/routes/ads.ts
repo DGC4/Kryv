@@ -67,6 +67,12 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
       res.json(noDecision("profile_authentication_required"));
       return;
     }
+    if (!req.activeProfileId || req.activeProfileId !== profileId) {
+      // The client profile ID is only request context. A future profile-aware
+      // decision must be bound to the short-lived HttpOnly selection grant.
+      res.json(noDecision("active_profile_grant_required"));
+      return;
+    }
     const [profile] = await db.select({ id: viewerProfilesTable.id }).from(viewerProfilesTable).where(and(eq(viewerProfilesTable.id, profileId), eq(viewerProfilesTable.userId, userId))).limit(1);
     if (!profile) {
       res.json(noDecision("profile_not_authorized"));
