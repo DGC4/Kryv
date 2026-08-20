@@ -80,6 +80,22 @@ export interface ChannelSummary {
   playbackBlockedReason: string | null;
 }
 
+export interface ChannelPage {
+  items: ChannelSummary[];
+  /**
+     * Total channels visible to the active profile for the applied filters.
+     * @minimum 0
+     */
+  total: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
 export type ChannelDetail = ChannelSummary & ({
   /** @nullable */
   description: string | null;
@@ -2712,6 +2728,17 @@ export type ListChannelsParams = {
 categorySlug?: string;
 live?: boolean;
 search?: string;
+/**
+ * Maximum number of visible channels in one response page.
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * Zero-based visible-channel offset for stable directory pagination.
+ * @minimum 0
+ */
+offset?: number;
 };
 
 export type ChannelHeartbeat200 = {

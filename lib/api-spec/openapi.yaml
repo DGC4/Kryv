@@ -859,15 +859,30 @@ paths:
           required: false
           schema:
             type: string
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of visible channels in one response page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 48
+        - name: offset
+          in: query
+          required: false
+          description: Zero-based visible-channel offset for stable directory pagination.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         "200":
-          description: List of channels
+          description: Bounded visible channel page
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ChannelSummary"
+                $ref: "#/components/schemas/ChannelPage"
     post:
       operationId: createChannel
       tags: [channels]
@@ -3398,6 +3413,21 @@ components:
         playbackBlockedReason:
           description: Viewer-safe explanation when playback is unavailable because the active profile is not eligible.
           type: ["string", "null"]
+
+    ChannelPage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelSummary"
+        total:
+          description: Total channels visible to the active profile for the applied filters.
+          type: integer
+          minimum: 0
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0 }
 
     ChannelDetail:
       allOf:

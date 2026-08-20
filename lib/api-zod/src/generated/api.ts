@@ -1008,13 +1008,32 @@ export const ReportActivityPresenceResponse = zod.void()
 /**
  * @summary Browse channels, optionally filtered by category, live status, or search
  */
+export const listChannelsQueryLimitDefault = 48;
+export const listChannelsQueryLimitMax = 100;
+
+export const listChannelsQueryOffsetDefault = 0;
+export const listChannelsQueryOffsetMin = 0;
+
+
+
 export const ListChannelsQueryParams = zod.object({
   "categorySlug": zod.coerce.string().optional(),
   "live": zod.coerce.boolean().optional(),
-  "search": zod.coerce.string().optional()
+  "search": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().min(1).max(listChannelsQueryLimitMax).default(listChannelsQueryLimitDefault).describe('Maximum number of visible channels in one response page.'),
+  "offset": zod.coerce.number().min(listChannelsQueryOffsetMin).default(listChannelsQueryOffsetDefault).describe('Zero-based visible-channel offset for stable directory pagination.')
 })
 
-export const ListChannelsResponseItem = zod.object({
+export const listChannelsResponseTotalMin = 0;
+
+export const listChannelsResponseLimitMax = 100;
+
+export const listChannelsResponseOffsetMin = 0;
+
+
+
+export const ListChannelsResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "slug": zod.string(),
   "displayName": zod.string(),
@@ -1033,8 +1052,11 @@ export const ListChannelsResponseItem = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
   "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
   "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+})),
+  "total": zod.number().min(listChannelsResponseTotalMin).describe('Total channels visible to the active profile for the applied filters.'),
+  "limit": zod.number().min(1).max(listChannelsResponseLimitMax),
+  "offset": zod.number().min(listChannelsResponseOffsetMin)
 })
-export const ListChannelsResponse = zod.array(ListChannelsResponseItem)
 
 
 /**

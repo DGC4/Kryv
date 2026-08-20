@@ -213,6 +213,17 @@ const chatMessageLimiter = rateLimit({
   message: { error: "You are sending chat messages too quickly. Please slow down." },
 });
 
+// Cinema discussion writes create persistent community content. Keep comment and
+// removal actions below the broad API ceiling while leaving maturity-gated reads open.
+const cinemaDiscussionLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:cinema-discussion:"),
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many Cinema discussion actions. Please slow down." },
+});
+
 // Profile unlock and PIN-reset operations perform password-hash verification. Keep a
 // separate network-level brake in addition to the persistent per-profile PIN-failure
 // throttle, so a distributed client cannot turn expensive verification into abuse.
@@ -273,6 +284,15 @@ app.use("/api/channels", (req, res, next) => {
 app.use("/api/me/profiles", (req, res, next) => {
   if (req.method === "POST" && /^\/\d+\/(select|pin)\/?$/.test(req.path)) {
     return profileSecurityLimiter(req, res, next);
+  }
+  next();
+});
+app.use("/api/cinema/titles", (req, res, next) => {
+  if (
+    (req.method === "POST" || req.method === "DELETE")
+    && /^\/\d+\/comments(?:\/\d+)?\/?$/.test(req.path)
+  ) {
+    return cinemaDiscussionLimiter(req, res, next);
   }
   next();
 });

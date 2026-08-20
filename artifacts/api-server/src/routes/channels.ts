@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, isNull, or, sql, type SQL } from "drizzle-orm";
 import { db, channelsTable, chatMessagesTable, followsTable, streamSessionsTable, subscriptionsTable, tipsTable } from "@workspace/db";
 import {
   ListChannelsQueryParams,
@@ -35,6 +35,8 @@ import {
 } from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
 import { getActiveProfileMaturity, getLiveMaturityRestriction } from "../lib/liveMaturity";
+import { refreshLiveChannelViewerCounts } from "../lib/liveViewerRefresh";
+import { literalIlikePattern } from "../lib/search";
 
 const router: IRouter = Router();
 
@@ -45,62 +47,88 @@ router.get("/channels", attachUserId, async (req, res): Promise<void> => {
     return;
   }
 
-  let rows = await db.select().from(channelsTable);
-
+  const conditions: SQL[] = [];
   if (query.data.live !== undefined) {
-    rows = rows.filter((c) => c.isLive === query.data.live);
+    conditions.push(eq(channelsTable.isLive, query.data.live));
   }
-  if (query.data.search) {
-    const needle = query.data.search.toLowerCase();
-    rows = rows.filter(
-      (c) =>
-        c.displayName.toLowerCase().includes(needle) ||
-        (c.streamTitle ?? "").toLowerCase().includes(needle),
+  const search = query.data.search?.trim();
+  if (search) {
+    const pattern = literalIlikePattern(search);
+    const searchCondition = or(
+      ilike(channelsTable.displayName, pattern),
+      ilike(channelsTable.streamTitle, pattern),
     );
+    if (searchCondition) conditions.push(searchCondition);
   }
   if (query.data.categorySlug) {
     const { categoriesTable } = await import("@workspace/db");
     const [category] = await db
-      .select()
+      .select({ id: categoriesTable.id })
       .from(categoriesTable)
-      .where(eq(categoriesTable.slug, query.data.categorySlug));
-    rows = category ? rows.filter((c) => c.categoryId === category.id) : [];
+      .where(eq(categoriesTable.slug, query.data.categorySlug))
+      .limit(1);
+    if (!category) {
+      res.json(
+        ListChannelsResponse.parse({
+          items: [],
+          total: 0,
+          limit: query.data.limit,
+          offset: query.data.offset,
+        }),
+      );
+      return;
+    }
+    conditions.push(eq(channelsTable.categoryId, category.id));
   }
+
+  // Mature rooms are omitted before both counting and paging unless the
+  // session-bound active profile explicitly permits mature Live content.
+  // This keeps totals and page boundaries from leaking ineligible inventory.
+  const profileMaturity = await getActiveProfileMaturity(req);
+  if (profileMaturity !== "mature") {
+    conditions.push(eq(channelsTable.matureContent, false));
+  }
+  const whereCondition = conditions.length ? and(...conditions) : undefined;
+  const orderedChannels = db
+    .select()
+    .from(channelsTable)
+    .orderBy(desc(channelsTable.viewerCount), desc(channelsTable.id));
+  const channelCount = db
+    .select({ total: sql<number>`count(*)`.mapWith(Number) })
+    .from(channelsTable);
+  let [rows, countRows] = whereCondition
+    ? await Promise.all([
+      orderedChannels
+        .where(whereCondition)
+        .limit(query.data.limit)
+        .offset(query.data.offset),
+      channelCount.where(whereCondition),
+    ])
+    : await Promise.all([
+      orderedChannels.limit(query.data.limit).offset(query.data.offset),
+      channelCount,
+    ]);
 
   if (query.data.live === true) {
     // Keep direct category links current even when the viewer did not visit the home directory first.
-    rows = await Promise.all(
-      rows.map(async (channel) => {
-        if (!channel.fastpixLiveStreamId) return channel;
-        const viewerCount = await getFastPixViewerCount(channel.fastpixLiveStreamId);
-        if (viewerCount === null || viewerCount === channel.viewerCount) return channel;
-
-        await db
-          .update(channelsTable)
-          .set({
-            viewerCount,
-            peakViewerCount: sql`GREATEST(${channelsTable.peakViewerCount}, ${viewerCount})`,
-          })
-          .where(eq(channelsTable.id, channel.id));
-        return { ...channel, viewerCount, peakViewerCount: Math.max(channel.peakViewerCount, viewerCount) };
-      }),
-    );
+    rows = await refreshLiveChannelViewerCounts(rows);
   }
 
-  // Mature rooms are omitted from discovery unless the session-bound active
-  // profile explicitly permits mature Live content. This prevents a kids or
-  // standard profile from learning a mature room's title, audience metadata,
-  // or HLS playback reference through browse, search, and category rails.
-  const profileMaturity = await getActiveProfileMaturity(req);
-  rows = rows.filter(
-    (channel) => !channel.matureContent || profileMaturity === "mature",
+  // Most-viewed broadcasts lead every live list, including category pages.
+  rows.sort(
+    (left, right) =>
+      right.viewerCount - left.viewerCount || right.id - left.id,
   );
 
-  // Most-viewed broadcasts lead every live list, including category pages.
-  rows.sort((a, b) => b.viewerCount - a.viewerCount);
-
   const results = await toChannelSummaries(rows);
-  res.json(ListChannelsResponse.parse(results));
+  res.json(
+    ListChannelsResponse.parse({
+      items: results,
+      total: countRows[0]?.total ?? 0,
+      limit: query.data.limit,
+      offset: query.data.offset,
+    }),
+  );
 });
 
 router.post("/channels", requireAuth, async (req, res): Promise<void> => {

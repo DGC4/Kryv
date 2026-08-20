@@ -6,17 +6,18 @@ import { ArrowLeft, CircleDot, Loader2, Users } from 'lucide-react';
 
 export default function LiveCategory() {
   const { slug } = useParams<{ slug: string }>();
-  const { data: channels, isLoading: channelsLoading, isError: channelsError, refetch: refetchChannels } = useListChannels(
-    { categorySlug: slug, live: true },
+  const { data: channelsPage, isLoading: channelsLoading, isError: channelsError, refetch: refetchChannels } = useListChannels(
+    { categorySlug: slug, live: true, limit: 48, offset: 0 },
     { query: { refetchInterval: 10000 } },
   );
+  const channels = channelsPage?.items ?? [];
   const { data: categories, isLoading: categoriesLoading, isError: categoriesError, refetch: refetchCategories } = useListCategories(
     { kind: 'live_game' },
     { query: { refetchInterval: 10000 } },
   );
   const category = categories?.find(item => item.slug === slug);
   const viewerCount = category?.viewerCount ?? 0;
-  const liveCount = category?.liveChannelCount ?? channels?.length ?? 0;
+  const liveCount = category?.liveChannelCount ?? channelsPage?.total ?? 0;
   const visual = getLiveCategoryVisual(category?.slug || slug);
 
   if (channelsLoading || categoriesLoading) {
@@ -49,7 +50,7 @@ export default function LiveCategory() {
 
       <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <div className="mb-5 flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" /><h2 className="text-xl font-black text-white">Channels live in {category?.name || slug}</h2></div>
-        {channels && channels.length > 0 ? (
+        {channels.length > 0 ? (
           <div className="grid grid-cols-1 gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {channels.map(channel => <ChannelCard key={channel.id} channel={channel} />)}
           </div>

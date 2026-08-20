@@ -1,18 +1,21 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { clipsTable, db, categoriesTable, channelsTable, followsTable, videosTable } from "@workspace/db";
 import { GetDiscoverSummaryResponse, SearchKryvQueryParams } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
 import { toChannelSummaries } from "../lib/channelSerializer";
 import { toVideoSummaryFromRelations } from "../lib/videoSerializer";
-import { getFastPixViewerCount } from "../lib/fastpix";
 import { readSharedJson, writeSharedJson } from "../lib/realtime";
 import { getPublishedCinemaTitles } from "../lib/cinemaCatalog";
 import { getActiveProfileMaturity } from "../lib/liveMaturity";
 import { literalIlikePattern } from "../lib/search";
+import { refreshLiveChannelViewerCounts } from "../lib/liveViewerRefresh";
 
 const router: IRouter = Router();
 const DISCOVER_SUMMARY_CACHE_KEY = "kryv:discover:summary:v1";
+let discoverSummaryRefresh: Promise<
+  ReturnType<typeof GetDiscoverSummaryResponse.parse>
+> | null = null;
 
 function rankLiveCandidate(channel: typeof channelsTable.$inferSelect) {
   // Candidate generation intentionally stays bounded and explainable until Kryv has
@@ -33,85 +36,98 @@ function normalizedSearchTerm(query: string) {
 
 router.get("/discover/summary", async (_req, res): Promise<void> => {
   const cached = await readSharedJson<unknown>(DISCOVER_SUMMARY_CACHE_KEY);
-  const cachedResponse = cached ? GetDiscoverSummaryResponse.safeParse(cached) : null;
+  const cachedResponse = cached
+    ? GetDiscoverSummaryResponse.safeParse(cached)
+    : null;
   if (cachedResponse?.success) {
     res.json(cachedResponse.data);
     return;
   }
 
-  const persistedLiveChannels = await db
-    .select()
-    .from(channelsTable)
-    .where(eq(channelsTable.isLive, true))
-    .orderBy(desc(channelsTable.viewerCount))
-    .limit(200);
+  if (!discoverSummaryRefresh) {
+    discoverSummaryRefresh = (async () => {
+      const persistedLiveChannels = await db
+        .select()
+        .from(channelsTable)
+        .where(eq(channelsTable.isLive, true))
+        .orderBy(desc(channelsTable.viewerCount))
+        .limit(200);
 
-  // FastPix owns concurrent-viewer measurement. Refresh the small live set here
-  // before ranking the public directory, using the helper's 10-second cache.
-  const liveChannels = await Promise.all(
-    persistedLiveChannels.map(async (channel) => {
-      if (!channel.fastpixLiveStreamId) return channel;
-      const viewerCount = await getFastPixViewerCount(channel.fastpixLiveStreamId);
-      if (viewerCount === null || viewerCount === channel.viewerCount) return channel;
-
-      await db
-        .update(channelsTable)
-        .set({
-          viewerCount,
-          peakViewerCount: sql`GREATEST(${channelsTable.peakViewerCount}, ${viewerCount})`,
-        })
-        .where(eq(channelsTable.id, channel.id));
-      return { ...channel, viewerCount, peakViewerCount: Math.max(channel.peakViewerCount, viewerCount) };
-    }),
-  );
-  // This response is cached across viewers, so mature rooms never enter the
-  // shared public payload. Profile-eligible discovery remains available through
-  // the non-cached, profile-aware Live directory endpoint.
-  const visibleLiveChannels = liveChannels.filter(
-    (channel) => !channel.matureContent,
-  );
-  visibleLiveChannels.sort((a, b) => {
-    const scoreDifference = rankLiveCandidate(b) - rankLiveCandidate(a);
-    return scoreDifference !== 0 ? scoreDifference : b.viewerCount - a.viewerCount;
-  });
-
-  const featuredChannels = await toChannelSummaries(
-    visibleLiveChannels.slice(0, 8),
-  );
-
-  const categories = await db.select().from(categoriesTable);
-  const topCategories = await Promise.all(
-    categories.slice(0, 8).map(async (category) => {
-      const channelsInCategory = visibleLiveChannels.filter(
-        (c) => c.categoryId === category.id,
+      // FastPix owns concurrent-viewer measurement. Refresh the bounded live set before
+      // ranking the public directory, but cap concurrent provider requests and writes.
+      const liveChannels = await refreshLiveChannelViewerCounts(
+        persistedLiveChannels,
       );
-      return {
-        id: category.id,
-        name: category.name,
-        slug: category.slug,
-        kind: category.kind as "live_game" | "genre",
-        imageUrl: category.imageUrl,
-        liveChannelCount: channelsInCategory.length,
-        viewerCount: channelsInCategory.reduce(
-          (sum, c) => sum + c.viewerCount,
-          0,
-        ),
-      };
-    }),
-  );
+      // This response is cached across viewers, so mature rooms never enter the
+      // shared public payload. Profile-eligible discovery remains available through
+      // the non-cached, profile-aware Live directory endpoint.
+      const visibleLiveChannels = liveChannels.filter(
+        (channel) => !channel.matureContent,
+      );
+      visibleLiveChannels.sort((a, b) => {
+        const scoreDifference = rankLiveCandidate(b) - rankLiveCandidate(a);
+        return scoreDifference !== 0
+          ? scoreDifference
+          : b.viewerCount - a.viewerCount;
+      });
 
-  const totalViewers = visibleLiveChannels.reduce((sum, c) => sum + c.viewerCount, 0);
+      const featuredChannels = await toChannelSummaries(
+        visibleLiveChannels.slice(0, 8),
+      );
 
-  const response = GetDiscoverSummaryResponse.parse({
-    featuredChannels,
-    topCategories,
-    totalLiveChannels: visibleLiveChannels.length,
-    totalViewers,
-  });
-  // Viewer counts remain provider-authoritative. The short cache only collapses
-  // simultaneous public-directory refreshes across the control-plane instances.
-  writeSharedJson(DISCOVER_SUMMARY_CACHE_KEY, response, 10).catch(() => undefined);
-  res.json(response);
+      const categories = await db
+        .select()
+        .from(categoriesTable)
+        .where(eq(categoriesTable.kind, "live_game"));
+      const topCategories = categories
+        .map((category) => {
+          const channelsInCategory = visibleLiveChannels.filter(
+            (channel) => channel.categoryId === category.id,
+          );
+          return {
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+            kind: "live_game" as const,
+            imageUrl: category.imageUrl,
+            liveChannelCount: channelsInCategory.length,
+            viewerCount: channelsInCategory.reduce(
+              (sum, channel) => sum + channel.viewerCount,
+              0,
+            ),
+          };
+        })
+        .filter((category) => category.liveChannelCount > 0)
+        .sort(
+          (left, right) =>
+            right.viewerCount - left.viewerCount
+            || right.liveChannelCount - left.liveChannelCount
+            || left.name.localeCompare(right.name),
+        )
+        .slice(0, 8);
+
+      const totalViewers = visibleLiveChannels.reduce(
+        (sum, channel) => sum + channel.viewerCount,
+        0,
+      );
+      const response = GetDiscoverSummaryResponse.parse({
+        featuredChannels,
+        topCategories,
+        totalLiveChannels: visibleLiveChannels.length,
+        totalViewers,
+      });
+      // Viewer counts remain provider-authoritative. The short cache collapses public
+      // directory refreshes across control-plane instances; this in-process promise
+      // coalesces the cache-miss burst on the current instance.
+      writeSharedJson(DISCOVER_SUMMARY_CACHE_KEY, response, 10).catch(
+        () => undefined,
+      );
+      return response;
+    })().finally(() => {
+      discoverSummaryRefresh = null;
+    });
+  }
+  res.json(await discoverSummaryRefresh);
 });
 
 router.get("/search", async (req, res): Promise<void> => {

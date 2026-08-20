@@ -123,6 +123,7 @@ export * from './channelModerationActionInput';
 export * from './channelModerationActionInputAction';
 export * from './channelModerationActionResult';
 export * from './channelModerationActionResultAction';
+export * from './channelPage';
 export * from './channelSafetyReport';
 export * from './channelSafetyReportInput';
 export * from './channelSafetyReportInputReason';

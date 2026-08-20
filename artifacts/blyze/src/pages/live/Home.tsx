@@ -143,10 +143,7 @@ export default function LiveHome() {
       b.liveChannelCount - a.liveChannelCount ||
       a.name.localeCompare(b.name),
   );
-  const totalViewers = liveChannels.reduce(
-    (sum, channel) => sum + (channel.viewerCount ?? 0),
-    0,
-  );
+  const totalViewers = discover?.totalViewers ?? 0;
   const liveCategoryCount = orderedCategories.filter(
     (category) => category.liveChannelCount > 0,
   ).length;

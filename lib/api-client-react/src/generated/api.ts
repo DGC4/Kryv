@@ -74,6 +74,7 @@ import type {
   ChannelInput,
   ChannelModerationActionInput,
   ChannelModerationActionResult,
+  ChannelPage,
   ChannelSafetyReport,
   ChannelSafetyReportInput,
   ChannelSummary,
@@ -2608,9 +2609,9 @@ export const getListChannelsUrl = (params?: ListChannelsParams,) => {
 /**
  * @summary Browse channels, optionally filtered by category, live status, or search
  */
-export const listChannels = async (params?: ListChannelsParams, options?: RequestInit): Promise<ChannelSummary[]> => {
+export const listChannels = async (params?: ListChannelsParams, options?: RequestInit): Promise<ChannelPage> => {
 
-  return customFetch<ChannelSummary[]>(getListChannelsUrl(params),
+  return customFetch<ChannelPage>(getListChannelsUrl(params),
   {
     ...options,
     method: 'GET'

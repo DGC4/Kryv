@@ -65,6 +65,10 @@ const [
   fastpixCspReview,
   cinemaCatalog,
   cinemaDiscussion,
+  liveHome,
+  liveViewerRefresh,
+  creatorDirectory,
+  liveCategoryPage,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -113,6 +117,10 @@ const [
   source("KRYV_FASTPIX_CSP_SCOPE_REVIEW.md"),
   source("artifacts/api-server/src/lib/cinemaCatalog.ts"),
   source("artifacts/blyze/src/components/discussion/CinemaDiscussion.tsx"),
+  source("artifacts/blyze/src/pages/live/Home.tsx"),
+  source("artifacts/api-server/src/lib/liveViewerRefresh.ts"),
+  source("artifacts/blyze/src/pages/creators/Directory.tsx"),
+  source("artifacts/blyze/src/pages/live/Category.tsx"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -444,8 +452,8 @@ requireMatch(
 );
 requireMatch(
   liveChannelRoute,
-  /!channel\.matureContent \|\| profileMaturity === "mature"/,
-  "Live discovery must omit mature channels without an eligible profile.",
+  /profileMaturity !== "mature"[\s\S]*?eq\(channelsTable\.matureContent, false\)/,
+  "Live discovery must omit mature channels at the database boundary without an eligible profile.",
 );
 requireMatch(
   liveChannelRoute,
@@ -573,6 +581,16 @@ requireMatch(
   "Public search must be mounted behind its dedicated rate limiter.",
 );
 requireMatch(
+  appServer,
+  /kryv:rate:cinema-discussion:/,
+  "Cinema discussion writes must have a dedicated shared rate-limit namespace.",
+);
+requireMatch(
+  appServer,
+  /app\.use\("\/api\/cinema\/titles"[\s\S]*?req\.method === "POST"[\s\S]*?req\.method === "DELETE"[\s\S]*?cinemaDiscussionLimiter/,
+  "Cinema discussion action limiting must be narrowly scoped to comment writes and removals.",
+);
+requireMatch(
   searchLib,
   /value\.replace\(\/\[\\\\%_\]\/g, "\\\\\$&"\)/,
   "Literal search patterns must escape PostgreSQL ILIKE wildcard metacharacters.",
@@ -586,6 +604,56 @@ requireMatch(
   discoverRoute,
   /const pattern = literalIlikePattern\(term\)/,
   "Unified Discover search must use the shared literal ILIKE pattern.",
+);
+requireMatch(
+  discoverRoute,
+  /refreshLiveChannelViewerCounts\(\s*persistedLiveChannels/,
+  "Discover must use the shared bounded FastPix viewer-refresh helper.",
+);
+requireMatch(
+  discoverRoute,
+  /let discoverSummaryRefresh:[\s\S]*?if \(!discoverSummaryRefresh\)[\s\S]*?\.finally\(\(\) => \{[\s\S]*?discoverSummaryRefresh = null/,
+  "Discover cache misses must coalesce into one in-process refresh and clear reliably after completion.",
+);
+requireMatch(
+  liveViewerRefresh,
+  /LIVE_VIEWER_REFRESH_CONCURRENCY = 12/,
+  "Live viewer refresh must cap concurrent FastPix requests at a bounded worker count.",
+);
+requireMatch(
+  liveViewerRefresh,
+  /Array\.from\([\s\S]*?Math\.min\(LIVE_VIEWER_REFRESH_CONCURRENCY, channels\.length\)/,
+  "Shared live viewer refresh must use a bounded worker pool rather than one provider request per channel at once.",
+);
+requireMatch(
+  discoverRoute,
+  /where\(eq\(categoriesTable\.kind, "live_game"\)\)[\s\S]*?filter\(\(category\) => category\.liveChannelCount > 0\)[\s\S]*?right\.viewerCount - left\.viewerCount/,
+  "Discover top categories must be active Live categories ranked by audience rather than an arbitrary table slice.",
+);
+requireMatch(
+  apiSpec,
+  /\/channels:[\s\S]*?name: limit[\s\S]*?maximum: 100[\s\S]*?default: 48[\s\S]*?name: offset[\s\S]*?\$ref: "#\/components\/schemas\/ChannelPage"/,
+  "Channel directory must expose a typed bounded page contract.",
+);
+requireMatch(
+  liveChannelRoute,
+  /const conditions: SQL\[\] = \[\][\s\S]*?literalIlikePattern\(search\)[\s\S]*?profileMaturity !== "mature"[\s\S]*?eq\(channelsTable\.matureContent, false\)[\s\S]*?\.limit\(query\.data\.limit\)[\s\S]*?\.offset\(query\.data\.offset\)[\s\S]*?refreshLiveChannelViewerCounts\(rows\)[\s\S]*?total: countRows\[0\]\?\.total/,
+  "Channel directory must apply maturity visibility before bounded SQL paging, count only visible channels, and use the shared viewer refresh helper.",
+);
+requireMatch(
+  creatorDirectory,
+  /channelsPage\?\.items[\s\S]*?channelOffset[\s\S]*?More creators/,
+  "Creator directory must consume the bounded channel page and expose explicit continuation controls.",
+);
+requireMatch(
+  liveCategoryPage,
+  /limit: 48[\s\S]*?channelsPage\?\.items/,
+  "Live category pages must consume a bounded channel page rather than an unbounded array response.",
+);
+requireMatch(
+  channelPage,
+  /limit: 24[\s\S]*?liveRailPage\?\.items/,
+  "Channel detail related-live rail must consume a compact bounded channel page.",
 );
 requireMatch(
   adminRoute,
@@ -971,6 +1039,11 @@ requireMatch(
   cinemaDiscussion,
   /CINEMA_COMMENT_PAGE_SIZE = 25[\s\S]*?commentsPage\?\.items[\s\S]*?Older comments/,
   "Cinema discussion UI must consume the typed page and expose explicit continuation controls.",
+);
+requireMatch(
+  liveHome,
+  /const totalViewers = discover\?\.totalViewers \?\? 0/,
+  "Live hero metrics must use the authoritative Discover all-channel viewer total.",
 );
 
 requireMatch(

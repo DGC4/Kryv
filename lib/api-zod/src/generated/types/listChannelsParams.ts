@@ -10,4 +10,15 @@ export type ListChannelsParams = {
 categorySlug?: string;
 live?: boolean;
 search?: string;
+/**
+ * Maximum number of visible channels in one response page.
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * Zero-based visible-channel offset for stable directory pagination.
+ * @minimum 0
+ */
+offset?: number;
 };

@@ -95,9 +95,10 @@ export default function LiveChannel() {
   const { data: engagement, refetch: refetchEngagement } = useGetChannelEngagement(channelId!, {
     query: { enabled: !!channelId, refetchInterval: 10000 },
   });
-  const { data: liveRailChannels } = useListChannels({ live: true }, {
+  const { data: liveRailPage } = useListChannels({ live: true, limit: 24, offset: 0 }, {
     query: { refetchInterval: 15000 },
   });
+  const liveRailChannels = liveRailPage?.items ?? [];
   const { data: followedLiveChannels } = useListFollowedLiveChannels({
     query: { enabled: isSignedIn, refetchInterval: 15000 },
   });
@@ -515,7 +516,7 @@ export default function LiveChannel() {
     ? `https://stream.fastpix.com/${channel.fastpixPlaybackId || channel.playbackId}.m3u8`
     : null;
   const railChannels = Array.from(
-    new Map([...(followedLiveChannels ?? []), ...(liveRailChannels ?? [])].map((item) => [item.id, item])).values(),
+    new Map([...(followedLiveChannels ?? []), ...liveRailChannels].map((item) => [item.id, item])).values(),
   ).filter((item) => item.id !== channel.id).slice(0, 8);
   const promotionLinks = [
     { label: 'Website', detail: 'Official destination', href: channel.websiteUrl, Icon: Globe2 },
