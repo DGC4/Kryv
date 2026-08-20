@@ -74,6 +74,8 @@ const [
   categoriesRoute,
   clipHome,
   clipDetail,
+  notificationIndexMigration,
+  notificationIndexValidation,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -131,6 +133,8 @@ const [
   source("artifacts/api-server/src/routes/categories.ts"),
   source("artifacts/blyze/src/pages/clips/Home.tsx"),
   source("artifacts/blyze/src/pages/clips/Detail.tsx"),
+  source("lib/db/drizzle/0025_notification_inbox_query_indexes.sql"),
+  source("KRYV_NOTIFICATION_INBOX_INDEXES_NEON_VALIDATION.md"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -1209,6 +1213,26 @@ requireMatch(
   watchIndexValidation,
   /Production-pending[\s\S]*?No production schema change was performed/,
   "Watch index validation evidence must keep the production rollout explicitly pending.",
+);
+requireMatch(
+  notificationIndexMigration,
+  /CREATE INDEX CONCURRENTLY IF NOT EXISTS notifications_user_created_idx[\s\S]*?user_id, created_at DESC, id DESC[\s\S]*?CREATE INDEX CONCURRENTLY IF NOT EXISTS notifications_unread_user_idx[\s\S]*?WHERE is_read = false/,
+  "Production-pending notification inbox indexes must use concurrent independently executed ordering and unread-count statements.",
+);
+requireMatch(
+  notificationIndexValidation,
+  /VALIDATED ON AN ISOLATED NEON BRANCH ONLY[\s\S]*?br-lucky-wind-a6ik3vpo/,
+  "Notification index validation must record isolated-branch evidence.",
+);
+requireMatch(
+  notificationIndexValidation,
+  /No production promotion has occurred[\s\S]*?no production promotion is authorized/,
+  "Notification index validation evidence must explicitly prohibit unapproved production promotion.",
+);
+requireMatch(
+  notificationIndexValidation,
+  /must run outside a transaction/,
+  "Notification index validation must preserve the out-of-transaction concurrent-index operational boundary.",
 );
 requireMatch(
   fastpixLib,
