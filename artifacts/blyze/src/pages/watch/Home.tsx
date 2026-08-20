@@ -9,7 +9,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { VideoCard } from "@/components/VideoCard";
 import { MediaRail, MediaRailSkeleton } from "@/components/media/MediaRail";
@@ -47,6 +47,7 @@ export default function WatchHome() {
   const [activeCategoryId, setActiveCategoryId] = useState<
     number | undefined
   >();
+  const categoryButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const { data: categories = [] } = useListCategories({ kind: "genre" });
   const activeCategory = useMemo(
@@ -73,6 +74,28 @@ export default function WatchHome() {
     categorySlug: activeCategory?.slug,
   });
   const videos = videoPage?.items ?? [];
+
+  const selectCategoryAt = (index: number) => {
+    const category = index === 0 ? undefined : categories[index - 1];
+    setActiveCategoryId(category?.id);
+    if (category) {
+      setSearch("");
+      setInputValue("");
+    }
+  };
+  const moveCategoryFocus = (currentIndex: number, key: string) => {
+    let nextIndex: number | null = null;
+    if (key === "ArrowLeft") nextIndex = currentIndex - 1;
+    if (key === "ArrowRight") nextIndex = currentIndex + 1;
+    if (key === "Home") nextIndex = 0;
+    if (key === "End") nextIndex = categories.length;
+    if (nextIndex === null) return false;
+    const boundedIndex = Math.max(0, Math.min(categories.length, nextIndex));
+    if (boundedIndex === currentIndex && key !== "Home" && key !== "End") return false;
+    selectCategoryAt(boundedIndex);
+    categoryButtonRefs.current[boundedIndex]?.focus();
+    return true;
+  };
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
@@ -168,22 +191,39 @@ export default function WatchHome() {
 
       <div
         className="-mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:mt-8 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="toolbar"
         aria-label="Watch categories"
       >
         <button
-          onClick={() => setActiveCategoryId(undefined)}
+          type="button"
+          ref={(element) => {
+            categoryButtonRefs.current[0] = element;
+          }}
+          onClick={() => selectCategoryAt(0)}
+          onKeyDown={(event) => {
+            if (moveCategoryFocus(0, event.key)) event.preventDefault();
+          }}
+          tabIndex={activeCategoryId === undefined ? 0 : -1}
+          aria-pressed={activeCategoryId === undefined}
+          aria-keyshortcuts="ArrowLeft ArrowRight Home End"
           className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-bold transition-all ${activeCategoryId === undefined ? "bg-primary text-primary-foreground" : "border border-white/[0.09] bg-white/[0.045] text-white/65 hover:border-white/20 hover:bg-white/[0.08] hover:text-white"}`}
         >
           All releases
         </button>
-        {categories.map((category) => (
+        {categories.map((category, index) => (
           <button
             key={category.id}
-            onClick={() => {
-              setActiveCategoryId(category.id);
-              setSearch("");
-              setInputValue("");
+            type="button"
+            ref={(element) => {
+              categoryButtonRefs.current[index + 1] = element;
             }}
+            onClick={() => selectCategoryAt(index + 1)}
+            onKeyDown={(event) => {
+              if (moveCategoryFocus(index + 1, event.key)) event.preventDefault();
+            }}
+            tabIndex={activeCategoryId === category.id ? 0 : -1}
+            aria-pressed={activeCategoryId === category.id}
+            aria-keyshortcuts="ArrowLeft ArrowRight Home End"
             className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-bold transition-all ${activeCategoryId === category.id ? "bg-primary text-primary-foreground" : "border border-white/[0.09] bg-white/[0.045] text-white/65 hover:border-white/20 hover:bg-white/[0.08] hover:text-white"}`}
           >
             {category.name}

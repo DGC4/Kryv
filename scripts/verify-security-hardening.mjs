@@ -1079,6 +1079,11 @@ requireMatch(
   "Watch home must accept the creator-profile channel filter in its bounded browse query.",
 );
 requireMatch(
+  watchHome,
+  /categoryButtonRefs[\s\S]*?moveCategoryFocus[\s\S]*?ArrowLeft ArrowRight Home End/,
+  "Watch categories must retain roving directional focus controls for keyboard and future remote navigation.",
+);
+requireMatch(
   creatorProfilePage,
   /watchTotal > watch\.length[\s\S]*?\/watch\?channelId=\$\{channel\.id\}/,
   "Creator profiles must make capped Watch rails explicit and link to their complete filtered catalog.",
