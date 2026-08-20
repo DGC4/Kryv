@@ -508,13 +508,28 @@ requireMatch(
 );
 requireMatch(
   discoverRoute,
-  /!channel\.matureContent \|\| profileMaturity === "mature"/,
-  "Live search and followed-live discovery must filter mature channels by active profile maturity.",
+  /const channelVisibilityCondition =[\s\S]*?eq\(channelsTable\.matureContent, false\)[\s\S]*?\.where\(and\([\s\S]*?channelVisibilityCondition[\s\S]*?\.limit\(8\)/,
+  "Live search must apply profile maturity visibility in SQL before its bounded channel result limit.",
 );
 requireMatch(
   discoverRoute,
-  /const visibleClips = clips\.filter/,
-  "Live search must build a mature-profile-filtered clip result set.",
+  /eq\(clipsTable\.processingStatus, "ready"\)[\s\S]*?channelVisibilityCondition[\s\S]*?\.limit\(8\)/,
+  "Clip search must apply profile maturity visibility in SQL before its bounded result limit.",
+);
+forbidMatch(
+  discoverRoute,
+  /const visibleChannels = channels\.filter|const visibleClips = clips\.filter/,
+  "Discover search must not consume bounded channel or Clip capacity before post-query maturity filtering.",
+);
+requireMatch(
+  discoverRoute,
+  /eq\(videosTable\.contentType, "upload"\)[\s\S]*?eq\(videosTable\.uploadStatus, "ready"\)/,
+  "Unified Watch search must contain only ready public upload inventory rather than Cinema records.",
+);
+requireMatch(
+  discoverRoute,
+  /router\.get\("\/me\/followed\/live"[\s\S]*?getActiveProfileMaturity\(req\)[\s\S]*?eq\(channelsTable\.isLive, true\)[\s\S]*?profileMaturity === "mature" \? undefined : eq\(channelsTable\.matureContent, false\)[\s\S]*?\.limit\(50\)[\s\S]*?toChannelSummaries\(rows/,
+  "Followed Live must apply profile maturity visibility in SQL before its bounded result limit.",
 );
 requireMatch(
   meRoute,
@@ -908,8 +923,8 @@ requireMatch(
 );
 requireMatch(
   discoverRoute,
-  /channels: await toChannelSummaries\(visibleChannels\)/,
-  "Discover search Live results must use the batched summary path.",
+  /channels: await toChannelSummaries\(channels\)/,
+  "Discover search Live results must use the batched summary path after SQL-side profile filtering.",
 );
 requireMatch(
   discoverRoute,
@@ -918,8 +933,8 @@ requireMatch(
 );
 requireMatch(
   discoverRoute,
-  /toChannelSummaries\(visibleRows\.map\(\(\{ channel \}\) => channel\)\)/,
-  "Followed-live discovery must use the batched summary path.",
+  /toChannelSummaries\(rows\.map\(\(\{ channel \}\) => channel\)\)/,
+  "Followed-live discovery must use the batched summary path after SQL-side profile filtering.",
 );
 requireMatch(
   meRoute,
