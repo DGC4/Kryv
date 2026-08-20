@@ -242,6 +242,11 @@ requireMatch(
   "Cinema discovery must filter the active profile's hero and rails by maturity setting.",
 );
 requireMatch(
+  cinemaHome,
+  /profileButtonRefs[\s\S]*?moveProfileFocus[\s\S]*?ArrowLeft ArrowRight ArrowUp ArrowDown Home End/,
+  "Cinema profile entry must retain directional remote focus controls for future TV navigation.",
+);
+requireMatch(
   cinemaDetail,
   /\/me\/profiles\/active/,
   "Cinema detail must hydrate the server-issued active-profile grant before requesting playback data.",
@@ -375,6 +380,11 @@ requireMatch(
   adsRoute,
   /req\.activeProfileId !== profileId/,
   "Future profile-aware advertising decisions must require the session-bound active profile grant.",
+);
+requireMatch(
+  adsRoute,
+  /const userId = req\.user\?\.userId;[\s\S]*?if \(!userId\) \{[\s\S]*?viewer_identity_required_for_frequency_cap[\s\S]*?return;[\s\S]*?const \[consent\][\s\S]*?const \[adBreak\]/,
+  "Anonymous advertising decisions must fail closed before consent, campaign, creative, or frequency-history work.",
 );
 requireMatch(
   adsRoute,
@@ -600,6 +610,16 @@ requireMatch(
   appServer,
   /app\.use\("\/api\/search", searchLimiter\);/,
   "Public search must be mounted behind its dedicated rate limiter.",
+);
+requireMatch(
+  appServer,
+  /kryv:rate:ad-decision:/,
+  "Advertising decisions must retain a dedicated shared rate-limit namespace before delivery launch.",
+);
+requireMatch(
+  appServer,
+  /app\.use\("\/api\/ads\/decision", adDecisionLimiter\);/,
+  "Advertising decision evaluation must be narrowly mounted behind its dedicated rate limiter.",
 );
 requireMatch(
   appServer,
@@ -982,6 +1002,16 @@ requireMatch(
   "Watch detail must reuse its joined channel and category relations when serializing.",
 );
 requireMatch(
+  videosRoute,
+  /router\.post\("\/videos\/:id\/provider-status"[\s\S]*?categoryName: categoriesTable\.name[\s\S]*?toVideoDetail\(updated, req\.user!\.userId, \{ channel, categoryName \}\)/,
+  "FastPix Watch-status refresh must reuse its joined channel and category relations when serializing.",
+);
+requireMatch(
+  videosRoute,
+  /router\.patch\("\/videos\/:id"[\s\S]*?categoryName: categoriesTable\.name[\s\S]*?toVideoDetail\(updated, userId, \{ channel, categoryName \}\)/,
+  "Authorized Watch updates must reuse their joined channel and category relations when serializing.",
+);
+requireMatch(
   apiSpec,
   /name: limit[\s\S]*?maximum: 100[\s\S]*?default: 48[\s\S]*?name: offset/,
   "Watch browse must expose bounded typed limit and offset query controls.",
@@ -1115,6 +1145,11 @@ requireMatch(
   liveHome,
   /const totalViewers = discover\?\.totalViewers \?\? 0/,
   "Live hero metrics must use the authoritative Discover all-channel viewer total.",
+);
+requireMatch(
+  liveHome,
+  /liveFeedTabRefs[\s\S]*?moveLiveFeedTab[\s\S]*?ArrowLeft ArrowRight Home End/,
+  "Live feed tabs must retain roving directional focus controls for keyboard and future remote navigation.",
 );
 
 requireMatch(

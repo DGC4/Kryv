@@ -500,22 +500,24 @@ router.post("/videos/:id/provider-status", requireAuth, async (req, res): Promis
     return;
   }
 
-  const [video] = await db
-    .select()
+  const [row] = await db
+    .select({
+      video: videosTable,
+      channel: channelsTable,
+      categoryName: categoriesTable.name,
+    })
     .from(videosTable)
+    .innerJoin(channelsTable, eq(channelsTable.id, videosTable.channelId))
+    .leftJoin(categoriesTable, eq(categoriesTable.id, videosTable.categoryId))
     .where(eq(videosTable.id, params.data.id))
     .limit(1);
-  if (!video) {
+  if (!row) {
     res.status(404).json({ error: "Video not found" });
     return;
   }
 
-  const [channel] = await db
-    .select({ ownerUserId: channelsTable.ownerUserId })
-    .from(channelsTable)
-    .where(eq(channelsTable.id, video.channelId))
-    .limit(1);
-  const isChannelOwner = channel?.ownerUserId === req.user!.userId;
+  const { video, channel, categoryName } = row;
+  const isChannelOwner = channel.ownerUserId === req.user!.userId;
   const isPlatformOwner = req.user!.role === "owner";
   if (!isChannelOwner && !isPlatformOwner) {
     res.status(403).json({ error: "Only the channel owner or platform owner can refresh this media status." });
@@ -565,7 +567,11 @@ router.post("/videos/:id/provider-status", requireAuth, async (req, res): Promis
       },
     });
 
-    res.json(GetVideoResponse.parse(await toVideoDetail(updated, req.user!.userId)));
+    res.json(
+      GetVideoResponse.parse(
+        await toVideoDetail(updated, req.user!.userId, { channel, categoryName }),
+      ),
+    );
   } catch (err) {
     if (err instanceof FastPixNotConfiguredError) {
       res.status(503).json({ error: err.message });
@@ -793,20 +799,23 @@ router.patch("/videos/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const [video] = await db
-    .select()
+  const [row] = await db
+    .select({
+      video: videosTable,
+      channel: channelsTable,
+      categoryName: categoriesTable.name,
+    })
     .from(videosTable)
+    .innerJoin(channelsTable, eq(channelsTable.id, videosTable.channelId))
+    .leftJoin(categoriesTable, eq(categoriesTable.id, videosTable.categoryId))
     .where(eq(videosTable.id, params.data.id));
-  if (!video) {
+  if (!row) {
     res.status(404).json({ error: "Video not found" });
     return;
   }
 
-  const [channel] = await db
-    .select()
-    .from(channelsTable)
-    .where(eq(channelsTable.id, video.channelId));
-  if (channel?.ownerUserId !== userId) {
+  const { video, channel, categoryName } = row;
+  if (channel.ownerUserId !== userId) {
     res.status(403).json({ error: "Not the video owner" });
     return;
   }
@@ -817,7 +826,11 @@ router.patch("/videos/:id", requireAuth, async (req, res): Promise<void> => {
     .where(eq(videosTable.id, video.id))
     .returning();
 
-  res.json(UpdateVideoResponse.parse(await toVideoDetail(updated, userId)));
+  res.json(
+    UpdateVideoResponse.parse(
+      await toVideoDetail(updated, userId, { channel, categoryName }),
+    ),
+  );
 });
 
 router.delete("/videos/:id", requireAuth, async (req, res): Promise<void> => {

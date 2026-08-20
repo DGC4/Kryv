@@ -16,7 +16,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/lib/auth-store";
 import { getApiUrl } from "@/lib/api";
 import { MediaRail, MediaRailSkeleton } from "@/components/media/MediaRail";
@@ -122,6 +122,27 @@ function CinemaProfileGate({
     null,
   );
   const [pin, setPin] = useState("");
+  const profileButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  useEffect(() => {
+    profileButtonRefs.current[0]?.focus();
+  }, [profiles.length]);
+
+  const moveProfileFocus = (currentIndex: number, key: string) => {
+    const columns = window.matchMedia("(min-width: 640px)").matches ? 3 : 2;
+    let nextIndex: number | null = null;
+    if (key === "ArrowLeft") nextIndex = currentIndex - 1;
+    if (key === "ArrowRight") nextIndex = currentIndex + 1;
+    if (key === "ArrowUp") nextIndex = currentIndex - columns;
+    if (key === "ArrowDown") nextIndex = currentIndex + columns;
+    if (key === "Home") nextIndex = 0;
+    if (key === "End") nextIndex = profiles.length - 1;
+    if (nextIndex === null) return false;
+    const boundedIndex = Math.max(0, Math.min(profiles.length - 1, nextIndex));
+    if (boundedIndex === currentIndex && key !== "Home" && key !== "End") return false;
+    profileButtonRefs.current[boundedIndex]?.focus();
+    return true;
+  };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -170,12 +191,19 @@ function CinemaProfileGate({
           separate.
         </p>
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {profiles.map((profile) => (
+          {profiles.map((profile, index) => (
             <button
               key={profile.id}
+              ref={(element) => {
+                profileButtonRefs.current[index] = element;
+              }}
               type="button"
               onClick={() => chooseProfile(profile)}
+              onKeyDown={(event) => {
+                if (moveProfileFocus(index, event.key)) event.preventDefault();
+              }}
               disabled={isSelecting}
+              aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End"
               className="group rounded-2xl p-2 text-center transition-transform hover:-translate-y-1 disabled:cursor-wait disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <div className="relative mx-auto aspect-square w-full max-w-32 overflow-hidden rounded-2xl border border-white/[0.12] bg-gradient-to-br from-primary/25 to-indigo-500/25 shadow-lg transition-colors group-hover:border-primary/70">

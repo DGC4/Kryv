@@ -8,7 +8,7 @@ import { ChannelCard } from "@/components/ChannelCard";
 import { LiveCategoryCover } from "@/components/LiveCategoryCover";
 import { MediaRail, MediaRailSkeleton } from "@/components/media/MediaRail";
 import { AdSlot } from "@/components/ads/AdSlot";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "wouter";
 import {
   ArrowUpRight,
@@ -88,6 +88,22 @@ export default function LiveHome() {
     query: { enabled: Boolean(user), refetchInterval: 10000 },
   });
   const [liveFeed, setLiveFeed] = useState<"all" | "following">("all");
+  const liveFeedTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const moveLiveFeedTab = (currentIndex: number, key: string) => {
+    let nextIndex: number | null = null;
+    if (key === "ArrowLeft") nextIndex = currentIndex - 1;
+    if (key === "ArrowRight") nextIndex = currentIndex + 1;
+    if (key === "Home") nextIndex = 0;
+    if (key === "End") nextIndex = 1;
+    if (nextIndex === null) return false;
+    const boundedIndex = Math.max(0, Math.min(1, nextIndex));
+    if (boundedIndex === currentIndex && key !== "Home" && key !== "End") return false;
+    const nextFeed = boundedIndex === 0 ? "all" : "following";
+    setLiveFeed(nextFeed);
+    liveFeedTabRefs.current[boundedIndex]?.focus();
+    return true;
+  };
 
   if (discoverLoading || categoriesLoading) {
     return (
@@ -299,18 +315,34 @@ export default function LiveHome() {
                 >
                   <button
                     type="button"
+                    ref={(element) => {
+                      liveFeedTabRefs.current[0] = element;
+                    }}
                     onClick={() => setLiveFeed("all")}
+                    onKeyDown={(event) => {
+                      if (moveLiveFeedTab(0, event.key)) event.preventDefault();
+                    }}
                     role="tab"
+                    tabIndex={liveFeed === "all" ? 0 : -1}
                     aria-selected={liveFeed === "all"}
+                    aria-keyshortcuts="ArrowLeft ArrowRight Home End"
                     className={`rounded-lg px-3 text-xs font-black transition ${liveFeed === "all" ? "bg-primary text-primary-foreground" : "text-white/50 hover:text-white"}`}
                   >
                     All
                   </button>
                   <button
                     type="button"
+                    ref={(element) => {
+                      liveFeedTabRefs.current[1] = element;
+                    }}
                     onClick={() => setLiveFeed("following")}
+                    onKeyDown={(event) => {
+                      if (moveLiveFeedTab(1, event.key)) event.preventDefault();
+                    }}
                     role="tab"
+                    tabIndex={liveFeed === "following" ? 0 : -1}
                     aria-selected={liveFeed === "following"}
+                    aria-keyshortcuts="ArrowLeft ArrowRight Home End"
                     className={`rounded-lg px-3 text-xs font-black transition ${liveFeed === "following" ? "bg-primary text-primary-foreground" : "text-white/50 hover:text-white"}`}
                   >
                     Following

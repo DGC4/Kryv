@@ -271,6 +271,20 @@ const searchLimiter = rateLimit({
   message: { error: "Too many search requests. Please wait a moment and try again." },
 });
 
+// Advertising decisions will evaluate consent, profile eligibility, frequency history,
+// campaign budgets, and creatives when delivery receives its separate launch approval.
+// Keep a dedicated shared ceiling from day one so a decision endpoint cannot become a
+// high-cost enumeration path merely by enabling the delivery feature flag.
+const adDecisionLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:ad-decision:"),
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method !== "GET",
+  message: { error: "Too many advertising decision requests. Please wait a moment and try again." },
+});
+
 const apiLimiter = rateLimit({
   store: sharedRateLimitStore("kryv:rate:api:"),
   windowMs: 60 * 1000, // 1 minute
@@ -323,6 +337,7 @@ app.use("/api/videos", (req, res, next) => {
   next();
 });
 app.use("/api/search", searchLimiter);
+app.use("/api/ads/decision", adDecisionLimiter);
 app.use("/api", apiLimiter);
 
 // ── Body parsers ──────────────────────────────────────────────────────────────

@@ -109,11 +109,14 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
 
   const { surface, channelId, videoId, profileId } = parsed.data;
   const userId = req.user?.userId;
+  // Delivery accounting and frequency enforcement require a server-authenticated
+  // viewer identity. Reject anonymous traffic before it can traverse campaign,
+  // creative, and impression-history queries.
+  if (!userId) {
+    res.json(noDecision("viewer_identity_required_for_frequency_cap"));
+    return;
+  }
   if (profileId !== undefined) {
-    if (!userId) {
-      res.json(noDecision("profile_authentication_required"));
-      return;
-    }
     if (!req.activeProfileId || req.activeProfileId !== profileId) {
       // The client profile ID is only request context. A future profile-aware
       // decision must be bound to the short-lived HttpOnly selection grant.
@@ -129,16 +132,14 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
 
   // No consent means the service must not make a personalized or measurable ad decision.
   // Contextual ad delivery is unavailable because ad delivery is hard-disabled at runtime.
-  if (userId) {
-    const [consent] = await db
-      .select({ granted: consentPreferencesTable.granted })
-      .from(consentPreferencesTable)
-      .where(and(eq(consentPreferencesTable.userId, userId), eq(consentPreferencesTable.purpose, "ads_personalization")))
-      .limit(1);
-    if (!consent?.granted) {
-      res.json(noDecision("ads_consent_required"));
-      return;
-    }
+  const [consent] = await db
+    .select({ granted: consentPreferencesTable.granted })
+    .from(consentPreferencesTable)
+    .where(and(eq(consentPreferencesTable.userId, userId), eq(consentPreferencesTable.purpose, "ads_personalization")))
+    .limit(1);
+  if (!consent?.granted) {
+    res.json(noDecision("ads_consent_required"));
+    return;
   }
 
   const now = new Date();
@@ -212,10 +213,6 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
   const frequencyPolicy = parseFrequencyPolicy(campaign.frequencyPolicy);
   if (!frequencyPolicy) {
     res.json(noDecision("frequency_policy_required"));
-    return;
-  }
-  if (!userId) {
-    res.json(noDecision("viewer_identity_required_for_frequency_cap"));
     return;
   }
   const frequencyCutoff = new Date(
