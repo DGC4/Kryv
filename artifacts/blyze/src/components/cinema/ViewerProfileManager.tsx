@@ -16,6 +16,229 @@ type ViewerProfileManagerProps = {
   onProfilesChanged: () => Promise<unknown> | void;
 };
 
+type ProfileDetailsEditorProps = {
+  profile: ViewerProfile;
+  onProfilesChanged: () => Promise<unknown> | void;
+};
+
+function ProfileDetailsEditor({
+  profile,
+  onProfilesChanged,
+}: ProfileDetailsEditorProps) {
+  const [name, setName] = useState(profile.name);
+  const [maturityLevel, setMaturityLevel] = useState(profile.maturityLevel);
+  const [isDefault, setIsDefault] = useState(profile.isDefault);
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    setName(profile.name);
+    setMaturityLevel(profile.maturityLevel);
+    setIsDefault(profile.isDefault);
+    setError(null);
+    setSuccess(null);
+  }, [profile.id, profile.isDefault, profile.maturityLevel, profile.name]);
+
+  const saveProfileDetails = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await fetch(
+        getApiUrl(`/api/me/profiles/${profile.id}`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: trimmedName,
+            maturityLevel,
+            isKidsProfile: maturityLevel === "kids",
+            isDefault,
+          }),
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(
+          payload.error || "Unable to update this viewer profile.",
+        );
+      }
+      setSuccess("Profile settings saved. Select a profile again to continue.");
+      await onProfilesChanged();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to update this viewer profile.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteProfile = async () => {
+    if (
+      profile.isDefault ||
+      !window.confirm(
+        `Delete ${profile.name}'s profile? This cannot be undone and does not delete the account.`,
+      )
+    ) {
+      return;
+    }
+
+    setRemoving(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await fetch(
+        getApiUrl(`/api/me/profiles/${profile.id}`),
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(
+          payload.error || "Unable to delete this viewer profile.",
+        );
+      }
+      await onProfilesChanged();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to delete this viewer profile.",
+      );
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={saveProfileDetails}
+      className="border-b border-white/[0.1] pb-6"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
+          <ShieldCheck className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-white">Profile settings</h2>
+          <p className="mt-1 text-sm leading-relaxed text-white/50">
+            Update this viewer&apos;s name, default selection, and maturity
+            setting. Kryv clears the active profile session after a change.
+          </p>
+        </div>
+      </div>
+      <label
+        htmlFor="viewer-profile-name"
+        className="mt-5 block text-xs font-black uppercase tracking-[0.13em] text-white/65"
+      >
+        Profile name
+      </label>
+      <input
+        id="viewer-profile-name"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        minLength={1}
+        maxLength={40}
+        className="mt-2 h-12 w-full rounded-xl border border-white/[0.13] bg-black/25 px-4 text-sm text-white outline-none placeholder:text-white/30 focus:border-primary focus:ring-2 focus:ring-primary/35"
+        required
+      />
+      <label
+        htmlFor="viewer-profile-maturity"
+        className="mt-5 block text-xs font-black uppercase tracking-[0.13em] text-white/65"
+      >
+        Maturity setting
+      </label>
+      <select
+        id="viewer-profile-maturity"
+        value={maturityLevel}
+        onChange={(event) =>
+          setMaturityLevel(event.target.value as ViewerProfile["maturityLevel"])
+        }
+        className="mt-2 h-12 w-full rounded-xl border border-white/[0.13] bg-black/25 px-4 text-sm font-semibold text-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/35"
+      >
+        <option value="kids">Kids — child-safe profile</option>
+        <option value="standard">Standard</option>
+        <option value="mature">Mature</option>
+      </select>
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-white/[0.1] bg-black/15 p-3 text-sm text-white/75">
+        <input
+          type="checkbox"
+          checked={isDefault}
+          disabled={profile.isDefault}
+          onChange={(event) => setIsDefault(event.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-60"
+        />
+        <span>
+          <span className="block font-black text-white">Default profile</span>
+          <span className="mt-1 block text-xs leading-relaxed text-white/45">
+            {profile.isDefault
+              ? "This is the current default. Select another profile and make it default before changing this one."
+              : "The default profile cannot be deleted. You can make this profile the default at any time."}
+          </span>
+        </span>
+      </label>
+      {error && (
+        <p
+          className="mt-4 rounded-xl border border-red-300/20 bg-red-400/[0.07] px-3 py-2 text-xs font-semibold text-red-100"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
+      {success && (
+        <p
+          className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-400/[0.07] px-3 py-2 text-xs font-semibold text-emerald-100"
+          role="status"
+        >
+          {success}
+        </p>
+      )}
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Button
+          type="submit"
+          disabled={saving || !name.trim()}
+          className="min-h-11 flex-1 font-black"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving profile…
+            </>
+          ) : (
+            "Save profile settings"
+          )}
+        </Button>
+        {!profile.isDefault && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={removing || saving}
+            onClick={() => void deleteProfile()}
+            className="min-h-11 border-red-300/25 bg-red-400/[0.06] text-red-100 hover:bg-red-400/[0.12] hover:text-red-50"
+          >
+            {removing ? "Deleting…" : "Delete profile"}
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}
+
 /**
  * Password re-authentication is always required by the server before a profile
  * PIN changes. This panel only collects the minimum fields for that request;
@@ -175,133 +398,139 @@ export function ViewerProfileManager({
 
           <section className="rounded-3xl border border-white/[0.1] bg-[#0d1118] p-5 sm:p-6">
             {selectedProfile ? (
-              <form onSubmit={submitPinChange}>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
-                    <KeyRound className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black text-white">
-                      {selectedProfile.isLocked
-                        ? "Change profile PIN"
-                        : "Set a profile PIN"}
-                    </h2>
-                    <p className="mt-1 text-sm leading-relaxed text-white/50">
-                      For {selectedProfile.name}. PINs are hashed server-side
-                      and cannot be recovered or displayed.
-                    </p>
-                  </div>
-                </div>
-                <label
-                  htmlFor="account-password"
-                  className="mt-6 block text-xs font-black uppercase tracking-[0.13em] text-white/65"
-                >
-                  Account password
-                </label>
-                <input
-                  id="account-password"
-                  type="password"
-                  value={accountPassword}
-                  onChange={(event) => setAccountPassword(event.target.value)}
-                  autoComplete="current-password"
-                  maxLength={128}
-                  className="mt-2 h-12 w-full rounded-xl border border-white/[0.13] bg-black/25 px-4 text-sm text-white outline-none placeholder:text-white/30 focus:border-primary focus:ring-2 focus:ring-primary/35"
-                  placeholder="Confirm your account password"
-                  required
+              <>
+                <ProfileDetailsEditor
+                  profile={selectedProfile}
+                  onProfilesChanged={onProfilesChanged}
                 />
-                <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-white/[0.1] bg-black/15 p-3 text-sm text-white/75">
+                <form onSubmit={submitPinChange} className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
+                      <KeyRound className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black text-white">
+                        {selectedProfile.isLocked
+                          ? "Change profile PIN"
+                          : "Set a profile PIN"}
+                      </h2>
+                      <p className="mt-1 text-sm leading-relaxed text-white/50">
+                        For {selectedProfile.name}. PINs are hashed server-side
+                        and cannot be recovered or displayed.
+                      </p>
+                    </div>
+                  </div>
+                  <label
+                    htmlFor="account-password"
+                    className="mt-6 block text-xs font-black uppercase tracking-[0.13em] text-white/65"
+                  >
+                    Account password
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={removePin}
-                    onChange={(event) => {
-                      setRemovePin(event.target.checked);
-                      setNewPin("");
-                    }}
-                    className="mt-0.5 h-4 w-4 accent-primary"
+                    id="account-password"
+                    type="password"
+                    value={accountPassword}
+                    onChange={(event) => setAccountPassword(event.target.value)}
+                    autoComplete="current-password"
+                    maxLength={128}
+                    className="mt-2 h-12 w-full rounded-xl border border-white/[0.13] bg-black/25 px-4 text-sm text-white outline-none placeholder:text-white/30 focus:border-primary focus:ring-2 focus:ring-primary/35"
+                    placeholder="Confirm your account password"
+                    required
                   />
-                  <span>
-                    <span className="block font-black text-white">
-                      Remove this profile PIN
-                    </span>
-                    <span className="mt-1 block text-xs leading-relaxed text-white/45">
-                      This requires account-password confirmation and clears any
-                      active profile selection.
-                    </span>
-                  </span>
-                </label>
-                {!removePin && (
-                  <>
-                    <label
-                      htmlFor="new-profile-pin"
-                      className="mt-5 block text-xs font-black uppercase tracking-[0.13em] text-white/65"
-                    >
-                      New 4–8 digit PIN
-                    </label>
+                  <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-white/[0.1] bg-black/15 p-3 text-sm text-white/75">
                     <input
-                      id="new-profile-pin"
-                      type="password"
-                      value={newPin}
-                      onChange={(event) =>
-                        setNewPin(
-                          event.target.value.replace(/\D/g, "").slice(0, 8),
-                        )
-                      }
-                      inputMode="numeric"
-                      autoComplete="new-password"
-                      pattern="[0-9]*"
-                      minLength={4}
-                      maxLength={8}
-                      className="mt-2 h-12 w-full rounded-xl border border-white/[0.13] bg-black/25 px-4 text-center font-mono text-lg tracking-[0.35em] text-white outline-none placeholder:tracking-normal placeholder:text-white/30 focus:border-primary focus:ring-2 focus:ring-primary/35"
-                      placeholder="PIN"
-                      required
+                      type="checkbox"
+                      checked={removePin}
+                      onChange={(event) => {
+                        setRemovePin(event.target.checked);
+                        setNewPin("");
+                      }}
+                      className="mt-0.5 h-4 w-4 accent-primary"
                     />
-                  </>
-                )}
-                {error && (
-                  <p
-                    className="mt-4 rounded-xl border border-red-300/20 bg-red-400/[0.07] px-3 py-2 text-xs font-semibold text-red-100"
-                    role="alert"
-                  >
-                    {error}
-                  </p>
-                )}
-                {success && (
-                  <p
-                    className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-400/[0.07] px-3 py-2 text-xs font-semibold text-emerald-100"
-                    role="status"
-                  >
-                    {success}
-                  </p>
-                )}
-                <Button
-                  type="submit"
-                  disabled={
-                    saving ||
-                    !accountPassword ||
-                    (!removePin && newPin.length < 4)
-                  }
-                  className="mt-6 min-h-11 w-full font-black"
-                >
-                  {saving ? (
+                    <span>
+                      <span className="block font-black text-white">
+                        Remove this profile PIN
+                      </span>
+                      <span className="mt-1 block text-xs leading-relaxed text-white/45">
+                        This requires account-password confirmation and clears
+                        any active profile selection.
+                      </span>
+                    </span>
+                  </label>
+                  {!removePin && (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Securing
-                      profile…
+                      <label
+                        htmlFor="new-profile-pin"
+                        className="mt-5 block text-xs font-black uppercase tracking-[0.13em] text-white/65"
+                      >
+                        New 4–8 digit PIN
+                      </label>
+                      <input
+                        id="new-profile-pin"
+                        type="password"
+                        value={newPin}
+                        onChange={(event) =>
+                          setNewPin(
+                            event.target.value.replace(/\D/g, "").slice(0, 8),
+                          )
+                        }
+                        inputMode="numeric"
+                        autoComplete="new-password"
+                        pattern="[0-9]*"
+                        minLength={4}
+                        maxLength={8}
+                        className="mt-2 h-12 w-full rounded-xl border border-white/[0.13] bg-black/25 px-4 text-center font-mono text-lg tracking-[0.35em] text-white outline-none placeholder:tracking-normal placeholder:text-white/30 focus:border-primary focus:ring-2 focus:ring-primary/35"
+                        placeholder="PIN"
+                        required
+                      />
                     </>
-                  ) : removePin ? (
-                    "Remove PIN"
-                  ) : selectedProfile.isLocked ? (
-                    "Update PIN"
-                  ) : (
-                    "Set PIN"
                   )}
-                </Button>
-                <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-white/40">
-                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />{" "}
-                  Profile selection uses a short-lived HttpOnly session grant.
-                  Kryv never saves the selected profile ID or PIN in browser
-                  storage.
-                </p>
-              </form>
+                  {error && (
+                    <p
+                      className="mt-4 rounded-xl border border-red-300/20 bg-red-400/[0.07] px-3 py-2 text-xs font-semibold text-red-100"
+                      role="alert"
+                    >
+                      {error}
+                    </p>
+                  )}
+                  {success && (
+                    <p
+                      className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-400/[0.07] px-3 py-2 text-xs font-semibold text-emerald-100"
+                      role="status"
+                    >
+                      {success}
+                    </p>
+                  )}
+                  <Button
+                    type="submit"
+                    disabled={
+                      saving ||
+                      !accountPassword ||
+                      (!removePin && newPin.length < 4)
+                    }
+                    className="mt-6 min-h-11 w-full font-black"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                        Securing profile…
+                      </>
+                    ) : removePin ? (
+                      "Remove PIN"
+                    ) : selectedProfile.isLocked ? (
+                      "Update PIN"
+                    ) : (
+                      "Set PIN"
+                    )}
+                  </Button>
+                  <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-white/40">
+                    <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />{" "}
+                    Profile selection uses a short-lived HttpOnly session grant.
+                    Kryv never saves the selected profile ID or PIN in browser
+                    storage.
+                  </p>
+                </form>
+              </>
             ) : (
               <p className="text-sm text-white/55">
                 Create a profile first, then return here to protect it.

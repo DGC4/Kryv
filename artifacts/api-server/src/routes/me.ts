@@ -388,6 +388,13 @@ router.patch(
       res.status(404).json({ error: "Viewer profile not found" });
       return;
     }
+    if (existing.isDefault && parsed.data.isDefault === false) {
+      res.status(400).json({
+        error:
+          "Choose another profile as default before changing this profile.",
+      });
+      return;
+    }
 
     const isKidsProfile = parsed.data.isKidsProfile ?? existing.isKidsProfile;
     const nextMaturityLevel = isKidsProfile
@@ -433,6 +440,19 @@ router.patch(
       return;
     }
 
+    clearActiveProfileGrant(res);
+    await db.insert(auditLogsTable).values({
+      actorUserId: userId,
+      action: "viewer_profile_updated",
+      targetType: "viewer_profile",
+      targetId: String(updated.id),
+      afterState: {
+        maturityLevel: updated.maturityLevel,
+        isKidsProfile: updated.isKidsProfile,
+        isDefault: updated.isDefault,
+      },
+      sessionId: req.user!.sessionId ?? null,
+    });
     res.json(UpdateViewerProfileResponse.parse(toViewerProfile(updated)));
   },
 );
@@ -476,6 +496,14 @@ router.delete(
           eq(viewerProfilesTable.userId, req.user!.userId),
         ),
       );
+    clearActiveProfileGrant(res);
+    await db.insert(auditLogsTable).values({
+      actorUserId: req.user!.userId,
+      action: "viewer_profile_deleted",
+      targetType: "viewer_profile",
+      targetId: String(profile.id),
+      sessionId: req.user!.sessionId ?? null,
+    });
     res.status(204).end();
   },
 );

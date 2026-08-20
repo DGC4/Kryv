@@ -163,6 +163,21 @@ requireMatch(
   "Profile PIN changes and explicit switching must revoke the active-profile grant.",
 );
 requireMatch(
+  profileRoute,
+  /action: "viewer_profile_updated"[\s\S]*?clearActiveProfileGrant\(res\)|clearActiveProfileGrant\(res\)[\s\S]*?action: "viewer_profile_updated"/,
+  "Profile updates must revoke the active-profile grant and be auditable.",
+);
+requireMatch(
+  profileRoute,
+  /action: "viewer_profile_deleted"[\s\S]*?clearActiveProfileGrant\(res\)|clearActiveProfileGrant\(res\)[\s\S]*?action: "viewer_profile_deleted"/,
+  "Profile deletion must revoke the active-profile grant and be auditable.",
+);
+requireMatch(
+  profileRoute,
+  /existing\.isDefault && parsed\.data\.isDefault === false/,
+  "The current default profile must not be unset without choosing another default.",
+);
+requireMatch(
   apiSpec,
   /\/me\/profiles\/\{id\}\/select/,
   "The secured viewer-profile selection endpoint must remain documented.",
