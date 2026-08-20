@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import {
+  categoriesTable,
   channelsTable,
   cinemaCreditsTable,
   db,
@@ -16,7 +17,7 @@ import {
 } from "@workspace/api-zod";
 import { attachUserId } from "../lib/auth";
 import { toChannelDetail } from "../lib/channelSerializer";
-import { toVideoSummary } from "../lib/videoSerializer";
+import { toVideoSummaryFromRelations } from "../lib/videoSerializer";
 import { getPublishedCinemaTitles } from "../lib/cinemaCatalog";
 
 const router: IRouter = Router();
@@ -40,8 +41,10 @@ router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
   }
 
   const [watchRows, recentStreams, creditRows] = await Promise.all([
-    db.select()
+    db
+      .select({ video: videosTable, categoryName: categoriesTable.name })
       .from(videosTable)
+      .leftJoin(categoriesTable, eq(categoriesTable.id, videosTable.categoryId))
       .where(and(
         eq(videosTable.channelId, channel.id),
         eq(videosTable.contentType, "upload"),
@@ -75,10 +78,10 @@ router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
     return title ? [{ ...title, role: credit.role }] : [];
   });
 
-  const [channelDetail, watch] = await Promise.all([
-    toChannelDetail(channel, req.user?.userId),
-    Promise.all(watchRows.map(toVideoSummary)),
-  ]);
+  const channelDetail = await toChannelDetail(channel, req.user?.userId);
+  const watch = watchRows.map(({ video, categoryName }) =>
+    toVideoSummaryFromRelations(video, channel, categoryName),
+  );
 
   res.json(GetCreatorProfileResponse.parse({
     channel: channelDetail,

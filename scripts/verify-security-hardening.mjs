@@ -51,6 +51,8 @@ const [
   videosRoute,
   videoSerializer,
   channelSerializer,
+  adminRoute,
+  creatorProfileRoute,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -85,6 +87,8 @@ const [
   source("artifacts/api-server/src/routes/videos.ts"),
   source("artifacts/api-server/src/lib/videoSerializer.ts"),
   source("artifacts/api-server/src/lib/channelSerializer.ts"),
+  source("artifacts/api-server/src/routes/admin.ts"),
+  source("artifacts/api-server/src/routes/profiles.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -723,6 +727,31 @@ requireMatch(
   discoverRoute,
   /toChannelSummaries\(visibleRows\.map\(\(\{ channel \}\) => channel\)\)/,
   "Followed-live discovery must use the batched summary path.",
+);
+requireMatch(
+  adminRoute,
+  /channels: await toChannelSummaries\(channels\)/,
+  "Admin user activity channel summaries must use the batched path.",
+);
+requireMatch(
+  adminRoute,
+  /const results = await toChannelSummaries\(rows\)/,
+  "Admin channel directory summaries must use the batched path.",
+);
+requireMatch(
+  adminRoute,
+  /toVideoSummaryFromRelations\(video, channel, categoryName\)/,
+  "Admin video directory results must use joined relation-aware summaries.",
+);
+requireMatch(
+  creatorProfileRoute,
+  /select\(\{ video: videosTable, categoryName: categoriesTable\.name \}\)/,
+  "Creator profile Watch rails must join category names in their bounded query.",
+);
+requireMatch(
+  creatorProfileRoute,
+  /toVideoSummaryFromRelations\(video, channel, categoryName\)/,
+  "Creator profile Watch rails must use the already-loaded channel summary relation.",
 );
 
 requireMatch(

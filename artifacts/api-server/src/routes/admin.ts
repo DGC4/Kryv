@@ -3,6 +3,7 @@ import { and, asc, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   db,
+  categoriesTable,
   usersTable,
   channelsTable,
   activityLogsTable,
@@ -79,8 +80,8 @@ import {
   ReviewAdminModerationCaseResponse,
 } from "@workspace/api-zod";
 import { requireOwner } from "../lib/auth";
-import { toChannelSummary } from "../lib/channelSerializer";
-import { toVideoSummary } from "../lib/videoSerializer";
+import { toChannelSummaries } from "../lib/channelSerializer";
+import { toVideoSummaryFromRelations } from "../lib/videoSerializer";
 import { writeAuditLog } from "../lib/operations";
 import { createPlisioInvoice, getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode, type KryvCryptoCode } from "../lib/plisio";
 
@@ -1477,7 +1478,7 @@ router.get(
       currentPresence: user.activityObservabilityEnabled && presence[0] ? presence[0] : null,
       devices,
       activity,
-      channels: await Promise.all(channels.map(toChannelSummary)),
+      channels: await toChannelSummaries(channels),
     }));
   },
 );
@@ -1506,7 +1507,7 @@ router.get(
         ? db.select({ total: sql<number>`count(*)`.mapWith(Number) }).from(channelsTable).where(where)
         : db.select({ total: sql<number>`count(*)`.mapWith(Number) }).from(channelsTable),
     ]);
-    const results = await Promise.all(rows.map(toChannelSummary));
+    const results = await toChannelSummaries(rows);
     res.json(ListAdminChannelsResponse.parse({
       items: results,
       total: totals[0]?.total ?? 0,
@@ -1546,13 +1547,29 @@ router.get("/admin/videos", requireOwner, async (req, res): Promise<void> => {
   const q = query.data.q?.trim();
   const filter = q ? ilike(videosTable.title, `%${q}%`) : undefined;
   const [rows, countRows] = await Promise.all([
-    db.select().from(videosTable).where(filter).orderBy(desc(videosTable.createdAt), desc(videosTable.id)).limit(query.data.limit).offset(query.data.offset),
+    db
+      .select({
+        video: videosTable,
+        channel: {
+          slug: channelsTable.slug,
+          displayName: channelsTable.displayName,
+          avatarUrl: channelsTable.avatarUrl,
+        },
+        categoryName: categoriesTable.name,
+      })
+      .from(videosTable)
+      .innerJoin(channelsTable, eq(channelsTable.id, videosTable.channelId))
+      .leftJoin(categoriesTable, eq(categoriesTable.id, videosTable.categoryId))
+      .where(filter)
+      .orderBy(desc(videosTable.createdAt), desc(videosTable.id))
+      .limit(query.data.limit)
+      .offset(query.data.offset),
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(videosTable).where(filter),
   ]);
-  const items = await Promise.all(rows.map(async (video) => ({
-    ...(await toVideoSummary(video)),
+  const items = rows.map(({ video, channel, categoryName }) => ({
+    ...toVideoSummaryFromRelations(video, channel, categoryName),
     rightsAttestedAt: video.rightsAttestedAt?.toISOString() ?? null,
-  })));
+  }));
   res.json(ListAdminVideosResponse.parse({
     items,
     total: countRows[0]?.count ?? 0,
