@@ -7,6 +7,9 @@
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "verify:security-hardening": "node scripts/verify-security-hardening.mjs",
+    "format:check": "prettier --check render.yaml scripts/verify-security-hardening.mjs KRYV_PRODUCTION_HARDENING_RUNBOOK.md",
+    "ci": "pnpm run typecheck && pnpm run build && pnpm run verify:security-hardening && pnpm run format:check",
     "verify:production-readiness": "node scripts/verify-kryv-production-readiness.mjs"
   },
   "private": true,

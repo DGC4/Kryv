@@ -1,31 +1,30 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 export interface User {
   id: number;
-  email: string;
+  email?: string;
   username: string;
   role: "user" | "owner";
   avatarUrl: string | null;
 }
 
 interface AuthState {
-  token: string | null;
   user: User | null;
-  setAuth: (token: string, user: User) => void;
-  logout: () => void;
+  hydrated: boolean;
+  setAuth: (user: User) => void;
+  clearAuth: () => void;
+  setHydrated: (hydrated: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      token: null,
-      user: null,
-      setAuth: (token, user) => set({ token, user }),
-      logout: () => set({ token: null, user: null }),
-    }),
-    {
-      name: "kryv-auth",
-    },
-  ),
-);
+/**
+ * Browser authentication is stored only in an HttpOnly session cookie. This store
+ * retains display state in memory; a page reload always rehydrates identity from
+ * the server-authoritative /api/me endpoint.
+ */
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  hydrated: false,
+  setAuth: (user) => set({ user, hydrated: true }),
+  clearAuth: () => set({ user: null, hydrated: true }),
+  setHydrated: (hydrated) => set({ hydrated }),
+}));

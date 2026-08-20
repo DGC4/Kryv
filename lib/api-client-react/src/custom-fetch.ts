@@ -1,6 +1,6 @@
 // This file is shared between web and mobile.
-// In web (blyze), we use Zustand to store the token.
-// In mobile (if applicable), we use a setter.
+// Web uses HttpOnly secure session cookies. A token getter remains available only
+// for a native/mobile adapter that does not share browser cookies.
 
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
@@ -321,23 +321,9 @@ export async function customFetch<T = unknown>(
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
 
-  // Check for token in localStorage (Zustand persist default)
-  let token: string | null = null;
-  if (typeof window !== "undefined") {
-    try {
-      const authStorage = window.localStorage.getItem("kryv-auth");
-      if (authStorage) {
-        const parsed = JSON.parse(authStorage);
-        token = parsed.state?.token || null;
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  if (!token && _authTokenGetter) {
-    token = await _authTokenGetter();
-  }
+  // Browser authentication is an HttpOnly cookie and is deliberately invisible
+  // to script. A token getter is retained only for an explicit native/mobile adapter.
+  const token = _authTokenGetter ? await _authTokenGetter() : null;
 
   if (token && !headers.has("authorization")) {
     headers.set("authorization", `Bearer ${token}`);
@@ -345,7 +331,12 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const response = await fetch(input, {
+    ...init,
+    method,
+    headers,
+    credentials: init.credentials ?? "include",
+  });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

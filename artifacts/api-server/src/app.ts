@@ -9,7 +9,7 @@ import { RedisStore, type RedisReply } from "rate-limit-redis";
 import cookieParser from "cookie-parser";
 import routes from "./routes";
 import webhooksRouter from "./routes/webhooks";
-import { attachUserId, verifyToken } from "./lib/auth";
+import { attachUserId, requireOwner, requireTrustedSessionOrigin } from "./lib/auth";
 import { trackVisitor } from "./middleware/visitor";
 import { getSharedStateClient } from "./lib/realtime";
 import { logger } from "./lib/logger";
@@ -38,8 +38,11 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'self'"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
         // FastPix serves a public entry manifest from stream.fastpix.com, then
         // delegates signed rendition playlists and fMP4 segments to provider
@@ -70,8 +73,14 @@ app.use(
 // In production, only allow the Render-hosted origin.
 // Set ALLOWED_ORIGINS in Render env vars (comma-separated) to add custom domains.
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:5173", "http://localhost:3000"];
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+  : process.env.NODE_ENV === "production"
+    ? []
+    : ["http://localhost:5173", "http://localhost:3000"];
+
+if (process.env.NODE_ENV === "production" && allowedOrigins.length === 0) {
+  throw new Error("ALLOWED_ORIGINS must be configured in production.");
+}
 
 app.use(
   cors({
@@ -232,6 +241,7 @@ app.use("/api/webhooks/plisio", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(attachUserId);
+app.use(requireTrustedSessionOrigin);
 
 app.use((req, res, next) => {
   // Fire-and-forget visitor tracking.
@@ -293,16 +303,9 @@ for (const p of possibleDistPaths) {
 // ── Debug endpoint — OWNER-ONLY ───────────────────────────────────────────────
 // Protected: requires a valid JWT with role=owner in production.
 // This endpoint is intentionally kept for operational debugging but locked down.
-app.get("/api/debug/paths", (req, res) => {
-  if (process.env.NODE_ENV === "production") {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const payload = verifyToken(authHeader.slice(7));
-    if (!payload || payload.role !== "owner") {
-      return res.status(403).json({ error: "Forbidden" });
-    }
+app.get("/api/debug/paths", requireOwner, (req, res) => {
+  if (process.env.NODE_ENV === "production" && process.env.KRYV_DEBUG_ENDPOINTS_ENABLED !== "true") {
+    return res.sendStatus(404);
   }
 
   const fastpixEnv: Record<string, object> = {};

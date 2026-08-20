@@ -11,6 +11,8 @@ export const usersTable = pgTable("users", {
   // "owner" has full backend/admin access. Everyone else is "user".
   role: text("role").notNull().default("user"),
   banned: boolean("banned").notNull().default(false),
+  // Incrementing this value invalidates every opaque browser session for the user.
+  sessionVersion: integer("session_version").notNull().default(0),
   // Compliance & Privacy
   tosAcceptedAt: timestamp("tos_accepted_at", { withTimezone: true }),
   privacyAcceptedAt: timestamp("privacy_accepted_at", { withTimezone: true }),
@@ -25,6 +27,7 @@ export const usersTable = pgTable("users", {
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({
   id: true,
+  sessionVersion: true,
   createdAt: true,
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;

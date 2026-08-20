@@ -431,7 +431,7 @@ router.get("/me", requireAuth, async (req, res): Promise<void> => {
     id: user.id,
     username: user.username,
     avatarUrl: user.avatarUrl,
-    role: user.role as "user" | "owner",
+    role: req.user!.role as "user" | "owner",
     channel: ownChannel ? await toChannelSummary(ownChannel) : null,
     followedChannels,
   }));

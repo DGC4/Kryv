@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useAuthStore } from '../lib/auth-store';
+import { getApiUrl } from '../lib/api';
 import { useGetMe, useGetNotificationInbox, useMarkNotificationRead } from '@workspace/api-client-react';
 import { useThemeStore } from '../store/theme';
 import { Bell, Menu, Radio, PlaySquare, Tv, Search, Palette, Lock, RefreshCw, LogOut, ShieldAlert, Video, LayoutDashboard, Clapperboard, Users, WalletCards } from 'lucide-react';
@@ -21,7 +22,7 @@ const NAV = [
 
 export function Header() {
   const [location, navigate] = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, clearAuth } = useAuthStore();
   const isSignedIn = !!user;
   const { data: me } = useGetMe({ query: { enabled: isSignedIn } });
   const notificationInbox = useGetNotificationInbox({ limit: 12 }, { query: { enabled: isSignedIn, refetchInterval: isSignedIn ? 30000 : false } });
@@ -36,6 +37,15 @@ export function Header() {
     const query = searchQuery.trim();
     if (query.length >= 2) navigate(`/search?q=${encodeURIComponent(query)}`);
   };
+  const handleLogout = async () => {
+    try {
+      await fetch(getApiUrl('/api/logout'), { method: 'POST', credentials: 'include' });
+    } finally {
+      clearAuth();
+      navigate('/live');
+    }
+  };
+
   const openNotification = (notification: NonNullable<typeof notificationInbox.data>['items'][number]) => {
     if (!notification.isRead) markNotificationRead.mutate({ id: notification.id }, { onSuccess: () => notificationInbox.refetch() });
     const channelSlug = typeof notification.data?.channelSlug === 'string' ? notification.data.channelSlug : null;
@@ -228,7 +238,7 @@ export function Header() {
                   )}
                   <DropdownMenuSeparator className="bg-white/[0.07]" />
                   <DropdownMenuItem
-                    onClick={() => logout()}
+                    onClick={() => void handleLogout()}
                     className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2"
                   >
                     <LogOut className="w-4 h-4" />

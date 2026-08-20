@@ -1,103 +1,104 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { eq, or, sql } from "drizzle-orm";
+import { or, sql } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
-import { signToken, OWNER_USERNAME } from "../lib/auth";
+import {
+  clearSessionCookie,
+  establishSession,
+  OWNER_USERNAME,
+  revokeCurrentSession,
+} from "../lib/auth";
 import { logActivity, trackDevice } from "../lib/tracking";
 import { z } from "zod";
 
 const router = Router();
 
 const signupSchema = z.object({
-  email: z.string().email(),
-  username: z.string().min(3).max(30),
-  password: z.string().min(6),
+  email: z.string().email().max(320),
+  username: z.string().trim().min(3).max(30).regex(/^[A-Za-z0-9_]+$/, "Use only letters, numbers, and underscores."),
+  password: z.string().min(12, "Use a password with at least 12 characters.").max(128),
 });
 
 const loginSchema = z.object({
-  identifier: z.string(), // email or username
-  password: z.string(),
+  identifier: z.string().trim().min(1).max(320),
+  password: z.string().min(1).max(128),
 });
 
-router.post("/signup", async (req, res) => {
+function publicUser(user: typeof usersTable.$inferSelect) {
+  return {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    // This legacy column is display-only. Middleware resolves owner access from
+    // the explicit platform_roles grant on every authenticated request.
+    role: user.role === "owner" ? "owner" : "user",
+    avatarUrl: user.avatarUrl,
+  };
+}
+
+router.post("/signup", async (req, res): Promise<void> => {
   try {
     const parsed = signupSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.message });
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid sign-up details" });
+      return;
     }
 
     const { email, username, password } = parsed.data;
+    if (username.toLowerCase() === OWNER_USERNAME.toLowerCase()) {
+      res.status(409).json({ error: "This username is reserved." });
+      return;
+    }
 
-    // Check if user already exists (case-insensitive)
     const [existing] = await db
-      .select()
+      .select({ id: usersTable.id })
       .from(usersTable)
       .where(
         or(
           sql`LOWER(${usersTable.email}) = LOWER(${email})`,
           sql`LOWER(${usersTable.username}) = LOWER(${username})`,
         ),
-      );
+      )
+      .limit(1);
 
     if (existing) {
-      return res.status(409).json({ error: "Email or username already taken" });
+      res.status(409).json({ error: "Email or username already taken" });
+      return;
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    
-    // Check if this is the owner account
-    const role = username.toLowerCase() === OWNER_USERNAME.toLowerCase() ? "owner" : "user";
-    const finalUsername = role === "owner" ? OWNER_USERNAME : username;
-
+    const passwordHash = await bcrypt.hash(password, 12);
     const [user] = await db
       .insert(usersTable)
       .values({
         email,
-        username: finalUsername,
+        username,
         passwordHash,
-        role,
+        role: "user",
       })
       .returning();
 
-    const token = signToken({
-      userId: user.id,
-      username: user.username,
-      role: user.role,
-    });
+    if (!user) throw new Error("User creation returned no record");
+    await establishSession(req, res, user);
 
-    // Track activity and device (non-blocking)
-    trackDevice(req, user.id).catch(err => console.error("trackDevice error:", err));
-    logActivity(req, "signup", { userId: user.id }).catch(err => console.error("logActivity error:", err));
+    void trackDevice(req, user.id).catch((error) => console.error("trackDevice error:", error));
+    void logActivity(req, "signup", { userId: user.id }).catch((error) => console.error("logActivity error:", error));
 
-    res.status(201).json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        avatarUrl: user.avatarUrl,
-      },
-    });
-  } catch (err: any) {
-    console.error("Signup error details:", {
-      message: err.message,
-      stack: err.stack,
-      code: err.code,
-    });
-    res.status(500).json({ error: err.message || "Internal server error" });
+    res.status(201).json({ user: publicUser(user) });
+  } catch (error) {
+    console.error("Signup failed", error);
+    res.status(500).json({ error: "Unable to create account. Please try again." });
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", async (req, res): Promise<void> => {
   try {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.message });
+      res.status(400).json({ error: "Invalid login details" });
+      return;
     }
 
     const { identifier, password } = parsed.data;
-
     const [user] = await db
       .select()
       .from(usersTable)
@@ -106,52 +107,42 @@ router.post("/login", async (req, res) => {
           sql`LOWER(${usersTable.email}) = LOWER(${identifier})`,
           sql`LOWER(${usersTable.username}) = LOWER(${identifier})`,
         ),
-      );
+      )
+      .limit(1);
 
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
+    if (!user || user.banned) {
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
     }
 
     const passwordMatch = await bcrypt.compare(password, user.passwordHash);
     if (!passwordMatch) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
     }
 
-    // Enforce owner lock on login just in case
-    if (user.username.toLowerCase() === OWNER_USERNAME.toLowerCase() && user.role !== "owner") {
-        await db.update(usersTable).set({ role: "owner", username: OWNER_USERNAME }).where(eq(usersTable.id, user.id));
-        user.role = "owner";
-        user.username = OWNER_USERNAME;
-    }
+    await db.update(usersTable).set({ lastLoginAt: new Date() }).where(sql`${usersTable.id} = ${user.id}`);
+    await establishSession(req, res, user);
 
-    const token = signToken({
-      userId: user.id,
-      username: user.username,
-      role: user.role,
-    });
+    void trackDevice(req, user.id).catch((error) => console.error("trackDevice error:", error));
+    void logActivity(req, "login", { userId: user.id }).catch((error) => console.error("logActivity error:", error));
 
-    // Track activity and device (non-blocking)
-    trackDevice(req, user.id).catch(err => console.error("trackDevice error:", err));
-    logActivity(req, "login", { userId: user.id }).catch(err => console.error("logActivity error:", err));
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        avatarUrl: user.avatarUrl,
-      },
-    });
-  } catch (err: any) {
-    console.error("Login error details:", {
-      message: err.message,
-      stack: err.stack,
-      code: err.code,
-    });
-    res.status(500).json({ error: err.message || "Internal server error" });
+    res.json({ user: publicUser(user) });
+  } catch (error) {
+    console.error("Login failed", error);
+    res.status(500).json({ error: "Unable to sign in. Please try again." });
   }
+});
+
+router.post("/logout", async (req, res): Promise<void> => {
+  try {
+    await revokeCurrentSession(req);
+  } catch (error) {
+    // The cookie is cleared even if a stale/expired session cannot be updated.
+    console.error("Logout session revocation failed", error);
+  }
+  clearSessionCookie(res);
+  res.sendStatus(204);
 });
 
 export default router;

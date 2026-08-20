@@ -26,6 +26,7 @@ export default function SignUpPage() {
       const res = await fetch(getApiUrl("/api/signup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, username, password }),
       });
 
@@ -36,7 +37,7 @@ export default function SignUpPage() {
         throw new Error(data.error || "Signup failed");
       }
 
-      setAuth(data.token, data.user);
+      setAuth(data.user);
       toast.success("Account created successfully!");
       setLocation(returnTo);
     } catch (err: any) {
@@ -90,7 +91,8 @@ export default function SignUpPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-black/20 border-white/10 text-white focus:border-primary focus:ring-1 focus:ring-primary"
-                  placeholder="Min. 6 characters"
+                  placeholder="At least 12 characters"
+                  minLength={12}
                 />
               </div>
             </div>

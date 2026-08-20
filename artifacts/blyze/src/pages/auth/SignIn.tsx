@@ -25,6 +25,7 @@ export default function SignInPage() {
       const res = await fetch(getApiUrl("/api/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ identifier, password }),
       });
 
@@ -35,7 +36,7 @@ export default function SignInPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      setAuth(data.token, data.user);
+      setAuth(data.user);
       toast.success("Welcome back!");
       setLocation(returnTo);
     } catch (err: any) {

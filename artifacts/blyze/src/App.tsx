@@ -6,6 +6,7 @@ import { Layout } from "./components/Layout";
 import { ThemeProvider } from "./lib/themeProvider";
 import { setBaseUrl } from "@workspace/api-client-react";
 import { useAuthStore } from "./lib/auth-store";
+import { getApiUrl } from "./lib/api";
 import { useThemeStore } from "./store/theme";
 import "./styles/theme.css";
 
@@ -51,8 +52,47 @@ function HomeRedirect() {
   return null;
 }
 
+function SessionHydrator() {
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const setHydrated = useAuthStore((s) => s.setHydrated);
+
+  useEffect(() => {
+    let active = true;
+    void fetch(getApiUrl("/api/me"), { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("No active session");
+        return response.json();
+      })
+      .then((me) => {
+        if (!active) return;
+        setAuth({
+          id: me.id,
+          username: me.username,
+          role: me.role,
+          avatarUrl: me.avatarUrl,
+        });
+      })
+      .catch(() => {
+        if (active) clearAuth();
+      })
+      .finally(() => {
+        if (active) setHydrated(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [clearAuth, setAuth, setHydrated]);
+
+  return null;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
+  const hydrated = useAuthStore((s) => s.hydrated);
+  if (!hydrated) {
+    return <div className="flex min-h-screen items-center justify-center bg-[#080808] text-sm font-bold text-white/60">Checking your secure session…</div>;
+  }
   if (!user) return <Redirect to="/sign-in" />;
   return <>{children}</>;
 }
@@ -210,6 +250,7 @@ function App() {
         <WouterRouter base={basePath}>
           <ScrollToTop />
           <ThemeRouteAdvance />
+          <SessionHydrator />
           <AppRoutes />
         </WouterRouter>
       </QueryClientProvider>

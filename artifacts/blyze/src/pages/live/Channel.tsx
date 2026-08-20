@@ -63,7 +63,7 @@ function formatChatTimestamp(value: Date | string) {
 export default function LiveChannel() {
   const { channelSlugOrId } = useParams<{ channelSlugOrId: string }>();
   const [location] = useLocation();
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
   const isSignedIn = !!user;
   const [theaterMode, setTheaterMode] = useState(false);
   const [theaterChatVisible, setTheaterChatVisible] = useState(true);
@@ -458,7 +458,7 @@ export default function LiveChannel() {
   };
 
   const handleChannelReport = async () => {
-    if (!isSignedIn || !token) {
+    if (!isSignedIn) {
       openAccountEntry('report');
       return;
     }
@@ -467,7 +467,8 @@ export default function LiveChannel() {
     try {
       const response = await fetch(getApiUrl(`/api/channels/${channelId}/channel-reports`), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ reason: channelReportReason, ...(channelReportDetails.trim() ? { details: channelReportDetails.trim() } : {}) }),
       });
       const payload = await response.json().catch(() => ({}));

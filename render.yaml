@@ -11,7 +11,8 @@ services:
     runtime: node
     plan: starter
     numInstances: 1
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/blyze build && pnpm --filter @workspace/api-server build
+    autoDeployTrigger: checksPass
+    buildCommand: npx --yes pnpm@11.20.0 install --frozen-lockfile && npx --yes pnpm@11.20.0 --filter @workspace/blyze build && npx --yes pnpm@11.20.0 --filter @workspace/api-server build
     startCommand: node artifacts/api-server/dist/index.mjs
     healthCheckPath: /health
     maxShutdownDelaySeconds: 120
@@ -35,7 +36,8 @@ services:
     runtime: node
     plan: starter
     numInstances: 1
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server build
+    autoDeployTrigger: checksPass
+    buildCommand: npx --yes pnpm@11.20.0 install --frozen-lockfile && npx --yes pnpm@11.20.0 --filter @workspace/api-server build
     startCommand: node artifacts/api-server/dist/realtime.mjs
     healthCheckPath: /health
     maxShutdownDelaySeconds: 120
@@ -120,6 +122,19 @@ envVarGroups:
         sync: false
       - key: KRYV_REALTIME_TOKEN_SECRET
         sync: false
+      # Opaque browser sessions are short-lived and server-revocable.
+      - key: KRYV_SESSION_DAYS
+        value: "7"
+      # Navigation telemetry is disabled by default. Enabling it requires a stable
+      # secret salt so no raw network or browser identifiers are retained.
+      - key: KRYV_ACTIVITY_TRACKING_ENABLED
+        value: "false"
+      - key: KRYV_ACTIVITY_TRACKING_SALT
+        sync: false
+      # The diagnostic route is disabled in production unless deliberately opened
+      # during a controlled incident.
+      - key: KRYV_DEBUG_ENDPOINTS_ENABLED
+        value: "false"
       # Public WSS origin for the separate kryv-realtime service, for example
       # wss://kryv-realtime.onrender.com/ws. This is not a credential.
       - key: VITE_REALTIME_URL
