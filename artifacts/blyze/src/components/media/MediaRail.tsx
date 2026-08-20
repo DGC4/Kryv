@@ -47,7 +47,20 @@ export function MediaRail({
         ref={railRef}
         role="region"
         aria-label={label}
+        aria-keyshortcuts="ArrowLeft ArrowRight"
         tabIndex={0}
+        onKeyDown={(event) => {
+          // Preserve child-card keyboard behavior. Rail paging applies only when
+          // the rail itself owns focus, which also maps cleanly to TV remotes.
+          if (event.target !== event.currentTarget) return;
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            scroll(-1);
+          } else if (event.key === "ArrowRight") {
+            event.preventDefault();
+            scroll(1);
+          }
+        }}
         className={`kryv-media-rail -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:mx-0 sm:px-0 ${itemClassName ?? ""}`}
       >
         {children}
