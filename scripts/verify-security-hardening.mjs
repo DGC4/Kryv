@@ -1067,6 +1067,11 @@ requireMatch(
   "Production-pending Watch indexing must cover creator-scoped newest-first libraries.",
 );
 requireMatch(
+  watchIndexMigration,
+  /CREATE INDEX CONCURRENTLY IF NOT EXISTS videos_ready_upload_created_idx[\s\S]*?CREATE INDEX CONCURRENTLY IF NOT EXISTS videos_watch_channel_created_idx/,
+  "Production-pending Watch indexes must use concurrent independently executed creation statements.",
+);
+requireMatch(
   videosSchema,
   /watchReadyCatalogIdx: index\("videos_ready_upload_created_idx"\)/,
   "Drizzle video metadata must retain the ready public Watch index.",
@@ -1075,6 +1080,11 @@ requireMatch(
   videosSchema,
   /watchChannelCatalogIdx: index\("videos_watch_channel_created_idx"\)/,
   "Drizzle video metadata must retain the creator-scoped Watch index.",
+);
+requireMatch(
+  watchIndexValidation,
+  /br-blue-union-a6uq3yjr[\s\S]*?CREATE INDEX CONCURRENTLY IF NOT EXISTS/,
+  "Watch index validation must record the fresh isolated concurrent-build evidence.",
 );
 requireMatch(
   watchIndexValidation,
