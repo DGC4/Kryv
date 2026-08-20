@@ -45,8 +45,8 @@ import type {
   AdminCinemaUploadSession,
   AdminCinemaUploadSessionInput,
   AdminCommandOverview,
-  AdminCreatorBalance,
   AdminCreatorBalanceDetail,
+  AdminCreatorBalancePage,
   AdminFeatureFlag,
   AdminFinanceLedger,
   AdminFinanceOverview,
@@ -120,6 +120,7 @@ import type {
   HealthStatus,
   ListAdminChannelsParams,
   ListAdminCinemaTitlesParams,
+  ListAdminCreatorBalancesParams,
   ListAdminModerationCasesParams,
   ListAdminPayoutProfilesParams,
   ListAdminPayoutRequestsParams,
@@ -7543,20 +7544,27 @@ export function useGetAdminFinanceLedger<TData = Awaited<ReturnType<typeof getAd
 
 
 
-export const getListAdminCreatorBalancesUrl = () => {
+export const getListAdminCreatorBalancesUrl = (params?: ListAdminCreatorBalancesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/finance/creator-balances`
+  return stringifiedParams.length > 0 ? `/api/admin/finance/creator-balances?${stringifiedParams}` : `/api/admin/finance/creator-balances`
 }
 
 /**
  * @summary Owner-only current creator balances grouped by channel and crypto asset
  */
-export const listAdminCreatorBalances = async ( options?: RequestInit): Promise<AdminCreatorBalance[]> => {
+export const listAdminCreatorBalances = async (params?: ListAdminCreatorBalancesParams, options?: RequestInit): Promise<AdminCreatorBalancePage> => {
 
-  return customFetch<AdminCreatorBalance[]>(getListAdminCreatorBalancesUrl(),
+  return customFetch<AdminCreatorBalancePage>(getListAdminCreatorBalancesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -7569,23 +7577,23 @@ export const listAdminCreatorBalances = async ( options?: RequestInit): Promise<
 
 
 
-export const getListAdminCreatorBalancesQueryKey = () => {
+export const getListAdminCreatorBalancesQueryKey = (params?: ListAdminCreatorBalancesParams,) => {
     return [
-    `/api/admin/finance/creator-balances`
+    `/api/admin/finance/creator-balances`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAdminCreatorBalancesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+export const getListAdminCreatorBalancesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError = ErrorType<void>>(params?: ListAdminCreatorBalancesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAdminCreatorBalancesQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAdminCreatorBalancesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminCreatorBalances>>> = ({ signal }) => listAdminCreatorBalances({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminCreatorBalances>>> = ({ signal }) => listAdminCreatorBalances(params, { signal, ...requestOptions });
 
 
 
@@ -7603,11 +7611,11 @@ export type ListAdminCreatorBalancesQueryError = ErrorType<void>
  */
 
 export function useListAdminCreatorBalances<TData = Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError = ErrorType<void>>(
-  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminCreatorBalancesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminCreatorBalances>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAdminCreatorBalancesQueryOptions(options)
+  const queryOptions = getListAdminCreatorBalancesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

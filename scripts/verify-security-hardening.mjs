@@ -1146,6 +1146,21 @@ requireMatch(
   "Watch detail must consume the bounded discussion page, reset mutations to newest, and expose thread continuation controls.",
 );
 requireMatch(
+  apiSpec,
+  /\/admin\/finance\/creator-balances:[\s\S]*?name: limit[\s\S]*?maximum: 100[\s\S]*?name: offset[\s\S]*?AdminCreatorBalancePage/,
+  "Owner creator balances must expose a bounded typed page contract.",
+);
+requireMatch(
+  adminRoute,
+  /creator-balances[\s\S]*?ListAdminCreatorBalancesQueryParams[\s\S]*?select\(\{ total: count\(\) \}\)[\s\S]*?limit\(query\.data\.limit\)[\s\S]*?offset\(query\.data\.offset\)[\s\S]*?total: totalRows\[0\]\?\.total/,
+  "Owner creator-balance SQL must return an authoritative stable bounded page.",
+);
+requireMatch(
+  adminDashboard,
+  /creatorBalanceOffset[\s\S]*?useListAdminCreatorBalances\(\{ limit: 50, offset: creatorBalanceOffset \}[\s\S]*?Older assets/,
+  "Owner finance dashboard must consume creator-balance pages with explicit continuation controls.",
+);
+requireMatch(
   watchHome,
   /const selectCategoryAt[\s\S]*?setVideoOffset\(0\)[\s\S]*?const submitSearch[\s\S]*?setVideoOffset\(0\)[\s\S]*?const clearFilters[\s\S]*?setVideoOffset\(0\)/,
   "Watch home must reset pagination whenever category, search, or clear-filter state changes.",

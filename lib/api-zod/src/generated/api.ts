@@ -3368,7 +3368,29 @@ export const GetAdminFinanceLedgerResponse = zod.object({
 /**
  * @summary Owner-only current creator balances grouped by channel and crypto asset
  */
-export const ListAdminCreatorBalancesResponseItem = zod.object({
+export const listAdminCreatorBalancesQueryLimitDefault = 50;
+export const listAdminCreatorBalancesQueryLimitMax = 100;
+
+export const listAdminCreatorBalancesQueryOffsetDefault = 0;
+export const listAdminCreatorBalancesQueryOffsetMin = 0;
+
+
+
+export const ListAdminCreatorBalancesQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(listAdminCreatorBalancesQueryLimitMax).default(listAdminCreatorBalancesQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminCreatorBalancesQueryOffsetMin).default(listAdminCreatorBalancesQueryOffsetDefault)
+})
+
+export const listAdminCreatorBalancesResponseTotalMin = 0;
+
+export const listAdminCreatorBalancesResponseLimitMax = 100;
+
+export const listAdminCreatorBalancesResponseOffsetMin = 0;
+
+
+
+export const ListAdminCreatorBalancesResponse = zod.object({
+  "items": zod.array(zod.object({
   "channelId": zod.number(),
   "channelSlug": zod.string(),
   "channelDisplayName": zod.string(),
@@ -3378,8 +3400,11 @@ export const ListAdminCreatorBalancesResponseItem = zod.object({
   "availableAmount": zod.string(),
   "heldAmount": zod.string(),
   "updatedAt": zod.coerce.date()
+})),
+  "total": zod.number().min(listAdminCreatorBalancesResponseTotalMin),
+  "limit": zod.number().min(1).max(listAdminCreatorBalancesResponseLimitMax),
+  "offset": zod.number().min(listAdminCreatorBalancesResponseOffsetMin)
 })
-export const ListAdminCreatorBalancesResponse = zod.array(ListAdminCreatorBalancesResponseItem)
 
 
 /**

@@ -62,6 +62,7 @@ import {
   UpdateAdminFocusModeBody,
   UpdateAdminFocusModeResponse,
   GetPlatformFocusModeResponse,
+  ListAdminCreatorBalancesQueryParams,
   ListAdminCreatorBalancesResponse,
   GetAdminCreatorBalanceDetailParams,
   GetAdminCreatorBalanceDetailResponse,
@@ -667,31 +668,46 @@ router.get("/admin/finance/ledger", requireOwner, async (_req, res): Promise<voi
   }));
 });
 
-router.get("/admin/finance/creator-balances", requireOwner, async (_req, res): Promise<void> => {
-  const balances = await db
-    .select({
-      channelId: creatorBalancesTable.channelId,
-      channelSlug: channelsTable.slug,
-      channelDisplayName: channelsTable.displayName,
-      creatorUsername: usersTable.username,
-      currency: creatorBalancesTable.currency,
-      pendingAmount: creatorBalancesTable.pendingAmount,
-      availableAmount: creatorBalancesTable.availableAmount,
-      heldAmount: creatorBalancesTable.heldAmount,
-      updatedAt: creatorBalancesTable.updatedAt,
-    })
-    .from(creatorBalancesTable)
-    .innerJoin(channelsTable, eq(creatorBalancesTable.channelId, channelsTable.id))
-    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
-    .orderBy(desc(creatorBalancesTable.updatedAt));
+router.get("/admin/finance/creator-balances", requireOwner, async (req, res): Promise<void> => {
+  const query = ListAdminCreatorBalancesQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const selectBalance = {
+    channelId: creatorBalancesTable.channelId,
+    channelSlug: channelsTable.slug,
+    channelDisplayName: channelsTable.displayName,
+    creatorUsername: usersTable.username,
+    currency: creatorBalancesTable.currency,
+    pendingAmount: creatorBalancesTable.pendingAmount,
+    availableAmount: creatorBalancesTable.availableAmount,
+    heldAmount: creatorBalancesTable.heldAmount,
+    updatedAt: creatorBalancesTable.updatedAt,
+  };
+  const [totalRows, balances] = await Promise.all([
+    db.select({ total: count() }).from(creatorBalancesTable),
+    db.select(selectBalance)
+      .from(creatorBalancesTable)
+      .innerJoin(channelsTable, eq(creatorBalancesTable.channelId, channelsTable.id))
+      .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+      .orderBy(desc(creatorBalancesTable.updatedAt), desc(creatorBalancesTable.channelId), desc(creatorBalancesTable.currency))
+      .limit(query.data.limit)
+      .offset(query.data.offset),
+  ]);
 
-  res.json(ListAdminCreatorBalancesResponse.parse(balances.map((balance) => ({
-    ...balance,
-    pendingAmount: toDecimalString(balance.pendingAmount),
-    availableAmount: toDecimalString(balance.availableAmount),
-    heldAmount: toDecimalString(balance.heldAmount),
-    updatedAt: balance.updatedAt.toISOString(),
-  }))));
+  res.json(ListAdminCreatorBalancesResponse.parse({
+    items: balances.map((balance) => ({
+      ...balance,
+      pendingAmount: toDecimalString(balance.pendingAmount),
+      availableAmount: toDecimalString(balance.availableAmount),
+      heldAmount: toDecimalString(balance.heldAmount),
+      updatedAt: balance.updatedAt.toISOString(),
+    })),
+    total: totalRows[0]?.total ?? 0,
+    limit: query.data.limit,
+    offset: query.data.offset,
+  }));
 });
 
 router.get("/admin/finance/creator-balances/:channelId", requireOwner, async (req, res): Promise<void> => {

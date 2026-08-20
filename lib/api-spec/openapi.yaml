@@ -2865,15 +2865,22 @@ paths:
       operationId: listAdminCreatorBalances
       tags: [admin-finance]
       summary: Owner-only current creator balances grouped by channel and crypto asset
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: Current creator balance records
+          description: Bounded current creator-balance page
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AdminCreatorBalance"
+                $ref: "#/components/schemas/AdminCreatorBalancePage"
         "403": { description: Not an owner }
 
   /admin/finance/creator-balances/{channelId}:
@@ -5565,6 +5572,17 @@ components:
         availableAmount: { type: string }
         heldAmount: { type: string }
         updatedAt: { type: string, format: date-time }
+
+    AdminCreatorBalancePage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AdminCreatorBalance" }
+        total: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0 }
 
     AdminCreatorBalanceMovement:
       type: object
