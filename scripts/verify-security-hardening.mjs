@@ -33,6 +33,7 @@ const [
   apiSpec,
   adsRoute,
   adSlot,
+  chartComponent,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -49,6 +50,7 @@ const [
   source("lib/api-spec/openapi.yaml"),
   source("artifacts/api-server/src/routes/ads.ts"),
   source("artifacts/blyze/src/components/ads/AdSlot.tsx"),
+  source("artifacts/blyze/src/components/ui/chart.tsx"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -307,6 +309,16 @@ requireMatch(
   adSlot,
   /new URL\(value\)\.protocol === "https:"/,
   "Advertising presentation must reject non-HTTPS creative asset URLs.",
+);
+requireMatch(
+  chartComponent,
+  /SAFE_CHART_KEY/,
+  "Dynamic chart CSS custom-property names must be allowlisted.",
+);
+requireMatch(
+  chartComponent,
+  /safeChartColor/,
+  "Dynamic chart CSS values must be sanitized before style injection.",
 );
 
 requireMatch(
