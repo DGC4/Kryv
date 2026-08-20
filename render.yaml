@@ -114,6 +114,10 @@ envVarGroups:
         sync: false
       - key: PLISIO_ALLOWED_COINS
         value: BTC,LTC,ETH,DOGE
+      # Allowlist checkout navigation destinations returned by Plisio. Any
+      # white-label host must be explicitly reviewed and added here.
+      - key: PLISIO_CHECKOUT_ALLOWED_HOSTS
+        value: plisio.net
       - key: CREATOR_PAYOUT_ENCRYPTION_KEY
         sync: false
       - key: KRYV_ANALYTICS_WEBHOOK_URL

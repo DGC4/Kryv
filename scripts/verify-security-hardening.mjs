@@ -583,6 +583,11 @@ requireMatch(
   /invoiceUrl: validatedInvoiceUrl\(payload\.data\.invoice_url\)/,
   "Kryv checkout responses must use the validated provider invoice URL.",
 );
+requireMatch(
+  renderBlueprint,
+  /PLISIO_CHECKOUT_ALLOWED_HOSTS/,
+  "Deployment configuration must declare the reviewed Plisio checkout host allowlist.",
+);
 forbidMatch(
   routeRegistry,
   /locationRouter/,
