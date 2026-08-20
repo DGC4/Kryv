@@ -84,6 +84,7 @@ import type {
   ChatReportInput,
   CinemaComment,
   CinemaCommentInput,
+  CinemaCommentPage,
   CinemaHome,
   CinemaTitleDetail,
   ClipInput,
@@ -119,6 +120,7 @@ import type {
   ListAdminVideosParams,
   ListCategoriesParams,
   ListChannelsParams,
+  ListCinemaCommentsParams,
   ListClipsParams,
   ListVideosParams,
   Me,
@@ -5921,20 +5923,29 @@ export function useGetCinemaTitle<TData = Awaited<ReturnType<typeof getCinemaTit
 
 
 
-export const getListCinemaCommentsUrl = (id: number,) => {
+export const getListCinemaCommentsUrl = (id: number,
+    params?: ListCinemaCommentsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/cinema/titles/${id}/comments`
+  return stringifiedParams.length > 0 ? `/api/cinema/titles/${id}/comments?${stringifiedParams}` : `/api/cinema/titles/${id}/comments`
 }
 
 /**
  * @summary List visible discussion for a published Kryv Cinema title
  */
-export const listCinemaComments = async (id: number, options?: RequestInit): Promise<CinemaComment[]> => {
+export const listCinemaComments = async (id: number,
+    params?: ListCinemaCommentsParams, options?: RequestInit): Promise<CinemaCommentPage> => {
 
-  return customFetch<CinemaComment[]>(getListCinemaCommentsUrl(id),
+  return customFetch<CinemaCommentPage>(getListCinemaCommentsUrl(id,params),
   {
     ...options,
     method: 'GET'
@@ -5947,23 +5958,25 @@ export const listCinemaComments = async (id: number, options?: RequestInit): Pro
 
 
 
-export const getListCinemaCommentsQueryKey = (id: number,) => {
+export const getListCinemaCommentsQueryKey = (id: number,
+    params?: ListCinemaCommentsParams,) => {
     return [
-    `/api/cinema/titles/${id}/comments`
+    `/api/cinema/titles/${id}/comments`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListCinemaCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listCinemaComments>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listCinemaComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+export const getListCinemaCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listCinemaComments>>, TError = ErrorType<Error>>(id: number,
+    params?: ListCinemaCommentsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listCinemaComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListCinemaCommentsQueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getListCinemaCommentsQueryKey(id,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCinemaComments>>> = ({ signal }) => listCinemaComments(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCinemaComments>>> = ({ signal }) => listCinemaComments(id,params, { signal, ...requestOptions });
 
 
 
@@ -5981,11 +5994,12 @@ export type ListCinemaCommentsQueryError = ErrorType<Error>
  */
 
 export function useListCinemaComments<TData = Awaited<ReturnType<typeof listCinemaComments>>, TError = ErrorType<Error>>(
- id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listCinemaComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+ id: number,
+    params?: ListCinemaCommentsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listCinemaComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListCinemaCommentsQueryOptions(id,options)
+  const queryOptions = getListCinemaCommentsQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -946,6 +946,22 @@ export interface CinemaComment {
   replies: CinemaComment[];
 }
 
+export interface CinemaCommentPage {
+  items: CinemaComment[];
+  /**
+     * Total visible top-level comments for the active published title.
+     * @minimum 0
+     */
+  total: number;
+  /**
+     * @minimum 1
+     * @maximum 50
+     */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
 export interface CinemaCommentInput {
   /**
      * @minLength 1
@@ -2731,6 +2747,20 @@ export const ListVideosContentType = {
   upload: 'upload',
   original: 'original',
 } as const;
+
+export type ListCinemaCommentsParams = {
+/**
+ * Maximum number of newest-first top-level comments in one page. Replies for those roots are included.
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+/**
+ * Zero-based top-level comment offset for newest-first pagination.
+ * @minimum 0
+ */
+offset?: number;
+};
 
 export type ListAdminModerationCasesParams = {
 status?: ListAdminModerationCasesStatus;

@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import {
   channelsTable,
   cinemaCreditsTable,
@@ -96,18 +96,37 @@ export function toPublicCinemaTitle(
 }
 
 export async function getPublishedCinemaTitleDetail(id: number): Promise<(PublicCinemaTitle & { credits: CinemaCredit[] }) | null> {
-  const [title, creditRows] = await Promise.all([
-    getPublishedCinemaTitles().then((titles) => titles.find((item) => item.id === id) ?? null),
+  const [titleRows, assets, rightsWindows, creditRows] = await Promise.all([
+    db
+      .select()
+      .from(cinemaTitlesTable)
+      .where(and(
+        eq(cinemaTitlesTable.id, id),
+        eq(cinemaTitlesTable.publishState, "published"),
+      ))
+      .limit(1),
+    db
+      .select()
+      .from(cinemaTitleAssetsTable)
+      .where(eq(cinemaTitleAssetsTable.cinemaTitleId, id)),
+    db
+      .select()
+      .from(cinemaRightsWindowsTable)
+      .where(eq(cinemaRightsWindowsTable.cinemaTitleId, id)),
     db.select({ credit: cinemaCreditsTable, channel: channelsTable })
       .from(cinemaCreditsTable)
       .innerJoin(channelsTable, eq(cinemaCreditsTable.channelId, channelsTable.id))
       .where(eq(cinemaCreditsTable.cinemaTitleId, id))
       .orderBy(cinemaCreditsTable.displayOrder, cinemaCreditsTable.createdAt),
   ]);
+  const title = titleRows[0];
   if (!title) return null;
 
+  const publicTitle = toPublicCinemaTitle(title, assets, rightsWindows, new Date());
+  if (!publicTitle) return null;
+
   return {
-    ...title,
+    ...publicTitle,
     credits: creditRows.map(({ credit, channel }) => ({
       channelId: channel.id,
       channelSlug: channel.slug,
@@ -119,21 +138,42 @@ export async function getPublishedCinemaTitleDetail(id: number): Promise<(Public
 }
 
 export async function getPublishedCinemaTitles(): Promise<PublicCinemaTitle[]> {
-  const [titles, assets, rightsWindows] = await Promise.all([
-    db.select()
-      .from(cinemaTitlesTable)
-      .where(eq(cinemaTitlesTable.publishState, "published"))
-      .orderBy(desc(cinemaTitlesTable.editorialRank), desc(cinemaTitlesTable.publishedAt)),
-    db.select().from(cinemaTitleAssetsTable),
-    db.select().from(cinemaRightsWindowsTable),
+  const titles = await db.select()
+    .from(cinemaTitlesTable)
+    .where(eq(cinemaTitlesTable.publishState, "published"))
+    .orderBy(desc(cinemaTitlesTable.editorialRank), desc(cinemaTitlesTable.publishedAt));
+  if (titles.length === 0) return [];
+
+  const titleIds = titles.map((title) => title.id);
+  const [assets, rightsWindows] = await Promise.all([
+    db
+      .select()
+      .from(cinemaTitleAssetsTable)
+      .where(inArray(cinemaTitleAssetsTable.cinemaTitleId, titleIds)),
+    db
+      .select()
+      .from(cinemaRightsWindowsTable)
+      .where(inArray(cinemaRightsWindowsTable.cinemaTitleId, titleIds)),
   ]);
+  const assetsByTitleId = new Map<number, CinemaAssetRow[]>();
+  for (const asset of assets) {
+    const titleAssets = assetsByTitleId.get(asset.cinemaTitleId) ?? [];
+    titleAssets.push(asset);
+    assetsByTitleId.set(asset.cinemaTitleId, titleAssets);
+  }
+  const rightsWindowsByTitleId = new Map<number, CinemaRightsWindowRow[]>();
+  for (const window of rightsWindows) {
+    const titleWindows = rightsWindowsByTitleId.get(window.cinemaTitleId) ?? [];
+    titleWindows.push(window);
+    rightsWindowsByTitleId.set(window.cinemaTitleId, titleWindows);
+  }
   const now = new Date();
 
   return titles
     .map((title) => toPublicCinemaTitle(
       title,
-      assets.filter((asset) => asset.cinemaTitleId === title.id),
-      rightsWindows.filter((window) => window.cinemaTitleId === title.id),
+      assetsByTitleId.get(title.id) ?? [],
+      rightsWindowsByTitleId.get(title.id) ?? [],
       now,
     ))
     .filter((title): title is PublicCinemaTitle => title !== null);

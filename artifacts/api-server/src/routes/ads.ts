@@ -94,6 +94,9 @@ async function adDeliveryEnabled() {
 }
 
 router.get("/ads/decision", async (req, res): Promise<void> => {
+  // Decisions are or will become profile-, consent-, and frequency-sensitive. Never
+  // allow a browser, CDN, or shared intermediary to replay one across viewers.
+  res.setHeader("Cache-Control", "private, no-store");
   const parsed = GetAdDecisionQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

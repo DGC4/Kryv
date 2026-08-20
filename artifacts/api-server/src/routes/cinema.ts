@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import {
   categoriesTable,
   cinemaCommentsTable,
@@ -17,6 +17,7 @@ import {
   GetCinemaTitleParams,
   GetCinemaTitleResponse,
   ListCinemaCommentsParams,
+  ListCinemaCommentsQueryParams,
   ListCinemaCommentsResponse,
 } from "@workspace/api-zod";
 import { attachUserId, requireAuth } from "../lib/auth";
@@ -213,8 +214,13 @@ router.get(
   attachUserId,
   async (req, res): Promise<void> => {
     const params = ListCinemaCommentsParams.safeParse(req.params);
+    const query = ListCinemaCommentsQueryParams.safeParse(req.query);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
+      return;
+    }
+    if (!query.success) {
+      res.status(400).json({ error: query.error.message });
       return;
     }
 
@@ -232,47 +238,73 @@ router.get(
       return;
     }
 
-    const rows = await db
-      .select({
-        id: cinemaCommentsTable.id,
-        cinemaTitleId: cinemaCommentsTable.cinemaTitleId,
-        parentCommentId: cinemaCommentsTable.parentCommentId,
-        userId: cinemaCommentsTable.userId,
-        username: usersTable.username,
-        avatarUrl: usersTable.avatarUrl,
-        message: cinemaCommentsTable.message,
-        createdAt: cinemaCommentsTable.createdAt,
-      })
-      .from(cinemaCommentsTable)
-      .innerJoin(usersTable, eq(usersTable.id, cinemaCommentsTable.userId))
-      .where(
-        and(
-          eq(cinemaCommentsTable.cinemaTitleId, title.id),
-          isNull(cinemaCommentsTable.deletedAt),
-        ),
-      )
-      .orderBy(
-        desc(cinemaCommentsTable.createdAt),
-        desc(cinemaCommentsTable.id),
-      );
-
-    type CommentNode = (typeof rows)[number] & {
-      replies: Array<(typeof rows)[number] & { replies: [] }>;
+    const commentFields = {
+      id: cinemaCommentsTable.id,
+      cinemaTitleId: cinemaCommentsTable.cinemaTitleId,
+      parentCommentId: cinemaCommentsTable.parentCommentId,
+      userId: cinemaCommentsTable.userId,
+      username: usersTable.username,
+      avatarUrl: usersTable.avatarUrl,
+      message: cinemaCommentsTable.message,
+      createdAt: cinemaCommentsTable.createdAt,
     };
-    const parentComments = new Map<number, CommentNode>();
-    const replyRows: Array<(typeof rows)[number]> = [];
-    for (const row of rows) {
-      if (row.parentCommentId === null)
-        parentComments.set(row.id, { ...row, replies: [] });
-      else replyRows.push(row);
-    }
+    const rootWhere = and(
+      eq(cinemaCommentsTable.cinemaTitleId, title.id),
+      isNull(cinemaCommentsTable.parentCommentId),
+      isNull(cinemaCommentsTable.deletedAt),
+    );
+    const [rootRows, countRows] = await Promise.all([
+      db
+        .select(commentFields)
+        .from(cinemaCommentsTable)
+        .innerJoin(usersTable, eq(usersTable.id, cinemaCommentsTable.userId))
+        .where(rootWhere)
+        .orderBy(
+          desc(cinemaCommentsTable.createdAt),
+          desc(cinemaCommentsTable.id),
+        )
+        .limit(query.data.limit)
+        .offset(query.data.offset),
+      db
+        .select({ total: sql<number>`count(*)`.mapWith(Number) })
+        .from(cinemaCommentsTable)
+        .where(rootWhere),
+    ]);
+    const rootIds = rootRows.map((row) => row.id);
+    const replyRows = rootIds.length === 0
+      ? []
+      : await db
+        .select(commentFields)
+        .from(cinemaCommentsTable)
+        .innerJoin(usersTable, eq(usersTable.id, cinemaCommentsTable.userId))
+        .where(and(
+          eq(cinemaCommentsTable.cinemaTitleId, title.id),
+          inArray(cinemaCommentsTable.parentCommentId, rootIds),
+          isNull(cinemaCommentsTable.deletedAt),
+        ))
+        .orderBy(
+          desc(cinemaCommentsTable.createdAt),
+          desc(cinemaCommentsTable.id),
+        );
+
+    type CommentNode = (typeof rootRows)[number] & {
+      replies: Array<(typeof rootRows)[number] & { replies: [] }>;
+    };
+    const parentComments = new Map<number, CommentNode>(
+      rootRows.map((row) => [row.id, { ...row, replies: [] }]),
+    );
     for (const reply of replyRows) {
       const parent = parentComments.get(reply.parentCommentId!);
       if (parent) parent.replies.push({ ...reply, replies: [] });
     }
 
     res.json(
-      ListCinemaCommentsResponse.parse(Array.from(parentComments.values())),
+      ListCinemaCommentsResponse.parse({
+        items: rootRows.map((row) => parentComments.get(row.id)!),
+        total: countRows[0]?.total ?? 0,
+        limit: query.data.limit,
+        offset: query.data.offset,
+      }),
     );
   },
 );

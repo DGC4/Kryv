@@ -2634,7 +2634,29 @@ export const ListCinemaCommentsParams = zod.object({
   "id": zod.coerce.number()
 })
 
-export const ListCinemaCommentsResponseItem = zod.object({
+export const listCinemaCommentsQueryLimitDefault = 25;
+export const listCinemaCommentsQueryLimitMax = 50;
+
+export const listCinemaCommentsQueryOffsetDefault = 0;
+export const listCinemaCommentsQueryOffsetMin = 0;
+
+
+
+export const ListCinemaCommentsQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(listCinemaCommentsQueryLimitMax).default(listCinemaCommentsQueryLimitDefault).describe('Maximum number of newest-first top-level comments in one page. Replies for those roots are included.'),
+  "offset": zod.coerce.number().min(listCinemaCommentsQueryOffsetMin).default(listCinemaCommentsQueryOffsetDefault).describe('Zero-based top-level comment offset for newest-first pagination.')
+})
+
+export const listCinemaCommentsResponseTotalMin = 0;
+
+export const listCinemaCommentsResponseLimitMax = 50;
+
+export const listCinemaCommentsResponseOffsetMin = 0;
+
+
+
+export const ListCinemaCommentsResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "cinemaTitleId": zod.number(),
   "parentCommentId": zod.number().nullable(),
@@ -2644,8 +2666,11 @@ export const ListCinemaCommentsResponseItem = zod.object({
   "message": zod.string(),
   "createdAt": zod.coerce.date(),
   "replies": zod.array(zod.unknown())
+})),
+  "total": zod.number().min(listCinemaCommentsResponseTotalMin).describe('Total visible top-level comments for the active published title.'),
+  "limit": zod.number().min(1).max(listCinemaCommentsResponseLimitMax),
+  "offset": zod.number().min(listCinemaCommentsResponseOffsetMin)
 })
-export const ListCinemaCommentsResponse = zod.array(ListCinemaCommentsResponseItem)
 
 
 /**

@@ -58,6 +58,13 @@ const [
   watchHome,
   creatorProfilePage,
   orvalNormalizer,
+  watchIndexMigration,
+  videosSchema,
+  watchIndexValidation,
+  fastpixLib,
+  fastpixCspReview,
+  cinemaCatalog,
+  cinemaDiscussion,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -99,6 +106,13 @@ const [
   source("artifacts/blyze/src/pages/watch/Home.tsx"),
   source("artifacts/blyze/src/pages/profile/CreatorProfile.tsx"),
   source("scripts/normalize-orval-react-query-options.mjs"),
+  source("lib/db/drizzle/0024_watch_catalog_query_indexes.sql"),
+  source("lib/db/src/schema/videos.ts"),
+  source("KRYV_WATCH_CATALOG_INDEXES_NEON_VALIDATION.md"),
+  source("artifacts/api-server/src/lib/fastpix.ts"),
+  source("KRYV_FASTPIX_CSP_SCOPE_REVIEW.md"),
+  source("artifacts/api-server/src/lib/cinemaCatalog.ts"),
+  source("artifacts/blyze/src/components/discussion/CinemaDiscussion.tsx"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -337,6 +351,11 @@ requireMatch(
   adsRoute,
   /AD_DELIVERY_RUNTIME_ENABLED\s*=\s*false/,
   "Advertising delivery must remain explicitly disabled during control-plane work.",
+);
+requireMatch(
+  adsRoute,
+  /res\.setHeader\("Cache-Control", "private, no-store"\)/,
+  "Advertising decisions must remain private and non-cacheable across viewers.",
 );
 requireMatch(
   adsRoute,
@@ -865,8 +884,93 @@ requireMatch(
 );
 requireMatch(
   orvalNormalizer,
-  /selectViewerProfileBody/,
-  "Contract generation must normalize colliding viewer-profile type exports.",
+  /validatorNames[\s\S]*?collidingTypeModules/,
+  "Contract generation must discover and normalize colliding Zod validator and model exports.",
+);
+requireMatch(
+  watchIndexMigration,
+  /videos_ready_upload_created_idx[\s\S]*?created_at DESC, id DESC[\s\S]*?content_type = 'upload'[\s\S]*?upload_status = 'ready'/,
+  "Production-pending Watch indexing must cover ready public newest-first pages.",
+);
+requireMatch(
+  watchIndexMigration,
+  /videos_watch_channel_created_idx[\s\S]*?channel_id, created_at DESC, id DESC[\s\S]*?content_type = 'upload'/,
+  "Production-pending Watch indexing must cover creator-scoped newest-first libraries.",
+);
+requireMatch(
+  videosSchema,
+  /watchReadyCatalogIdx: index\("videos_ready_upload_created_idx"\)/,
+  "Drizzle video metadata must retain the ready public Watch index.",
+);
+requireMatch(
+  videosSchema,
+  /watchChannelCatalogIdx: index\("videos_watch_channel_created_idx"\)/,
+  "Drizzle video metadata must retain the creator-scoped Watch index.",
+);
+requireMatch(
+  watchIndexValidation,
+  /Production-pending[\s\S]*?No production schema change was performed/,
+  "Watch index validation evidence must keep the production rollout explicitly pending.",
+);
+requireMatch(
+  fastpixLib,
+  /fetch\("https:\/\/api\.fastpix\.com\/v1\/on-demand", \{[\s\S]*?redirect: "error"/,
+  "Credentialed FastPix clip creation must reject redirects from its fixed HTTPS API origin.",
+);
+requireMatch(
+  appServer,
+  /"https:\/\/stream\.fastpix\.com"[\s\S]*?"https:\/\/\*\.fastpix\.com"/,
+  "CSP must retain a provider-scoped FastPix playback delivery boundary.",
+);
+requireMatch(
+  fastpixCspReview,
+  /Retain `https:\/\/\*\.fastpix\.com`/,
+  "FastPix CSP review evidence must explain the intentionally provider-scoped wildcard.",
+);
+requireMatch(
+  cinemaCatalog,
+  /inArray\(cinemaTitleAssetsTable\.cinemaTitleId, titleIds\)/,
+  "Cinema catalog assets must be hydrated only for published catalog title IDs.",
+);
+requireMatch(
+  cinemaCatalog,
+  /inArray\(cinemaRightsWindowsTable\.cinemaTitleId, titleIds\)/,
+  "Cinema catalog rights windows must be hydrated only for published catalog title IDs.",
+);
+requireMatch(
+  cinemaCatalog,
+  /assetsByTitleId\.get\(title\.id\) \?\? \[\]/,
+  "Cinema catalog must group loaded assets instead of repeatedly filtering the full result set.",
+);
+requireMatch(
+  cinemaCatalog,
+  /where\(and\([\s\S]*?eq\(cinemaTitlesTable\.id, id\)[\s\S]*?eq\(cinemaTitlesTable\.publishState, "published"\)/,
+  "Cinema detail must fetch the requested published title directly rather than scanning the full catalog.",
+);
+requireMatch(
+  apiSpec,
+  /\/cinema\/titles\/\{id\}\/comments:[\s\S]*?name: limit[\s\S]*?maximum: 50[\s\S]*?default: 25[\s\S]*?name: offset/,
+  "Cinema discussion must expose bounded typed top-level comment pagination.",
+);
+requireMatch(
+  cinemaRoute,
+  /isNull\(cinemaCommentsTable\.parentCommentId\)[\s\S]*?\.limit\(query\.data\.limit\)[\s\S]*?\.offset\(query\.data\.offset\)/,
+  "Cinema discussion must page visible top-level comments at the database boundary.",
+);
+requireMatch(
+  cinemaRoute,
+  /inArray\(cinemaCommentsTable\.parentCommentId, rootIds\)/,
+  "Cinema discussion replies must be hydrated only for the displayed root comments.",
+);
+requireMatch(
+  cinemaRoute,
+  /total: countRows\[0\]\?\.total/,
+  "Cinema discussion responses must include an authoritative visible root-comment total.",
+);
+requireMatch(
+  cinemaDiscussion,
+  /CINEMA_COMMENT_PAGE_SIZE = 25[\s\S]*?commentsPage\?\.items[\s\S]*?Older comments/,
+  "Cinema discussion UI must consume the typed page and expose explicit continuation controls.",
 );
 
 requireMatch(

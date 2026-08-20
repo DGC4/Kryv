@@ -2377,15 +2377,30 @@ paths:
           in: path
           required: true
           schema: { type: integer }
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of newest-first top-level comments in one page. Replies for those roots are included.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 25
+        - name: offset
+          in: query
+          required: false
+          description: Zero-based top-level comment offset for newest-first pagination.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         "200":
-          description: Top-level Cinema comments with nested replies
+          description: Bounded top-level Cinema comment page with nested replies for the returned roots
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CinemaComment"
+                $ref: "#/components/schemas/CinemaCommentPage"
         "404":
           description: Published Cinema title not found
           content:
@@ -4357,6 +4372,21 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CinemaComment"
+
+    CinemaCommentPage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CinemaComment"
+        total:
+          description: Total visible top-level comments for the active published title.
+          type: integer
+          minimum: 0
+        limit: { type: integer, minimum: 1, maximum: 50 }
+        offset: { type: integer, minimum: 0 }
 
     CinemaCommentInput:
       type: object

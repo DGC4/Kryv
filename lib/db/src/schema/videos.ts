@@ -47,6 +47,14 @@ export const videosTable = pgTable("videos", {
   cinemaCatalogIdx: index("videos_cinema_catalog_idx")
     .on(table.contentType, table.createdAt.desc())
     .where(sql`${table.contentType} = 'original'`),
+  watchReadyCatalogIdx: index("videos_ready_upload_created_idx")
+    .on(table.createdAt.desc(), table.id.desc())
+    .where(
+      sql`${table.contentType} = 'upload' AND ${table.uploadStatus} = 'ready'`,
+    ),
+  watchChannelCatalogIdx: index("videos_watch_channel_created_idx")
+    .on(table.channelId, table.createdAt.desc(), table.id.desc())
+    .where(sql`${table.contentType} = 'upload'`),
 }));
 
 export const insertVideoSchema = createInsertSchema(videosTable).omit({

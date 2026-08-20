@@ -137,6 +137,7 @@ export * from './chatReportInputReason';
 export * from './chatReportStatus';
 export * from './cinemaComment';
 export * from './cinemaCommentInput';
+export * from './cinemaCommentPage';
 export * from './cinemaCredit';
 export * from './cinemaHome';
 export * from './cinemaRow';

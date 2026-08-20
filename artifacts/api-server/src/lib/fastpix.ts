@@ -271,6 +271,7 @@ async function createFastPixClipFromInput(input: {
   const authorization = Buffer.from(`${username}:${password}`).toString("base64");
   const response = await fetch("https://api.fastpix.com/v1/on-demand", {
     method: "POST",
+    redirect: "error",
     headers: {
       Authorization: `Basic ${authorization}`,
       "Content-Type": "application/json",
