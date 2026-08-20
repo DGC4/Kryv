@@ -87,6 +87,7 @@ export * from './adminFocusMode';
 export * from './adminFocusModeSourceType';
 export * from './adminModerationCase';
 export * from './adminModerationCaseEvidenceItem';
+export * from './adminModerationCasePage';
 export * from './adminModerationCaseStatus';
 export * from './adminPayoutProfile';
 export * from './adminPayoutRequest';

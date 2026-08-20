@@ -3005,11 +3005,30 @@ export const GetCreatorAchievementsResponse = zod.array(GetCreatorAchievementsRe
 /**
  * @summary List open and resolved viewer safety reports for owner review
  */
+export const listAdminModerationCasesQueryLimitDefault = 50;
+export const listAdminModerationCasesQueryLimitMax = 100;
+
+export const listAdminModerationCasesQueryOffsetDefault = 0;
+export const listAdminModerationCasesQueryOffsetMin = 0;
+
+
+
 export const ListAdminModerationCasesQueryParams = zod.object({
-  "status": zod.enum(['open', 'resolved', 'dismissed']).optional()
+  "status": zod.enum(['open', 'resolved', 'dismissed']).optional(),
+  "limit": zod.coerce.number().min(1).max(listAdminModerationCasesQueryLimitMax).default(listAdminModerationCasesQueryLimitDefault).describe('Maximum number of owner-visible moderation cases in one response page.'),
+  "offset": zod.coerce.number().min(listAdminModerationCasesQueryOffsetMin).default(listAdminModerationCasesQueryOffsetDefault).describe('Zero-based moderation-case offset for newest-first owner review pagination.')
 })
 
-export const ListAdminModerationCasesResponseItem = zod.object({
+export const listAdminModerationCasesResponseTotalMin = 0;
+
+export const listAdminModerationCasesResponseLimitMax = 100;
+
+export const listAdminModerationCasesResponseOffsetMin = 0;
+
+
+
+export const ListAdminModerationCasesResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "channelId": zod.number().nullable(),
   "reporterUserId": zod.number().nullable(),
@@ -3023,8 +3042,11 @@ export const ListAdminModerationCasesResponseItem = zod.object({
   "resolution": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
+})),
+  "total": zod.number().min(listAdminModerationCasesResponseTotalMin).describe('Total owner-visible moderation cases matching the current status filter.'),
+  "limit": zod.number().min(1).max(listAdminModerationCasesResponseLimitMax),
+  "offset": zod.number().min(listAdminModerationCasesResponseOffsetMin)
 })
-export const ListAdminModerationCasesResponse = zod.array(ListAdminModerationCasesResponseItem)
 
 
 /**

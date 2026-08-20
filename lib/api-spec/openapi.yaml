@@ -2647,15 +2647,30 @@ paths:
           in: query
           required: false
           schema: { type: string, enum: [open, resolved, dismissed] }
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of owner-visible moderation cases in one response page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          description: Zero-based moderation-case offset for newest-first owner review pagination.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         "200":
-          description: Moderation cases ordered by newest first
+          description: Bounded moderation-case page ordered by newest first
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AdminModerationCase"
+                $ref: "#/components/schemas/AdminModerationCasePage"
         "403": { description: Not an owner }
 
   /admin/moderation/cases/{id}/review:
@@ -4658,6 +4673,21 @@ components:
         resolution: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    AdminModerationCasePage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminModerationCase"
+        total:
+          description: Total owner-visible moderation cases matching the current status filter.
+          type: integer
+          minimum: 0
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0 }
 
     ReviewAdminModerationCaseInput:
       type: object

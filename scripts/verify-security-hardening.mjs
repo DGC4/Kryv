@@ -53,6 +53,7 @@ const [
   videoSerializer,
   channelSerializer,
   adminRoute,
+  adminDashboard,
   creatorProfileRoute,
   searchLib,
   ownerCinemaRoute,
@@ -109,6 +110,7 @@ const [
   source("artifacts/api-server/src/lib/videoSerializer.ts"),
   source("artifacts/api-server/src/lib/channelSerializer.ts"),
   source("artifacts/api-server/src/routes/admin.ts"),
+  source("artifacts/blyze/src/pages/dashboard/Admin.tsx"),
   source("artifacts/api-server/src/routes/profiles.ts"),
   source("artifacts/api-server/src/lib/search.ts"),
   source("artifacts/api-server/src/routes/owner-cinema.ts"),
@@ -1087,6 +1089,21 @@ requireMatch(
   watchHome,
   /WATCH_PAGE_SIZE = 48[\s\S]*?limit: WATCH_PAGE_SIZE[\s\S]*?offset: videoOffset[\s\S]*?videoPage\?\.items[\s\S]*?Older releases/,
   "Watch home must consume the bounded VideoPage and expose explicit catalog continuation controls.",
+);
+requireMatch(
+  apiSpec,
+  /\/admin\/moderation\/cases:[\s\S]*?name: limit[\s\S]*?maximum: 100[\s\S]*?name: offset[\s\S]*?AdminModerationCasePage/,
+  "Owner moderation cases must expose a bounded typed page contract with validated limit and offset controls.",
+);
+requireMatch(
+  adminRoute,
+  /const moderationFilter[\s\S]*?select\(\{ total: count\(\) \}\)[\s\S]*?where\(moderationFilter\)[\s\S]*?orderBy\(desc\(moderationCasesTable\.createdAt\), desc\(moderationCasesTable\.id\)\)[\s\S]*?limit\(query\.data\.limit\)[\s\S]*?offset\(query\.data\.offset\)[\s\S]*?total: totalRows\[0\]\?\.total/,
+  "Owner moderation SQL must filter before authoritative count and stable bounded page retrieval.",
+);
+requireMatch(
+  adminDashboard,
+  /useListAdminModerationCases\(\{ status: 'open', limit: 50, offset: moderationOffset \}[\s\S]*?data\?\.items[\s\S]*?Older cases/,
+  "Owner safety dashboard must consume moderation page items and expose explicit newer/older continuation controls.",
 );
 requireMatch(
   watchHome,

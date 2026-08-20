@@ -1234,6 +1234,22 @@ export interface AdminModerationCase {
   updatedAt: string;
 }
 
+export interface AdminModerationCasePage {
+  items: AdminModerationCase[];
+  /**
+     * Total owner-visible moderation cases matching the current status filter.
+     * @minimum 0
+     */
+  total: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
 export type ReviewAdminModerationCaseInputDecision = typeof ReviewAdminModerationCaseInputDecision[keyof typeof ReviewAdminModerationCaseInputDecision];
 
 
@@ -2818,6 +2834,17 @@ offset?: number;
 
 export type ListAdminModerationCasesParams = {
 status?: ListAdminModerationCasesStatus;
+/**
+ * Maximum number of owner-visible moderation cases in one response page.
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * Zero-based moderation-case offset for newest-first owner review pagination.
+ * @minimum 0
+ */
+offset?: number;
 };
 
 export type ListAdminModerationCasesStatus = typeof ListAdminModerationCasesStatus[keyof typeof ListAdminModerationCasesStatus];

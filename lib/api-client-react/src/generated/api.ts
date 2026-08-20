@@ -52,6 +52,7 @@ import type {
   AdminFinanceOverview,
   AdminFocusMode,
   AdminModerationCase,
+  AdminModerationCasePage,
   AdminPayoutProfile,
   AdminPayoutRequest,
   AdminStats,
@@ -6698,9 +6699,9 @@ export const getListAdminModerationCasesUrl = (params?: ListAdminModerationCases
 /**
  * @summary List open and resolved viewer safety reports for owner review
  */
-export const listAdminModerationCases = async (params?: ListAdminModerationCasesParams, options?: RequestInit): Promise<AdminModerationCase[]> => {
+export const listAdminModerationCases = async (params?: ListAdminModerationCasesParams, options?: RequestInit): Promise<AdminModerationCasePage> => {
 
-  return customFetch<AdminModerationCase[]>(getListAdminModerationCasesUrl(params),
+  return customFetch<AdminModerationCasePage>(getListAdminModerationCasesUrl(params),
   {
     ...options,
     method: 'GET'

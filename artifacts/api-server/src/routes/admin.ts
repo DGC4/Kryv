@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   db,
@@ -257,13 +257,28 @@ router.get("/admin/moderation/cases", requireOwner, async (req, res): Promise<vo
     res.status(400).json({ error: query.error.message });
     return;
   }
-  const rows = await db
-    .select()
-    .from(moderationCasesTable)
-    .where(query.data.status ? eq(moderationCasesTable.status, query.data.status) : undefined)
-    .orderBy(desc(moderationCasesTable.createdAt))
-    .limit(100);
-  res.json(ListAdminModerationCasesResponse.parse(rows.map(toAdminModerationCase)));
+  const moderationFilter = query.data.status
+    ? eq(moderationCasesTable.status, query.data.status)
+    : undefined;
+  const [totalRows, rows] = await Promise.all([
+    db
+      .select({ total: count() })
+      .from(moderationCasesTable)
+      .where(moderationFilter),
+    db
+      .select()
+      .from(moderationCasesTable)
+      .where(moderationFilter)
+      .orderBy(desc(moderationCasesTable.createdAt), desc(moderationCasesTable.id))
+      .limit(query.data.limit)
+      .offset(query.data.offset),
+  ]);
+  res.json(ListAdminModerationCasesResponse.parse({
+    items: rows.map(toAdminModerationCase),
+    total: totalRows[0]?.total ?? 0,
+    limit: query.data.limit,
+    offset: query.data.offset,
+  }));
 });
 
 router.post("/admin/moderation/cases/:id/review", requireOwner, async (req, res): Promise<void> => {

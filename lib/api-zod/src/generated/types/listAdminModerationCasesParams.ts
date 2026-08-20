@@ -9,4 +9,15 @@ import type { ListAdminModerationCasesStatus } from './listAdminModerationCasesS
 
 export type ListAdminModerationCasesParams = {
 status?: ListAdminModerationCasesStatus;
+/**
+ * Maximum number of owner-visible moderation cases in one response page.
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * Zero-based moderation-case offset for newest-first owner review pagination.
+ * @minimum 0
+ */
+offset?: number;
 };
