@@ -244,8 +244,9 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
-  // Webhooks are exempt — FastPix sends bursts during stream events
-  skip: (req) => req.path.startsWith("/api/webhooks"),
+  // Webhooks are exempt — this limiter is mounted at /api, so use originalUrl
+  // rather than the mount-relative req.path when identifying provider callbacks.
+  skip: (req) => req.originalUrl.startsWith("/api/webhooks/"),
 });
 
 // Apply rate limiters before routes

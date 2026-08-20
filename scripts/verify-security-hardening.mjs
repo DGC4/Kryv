@@ -505,6 +505,11 @@ requireMatch(
 );
 requireMatch(
   appServer,
+  /req\.originalUrl\.startsWith\("\/api\/webhooks\/"\)/,
+  "The general API limiter must exempt provider webhooks using the mount-safe original request URL.",
+);
+requireMatch(
+  appServer,
   /const profileSecurityLimiter = rateLimit/,
   "Profile unlock and PIN-reset routes must retain a dedicated network-level rate limiter.",
 );
