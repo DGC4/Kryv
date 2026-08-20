@@ -77,7 +77,7 @@ export default function CustomerWallet() {
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {assets.map((asset) => {
           const balance = wallet?.balances.find((item) => item.currency === asset);
-          return <button key={asset} onClick={() => setSelectedAsset(asset)} className={`rounded-2xl border p-4 text-left transition ${selectedAsset === asset ? 'border-primary bg-primary/10 shadow-[0_0_30px_rgba(197,255,0,0.08)]' : 'border-white/[0.08] bg-white/[0.025] hover:border-white/20'}`}>
+          return <button type="button" key={asset} onClick={() => setSelectedAsset(asset)} aria-pressed={selectedAsset === asset} className={`rounded-2xl border p-4 text-left transition ${selectedAsset === asset ? 'border-primary bg-primary/10 shadow-[0_0_30px_rgba(197,255,0,0.08)]' : 'border-white/[0.08] bg-white/[0.025] hover:border-white/20'}`}>
             <span className="text-xs font-bold uppercase tracking-wider text-white/50">{asset}</span>
             <p className="mt-2 text-xl font-black text-white">{amount(balance?.availableAmount ?? '0')}</p>
             <p className="mt-1 text-xs text-white/50">{balance?.usdReferenceValue ? `$${balance.usdReferenceValue} reference` : 'Rate unavailable'}</p>
