@@ -206,6 +206,7 @@ export async function getPlisioAssetSnapshots(): Promise<PlisioAssetSnapshot[]> 
   const timer = setTimeout(() => controller.abort(), 10_000);
   try {
     const currenciesResponse = await fetch(`${base}/currencies/USD?${new URLSearchParams({ api_key: secretKey }).toString()}`, {
+      redirect: "error",
       headers: { Accept: "application/json" },
       signal: controller.signal,
     });
@@ -217,6 +218,7 @@ export async function getPlisioAssetSnapshots(): Promise<PlisioAssetSnapshot[]> 
     const balances = await Promise.all((allowedCoins()).map(async (currency) => {
       try {
         const response = await fetch(`${base}/balances/${encodeURIComponent(currency)}?${new URLSearchParams({ api_key: secretKey }).toString()}`, {
+          redirect: "error",
           headers: { Accept: "application/json" },
           signal: controller.signal,
         });
@@ -260,6 +262,7 @@ export async function createPlisioDepositAddress(input: {
   const timer = setTimeout(() => controller.abort(), 12_000);
   try {
     const response = await fetch(`${plisioDepositsApiBase()}/shops/deposit/new?${params.toString()}`, {
+      redirect: "error",
       headers: { Accept: "application/json" },
       signal: controller.signal,
     });
@@ -314,6 +317,7 @@ export async function createPlisioWithdrawal(input: {
   try {
     const response = await fetch(`${plisioApiBase()}/operations/withdraw?${params.toString()}`, {
       method: "GET",
+      redirect: "error",
       headers: { Accept: "application/json" },
       signal: controller.signal,
     });
@@ -364,6 +368,7 @@ export async function estimatePlisioWithdrawalFee(input: {
   try {
     const response = await fetch(`${plisioApiBase()}/operations/commission/${input.currency}?${params.toString()}`, {
       method: "GET",
+      redirect: "error",
       headers: { Accept: "application/json" },
       signal: controller.signal,
     });
@@ -417,6 +422,7 @@ export async function createPlisioInvoice(input: {
   try {
     const response = await fetch(`${plisioApiBase()}/invoices/new?${params.toString()}`, {
       method: "GET",
+      redirect: "error",
       headers: { Accept: "application/json" },
       signal: controller.signal,
     });

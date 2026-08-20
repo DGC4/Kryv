@@ -874,6 +874,11 @@ requireMatch(
   "Kryv checkout responses must use the validated provider invoice URL.",
 );
 requireMatch(
+  plisioLib,
+  /currencies\/USD[\s\S]*?redirect: "error"[\s\S]*?\/balances\/[\s\S]*?redirect: "error"[\s\S]*?shops\/deposit\/new[\s\S]*?redirect: "error"[\s\S]*?operations\/withdraw[\s\S]*?redirect: "error"[\s\S]*?operations\/commission[\s\S]*?redirect: "error"[\s\S]*?invoices\/new[\s\S]*?redirect: "error"/,
+  "Every secret-bearing Plisio API transport must reject redirects rather than forwarding provider credentials to an untrusted hop.",
+);
+requireMatch(
   renderBlueprint,
   /PLISIO_API_ALLOWED_HOSTS/,
   "Deployment configuration must declare the reviewed Plisio API host allowlist.",
@@ -1122,6 +1127,11 @@ requireMatch(
   fastpixLib,
   /fetch\("https:\/\/api\.fastpix\.com\/v1\/on-demand", \{[\s\S]*?redirect: "error"/,
   "Credentialed FastPix clip creation must reject redirects from its fixed HTTPS API origin.",
+);
+requireMatch(
+  fastpixLib,
+  /FASTPIX_REQUEST_TIMEOUT_MS = 10_000[\s\S]*?AbortSignal\.timeout\(FASTPIX_REQUEST_TIMEOUT_MS\)/,
+  "Credentialed FastPix clip creation must use an explicit bounded provider request timeout.",
 );
 requireMatch(
   appServer,

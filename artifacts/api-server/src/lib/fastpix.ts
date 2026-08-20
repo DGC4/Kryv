@@ -35,6 +35,7 @@ const viewerCountCache = new Map<string, { value: number; expiresAt: number }>()
 const liveStreamStatusCache = new Map<string, { value: any; expiresAt: number }>();
 const VIEWER_COUNT_CACHE_TTL_MS = 10_000;
 const LIVE_STREAM_STATUS_CACHE_TTL_MS = 4_000;
+const FASTPIX_REQUEST_TIMEOUT_MS = 10_000;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -272,6 +273,7 @@ async function createFastPixClipFromInput(input: {
   const response = await fetch("https://api.fastpix.com/v1/on-demand", {
     method: "POST",
     redirect: "error",
+    signal: AbortSignal.timeout(FASTPIX_REQUEST_TIMEOUT_MS),
     headers: {
       Authorization: `Basic ${authorization}`,
       "Content-Type": "application/json",
