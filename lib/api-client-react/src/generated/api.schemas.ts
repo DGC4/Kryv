@@ -885,6 +885,22 @@ export interface VideoComment {
   replies: VideoComment[];
 }
 
+export interface VideoCommentPage {
+  items: VideoComment[];
+  /**
+     * Total visible top-level discussion comments for the Watch release.
+     * @minimum 0
+     */
+  total: number;
+  /**
+     * @minimum 1
+     * @maximum 50
+     */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
 export interface VideoCommentInput {
   /**
      * @minLength 1
@@ -2843,6 +2859,18 @@ export const ListVideosContentType = {
   upload: 'upload',
   original: 'original',
 } as const;
+
+export type ListVideoCommentsParams = {
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
 
 export type ListCinemaCommentsParams = {
 /**

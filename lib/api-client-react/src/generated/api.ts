@@ -129,6 +129,7 @@ import type {
   ListChannelsParams,
   ListCinemaCommentsParams,
   ListClipsParams,
+  ListVideoCommentsParams,
   ListVideosParams,
   Me,
   NotificationInbox,
@@ -152,6 +153,7 @@ import type {
   UserProfile,
   VideoComment,
   VideoCommentInput,
+  VideoCommentPage,
   VideoCreateResponse,
   VideoDetail,
   VideoInput,
@@ -5189,20 +5191,29 @@ export const useRefreshVideoProviderStatus = <TError = ErrorType<Error>,
       return useMutation(getRefreshVideoProviderStatusMutationOptions(options));
     }
 
-export const getListVideoCommentsUrl = (id: number,) => {
+export const getListVideoCommentsUrl = (id: number,
+    params?: ListVideoCommentsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/videos/${id}/comments`
+  return stringifiedParams.length > 0 ? `/api/videos/${id}/comments?${stringifiedParams}` : `/api/videos/${id}/comments`
 }
 
 /**
- * @summary List visible discussion for a published Kryv Watch release
+ * @summary List visible parent discussion comments for a Watch release with their replies
  */
-export const listVideoComments = async (id: number, options?: RequestInit): Promise<VideoComment[]> => {
+export const listVideoComments = async (id: number,
+    params?: ListVideoCommentsParams, options?: RequestInit): Promise<VideoCommentPage> => {
 
-  return customFetch<VideoComment[]>(getListVideoCommentsUrl(id),
+  return customFetch<VideoCommentPage>(getListVideoCommentsUrl(id,params),
   {
     ...options,
     method: 'GET'
@@ -5215,23 +5226,25 @@ export const listVideoComments = async (id: number, options?: RequestInit): Prom
 
 
 
-export const getListVideoCommentsQueryKey = (id: number,) => {
+export const getListVideoCommentsQueryKey = (id: number,
+    params?: ListVideoCommentsParams,) => {
     return [
-    `/api/videos/${id}/comments`
+    `/api/videos/${id}/comments`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListVideoCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listVideoComments>>, TError = ErrorType<Error>>(id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideoComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+export const getListVideoCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listVideoComments>>, TError = ErrorType<Error>>(id: number,
+    params?: ListVideoCommentsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideoComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListVideoCommentsQueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getListVideoCommentsQueryKey(id,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVideoComments>>> = ({ signal }) => listVideoComments(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVideoComments>>> = ({ signal }) => listVideoComments(id,params, { signal, ...requestOptions });
 
 
 
@@ -5245,15 +5258,16 @@ export type ListVideoCommentsQueryError = ErrorType<Error>
 
 
 /**
- * @summary List visible discussion for a published Kryv Watch release
+ * @summary List visible parent discussion comments for a Watch release with their replies
  */
 
 export function useListVideoComments<TData = Awaited<ReturnType<typeof listVideoComments>>, TError = ErrorType<Error>>(
- id: number, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideoComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+ id: number,
+    params?: ListVideoCommentsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listVideoComments>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListVideoCommentsQueryOptions(id,options)
+  const queryOptions = getListVideoCommentsQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

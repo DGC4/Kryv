@@ -240,6 +240,7 @@ export * from './userProfileChannel';
 export * from './userProfileRole';
 export * from './videoComment';
 export * from './videoCommentInput';
+export * from './videoCommentPage';
 export * from './videoCreateResponse';
 export * from './videoDetail';
 export * from './videoInput';

@@ -2353,13 +2353,35 @@ export const RefreshVideoProviderStatusResponse = zod.object({
 
 
 /**
- * @summary List visible discussion for a published Kryv Watch release
+ * @summary List visible parent discussion comments for a Watch release with their replies
  */
 export const ListVideoCommentsParams = zod.object({
   "id": zod.coerce.number()
 })
 
-export const ListVideoCommentsResponseItem = zod.object({
+export const listVideoCommentsQueryLimitDefault = 25;
+export const listVideoCommentsQueryLimitMax = 50;
+
+export const listVideoCommentsQueryOffsetDefault = 0;
+export const listVideoCommentsQueryOffsetMin = 0;
+
+
+
+export const ListVideoCommentsQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(listVideoCommentsQueryLimitMax).default(listVideoCommentsQueryLimitDefault),
+  "offset": zod.coerce.number().min(listVideoCommentsQueryOffsetMin).default(listVideoCommentsQueryOffsetDefault)
+})
+
+export const listVideoCommentsResponseTotalMin = 0;
+
+export const listVideoCommentsResponseLimitMax = 50;
+
+export const listVideoCommentsResponseOffsetMin = 0;
+
+
+
+export const ListVideoCommentsResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "videoId": zod.number(),
   "parentCommentId": zod.number().nullable(),
@@ -2369,8 +2391,11 @@ export const ListVideoCommentsResponseItem = zod.object({
   "message": zod.string(),
   "createdAt": zod.coerce.date(),
   "replies": zod.array(zod.unknown())
+})),
+  "total": zod.number().min(listVideoCommentsResponseTotalMin).describe('Total visible top-level discussion comments for the Watch release.'),
+  "limit": zod.number().min(1).max(listVideoCommentsResponseLimitMax),
+  "offset": zod.number().min(listVideoCommentsResponseOffsetMin)
 })
-export const ListVideoCommentsResponse = zod.array(ListVideoCommentsResponseItem)
 
 
 /**

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { db, categoriesTable, channelsTable, moderationCasesTable, videoCommentsTable, videoMusicCreditsTable, videosTable, usersTable } from "@workspace/db";
 import {
   ListVideosQueryParams,
@@ -26,6 +26,7 @@ import {
   CreateVideoCommentParams,
   CreateVideoCommentResponse,
   ListVideoCommentsParams,
+  ListVideoCommentsQueryParams,
   ListVideoCommentsResponse,
 } from "@workspace/api-zod";
 import { requireAuth, attachUserId } from "../lib/auth";
@@ -342,6 +343,12 @@ router.get("/videos/:id/comments", async (req, res): Promise<void> => {
     return;
   }
 
+  const query = ListVideoCommentsQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+
   const [video] = await db
     .select({ id: videosTable.id })
     .from(videosTable)
@@ -352,35 +359,62 @@ router.get("/videos/:id/comments", async (req, res): Promise<void> => {
     return;
   }
 
-  const rows = await db
-    .select({
-      id: videoCommentsTable.id,
-      videoId: videoCommentsTable.videoId,
-      parentCommentId: videoCommentsTable.parentCommentId,
-      userId: videoCommentsTable.userId,
-      username: usersTable.username,
-      avatarUrl: usersTable.avatarUrl,
-      message: videoCommentsTable.message,
-      createdAt: videoCommentsTable.createdAt,
-    })
-    .from(videoCommentsTable)
-    .innerJoin(usersTable, eq(usersTable.id, videoCommentsTable.userId))
-    .where(and(eq(videoCommentsTable.videoId, video.id), isNull(videoCommentsTable.deletedAt)))
-    .orderBy(desc(videoCommentsTable.createdAt), desc(videoCommentsTable.id));
-
-  type CommentNode = (typeof rows)[number] & { replies: Array<(typeof rows)[number] & { replies: [] }> };
-  const parentComments = new Map<number, CommentNode>();
-  const replyRows: Array<(typeof rows)[number]> = [];
-  for (const row of rows) {
-    if (row.parentCommentId === null) parentComments.set(row.id, { ...row, replies: [] });
-    else replyRows.push(row);
-  }
+  const visibleParentFilter = and(
+    eq(videoCommentsTable.videoId, video.id),
+    isNull(videoCommentsTable.deletedAt),
+    isNull(videoCommentsTable.parentCommentId),
+  );
+  const selectComment = {
+    id: videoCommentsTable.id,
+    videoId: videoCommentsTable.videoId,
+    parentCommentId: videoCommentsTable.parentCommentId,
+    userId: videoCommentsTable.userId,
+    username: usersTable.username,
+    avatarUrl: usersTable.avatarUrl,
+    message: videoCommentsTable.message,
+    createdAt: videoCommentsTable.createdAt,
+  };
+  const [totalRows, parentRows] = await Promise.all([
+    db.select({ total: count() }).from(videoCommentsTable).where(visibleParentFilter),
+    db.select(selectComment)
+      .from(videoCommentsTable)
+      .innerJoin(usersTable, eq(usersTable.id, videoCommentsTable.userId))
+      .where(visibleParentFilter)
+      .orderBy(desc(videoCommentsTable.createdAt), desc(videoCommentsTable.id))
+      .limit(query.data.limit)
+      .offset(query.data.offset),
+  ]);
+  const parentIds = parentRows.map((row) => row.id);
+  const replyRows = parentIds.length
+    ? await db
+      .select(selectComment)
+      .from(videoCommentsTable)
+      .innerJoin(usersTable, eq(usersTable.id, videoCommentsTable.userId))
+      .where(and(
+        eq(videoCommentsTable.videoId, video.id),
+        isNull(videoCommentsTable.deletedAt),
+        inArray(videoCommentsTable.parentCommentId, parentIds),
+      ))
+      .orderBy(asc(videoCommentsTable.createdAt), asc(videoCommentsTable.id))
+    : [];
+  const repliesByParent = new Map<number, typeof replyRows>();
   for (const reply of replyRows) {
-    const parent = parentComments.get(reply.parentCommentId!);
-    if (parent) parent.replies.push({ ...reply, replies: [] });
+    const parentId = reply.parentCommentId;
+    if (parentId === null) continue;
+    const replies = repliesByParent.get(parentId) ?? [];
+    replies.push(reply);
+    repliesByParent.set(parentId, replies);
   }
 
-  res.json(ListVideoCommentsResponse.parse(Array.from(parentComments.values())));
+  res.json(ListVideoCommentsResponse.parse({
+    items: parentRows.map((parent) => ({
+      ...parent,
+      replies: (repliesByParent.get(parent.id) ?? []).map((reply) => ({ ...reply, replies: [] })),
+    })),
+    total: totalRows[0]?.total ?? 0,
+    limit: query.data.limit,
+    offset: query.data.offset,
+  }));
 });
 
 router.post("/videos/:id/comments", requireAuth, async (req, res): Promise<void> => {

@@ -2059,21 +2059,27 @@ paths:
     get:
       operationId: listVideoComments
       tags: [videos]
-      summary: List visible discussion for a published Kryv Watch release
+      summary: List visible parent discussion comments for a Watch release with their replies
       parameters:
         - name: id
           in: path
           required: true
           schema: { type: integer }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 50, default: 25 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: Top-level comments with nested replies
+          description: Bounded newest-first parent-comment page with complete replies nested under each returned parent
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/VideoComment"
+                $ref: "#/components/schemas/VideoCommentPage"
         "404":
           description: Published Watch release not found
           content:
@@ -4315,6 +4321,20 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/VideoComment"
+
+    VideoCommentPage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/VideoComment" }
+        total:
+          description: Total visible top-level discussion comments for the Watch release.
+          type: integer
+          minimum: 0
+        limit: { type: integer, minimum: 1, maximum: 50 }
+        offset: { type: integer, minimum: 0 }
 
     VideoCommentInput:
       type: object

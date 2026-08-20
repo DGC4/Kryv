@@ -1131,6 +1131,21 @@ requireMatch(
   "Owner finance dashboard must consume payout request pages with explicit continuation controls.",
 );
 requireMatch(
+  apiSpec,
+  /\/videos\/\{id\}\/comments:[\s\S]*?name: limit[\s\S]*?maximum: 50[\s\S]*?name: offset[\s\S]*?VideoCommentPage/,
+  "Watch discussion must expose a bounded parent-comment page contract.",
+);
+requireMatch(
+  videosRoute,
+  /visibleParentFilter[\s\S]*?isNull\(videoCommentsTable\.parentCommentId\)[\s\S]*?select\(\{ total: count\(\) \}\)[\s\S]*?limit\(query\.data\.limit\)[\s\S]*?offset\(query\.data\.offset\)[\s\S]*?inArray\(videoCommentsTable\.parentCommentId, parentIds\)[\s\S]*?total: totalRows\[0\]\?\.total/,
+  "Watch discussion SQL must page visible parent threads before bounded reply hydration and return an authoritative parent total.",
+);
+requireMatch(
+  watchDetail,
+  /commentOffset[\s\S]*?useListVideoComments\(videoId, \{ limit: 25, offset: commentOffset \}[\s\S]*?setCommentOffset\(0\)[\s\S]*?Older comments/,
+  "Watch detail must consume the bounded discussion page, reset mutations to newest, and expose thread continuation controls.",
+);
+requireMatch(
   watchHome,
   /const selectCategoryAt[\s\S]*?setVideoOffset\(0\)[\s\S]*?const submitSearch[\s\S]*?setVideoOffset\(0\)[\s\S]*?const clearFilters[\s\S]*?setVideoOffset\(0\)/,
   "Watch home must reset pagination whenever category, search, or clear-filter state changes.",
