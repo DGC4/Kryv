@@ -2895,15 +2895,22 @@ paths:
       operationId: listAdminPayoutProfiles
       tags: [admin-finance]
       summary: Owner-only masked creator payout profiles awaiting or completing review
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: Payout profiles
+          description: Bounded payout-profile page
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AdminPayoutProfile"
+                $ref: "#/components/schemas/AdminPayoutProfilePage"
         "403": { description: Not an owner }
 
   /admin/finance/payout-profiles/{id}/review:
@@ -2938,15 +2945,22 @@ paths:
       operationId: listAdminPayoutRequests
       tags: [admin-finance]
       summary: Owner-only creator payout review queue and settlement history
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: Payout requests
+          description: Bounded payout-request page
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AdminPayoutRequest"
+                $ref: "#/components/schemas/AdminPayoutRequestPage"
         "403": { description: Not an owner }
 
   /admin/finance/payout-requests/{id}/review:
@@ -5355,6 +5369,28 @@ components:
             channelSlug: { type: string }
             channelDisplayName: { type: string }
             creatorUsername: { type: string }
+
+    AdminPayoutProfilePage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AdminPayoutProfile" }
+        total: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0 }
+
+    AdminPayoutRequestPage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AdminPayoutRequest" }
+        total: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0 }
 
     AdminFinanceAssetLiability:
       type: object

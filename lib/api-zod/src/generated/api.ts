@@ -3396,7 +3396,29 @@ export const GetAdminCreatorBalanceDetailResponse = zod.object({
 /**
  * @summary Owner-only masked creator payout profiles awaiting or completing review
  */
-export const ListAdminPayoutProfilesResponseItem = zod.object({
+export const listAdminPayoutProfilesQueryLimitDefault = 50;
+export const listAdminPayoutProfilesQueryLimitMax = 100;
+
+export const listAdminPayoutProfilesQueryOffsetDefault = 0;
+export const listAdminPayoutProfilesQueryOffsetMin = 0;
+
+
+
+export const ListAdminPayoutProfilesQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(listAdminPayoutProfilesQueryLimitMax).default(listAdminPayoutProfilesQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminPayoutProfilesQueryOffsetMin).default(listAdminPayoutProfilesQueryOffsetDefault)
+})
+
+export const listAdminPayoutProfilesResponseTotalMin = 0;
+
+export const listAdminPayoutProfilesResponseLimitMax = 100;
+
+export const listAdminPayoutProfilesResponseOffsetMin = 0;
+
+
+
+export const ListAdminPayoutProfilesResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
   "addressMasked": zod.string(),
@@ -3409,8 +3431,11 @@ export const ListAdminPayoutProfilesResponseItem = zod.object({
   "channelSlug": zod.string(),
   "channelDisplayName": zod.string(),
   "creatorUsername": zod.string()
-}))
-export const ListAdminPayoutProfilesResponse = zod.array(ListAdminPayoutProfilesResponseItem)
+}))),
+  "total": zod.number().min(listAdminPayoutProfilesResponseTotalMin),
+  "limit": zod.number().min(1).max(listAdminPayoutProfilesResponseLimitMax),
+  "offset": zod.number().min(listAdminPayoutProfilesResponseOffsetMin)
+})
 
 
 /**
@@ -3448,11 +3473,31 @@ export const ReviewAdminPayoutProfileResponse = zod.object({
 /**
  * @summary Owner-only creator payout review queue and settlement history
  */
-export const listAdminPayoutRequestsResponseOneProviderTransactionUrlMax = 2048;
+export const listAdminPayoutRequestsQueryLimitDefault = 50;
+export const listAdminPayoutRequestsQueryLimitMax = 100;
+
+export const listAdminPayoutRequestsQueryOffsetDefault = 0;
+export const listAdminPayoutRequestsQueryOffsetMin = 0;
 
 
 
-export const ListAdminPayoutRequestsResponseItem = zod.object({
+export const ListAdminPayoutRequestsQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(listAdminPayoutRequestsQueryLimitMax).default(listAdminPayoutRequestsQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminPayoutRequestsQueryOffsetMin).default(listAdminPayoutRequestsQueryOffsetDefault)
+})
+
+export const listAdminPayoutRequestsResponseItemsItemOneProviderTransactionUrlMax = 2048;
+
+export const listAdminPayoutRequestsResponseTotalMin = 0;
+
+export const listAdminPayoutRequestsResponseLimitMax = 100;
+
+export const listAdminPayoutRequestsResponseOffsetMin = 0;
+
+
+
+export const ListAdminPayoutRequestsResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
   "amount": zod.string(),
@@ -3466,14 +3511,17 @@ export const ListAdminPayoutRequestsResponseItem = zod.object({
   "requestedAt": zod.coerce.date(),
   "reviewedAt": zod.coerce.date().nullish(),
   "completedAt": zod.coerce.date().nullish(),
-  "providerTransactionUrl": zod.string().max(listAdminPayoutRequestsResponseOneProviderTransactionUrlMax).nullish()
+  "providerTransactionUrl": zod.string().max(listAdminPayoutRequestsResponseItemsItemOneProviderTransactionUrlMax).nullish()
 }).and(zod.object({
   "channelId": zod.number(),
   "channelSlug": zod.string(),
   "channelDisplayName": zod.string(),
   "creatorUsername": zod.string()
-}))
-export const ListAdminPayoutRequestsResponse = zod.array(ListAdminPayoutRequestsResponseItem)
+}))),
+  "total": zod.number().min(listAdminPayoutRequestsResponseTotalMin),
+  "limit": zod.number().min(1).max(listAdminPayoutRequestsResponseLimitMax),
+  "offset": zod.number().min(listAdminPayoutRequestsResponseOffsetMin)
+})
 
 
 /**

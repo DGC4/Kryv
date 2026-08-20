@@ -2011,6 +2011,32 @@ export type AdminPayoutRequest = CreatorPayoutRequest & {
   creatorUsername: string;
 };
 
+export interface AdminPayoutProfilePage {
+  items: AdminPayoutProfile[];
+  /** @minimum 0 */
+  total: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
+export interface AdminPayoutRequestPage {
+  items: AdminPayoutRequest[];
+  /** @minimum 0 */
+  total: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
 export interface AdminFinanceAssetLiability {
   currency: CryptoCurrency;
   pendingAmount: string;
@@ -2868,6 +2894,30 @@ export const GetAdminAnalyticsRangeDays = {
   NUMBER_7: 7,
   NUMBER_30: 30,
 } as const;
+
+export type ListAdminPayoutProfilesParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type ListAdminPayoutRequestsParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
 
 export type ListAdminUsersParams = {
 /**

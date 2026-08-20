@@ -65,10 +65,12 @@ import {
   ListAdminCreatorBalancesResponse,
   GetAdminCreatorBalanceDetailParams,
   GetAdminCreatorBalanceDetailResponse,
+  ListAdminPayoutProfilesQueryParams,
   ListAdminPayoutProfilesResponse,
   ReviewAdminPayoutProfileParams,
   ReviewAdminPayoutProfileBody,
   ReviewAdminPayoutProfileResponse,
+  ListAdminPayoutRequestsQueryParams,
   ListAdminPayoutRequestsResponse,
   ReviewAdminPayoutRequestParams,
   ReviewAdminPayoutRequestBody,
@@ -84,7 +86,7 @@ import { toChannelSummaries } from "../lib/channelSerializer";
 import { toVideoSummaryFromRelations } from "../lib/videoSerializer";
 import { literalIlikePattern } from "../lib/search";
 import { writeAuditLog } from "../lib/operations";
-import { createPlisioInvoice, getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode, type KryvCryptoCode } from "../lib/plisio";
+import { createPlisioInvoice, getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode, supportedKryvCryptoCodes, type KryvCryptoCode } from "../lib/plisio";
 
 const HARD_DISABLED_OPERATIONAL_FLAGS = new Set([
   "customer_wallet_custody",
@@ -807,26 +809,43 @@ router.get("/admin/finance/overview", requireOwner, async (_req, res): Promise<v
   }));
 });
 
-router.get("/admin/finance/payout-profiles", requireOwner, async (_req, res): Promise<void> => {
-  const rows = await db
-    .select({
-      id: creatorPayoutProfilesTable.id,
-      currency: creatorPayoutProfilesTable.currency,
-      addressMasked: creatorPayoutProfilesTable.addressMasked,
-      confirmationStatus: creatorPayoutProfilesTable.confirmationStatus,
-      reviewStatus: creatorPayoutProfilesTable.reviewStatus,
-      confirmedAt: creatorPayoutProfilesTable.confirmedAt,
-      updatedAt: creatorPayoutProfilesTable.updatedAt,
-      channelId: channelsTable.id,
-      channelSlug: channelsTable.slug,
-      channelDisplayName: channelsTable.displayName,
-      creatorUsername: usersTable.username,
-    })
-    .from(creatorPayoutProfilesTable)
-    .innerJoin(channelsTable, eq(creatorPayoutProfilesTable.channelId, channelsTable.id))
-    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
-    .orderBy(asc(creatorPayoutProfilesTable.reviewStatus), desc(creatorPayoutProfilesTable.updatedAt));
-  res.json(ListAdminPayoutProfilesResponse.parse(rows.filter((row) => isSupportedKryvCryptoCode(row.currency)).map(toAdminPayoutProfile)));
+router.get("/admin/finance/payout-profiles", requireOwner, async (req, res): Promise<void> => {
+  const query = ListAdminPayoutProfilesQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const currencyFilter = inArray(creatorPayoutProfilesTable.currency, supportedKryvCryptoCodes());
+  const selectProfile = {
+    id: creatorPayoutProfilesTable.id,
+    currency: creatorPayoutProfilesTable.currency,
+    addressMasked: creatorPayoutProfilesTable.addressMasked,
+    confirmationStatus: creatorPayoutProfilesTable.confirmationStatus,
+    reviewStatus: creatorPayoutProfilesTable.reviewStatus,
+    confirmedAt: creatorPayoutProfilesTable.confirmedAt,
+    updatedAt: creatorPayoutProfilesTable.updatedAt,
+    channelId: channelsTable.id,
+    channelSlug: channelsTable.slug,
+    channelDisplayName: channelsTable.displayName,
+    creatorUsername: usersTable.username,
+  };
+  const [totalRows, rows] = await Promise.all([
+    db.select({ total: count() }).from(creatorPayoutProfilesTable).where(currencyFilter),
+    db.select(selectProfile)
+      .from(creatorPayoutProfilesTable)
+      .innerJoin(channelsTable, eq(creatorPayoutProfilesTable.channelId, channelsTable.id))
+      .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+      .where(currencyFilter)
+      .orderBy(asc(creatorPayoutProfilesTable.reviewStatus), desc(creatorPayoutProfilesTable.updatedAt), desc(creatorPayoutProfilesTable.id))
+      .limit(query.data.limit)
+      .offset(query.data.offset),
+  ]);
+  res.json(ListAdminPayoutProfilesResponse.parse({
+    items: rows.map(toAdminPayoutProfile),
+    total: totalRows[0]?.total ?? 0,
+    limit: query.data.limit,
+    offset: query.data.offset,
+  }));
 });
 
 router.post("/admin/finance/payout-profiles/:id/review", requireOwner, async (req, res): Promise<void> => {
@@ -902,33 +921,50 @@ router.post("/admin/finance/payout-profiles/:id/review", requireOwner, async (re
   res.json(ReviewAdminPayoutProfileResponse.parse(toAdminPayoutProfile(after!)));
 });
 
-router.get("/admin/finance/payout-requests", requireOwner, async (_req, res): Promise<void> => {
-  const rows = await db
-    .select({
-      id: payoutRequestsTable.id,
-      currency: payoutRequestsTable.currency,
-      amount: payoutRequestsTable.amount,
-      destinationMasked: payoutRequestsTable.destinationMasked,
-      requestSource: payoutRequestsTable.requestSource,
-      feeAmount: payoutRequestsTable.feeAmount,
-      feeCurrency: payoutRequestsTable.feeCurrency,
-      usdReferenceAmount: payoutRequestsTable.usdReferenceAmount,
-      status: payoutRequestsTable.status,
-      riskHoldReason: payoutRequestsTable.riskHoldReason,
-      requestedAt: payoutRequestsTable.requestedAt,
-      reviewedAt: payoutRequestsTable.reviewedAt,
-      completedAt: payoutRequestsTable.completedAt,
-      providerTransactionUrl: payoutRequestsTable.providerTransactionUrl,
-      channelId: channelsTable.id,
-      channelSlug: channelsTable.slug,
-      channelDisplayName: channelsTable.displayName,
-      creatorUsername: usersTable.username,
-    })
-    .from(payoutRequestsTable)
-    .innerJoin(channelsTable, eq(payoutRequestsTable.channelId, channelsTable.id))
-    .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
-    .orderBy(desc(payoutRequestsTable.requestedAt));
-  res.json(ListAdminPayoutRequestsResponse.parse(rows.filter((row) => isSupportedKryvCryptoCode(row.currency)).map(toAdminPayoutRequest)));
+router.get("/admin/finance/payout-requests", requireOwner, async (req, res): Promise<void> => {
+  const query = ListAdminPayoutRequestsQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const currencyFilter = inArray(payoutRequestsTable.currency, supportedKryvCryptoCodes());
+  const selectRequest = {
+    id: payoutRequestsTable.id,
+    currency: payoutRequestsTable.currency,
+    amount: payoutRequestsTable.amount,
+    destinationMasked: payoutRequestsTable.destinationMasked,
+    requestSource: payoutRequestsTable.requestSource,
+    feeAmount: payoutRequestsTable.feeAmount,
+    feeCurrency: payoutRequestsTable.feeCurrency,
+    usdReferenceAmount: payoutRequestsTable.usdReferenceAmount,
+    status: payoutRequestsTable.status,
+    riskHoldReason: payoutRequestsTable.riskHoldReason,
+    requestedAt: payoutRequestsTable.requestedAt,
+    reviewedAt: payoutRequestsTable.reviewedAt,
+    completedAt: payoutRequestsTable.completedAt,
+    providerTransactionUrl: payoutRequestsTable.providerTransactionUrl,
+    channelId: channelsTable.id,
+    channelSlug: channelsTable.slug,
+    channelDisplayName: channelsTable.displayName,
+    creatorUsername: usersTable.username,
+  };
+  const [totalRows, rows] = await Promise.all([
+    db.select({ total: count() }).from(payoutRequestsTable).where(currencyFilter),
+    db.select(selectRequest)
+      .from(payoutRequestsTable)
+      .innerJoin(channelsTable, eq(payoutRequestsTable.channelId, channelsTable.id))
+      .innerJoin(usersTable, eq(channelsTable.ownerUserId, usersTable.id))
+      .where(currencyFilter)
+      .orderBy(desc(payoutRequestsTable.requestedAt), desc(payoutRequestsTable.id))
+      .limit(query.data.limit)
+      .offset(query.data.offset),
+  ]);
+  res.json(ListAdminPayoutRequestsResponse.parse({
+    items: rows.map(toAdminPayoutRequest),
+    total: totalRows[0]?.total ?? 0,
+    limit: query.data.limit,
+    offset: query.data.offset,
+  }));
 });
 
 router.post("/admin/finance/payout-requests/:id/review", requireOwner, async (req, res): Promise<void> => {

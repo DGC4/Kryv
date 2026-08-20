@@ -54,7 +54,9 @@ import type {
   AdminModerationCase,
   AdminModerationCasePage,
   AdminPayoutProfile,
+  AdminPayoutProfilePage,
   AdminPayoutRequest,
+  AdminPayoutRequestPage,
   AdminStats,
   AdminTreasuryContext,
   AdminTreasuryContextUpdate,
@@ -119,6 +121,8 @@ import type {
   ListAdminChannelsParams,
   ListAdminCinemaTitlesParams,
   ListAdminModerationCasesParams,
+  ListAdminPayoutProfilesParams,
+  ListAdminPayoutRequestsParams,
   ListAdminUsersParams,
   ListAdminVideosParams,
   ListCategoriesParams,
@@ -7679,20 +7683,27 @@ export function useGetAdminCreatorBalanceDetail<TData = Awaited<ReturnType<typeo
 
 
 
-export const getListAdminPayoutProfilesUrl = () => {
+export const getListAdminPayoutProfilesUrl = (params?: ListAdminPayoutProfilesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/finance/payout-profiles`
+  return stringifiedParams.length > 0 ? `/api/admin/finance/payout-profiles?${stringifiedParams}` : `/api/admin/finance/payout-profiles`
 }
 
 /**
  * @summary Owner-only masked creator payout profiles awaiting or completing review
  */
-export const listAdminPayoutProfiles = async ( options?: RequestInit): Promise<AdminPayoutProfile[]> => {
+export const listAdminPayoutProfiles = async (params?: ListAdminPayoutProfilesParams, options?: RequestInit): Promise<AdminPayoutProfilePage> => {
 
-  return customFetch<AdminPayoutProfile[]>(getListAdminPayoutProfilesUrl(),
+  return customFetch<AdminPayoutProfilePage>(getListAdminPayoutProfilesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -7705,23 +7716,23 @@ export const listAdminPayoutProfiles = async ( options?: RequestInit): Promise<A
 
 
 
-export const getListAdminPayoutProfilesQueryKey = () => {
+export const getListAdminPayoutProfilesQueryKey = (params?: ListAdminPayoutProfilesParams,) => {
     return [
-    `/api/admin/finance/payout-profiles`
+    `/api/admin/finance/payout-profiles`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAdminPayoutProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+export const getListAdminPayoutProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError = ErrorType<void>>(params?: ListAdminPayoutProfilesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAdminPayoutProfilesQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAdminPayoutProfilesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminPayoutProfiles>>> = ({ signal }) => listAdminPayoutProfiles({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminPayoutProfiles>>> = ({ signal }) => listAdminPayoutProfiles(params, { signal, ...requestOptions });
 
 
 
@@ -7739,11 +7750,11 @@ export type ListAdminPayoutProfilesQueryError = ErrorType<void>
  */
 
 export function useListAdminPayoutProfiles<TData = Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError = ErrorType<void>>(
-  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminPayoutProfilesParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutProfiles>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAdminPayoutProfilesQueryOptions(options)
+  const queryOptions = getListAdminPayoutProfilesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -7828,20 +7839,27 @@ export const useReviewAdminPayoutProfile = <TError = ErrorType<void>,
       return useMutation(getReviewAdminPayoutProfileMutationOptions(options));
     }
 
-export const getListAdminPayoutRequestsUrl = () => {
+export const getListAdminPayoutRequestsUrl = (params?: ListAdminPayoutRequestsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/finance/payout-requests`
+  return stringifiedParams.length > 0 ? `/api/admin/finance/payout-requests?${stringifiedParams}` : `/api/admin/finance/payout-requests`
 }
 
 /**
  * @summary Owner-only creator payout review queue and settlement history
  */
-export const listAdminPayoutRequests = async ( options?: RequestInit): Promise<AdminPayoutRequest[]> => {
+export const listAdminPayoutRequests = async (params?: ListAdminPayoutRequestsParams, options?: RequestInit): Promise<AdminPayoutRequestPage> => {
 
-  return customFetch<AdminPayoutRequest[]>(getListAdminPayoutRequestsUrl(),
+  return customFetch<AdminPayoutRequestPage>(getListAdminPayoutRequestsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -7854,23 +7872,23 @@ export const listAdminPayoutRequests = async ( options?: RequestInit): Promise<A
 
 
 
-export const getListAdminPayoutRequestsQueryKey = () => {
+export const getListAdminPayoutRequestsQueryKey = (params?: ListAdminPayoutRequestsParams,) => {
     return [
-    `/api/admin/finance/payout-requests`
+    `/api/admin/finance/payout-requests`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAdminPayoutRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+export const getListAdminPayoutRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError = ErrorType<void>>(params?: ListAdminPayoutRequestsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAdminPayoutRequestsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAdminPayoutRequestsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminPayoutRequests>>> = ({ signal }) => listAdminPayoutRequests({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminPayoutRequests>>> = ({ signal }) => listAdminPayoutRequests(params, { signal, ...requestOptions });
 
 
 
@@ -7888,11 +7906,11 @@ export type ListAdminPayoutRequestsQueryError = ErrorType<void>
  */
 
 export function useListAdminPayoutRequests<TData = Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError = ErrorType<void>>(
-  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+ params?: ListAdminPayoutRequestsParams, options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listAdminPayoutRequests>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAdminPayoutRequestsQueryOptions(options)
+  const queryOptions = getListAdminPayoutRequestsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -1111,6 +1111,26 @@ requireMatch(
   "Owner safety dashboard must recover to a valid preceding page when a final review removes the last later-page case.",
 );
 requireMatch(
+  apiSpec,
+  /\/admin\/finance\/payout-profiles:[\s\S]*?name: limit[\s\S]*?name: offset[\s\S]*?AdminPayoutProfilePage[\s\S]*?\/admin\/finance\/payout-requests:[\s\S]*?name: limit[\s\S]*?name: offset[\s\S]*?AdminPayoutRequestPage/,
+  "Owner payout profile and request endpoints must expose bounded typed page contracts.",
+);
+requireMatch(
+  adminRoute,
+  /payout-profiles[\s\S]*?ListAdminPayoutProfilesQueryParams[\s\S]*?supportedKryvCryptoCodes\(\)[\s\S]*?total: totalRows\[0\]\?\.total[\s\S]*?payout-requests[\s\S]*?ListAdminPayoutRequestsQueryParams[\s\S]*?supportedKryvCryptoCodes\(\)[\s\S]*?total: totalRows\[0\]\?\.total/,
+  "Owner payout SQL must filter approved currencies before authoritative totals and bounded page retrieval.",
+);
+requireMatch(
+  adminDashboard,
+  /payoutProfileOffset[\s\S]*?useListAdminPayoutProfiles\(\{ limit: 50, offset: payoutProfileOffset \}[\s\S]*?Older profiles/,
+  "Owner finance dashboard must consume payout profile pages with explicit continuation controls.",
+);
+requireMatch(
+  adminDashboard,
+  /payoutRequestOffset[\s\S]*?useListAdminPayoutRequests\(\{ limit: 50, offset: payoutRequestOffset \}[\s\S]*?Older requests/,
+  "Owner finance dashboard must consume payout request pages with explicit continuation controls.",
+);
+requireMatch(
   watchHome,
   /const selectCategoryAt[\s\S]*?setVideoOffset\(0\)[\s\S]*?const submitSearch[\s\S]*?setVideoOffset\(0\)[\s\S]*?const clearFilters[\s\S]*?setVideoOffset\(0\)/,
   "Watch home must reset pagination whenever category, search, or clear-filter state changes.",
