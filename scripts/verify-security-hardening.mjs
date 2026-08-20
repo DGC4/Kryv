@@ -46,6 +46,7 @@ const [
   watchDetail,
   themeStore,
   plisioLib,
+  routeRegistry,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -75,6 +76,7 @@ const [
   source("artifacts/blyze/src/pages/watch/Detail.tsx"),
   source("artifacts/blyze/src/store/theme.ts"),
   source("artifacts/api-server/src/lib/plisio.ts"),
+  source("artifacts/api-server/src/routes/index.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -573,6 +575,11 @@ requireMatch(
   plisioLib,
   /invoiceUrl: validatedInvoiceUrl\(payload\.data\.invoice_url\)/,
   "Kryv checkout responses must use the validated provider invoice URL.",
+);
+forbidMatch(
+  routeRegistry,
+  /locationRouter/,
+  "The unused third-party IP location proxy must not be mounted without a separately reviewed privacy design.",
 );
 
 requireMatch(
