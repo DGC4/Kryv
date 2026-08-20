@@ -165,6 +165,21 @@ requireMatch(
 );
 requireMatch(
   cinemaRoute,
+  /router\.get\("\/cinema\/home",\s*attachUserId/,
+  "Cinema home must resolve the optional session and active-profile grant server-side.",
+);
+requireMatch(
+  cinemaRoute,
+  /profileFilteredTitles/,
+  "Cinema home must filter signed-in catalog rows by active profile maturity.",
+);
+requireMatch(
+  cinemaRoute,
+  /function toCinemaCatalogCard[\s\S]*?featurePlaybackId:\s*null,[\s\S]*?trailerPlaybackId:\s*null/,
+  "Cinema catalog cards must not expose feature or trailer playback identifiers.",
+);
+requireMatch(
+  cinemaRoute,
   /router\.get\(\s*"\/cinema\/titles\/:id",\s*attachUserId/,
   "Cinema title detail must resolve the optional session and active-profile grant server-side.",
 );

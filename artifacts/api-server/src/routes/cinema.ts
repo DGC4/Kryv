@@ -23,6 +23,7 @@ import { attachUserId, requireAuth } from "../lib/auth";
 import {
   getPublishedCinemaTitleDetail,
   getPublishedCinemaTitles,
+  type PublicCinemaTitle,
 } from "../lib/cinemaCatalog";
 import { writeAuditLog } from "../lib/operations";
 
@@ -47,6 +48,38 @@ function restrictCinemaPlayback(
   };
 }
 
+function toCinemaCatalogCard(title: PublicCinemaTitle) {
+  return {
+    ...title,
+    featurePlaybackId: null,
+    trailerPlaybackId: null,
+    playbackAvailable: false,
+    playbackBlockedReason:
+      "Select an eligible profile and title to request Cinema playback.",
+  };
+}
+
+async function getCinemaProfileMaturity(
+  req: Parameters<typeof attachUserId>[0],
+) {
+  if (!req.user || !req.activeProfileId) return null;
+  const [profile] = await db
+    .select({ maturityLevel: viewerProfilesTable.maturityLevel })
+    .from(viewerProfilesTable)
+    .where(
+      and(
+        eq(viewerProfilesTable.id, req.activeProfileId),
+        eq(viewerProfilesTable.userId, req.user.userId),
+      ),
+    )
+    .limit(1);
+  const maturityLevel = profile?.maturityLevel as
+    keyof typeof maturityRank | undefined;
+  return maturityLevel && maturityRank[maturityLevel] !== undefined
+    ? maturityLevel
+    : null;
+}
+
 async function getPublishedCinemaTitle(id: number) {
   const [title] = await db
     .select({ id: cinemaTitlesTable.id, title: cinemaTitlesTable.title })
@@ -61,17 +94,27 @@ async function getPublishedCinemaTitle(id: number) {
   return title ?? null;
 }
 
-router.get("/cinema/home", async (_req, res): Promise<void> => {
+router.get("/cinema/home", attachUserId, async (req, res): Promise<void> => {
   const [publishedTitles, genres] = await Promise.all([
     getPublishedCinemaTitles(),
     db.select().from(categoriesTable).where(eq(categoriesTable.kind, "genre")),
   ]);
+  const profileMaturity = await getCinemaProfileMaturity(req);
+  const profileFilteredTitles = req.user
+    ? profileMaturity
+      ? publishedTitles.filter(
+          (title) =>
+            maturityRank[title.maturityLevel] <= maturityRank[profileMaturity],
+        )
+      : []
+    : publishedTitles;
+  const catalogTitles = profileFilteredTitles.map(toCinemaCatalogCard);
 
   const rows = [
-    { title: "New on Kryv", items: publishedTitles },
+    { title: "New on Kryv", items: catalogTitles },
     ...genres.map((genre) => ({
       title: genre.name,
-      items: publishedTitles.filter((title) =>
+      items: catalogTitles.filter((title) =>
         title.genres.some(
           (value) => value.toLowerCase() === genre.name.toLowerCase(),
         ),
@@ -80,7 +123,7 @@ router.get("/cinema/home", async (_req, res): Promise<void> => {
   ].filter((row) => row.items.length > 0);
 
   res.json(
-    GetCinemaHomeResponse.parse({ hero: publishedTitles[0] ?? null, rows }),
+    GetCinemaHomeResponse.parse({ hero: catalogTitles[0] ?? null, rows }),
   );
 });
 
@@ -112,18 +155,7 @@ router.get(
       return;
     }
 
-    const [profile] = await db
-      .select({ maturityLevel: viewerProfilesTable.maturityLevel })
-      .from(viewerProfilesTable)
-      .where(
-        and(
-          eq(viewerProfilesTable.id, req.activeProfileId),
-          eq(viewerProfilesTable.userId, req.user.userId),
-        ),
-      )
-      .limit(1);
-    const profileMaturity = profile?.maturityLevel as
-      keyof typeof maturityRank | undefined;
+    const profileMaturity = await getCinemaProfileMaturity(req);
     const titleMaturity = title.maturityLevel as keyof typeof maturityRank;
     const profileMaturityRank = profileMaturity
       ? maturityRank[profileMaturity]
