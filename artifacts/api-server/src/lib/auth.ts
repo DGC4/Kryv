@@ -9,9 +9,20 @@ import {
   usersTable,
 } from "@workspace/db";
 
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const JWT_SECRET =
-  process.env.JWT_SECRET || "kryv-dev-only-secret-do-not-use-in-production";
+  process.env.JWT_SECRET?.trim() ||
+  (IS_PRODUCTION ? "" : "kryv-dev-only-secret-do-not-use-in-production");
 const REALTIME_TOKEN_SECRET = process.env.KRYV_REALTIME_TOKEN_SECRET?.trim();
+
+if (IS_PRODUCTION && !JWT_SECRET) {
+  throw new Error("JWT_SECRET must be configured in production.");
+}
+if (IS_PRODUCTION && !REALTIME_TOKEN_SECRET) {
+  throw new Error(
+    "KRYV_REALTIME_TOKEN_SECRET must be configured in production.",
+  );
+}
 const SESSION_DAYS = Number.parseInt(process.env.KRYV_SESSION_DAYS ?? "7", 10);
 const SESSION_TTL_MS =
   Math.max(1, Math.min(Number.isFinite(SESSION_DAYS) ? SESSION_DAYS : 7, 30)) *

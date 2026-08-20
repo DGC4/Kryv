@@ -77,6 +77,16 @@ requireMatch(
   "Viewer profile grants must be bound to the current opaque session.",
 );
 requireMatch(
+  authLib,
+  /IS_PRODUCTION && !JWT_SECRET/,
+  "Production must fail closed when the session/profile signing secret is missing.",
+);
+requireMatch(
+  authLib,
+  /IS_PRODUCTION && !REALTIME_TOKEN_SECRET/,
+  "Production must fail closed when the realtime signing secret is missing.",
+);
+requireMatch(
   authRoute,
   /await establishSession\(req, res, user\)/,
   "Sign-in and sign-up must establish an opaque session.",
