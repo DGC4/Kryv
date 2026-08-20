@@ -38,6 +38,7 @@ import { enqueueDurableJob } from "../lib/jobs";
 import { deleteSharedKey, getSharedStateClient, publishRealtimeEvent, readSharedJson, writeSharedJson } from "../lib/realtime";
 import { logActivity } from "../lib/tracking";
 import { writeAuditLog } from "../lib/operations";
+import { getLiveMaturityRestriction } from "../lib/liveMaturity";
 
 const router: IRouter = Router();
 
@@ -586,6 +587,12 @@ router.get(
       return;
     }
 
+    const maturityRestriction = await getLiveMaturityRestriction(req, channel);
+    if (maturityRestriction) {
+      res.status(403).json({ error: maturityRestriction });
+      return;
+    }
+
     const cacheKey = messageListCacheKey(channel.id);
     const cached = await readSharedJson<unknown>(cacheKey);
     const cachedResponse = cached ? ListChannelMessagesResponse.safeParse(cached) : null;
@@ -651,6 +658,12 @@ router.post(
       .where(eq(channelsTable.id, params.data.id));
     if (!channel) {
       res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+
+    const maturityRestriction = await getLiveMaturityRestriction(req, channel);
+    if (maturityRestriction) {
+      res.status(403).json({ error: maturityRestriction });
       return;
     }
 

@@ -17,13 +17,14 @@ import { createFastPixClip, createFastPixLiveClip, FastPixNotConfiguredError } f
 import { enqueueDurableJob } from "../lib/jobs";
 import { logActivity } from "../lib/tracking";
 import { writeAuditLog } from "../lib/operations";
+import { getActiveProfileMaturity, getLiveMaturityRestriction } from "../lib/liveMaturity";
 
 const router: IRouter = Router();
 const MAX_CLIP_DURATION_SECONDS = 180;
 
 type ClipRow = {
   clip: typeof clipsTable.$inferSelect;
-  channel: Pick<typeof channelsTable.$inferSelect, "id" | "displayName" | "slug">;
+  channel: Pick<typeof channelsTable.$inferSelect, "id" | "displayName" | "slug" | "matureContent">;
 };
 
 function toClipSummary(row: ClipRow) {
@@ -48,6 +49,7 @@ const clipSelection = {
     id: channelsTable.id,
     displayName: channelsTable.displayName,
     slug: channelsTable.slug,
+    matureContent: channelsTable.matureContent,
   },
 };
 
@@ -72,7 +74,11 @@ router.get("/clips", async (req, res): Promise<void> => {
     .orderBy(desc(clipsTable.createdAt))
     .limit(50);
 
-  res.json(ListClipsResponse.parse(rows.map(toClipSummary)));
+  const profileMaturity = await getActiveProfileMaturity(req);
+  const visibleRows = rows.filter(
+    (row) => !row.channel.matureContent || profileMaturity === "mature",
+  );
+  res.json(ListClipsResponse.parse(visibleRows.map(toClipSummary)));
 });
 
 router.post("/clips/:id/reports", requireAuth, async (req, res): Promise<void> => {
@@ -206,6 +212,11 @@ router.post("/clips", requireAuth, async (req, res): Promise<void> => {
       res.status(404).json({ error: "Live channel not found." });
       return;
     }
+    const maturityRestriction = await getLiveMaturityRestriction(req, liveChannel);
+    if (maturityRestriction) {
+      res.status(403).json({ error: maturityRestriction });
+      return;
+    }
     if (!liveChannel.isLive || !liveChannel.fastpixPlaybackId) {
       res.status(409).json({ error: "This channel is not actively available for live clipping." });
       return;
@@ -302,6 +313,12 @@ router.get("/clips/:id", async (req, res): Promise<void> => {
     .where(and(eq(clipsTable.id, params.data.id), eq(clipsTable.isPublished, true), eq(clipsTable.processingStatus, "ready")));
   if (!row) {
     res.status(404).json({ error: "Clip not found or still processing." });
+    return;
+  }
+
+  const maturityRestriction = await getLiveMaturityRestriction(req, row.channel);
+  if (maturityRestriction) {
+    res.status(403).json({ error: maturityRestriction });
     return;
   }
 

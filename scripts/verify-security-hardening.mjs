@@ -35,6 +35,13 @@ const [
   adsRoute,
   adSlot,
   chartComponent,
+  liveChannelRoute,
+  liveChatRoute,
+  liveClipsRoute,
+  liveMaturity,
+  focusModeShell,
+  discoverRoute,
+  meRoute,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -53,6 +60,13 @@ const [
   source("artifacts/api-server/src/routes/ads.ts"),
   source("artifacts/blyze/src/components/ads/AdSlot.tsx"),
   source("artifacts/blyze/src/components/ui/chart.tsx"),
+  source("artifacts/api-server/src/routes/channels.ts"),
+  source("artifacts/api-server/src/routes/chat.ts"),
+  source("artifacts/api-server/src/routes/clips.ts"),
+  source("artifacts/api-server/src/lib/liveMaturity.ts"),
+  source("artifacts/blyze/src/components/focus/FocusModeShell.tsx"),
+  source("artifacts/api-server/src/routes/discover.ts"),
+  source("artifacts/api-server/src/routes/me.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -361,6 +375,81 @@ requireMatch(
   chartComponent,
   /safeChartColor/,
   "Dynamic chart CSS values must be sanitized before style injection.",
+);
+requireMatch(
+  liveMaturity,
+  /req\.activeProfileId/,
+  "Mature Live eligibility must require the session-bound active profile grant.",
+);
+requireMatch(
+  liveMaturity,
+  /profileMaturity !== "mature"/,
+  "Mature Live eligibility must fail closed for kids and standard profiles.",
+);
+requireMatch(
+  liveChannelRoute,
+  /!channel\.matureContent \|\| profileMaturity === "mature"/,
+  "Live discovery must omit mature channels without an eligible profile.",
+);
+requireMatch(
+  liveChannelRoute,
+  /getLiveMaturityRestriction\(req, channel\)/,
+  "Live detail and audience metadata must apply the active-profile maturity guard.",
+);
+requireMatch(
+  liveChannelRoute,
+  /playbackBlockedReason/,
+  "Live detail must withhold playback identifiers with a viewer-safe restriction reason.",
+);
+requireMatch(
+  liveChatRoute,
+  /getLiveMaturityRestriction\(req, channel\)/,
+  "Mature Live chat reads and writes must enforce the same profile gate.",
+);
+requireMatch(
+  liveClipsRoute,
+  /!row\.channel\.matureContent \|\| profileMaturity === "mature"/,
+  "Live clip discovery must omit clips sourced from restricted mature channels.",
+);
+requireMatch(
+  liveClipsRoute,
+  /getLiveMaturityRestriction\(req, liveChannel\)/,
+  "Viewer-created Live clips must not bypass mature-profile restrictions.",
+);
+requireMatch(
+  liveClipsRoute,
+  /getLiveMaturityRestriction\(req, row\.channel\)/,
+  "Direct mature-source clip playback must enforce the active-profile guard.",
+);
+requireMatch(
+  channelPage,
+  /channel\.playbackAvailable/,
+  "The primary Live player must honor the server-authoritative playback availability flag.",
+);
+requireMatch(
+  focusModeShell,
+  /channel\?\.playbackAvailable/,
+  "Kryv Focus Live playback must honor the server-authoritative playback availability flag.",
+);
+requireMatch(
+  discoverRoute,
+  /const visibleLiveChannels = liveChannels\.filter/,
+  "Shared cached Live discovery must exclude mature rooms from public payloads.",
+);
+requireMatch(
+  discoverRoute,
+  /!channel\.matureContent \|\| profileMaturity === "mature"/,
+  "Live search and followed-live discovery must filter mature channels by active profile maturity.",
+);
+requireMatch(
+  discoverRoute,
+  /const visibleClips = clips\.filter/,
+  "Live search must build a mature-profile-filtered clip result set.",
+);
+requireMatch(
+  meRoute,
+  /!channel\.matureContent \|\| profileMaturity === "mature"/,
+  "Account-summary followed channels must filter mature Live rooms by active profile maturity.",
 );
 
 requireMatch(

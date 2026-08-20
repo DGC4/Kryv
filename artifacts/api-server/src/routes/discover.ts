@@ -8,6 +8,7 @@ import { toVideoSummary } from "../lib/videoSerializer";
 import { getFastPixViewerCount } from "../lib/fastpix";
 import { readSharedJson, writeSharedJson } from "../lib/realtime";
 import { getPublishedCinemaTitles } from "../lib/cinemaCatalog";
+import { getActiveProfileMaturity } from "../lib/liveMaturity";
 
 const router: IRouter = Router();
 const DISCOVER_SUMMARY_CACHE_KEY = "kryv:discover:summary:v1";
@@ -62,19 +63,25 @@ router.get("/discover/summary", async (_req, res): Promise<void> => {
       return { ...channel, viewerCount, peakViewerCount: Math.max(channel.peakViewerCount, viewerCount) };
     }),
   );
-  liveChannels.sort((a, b) => {
+  // This response is cached across viewers, so mature rooms never enter the
+  // shared public payload. Profile-eligible discovery remains available through
+  // the non-cached, profile-aware Live directory endpoint.
+  const visibleLiveChannels = liveChannels.filter(
+    (channel) => !channel.matureContent,
+  );
+  visibleLiveChannels.sort((a, b) => {
     const scoreDifference = rankLiveCandidate(b) - rankLiveCandidate(a);
     return scoreDifference !== 0 ? scoreDifference : b.viewerCount - a.viewerCount;
   });
 
   const featuredChannels = await Promise.all(
-    liveChannels.slice(0, 8).map(toChannelSummary),
+    visibleLiveChannels.slice(0, 8).map(toChannelSummary),
   );
 
   const categories = await db.select().from(categoriesTable);
   const topCategories = await Promise.all(
     categories.slice(0, 8).map(async (category) => {
-      const channelsInCategory = liveChannels.filter(
+      const channelsInCategory = visibleLiveChannels.filter(
         (c) => c.categoryId === category.id,
       );
       return {
@@ -92,12 +99,12 @@ router.get("/discover/summary", async (_req, res): Promise<void> => {
     }),
   );
 
-  const totalViewers = liveChannels.reduce((sum, c) => sum + c.viewerCount, 0);
+  const totalViewers = visibleLiveChannels.reduce((sum, c) => sum + c.viewerCount, 0);
 
   const response = GetDiscoverSummaryResponse.parse({
     featuredChannels,
     topCategories,
-    totalLiveChannels: liveChannels.length,
+    totalLiveChannels: visibleLiveChannels.length,
     totalViewers,
   });
   // Viewer counts remain provider-authoritative. The short cache only collapses
@@ -122,16 +129,23 @@ router.get("/search", async (req, res): Promise<void> => {
   const [channels, videos, clips, cinemaCatalog] = await Promise.all([
     db.select().from(channelsTable).where(or(ilike(channelsTable.displayName, pattern), ilike(channelsTable.slug, pattern), ilike(channelsTable.streamTitle, pattern))).orderBy(desc(channelsTable.isLive), desc(channelsTable.viewerCount)).limit(8),
     db.select().from(videosTable).where(and(eq(videosTable.uploadStatus, "ready"), ilike(videosTable.title, pattern))).orderBy(desc(videosTable.createdAt)).limit(8),
-    db.select({ clip: clipsTable, channel: { id: channelsTable.id, displayName: channelsTable.displayName, slug: channelsTable.slug } }).from(clipsTable).innerJoin(channelsTable, eq(clipsTable.channelId, channelsTable.id)).where(and(eq(clipsTable.isPublished, true), eq(clipsTable.processingStatus, "ready"), ilike(clipsTable.title, pattern))).orderBy(desc(clipsTable.createdAt)).limit(8),
+    db.select({ clip: clipsTable, channel: { id: channelsTable.id, displayName: channelsTable.displayName, slug: channelsTable.slug, matureContent: channelsTable.matureContent } }).from(clipsTable).innerJoin(channelsTable, eq(clipsTable.channelId, channelsTable.id)).where(and(eq(clipsTable.isPublished, true), eq(clipsTable.processingStatus, "ready"), ilike(clipsTable.title, pattern))).orderBy(desc(clipsTable.createdAt)).limit(8),
     getPublishedCinemaTitles(),
   ]);
   const cinema = cinemaCatalog.filter((title) => title.title.toLowerCase().includes(term) || title.synopsis?.toLowerCase().includes(term)).slice(0, 8);
+  const profileMaturity = await getActiveProfileMaturity(req);
+  const visibleChannels = channels.filter(
+    (channel) => !channel.matureContent || profileMaturity === "mature",
+  );
+  const visibleClips = clips.filter(
+    ({ channel }) => !channel.matureContent || profileMaturity === "mature",
+  );
 
   res.json({
-    channels: await Promise.all(channels.map(toChannelSummary)),
+    channels: await Promise.all(visibleChannels.map(toChannelSummary)),
     videos: await Promise.all(videos.map(toVideoSummary)),
     cinema,
-    clips: clips.map(({ clip, channel }) => ({
+    clips: visibleClips.map(({ clip, channel }) => ({
       id: clip.id,
       title: clip.title,
       thumbnailUrl: clip.thumbnailUrl,
@@ -156,7 +170,11 @@ router.get("/me/followed/live", requireAuth, async (req, res): Promise<void> => 
     .orderBy(desc(channelsTable.viewerCount))
     .limit(50);
 
-  res.json(await Promise.all(rows.map(({ channel }) => toChannelSummary(channel))));
+  const profileMaturity = await getActiveProfileMaturity(req);
+  const visibleRows = rows.filter(
+    ({ channel }) => !channel.matureContent || profileMaturity === "mature",
+  );
+  res.json(await Promise.all(visibleRows.map(({ channel }) => toChannelSummary(channel))));
 });
 
 export default router;

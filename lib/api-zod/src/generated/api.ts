@@ -1025,6 +1025,7 @@ export const ListFollowedLiveChannelsResponseItem = zod.object({
     .describe(
       "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
     ),
+  matureContent: zod.boolean(),
   playbackId: zod
     .string()
     .nullable()
@@ -1037,6 +1038,8 @@ export const ListFollowedLiveChannelsResponseItem = zod.object({
     .describe(
       "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
     ),
+  playbackAvailable: zod.boolean(),
+  playbackBlockedReason: zod.string().nullable(),
 });
 export const ListFollowedLiveChannelsResponse = zod.array(
   ListFollowedLiveChannelsResponseItem,
@@ -1186,6 +1189,7 @@ export const ListChannelsResponseItem = zod.object({
     .describe(
       "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
     ),
+  matureContent: zod.boolean(),
   playbackId: zod
     .string()
     .nullable()
@@ -1198,6 +1202,8 @@ export const ListChannelsResponseItem = zod.object({
     .describe(
       "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
     ),
+  playbackAvailable: zod.boolean(),
+  playbackBlockedReason: zod.string().nullable(),
 });
 export const ListChannelsResponse = zod.array(ListChannelsResponseItem);
 
@@ -1471,18 +1477,21 @@ export const GetChannelResponse = zod
       .describe(
         "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
       ),
+    matureContent: zod.boolean(),
     playbackId: zod
       .string()
       .nullable()
       .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
+        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.",
       ),
     fastpixPlaybackId: zod
       .string()
       .nullish()
       .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
+        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.",
       ),
+    playbackAvailable: zod.boolean(),
+    playbackBlockedReason: zod.string().nullable(),
   })
   .and(
     zod.object({
@@ -1549,6 +1558,7 @@ export const UpdateChannelBody = zod.object({
   bannerUrl: zod.string().optional(),
   categoryId: zod.number().optional(),
   streamTitle: zod.string().max(updateChannelBodyStreamTitleMax).optional(),
+  matureContent: zod.boolean().optional(),
 });
 
 export const UpdateChannelResponse = zod

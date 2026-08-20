@@ -58,16 +58,25 @@ export interface ChannelSummary {
    * @nullable
    */
   lastStreamAt: string | null;
+  /** Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata. */
+  matureContent: boolean;
   /**
-   * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+   * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.
    * @nullable
    */
   playbackId: string | null;
   /**
-   * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+   * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.
    * @nullable
    */
   fastpixPlaybackId?: string | null;
+  /** True only when the current viewer is permitted to receive a playable Live stream reference. */
+  playbackAvailable: boolean;
+  /**
+   * Viewer-safe explanation when playback is unavailable because the active profile is not eligible.
+   * @nullable
+   */
+  playbackBlockedReason: string | null;
 }
 
 export type ChannelDetail = ChannelSummary & {
@@ -322,6 +331,8 @@ export interface ChannelUpdate {
   categoryId?: number;
   /** @maxLength 140 */
   streamTitle?: string;
+  /** Marks this channel as mature. Mature Live surfaces require an active profile with maturityLevel set to mature. */
+  matureContent?: boolean;
 }
 
 export type ChannelAnalyticsRecentStreamsItem = {

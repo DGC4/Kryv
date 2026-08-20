@@ -76,6 +76,8 @@ export default function LiveChannel() {
   });
 
   const channelId = channel?.id;
+  const playbackBlockedReason = channel?.playbackBlockedReason ?? null;
+  const isPlaybackRestricted = Boolean(playbackBlockedReason);
   usePageMetadata({
     title: channel?.displayName ?? 'Live channel',
     description: channel ? (channel.description?.trim() || `${channel.displayName} ${channel.isLive ? 'is live now' : 'is on Kryv Live'}.`) : 'Watch live creator broadcasts on Kryv.',
@@ -84,10 +86,10 @@ export default function LiveChannel() {
   });
 
   const { data: messages, isFetching: isRefreshingMessages, refetch: refetchMessages } = useListChannelMessages(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: 15000 },
+    query: { enabled: !!channelId && !isPlaybackRestricted, refetchInterval: 15000 },
   });
   const { data: chatSettings } = useGetChannelChatSettings(channelId!, {
-    query: { enabled: !!channelId, refetchInterval: 10000 },
+    query: { enabled: !!channelId && !isPlaybackRestricted, refetchInterval: 10000 },
   });
   const chatRequiresFollow = Boolean(chatSettings?.followersOnly && !channel?.isFollowing && !channel?.isOwner);
   const { data: engagement, refetch: refetchEngagement } = useGetChannelEngagement(channelId!, {
@@ -196,7 +198,7 @@ export default function LiveChannel() {
   // Viewer heartbeat — send every 30s while the channel is live
   // This is how Kick/Twitch track concurrent viewers in real time
   useEffect(() => {
-    if (!channelId || !channel?.isLive) {
+    if (!channelId || !channel?.isLive || isPlaybackRestricted) {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       return;
     }
@@ -221,7 +223,7 @@ export default function LiveChannel() {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelId, channel?.isLive]);
+  }, [channelId, channel?.isLive, isPlaybackRestricted]);
 
   const openAccountEntry = (intent: AccountEntryIntent) => setAccountEntryIntent(intent);
 
@@ -509,7 +511,7 @@ export default function LiveChannel() {
 
   // Build the correct HLS playback URL
   // FastPix format: https://stream.fastpix.com/{playbackId}.m3u8
-  const hlsSrc = (channel.fastpixPlaybackId || channel.playbackId)
+  const hlsSrc = channel.playbackAvailable && (channel.fastpixPlaybackId || channel.playbackId)
     ? `https://stream.fastpix.com/${channel.fastpixPlaybackId || channel.playbackId}.m3u8`
     : null;
   const railChannels = Array.from(
@@ -557,7 +559,14 @@ export default function LiveChannel() {
       <div className={`flex min-w-0 flex-col ${theaterMode ? `w-full shrink-0 ${theaterChatVisible ? (chatCollapsed ? 'pb-[var(--kryv-mobile-chat-collapsed-height)] xl:pb-0' : 'pb-[var(--kryv-mobile-chat-expanded-height)] xl:pb-0') : 'pb-0'} xl:h-full xl:min-h-0 xl:overflow-hidden ${theaterChatVisible ? 'xl:col-start-1 xl:row-start-1' : ''}` : 'flex-1 sm:pb-[40dvh] lg:pb-0'} ${!theaterMode ? (chatCollapsed ? 'pb-[var(--kryv-mobile-chat-collapsed-height)]' : 'pb-[var(--kryv-mobile-chat-expanded-height)]') : ''}`}>
         {/* Video Player - Responsive */}
         <div className={`relative w-full bg-black ${theaterMode ? 'aspect-video xl:h-full xl:min-h-0 xl:aspect-auto' : 'aspect-video sm:aspect-video lg:flex-1'}`}>
-          {channel.isLive && hlsSrc ? (
+          {isPlaybackRestricted ? (
+            <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center" role="status">
+              <Shield className="h-9 w-9 text-primary/80" aria-hidden="true" />
+              <h2 className="mt-4 text-2xl font-display font-bold text-white">Profile access required</h2>
+              <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">{playbackBlockedReason}</p>
+              <Link href="/cinema" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-black text-primary-foreground transition hover:brightness-110">Choose a viewer profile</Link>
+            </div>
+          ) : channel.isLive && hlsSrc ? (
             <KryvPlayer
               src={hlsSrc}
               autoPlay
@@ -868,7 +877,13 @@ export default function LiveChannel() {
             </article>
             );
           })}
-          {(!messages || messages.length === 0) && (
+          {isPlaybackRestricted ? (
+            <div className="flex h-full flex-col items-center justify-center px-5 text-center">
+              <Shield className="h-5 w-5 text-primary/75" aria-hidden="true" />
+              <p className="mt-3 text-sm font-black text-white/75">Discussion access required</p>
+              <p className="mt-1 max-w-60 text-xs leading-relaxed text-white/40">{playbackBlockedReason}</p>
+            </div>
+          ) : (!messages || messages.length === 0) && (
             <div className="flex h-full flex-col items-center justify-center px-5 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/[0.07] text-primary"><MessageCircleMore className="h-5 w-5" /></div>
               <p className="mt-3 text-sm font-black text-white/75">Chat is ready for the room</p>
@@ -891,7 +906,12 @@ export default function LiveChannel() {
         </div>
 
         <div className={`${chatCollapsed ? 'hidden' : ''} border-t border-white/10 bg-[#0b0d13]/[0.98] p-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] sm:block sm:bg-black/20 sm:p-4`}>
-          {isSignedIn && chatRequiresFollow ? (
+          {isPlaybackRestricted ? (
+            <div className="rounded-xl border border-primary/20 bg-primary/[0.06] p-3 text-center">
+              <p className="text-xs font-black text-white">Choose an eligible viewer profile to use chat</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-white/50">{playbackBlockedReason}</p>
+            </div>
+          ) : isSignedIn && chatRequiresFollow ? (
             <div className="rounded-xl border border-primary/20 bg-primary/[0.06] p-3 text-center">
               <p className="text-xs font-black text-white">This creator uses follower-only chat</p>
               <p className="mt-1 text-[11px] leading-relaxed text-white/50">Follow {channel.displayName} to participate. Watching and safety reporting remain available.</p>

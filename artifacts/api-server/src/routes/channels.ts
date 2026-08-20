@@ -33,6 +33,7 @@ import {
   getFastPixViewerCount,
 } from "../lib/fastpix";
 import { logActivity } from "../lib/tracking";
+import { getActiveProfileMaturity, getLiveMaturityRestriction } from "../lib/liveMaturity";
 
 const router: IRouter = Router();
 
@@ -84,6 +85,15 @@ router.get("/channels", attachUserId, async (req, res): Promise<void> => {
       }),
     );
   }
+
+  // Mature rooms are omitted from discovery unless the session-bound active
+  // profile explicitly permits mature Live content. This prevents a kids or
+  // standard profile from learning a mature room's title, audience metadata,
+  // or HLS playback reference through browse, search, and category rails.
+  const profileMaturity = await getActiveProfileMaturity(req);
+  rows = rows.filter(
+    (channel) => !channel.matureContent || profileMaturity === "mature",
+  );
 
   // Most-viewed broadcasts lead every live list, including category pages.
   rows.sort((a, b) => b.viewerCount - a.viewerCount);
@@ -148,8 +158,11 @@ router.get(
     }
 
     const viewerUserId = req.user?.userId;
+    const playbackBlockedReason = await getLiveMaturityRestriction(req, channel);
     res.json(
-      GetChannelResponse.parse(await toChannelDetail(channel, viewerUserId)),
+      GetChannelResponse.parse(
+        await toChannelDetail(channel, viewerUserId, { playbackBlockedReason }),
+      ),
     );
   },
 );
@@ -174,8 +187,11 @@ router.get(
     }
 
     const viewerUserId = req.user?.userId;
+    const playbackBlockedReason = await getLiveMaturityRestriction(req, channel);
     res.json(
-      GetChannelResponse.parse(await toChannelDetail(channel, viewerUserId)),
+      GetChannelResponse.parse(
+        await toChannelDetail(channel, viewerUserId, { playbackBlockedReason }),
+      ),
     );
   },
 );
@@ -540,6 +556,12 @@ router.post(
       return;
     }
 
+    const maturityRestriction = await getLiveMaturityRestriction(req, channel);
+    if (maturityRestriction) {
+      res.status(403).json({ error: maturityRestriction });
+      return;
+    }
+
     // Only count viewers when the channel is actually live
     if (!channel.isLive) {
       res.json({ viewerCount: 0 });
@@ -577,11 +599,23 @@ router.get(
     }
 
     const [channel] = await db
-      .select({ id: channelsTable.id, isLive: channelsTable.isLive, viewerCount: channelsTable.viewerCount, fastpixLiveStreamId: channelsTable.fastpixLiveStreamId })
+      .select({
+        id: channelsTable.id,
+        isLive: channelsTable.isLive,
+        viewerCount: channelsTable.viewerCount,
+        fastpixLiveStreamId: channelsTable.fastpixLiveStreamId,
+        matureContent: channelsTable.matureContent,
+      })
       .from(channelsTable)
       .where(eq(channelsTable.id, channelId));
     if (!channel) {
       res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+
+    const maturityRestriction = await getLiveMaturityRestriction(req, channel);
+    if (maturityRestriction) {
+      res.status(403).json({ error: maturityRestriction });
       return;
     }
 

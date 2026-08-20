@@ -40,12 +40,23 @@ export async function categoryNameFor(
   return row?.name ?? null;
 }
 
-export async function toChannelSummary(channel: Channel) {
+type ChannelAccess = {
+  playbackBlockedReason?: string | null;
+};
+
+async function toChannelSummaryWithAccess(
+  channel: Channel,
+  access: ChannelAccess = {},
+) {
   const [followerCount, subscriberCount, categoryName] = await Promise.all([
     followerCountFor(channel.id),
     subscriberCountFor(channel.id),
     categoryNameFor(channel.categoryId),
   ]);
+  const playbackBlockedReason = access.playbackBlockedReason ?? null;
+  const playbackAvailable =
+    Boolean(channel.fastpixPlaybackId) && !playbackBlockedReason;
+
   return {
     id: channel.id,
     slug: channel.slug,
@@ -60,16 +71,24 @@ export async function toChannelSummary(channel: Channel) {
     categoryId: channel.categoryId,
     categoryName,
     lastStreamAt: channel.lastStreamAt,
-    playbackId: channel.fastpixPlaybackId,
-    fastpixPlaybackId: channel.fastpixPlaybackId,
+    matureContent: channel.matureContent,
+    playbackId: playbackAvailable ? channel.fastpixPlaybackId : null,
+    fastpixPlaybackId: playbackAvailable ? channel.fastpixPlaybackId : null,
+    playbackAvailable,
+    playbackBlockedReason,
   };
+}
+
+export async function toChannelSummary(channel: Channel) {
+  return toChannelSummaryWithAccess(channel);
 }
 
 export async function toChannelDetail(
   channel: Channel,
   viewerUserId: number | undefined,
+  access: ChannelAccess = {},
 ) {
-  const summary = await toChannelSummary(channel);
+  const summary = await toChannelSummaryWithAccess(channel, access);
   let isFollowing = false;
   if (viewerUserId) {
     const [row] = await db

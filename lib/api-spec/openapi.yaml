@@ -3331,7 +3331,10 @@ components:
           categoryId,
           categoryName,
           lastStreamAt,
+          matureContent,
           playbackId,
+          playbackAvailable,
+          playbackBlockedReason,
         ]
       properties:
         id: { type: integer }
@@ -3350,11 +3353,20 @@ components:
           description: Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.
           type: ["string", "null"]
           format: date-time
+        matureContent:
+          description: Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.
+          type: boolean
         playbackId:
           description: FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
           type: ["string", "null"]
         fastpixPlaybackId:
-          description: FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+          description: FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.
+          type: ["string", "null"]
+        playbackAvailable:
+          description: True only when the current viewer is permitted to receive a playable Live stream reference.
+          type: boolean
+        playbackBlockedReason:
+          description: Viewer-safe explanation when playback is unavailable because the active profile is not eligible.
           type: ["string", "null"]
 
     ChannelDetail:
@@ -3508,7 +3520,9 @@ components:
         bannerUrl: { type: string }
         categoryId: { type: integer }
         streamTitle: { type: string, maxLength: 140 }
-
+        matureContent:
+          description: Marks this channel as mature. Mature Live surfaces require an active profile with maturityLevel set to mature.
+          type: boolean
     ChannelAnalytics:
       type: object
       required:
