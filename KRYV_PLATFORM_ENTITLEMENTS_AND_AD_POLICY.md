@@ -1,8 +1,8 @@
 # Kryv Platform Entitlements and Free-Tier Advertising Policy
 
-**Status:** Design and isolated-validation preparation only. **Advertising delivery remains disabled.**  
-**Scope:** A platform-wide entitlement model for free-tier and future ad-free access across **Cinema, Watch, and Live**.  
-**Production database status:** Unchanged. A disposable Neon validation branch, `mcp-platform-entitlements-2026-08-20` (`br-wispy-glade-a60k3nln`), was created from production and is scheduled to expire automatically. No production migration has been prepared or completed.
+**Status:** Isolated Neon validation complete; **production rollout pending explicit operator approval**. **Advertising delivery remains disabled.**
+**Scope:** A platform-wide entitlement model for free-tier and future ad-free access across **Cinema, Watch, and Live**.
+**Production database status:** Unchanged. The clean disposable validation branch, `platform-entitlements-validation-v2` (`br-soft-heart-a6rd4ml4`), was created from production and is scheduled to expire automatically. The validated repository migration is `lib/db/drizzle/0022_platform_entitlements.sql`; it is explicitly production-pending and has not been applied to Neon production.
 
 > **Policy distinction.** A creator-channel subscription is a relationship between a viewer and one creator. It is **not** evidence of an account-wide ad-free platform plan. Kryv must not infer global advertising eligibility from creator subscription records.
 
@@ -71,9 +71,9 @@ The account-level entitlement answers **whether** a free-tier viewer is eligible
 | Stage                                  | Current state                                                                                                                                         | Production effect |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | Schema reconnaissance                  | Complete: creator subscriptions and platform-level entitlement needs were distinguished.                                                              | None.             |
-| Disposable branch creation             | Complete: branch `br-wispy-glade-a60k3nln` is isolated and auto-expiring.                                                                             | None.             |
-| Additive migration preparation         | Not started. It requires a reviewed migration request and temporary-branch verification.                                                              | None.             |
-| Repository migration and ORM alignment | Not started. It must exactly match the validated temporary branch.                                                                                    | None.             |
+| Disposable branch creation             | Complete: clean branch `br-soft-heart-a6rd4ml4` is isolated and auto-expiring.                                                                        | None.             |
+| Additive migration preparation         | Complete: table, check constraints, audit/revocation fields, and resolver indexes were applied and inspected only on the clean temporary branch.      | None.             |
+| Repository migration and ORM alignment | Migration `0022_platform_entitlements.sql` prepared; ORM and decision-resolver runtime work remain deliberately deferred until production approval.   | None.             |
 | Production completion                  | Explicitly not started. It requires user confirmation after branch verification.                                                                      | None.             |
 | Runtime delivery activation            | Explicitly out of scope. It requires a separate safety, privacy, fraud, measurement, finance-reconciliation, and operator-kill-switch release review. | None.             |
 
@@ -83,4 +83,4 @@ An entitlement table alone is insufficient. Before advertising can leave its dis
 
 ## 8. Implementation decision
 
-The correct next implementation step is **not** to activate delivery and not to misuse creator subscriptions as a platform plan. It is to prepare and verify an additive, server-owned platform-entitlement migration on the isolated Neon branch, then request explicit approval before any production completion. Until that approval, the free-tier advertising presentation components and decision route remain structurally ready but operationally disabled.
+The correct next implementation step is **not** to activate delivery and not to misuse creator subscriptions as a platform plan. The additive, server-owned entitlement migration has now been verified on the clean isolated Neon branch and recorded as `0022_platform_entitlements.sql`; the next step is explicit operator approval before any production completion. Until that approval, the free-tier advertising presentation components and decision route remain structurally ready but operationally disabled.
