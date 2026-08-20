@@ -164,6 +164,11 @@ requireMatch(
   "Cinema detail must withhold feature and trailer playback below the active profile's maturity setting.",
 );
 requireMatch(
+  cinemaDetail,
+  /!maturityBlocked && activeProfile/,
+  "Cinema detail must avoid mounting profile-gated discussion unless the active profile is eligible.",
+);
+requireMatch(
   cinemaRoute,
   /router\.get\("\/cinema\/home",\s*attachUserId/,
   "Cinema home must resolve the optional session and active-profile grant server-side.",
@@ -197,6 +202,26 @@ requireMatch(
   cinemaRoute,
   /featurePlaybackId:\s*null,[\s\S]*?trailerPlaybackId:\s*null/,
   "Cinema playback restriction must remove both feature and trailer playback identifiers.",
+);
+requireMatch(
+  cinemaRoute,
+  /function getCinemaDiscussionRestriction/,
+  "Cinema discussion must use an active-profile maturity restriction helper.",
+);
+requireMatch(
+  cinemaRoute,
+  /\/cinema\/titles\/:id\/comments",\s*attachUserId/,
+  "Cinema discussion reads must resolve optional session and active-profile context.",
+);
+requireMatch(
+  cinemaRoute,
+  /Select a viewer profile to access Cinema discussion\./,
+  "Cinema discussion must fail closed without an active profile.",
+);
+requireMatch(
+  cinemaRoute,
+  /This Cinema discussion is outside the active profile's maturity setting\./,
+  "Cinema discussion must fail closed below profile maturity.",
 );
 requireMatch(
   profileRoute,

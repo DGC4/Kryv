@@ -396,7 +396,21 @@ export default function CinemaDetail() {
                 </div>
               </section>
             )}
-            <CinemaDiscussion cinemaTitleId={title.id} title={title.title} />
+            {!maturityBlocked && activeProfile ? (
+              <CinemaDiscussion cinemaTitleId={title.id} title={title.title} />
+            ) : (
+              <section className="mt-8 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 text-center sm:mt-10 sm:p-6">
+                <LockKeyhole className="mx-auto h-5 w-5 text-primary" />
+                <h2 className="mt-3 text-sm font-black text-white">
+                  Cinema discussion is profile-gated
+                </h2>
+                <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-white/50">
+                  {maturityBlocked
+                    ? "This title’s discussion is unavailable to the active profile because of its maturity setting."
+                    : "Choose an eligible viewer profile to read or join the discussion for this title."}
+                </p>
+              </section>
+            )}
           </article>
           <aside className="h-fit rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5">
             <p className="text-xs font-semibold text-white/45">

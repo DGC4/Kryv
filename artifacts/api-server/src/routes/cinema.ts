@@ -80,9 +80,36 @@ async function getCinemaProfileMaturity(
     : null;
 }
 
+async function getCinemaDiscussionRestriction(
+  req: Parameters<typeof attachUserId>[0],
+  titleMaturity: string,
+) {
+  if (!req.user || !req.activeProfileId) {
+    return "Select a viewer profile to access Cinema discussion.";
+  }
+  const profileMaturity = await getCinemaProfileMaturity(req);
+  const profileMaturityRank = profileMaturity
+    ? maturityRank[profileMaturity]
+    : undefined;
+  const titleMaturityRank =
+    maturityRank[titleMaturity as keyof typeof maturityRank];
+  if (
+    profileMaturityRank === undefined ||
+    titleMaturityRank === undefined ||
+    profileMaturityRank < titleMaturityRank
+  ) {
+    return "This Cinema discussion is outside the active profile's maturity setting.";
+  }
+  return null;
+}
+
 async function getPublishedCinemaTitle(id: number) {
   const [title] = await db
-    .select({ id: cinemaTitlesTable.id, title: cinemaTitlesTable.title })
+    .select({
+      id: cinemaTitlesTable.id,
+      title: cinemaTitlesTable.title,
+      maturityLevel: cinemaTitlesTable.maturityLevel,
+    })
     .from(cinemaTitlesTable)
     .where(
       and(
@@ -181,59 +208,74 @@ router.get(
   },
 );
 
-router.get("/cinema/titles/:id/comments", async (req, res): Promise<void> => {
-  const params = ListCinemaCommentsParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+router.get(
+  "/cinema/titles/:id/comments",
+  attachUserId,
+  async (req, res): Promise<void> => {
+    const params = ListCinemaCommentsParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
 
-  const title = await getPublishedCinemaTitle(params.data.id);
-  if (!title) {
-    res.status(404).json({ error: "Published Cinema title not found." });
-    return;
-  }
+    const title = await getPublishedCinemaTitle(params.data.id);
+    if (!title) {
+      res.status(404).json({ error: "Published Cinema title not found." });
+      return;
+    }
+    const restriction = await getCinemaDiscussionRestriction(
+      req,
+      title.maturityLevel,
+    );
+    if (restriction) {
+      res.status(403).json({ error: restriction });
+      return;
+    }
 
-  const rows = await db
-    .select({
-      id: cinemaCommentsTable.id,
-      cinemaTitleId: cinemaCommentsTable.cinemaTitleId,
-      parentCommentId: cinemaCommentsTable.parentCommentId,
-      userId: cinemaCommentsTable.userId,
-      username: usersTable.username,
-      avatarUrl: usersTable.avatarUrl,
-      message: cinemaCommentsTable.message,
-      createdAt: cinemaCommentsTable.createdAt,
-    })
-    .from(cinemaCommentsTable)
-    .innerJoin(usersTable, eq(usersTable.id, cinemaCommentsTable.userId))
-    .where(
-      and(
-        eq(cinemaCommentsTable.cinemaTitleId, title.id),
-        isNull(cinemaCommentsTable.deletedAt),
-      ),
-    )
-    .orderBy(desc(cinemaCommentsTable.createdAt), desc(cinemaCommentsTable.id));
+    const rows = await db
+      .select({
+        id: cinemaCommentsTable.id,
+        cinemaTitleId: cinemaCommentsTable.cinemaTitleId,
+        parentCommentId: cinemaCommentsTable.parentCommentId,
+        userId: cinemaCommentsTable.userId,
+        username: usersTable.username,
+        avatarUrl: usersTable.avatarUrl,
+        message: cinemaCommentsTable.message,
+        createdAt: cinemaCommentsTable.createdAt,
+      })
+      .from(cinemaCommentsTable)
+      .innerJoin(usersTable, eq(usersTable.id, cinemaCommentsTable.userId))
+      .where(
+        and(
+          eq(cinemaCommentsTable.cinemaTitleId, title.id),
+          isNull(cinemaCommentsTable.deletedAt),
+        ),
+      )
+      .orderBy(
+        desc(cinemaCommentsTable.createdAt),
+        desc(cinemaCommentsTable.id),
+      );
 
-  type CommentNode = (typeof rows)[number] & {
-    replies: Array<(typeof rows)[number] & { replies: [] }>;
-  };
-  const parentComments = new Map<number, CommentNode>();
-  const replyRows: Array<(typeof rows)[number]> = [];
-  for (const row of rows) {
-    if (row.parentCommentId === null)
-      parentComments.set(row.id, { ...row, replies: [] });
-    else replyRows.push(row);
-  }
-  for (const reply of replyRows) {
-    const parent = parentComments.get(reply.parentCommentId!);
-    if (parent) parent.replies.push({ ...reply, replies: [] });
-  }
+    type CommentNode = (typeof rows)[number] & {
+      replies: Array<(typeof rows)[number] & { replies: [] }>;
+    };
+    const parentComments = new Map<number, CommentNode>();
+    const replyRows: Array<(typeof rows)[number]> = [];
+    for (const row of rows) {
+      if (row.parentCommentId === null)
+        parentComments.set(row.id, { ...row, replies: [] });
+      else replyRows.push(row);
+    }
+    for (const reply of replyRows) {
+      const parent = parentComments.get(reply.parentCommentId!);
+      if (parent) parent.replies.push({ ...reply, replies: [] });
+    }
 
-  res.json(
-    ListCinemaCommentsResponse.parse(Array.from(parentComments.values())),
-  );
-});
+    res.json(
+      ListCinemaCommentsResponse.parse(Array.from(parentComments.values())),
+    );
+  },
+);
 
 router.post(
   "/cinema/titles/:id/comments",
@@ -260,6 +302,14 @@ router.post(
     const title = await getPublishedCinemaTitle(params.data.id);
     if (!title) {
       res.status(404).json({ error: "Published Cinema title not found." });
+      return;
+    }
+    const restriction = await getCinemaDiscussionRestriction(
+      req,
+      title.maturityLevel,
+    );
+    if (restriction) {
+      res.status(403).json({ error: restriction });
       return;
     }
 
@@ -340,6 +390,17 @@ router.delete(
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
       return;
+    }
+
+    if (req.user!.role !== "owner") {
+      const title = await getPublishedCinemaTitle(params.data.id);
+      const restriction = title
+        ? await getCinemaDiscussionRestriction(req, title.maturityLevel)
+        : "Published Cinema title not found.";
+      if (restriction) {
+        res.status(403).json({ error: restriction });
+        return;
+      }
     }
 
     const [comment] = await db
