@@ -134,6 +134,13 @@ paths:
                       - type: "null"
         "401":
           description: Not authenticated
+    delete:
+      operationId: clearActiveViewerProfile
+      tags: [me]
+      summary: Clear the signed-in browser session's active viewer profile grant
+      responses:
+        "204": { description: Active profile grant cleared }
+        "401": { description: Not authenticated }
 
   /me/profiles/{id}/select:
     post:

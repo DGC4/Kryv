@@ -21,6 +21,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { getApiUrl } from "@/lib/api";
 import { MediaRail, MediaRailSkeleton } from "@/components/media/MediaRail";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { ViewerProfileManager } from "@/components/cinema/ViewerProfileManager";
 
 const GENRE_THEMES = [
   "from-red-500/80 via-orange-500/30 to-black",
@@ -104,6 +105,7 @@ function CinemaProfileGate({
   isCreating,
   isSelecting,
   selectionError,
+  onManage,
 }: {
   profiles: ViewerProfile[];
   onSelect: (profile: ViewerProfile, pin?: string) => Promise<boolean>;
@@ -111,6 +113,7 @@ function CinemaProfileGate({
   isCreating: boolean;
   isSelecting: boolean;
   selectionError: string | null;
+  onManage: () => void;
 }) {
   const [name, setName] = useState("");
   const [lockedProfile, setLockedProfile] = useState<ViewerProfile | null>(
@@ -229,7 +232,14 @@ function CinemaProfileGate({
             <Plus className="mr-1.5 h-4 w-4" /> Add
           </Button>
         </form>
-        <p className="mt-4 text-xs text-white/30">
+        <button
+          type="button"
+          onClick={onManage}
+          className="mt-5 text-xs font-black text-primary transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          Manage profiles and PIN protection
+        </button>
+        <p className="mt-3 text-xs text-white/30">
           Profile PIN changes require your account password again. Selecting a
           profile never stores its ID or PIN in browser storage.
         </p>
@@ -335,6 +345,7 @@ export default function CinemaHome() {
   const [profileSelectionError, setProfileSelectionError] = useState<
     string | null
   >(null);
+  const [managingProfiles, setManagingProfiles] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -412,6 +423,28 @@ export default function CinemaHome() {
     }
   };
 
+  const switchProfile = async () => {
+    setIsSelectingProfile(true);
+    setProfileSelectionError(null);
+    try {
+      const response = await fetch(getApiUrl("/api/me/profiles/active"), {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Unable to switch viewer profiles.");
+      setActiveProfileId(null);
+      setProfileGrantResolved(true);
+    } catch (error) {
+      setProfileSelectionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to switch viewer profiles.",
+      );
+    } finally {
+      setIsSelectingProfile(false);
+    }
+  };
+
   const createProfile = (name: string) => {
     createViewerProfile.mutate(
       { data: { name } },
@@ -466,6 +499,17 @@ export default function CinemaHome() {
   const activeProfile =
     profilesQuery.data?.find((profile) => profile.id === activeProfileId) ??
     null;
+  if (user && managingProfiles)
+    return (
+      <ViewerProfileManager
+        profiles={profilesQuery.data ?? []}
+        onClose={() => setManagingProfiles(false)}
+        onProfilesChanged={async () => {
+          setActiveProfileId(null);
+          await profilesQuery.refetch();
+        }}
+      />
+    );
   if (user && !activeProfile)
     return (
       <CinemaProfileGate
@@ -475,6 +519,7 @@ export default function CinemaHome() {
         isCreating={createViewerProfile.isPending}
         isSelecting={isSelectingProfile}
         selectionError={profileSelectionError}
+        onManage={() => setManagingProfiles(true)}
       />
     );
 
@@ -515,7 +560,7 @@ export default function CinemaHome() {
             {activeProfile && (
               <button
                 type="button"
-                onClick={() => setActiveProfileId(null)}
+                onClick={() => void switchProfile()}
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-xs font-bold text-white/80 backdrop-blur transition-colors hover:bg-white/15"
               >
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] text-primary">

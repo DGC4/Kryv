@@ -140,6 +140,15 @@ router.get(
   },
 );
 
+router.delete(
+  "/me/profiles/active",
+  requireAuth,
+  async (_req, res): Promise<void> => {
+    clearActiveProfileGrant(res);
+    res.status(204).end();
+  },
+);
+
 router.post(
   "/me/profiles/:id/select",
   requireAuth,
