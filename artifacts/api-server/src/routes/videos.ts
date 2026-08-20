@@ -47,7 +47,9 @@ function optionalHttpsUrl(value: string | undefined) {
   if (!trimmed) return null;
   try {
     const parsed = new URL(trimmed);
-    return parsed.protocol === "https:" ? parsed.toString() : null;
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password
+      ? parsed.toString()
+      : null;
   } catch {
     return null;
   }
@@ -569,7 +571,7 @@ router.post("/videos/:id/music-credits", requireAuth, async (req, res): Promise<
   const artworkUrl = optionalHttpsUrl(body.data.artworkUrl);
   const sourceUrl = optionalHttpsUrl(body.data.sourceUrl);
   if ((body.data.artworkUrl && !artworkUrl) || (body.data.sourceUrl && !sourceUrl)) {
-    res.status(400).json({ error: "Artwork and source links must use HTTPS." });
+    res.status(400).json({ error: "Artwork and source links must use clean HTTPS URLs." });
     return;
   }
   if (body.data.metadataSource === "musicbrainz" && !body.data.musicbrainzRecordingId && !body.data.musicbrainzReleaseId) {

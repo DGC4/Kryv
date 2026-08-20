@@ -48,6 +48,7 @@ const [
   plisioLib,
   routeRegistry,
   worker,
+  videosRoute,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -79,6 +80,7 @@ const [
   source("artifacts/api-server/src/lib/plisio.ts"),
   source("artifacts/api-server/src/routes/index.ts"),
   source("artifacts/api-server/src/worker.ts"),
+  source("artifacts/api-server/src/routes/videos.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -612,6 +614,16 @@ requireMatch(
   worker,
   /redirect: "error"/,
   "Analytics webhook delivery must reject redirects rather than following an untrusted network hop.",
+);
+requireMatch(
+  videosRoute,
+  /parsed\.protocol === "https:" && !parsed\.username && !parsed\.password/,
+  "Watch music-credit artwork and source links must require clean HTTPS authorities.",
+);
+requireMatch(
+  videosRoute,
+  /clean HTTPS URLs/,
+  "Watch music-credit validation must clearly reject malformed or credential-bearing external URLs.",
 );
 
 requireMatch(
