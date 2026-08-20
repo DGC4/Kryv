@@ -9,11 +9,13 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
-import { type FormEvent, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { VideoCard } from "@/components/VideoCard";
 import { MediaRail, MediaRailSkeleton } from "@/components/media/MediaRail";
 import { AdSlot } from "@/components/ads/AdSlot";
+
+const WATCH_PAGE_SIZE = 48;
 
 function RailHeading({
   eyebrow,
@@ -48,6 +50,7 @@ export default function WatchHome() {
     number | undefined
   >();
   const categoryButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [videoOffset, setVideoOffset] = useState(0);
 
   const { data: categories = [] } = useListCategories({ kind: "genre" });
   const activeCategory = useMemo(
@@ -62,6 +65,9 @@ export default function WatchHome() {
       ? candidate
       : undefined;
   }, [location]);
+  useEffect(() => {
+    setVideoOffset(0);
+  }, [creatorChannelId]);
   const {
     data: videoPage,
     isLoading,
@@ -72,11 +78,17 @@ export default function WatchHome() {
     contentType: "upload",
     search: search || undefined,
     categorySlug: activeCategory?.slug,
+    limit: WATCH_PAGE_SIZE,
+    offset: videoOffset,
   });
   const videos = videoPage?.items ?? [];
+  const videoTotal = videoPage?.total ?? 0;
+  const hasPreviousVideos = videoOffset > 0;
+  const hasMoreVideos = videoOffset + videos.length < videoTotal;
 
   const selectCategoryAt = (index: number) => {
     const category = index === 0 ? undefined : categories[index - 1];
+    setVideoOffset(0);
     setActiveCategoryId(category?.id);
     if (category) {
       setSearch("");
@@ -99,9 +111,11 @@ export default function WatchHome() {
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
+    setVideoOffset(0);
     setSearch(inputValue.trim());
   };
   const clearFilters = () => {
+    setVideoOffset(0);
     setSearch("");
     setInputValue("");
     setActiveCategoryId(undefined);
@@ -379,7 +393,10 @@ export default function WatchHome() {
                   icon={Sparkles}
                 />
                 <button
-                  onClick={() => setActiveCategoryId(category.id)}
+                  onClick={() => {
+                    setVideoOffset(0);
+                    setActiveCategoryId(category.id);
+                  }}
                   className="mb-1 inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:text-white"
                 >
                   Explore <ArrowUpRight className="h-3.5 w-3.5" />
@@ -398,6 +415,14 @@ export default function WatchHome() {
             </section>
           ))}
         </div>
+      )}
+
+      {!isLoading && !isError && videos.length > 0 && videoTotal > videos.length && (
+        <nav className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-5" aria-label="Watch catalog pages">
+          <button type="button" onClick={() => setVideoOffset(Math.max(0, videoOffset - WATCH_PAGE_SIZE))} disabled={!hasPreviousVideos} className="inline-flex min-h-10 items-center rounded-xl border border-white/[0.1] px-4 text-sm font-bold text-white/70 transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-35">Newer releases</button>
+          <p className="text-sm text-white/40">Showing {videoOffset + 1}–{Math.min(videoOffset + videos.length, videoTotal)} of {videoTotal}</p>
+          <button type="button" onClick={() => setVideoOffset(videoOffset + WATCH_PAGE_SIZE)} disabled={!hasMoreVideos} className="inline-flex min-h-10 items-center rounded-xl border border-white/[0.1] px-4 text-sm font-bold text-white/70 transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-35">Older releases</button>
+        </nav>
       )}
     </div>
   );

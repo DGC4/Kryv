@@ -1084,6 +1084,16 @@ requireMatch(
   "Watch categories must retain roving directional focus controls for keyboard and future remote navigation.",
 );
 requireMatch(
+  watchHome,
+  /WATCH_PAGE_SIZE = 48[\s\S]*?limit: WATCH_PAGE_SIZE[\s\S]*?offset: videoOffset[\s\S]*?videoPage\?\.items[\s\S]*?Older releases/,
+  "Watch home must consume the bounded VideoPage and expose explicit catalog continuation controls.",
+);
+requireMatch(
+  watchHome,
+  /const selectCategoryAt[\s\S]*?setVideoOffset\(0\)[\s\S]*?const submitSearch[\s\S]*?setVideoOffset\(0\)[\s\S]*?const clearFilters[\s\S]*?setVideoOffset\(0\)/,
+  "Watch home must reset pagination whenever category, search, or clear-filter state changes.",
+);
+requireMatch(
   creatorProfilePage,
   /watchTotal > watch\.length[\s\S]*?\/watch\?channelId=\$\{channel\.id\}/,
   "Creator profiles must make capped Watch rails explicit and link to their complete filtered catalog.",
