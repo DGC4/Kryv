@@ -69,6 +69,9 @@ const [
   liveViewerRefresh,
   creatorDirectory,
   liveCategoryPage,
+  categoriesRoute,
+  clipHome,
+  clipDetail,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -121,6 +124,9 @@ const [
   source("artifacts/api-server/src/lib/liveViewerRefresh.ts"),
   source("artifacts/blyze/src/pages/creators/Directory.tsx"),
   source("artifacts/blyze/src/pages/live/Category.tsx"),
+  source("artifacts/api-server/src/routes/categories.ts"),
+  source("artifacts/blyze/src/pages/clips/Home.tsx"),
+  source("artifacts/blyze/src/pages/clips/Detail.tsx"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -472,8 +478,8 @@ requireMatch(
 );
 requireMatch(
   liveClipsRoute,
-  /profileMaturity !== "mature"[\s\S]*?eq\(channelsTable\.matureContent, false\)[\s\S]*?\.limit\(50\)[\s\S]*?rows\.map\(toClipSummary\)/,
-  "Live clip discovery must apply maturity visibility before its bounded database fetch.",
+  /profileMaturity !== "mature"[\s\S]*?eq\(channelsTable\.matureContent, false\)[\s\S]*?\.limit\(query\.data\.limit\)[\s\S]*?\.offset\(query\.data\.offset\)[\s\S]*?total: countRows\[0\]\?\.total/,
+  "Live clip discovery must apply maturity visibility before bounded generated page queries and report a profile-visible total.",
 );
 requireMatch(
   liveClipsRoute,
@@ -664,6 +670,41 @@ requireMatch(
   liveCategoryPage,
   /limit: 48[\s\S]*?channelsPage\?\.items/,
   "Live category pages must consume a bounded channel page rather than an unbounded array response.",
+);
+requireMatch(
+  categoriesRoute,
+  /COUNT\(\$\{channelsTable\.id\}\)[\s\S]*?COALESCE\(SUM\(\$\{channelsTable\.viewerCount\}\), 0\)[\s\S]*?leftJoin\(channelsTable, visibleLiveChannelJoin\)/,
+  "Category summaries must use one grouped Live aggregation rather than per-category count and viewer queries.",
+);
+requireMatch(
+  categoriesRoute,
+  /profileMaturity === "mature"[\s\S]*?eq\(channelsTable\.matureContent, false\)/,
+  "Category summaries must exclude mature Live inventory unless the active profile is mature.",
+);
+requireMatch(
+  categoriesRoute,
+  /visibilityScope =[\s\S]*?profileMaturity === "mature" \? "mature" : "restricted"[\s\S]*?kryv:categories:[\s\S]*?readSharedJson[\s\S]*?writeSharedJson\(cacheKey, response, CATEGORY_SUMMARY_CACHE_TTL_SECONDS\)/,
+  "Category cache keys must separate mature and restricted inventories while retaining a short shared aggregate cache.",
+);
+requireMatch(
+  apiSpec,
+  /\/clips:[\s\S]*?name: limit[\s\S]*?maximum: 100[\s\S]*?default: 48[\s\S]*?name: offset[\s\S]*?\$ref: "#\/components\/schemas\/ClipPage"/,
+  "Clip catalog must expose a typed bounded page contract.",
+);
+requireMatch(
+  liveClipsRoute,
+  /ListClipsQueryParams[\s\S]*?profileMaturity !== "mature"[\s\S]*?eq\(channelsTable\.matureContent, false\)[\s\S]*?\.limit\(query\.data\.limit\)[\s\S]*?\.offset\(query\.data\.offset\)[\s\S]*?total: countRows\[0\]\?\.total/,
+  "Clip catalog must apply maturity visibility before bounded SQL paging and return a total visible to the active profile.",
+);
+requireMatch(
+  clipHome,
+  /clipsPage\?\.items[\s\S]*?clipOffset[\s\S]*?Older clips/,
+  "Clip home must consume the bounded Clip page and expose explicit continuation controls.",
+);
+requireMatch(
+  clipDetail,
+  /limit: 12[\s\S]*?channelClipsPage\?\.items/,
+  "Clip detail must use a compact bounded page for same-creator recommendations.",
 );
 requireMatch(
   channelPage,

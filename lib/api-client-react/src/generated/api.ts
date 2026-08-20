@@ -89,6 +89,7 @@ import type {
   CinemaHome,
   CinemaTitleDetail,
   ClipInput,
+  ClipPage,
   ClipSafetyReport,
   ClipSummary,
   CreateAdminAdCampaignInput,
@@ -4743,9 +4744,9 @@ export const getListClipsUrl = (params?: ListClipsParams,) => {
 /**
  * @summary Browse public, ready-to-play Kryv clips
  */
-export const listClips = async (params?: ListClipsParams, options?: RequestInit): Promise<ClipSummary[]> => {
+export const listClips = async (params?: ListClipsParams, options?: RequestInit): Promise<ClipPage> => {
 
-  return customFetch<ClipSummary[]>(getListClipsUrl(params),
+  return customFetch<ClipPage>(getListClipsUrl(params),
   {
     ...options,
     method: 'GET'

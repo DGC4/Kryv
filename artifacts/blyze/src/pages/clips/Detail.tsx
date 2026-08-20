@@ -19,10 +19,11 @@ export default function ClipDetail() {
   const { id } = useParams<{ id: string }>();
   const clipId = Number(id);
   const { data: clip, isLoading, refetch: refetchClip } = useGetClip(clipId, { query: { enabled: Number.isSafeInteger(clipId) && clipId > 0 } });
-  const { data: channelClips } = useListClips(
-    clip?.channelId ? { channelId: clip.channelId } : undefined,
+  const { data: channelClipsPage } = useListClips(
+    clip?.channelId ? { channelId: clip.channelId, limit: 12, offset: 0 } : undefined,
     { query: { enabled: Boolean(clip?.channelId) } },
   );
+  const channelClips = channelClipsPage?.items ?? [];
   const { toast } = useToast();
   const signedInUser = useAuthStore((state) => state.user);
   const createClipSafetyReport = useCreateClipSafetyReport();
@@ -72,7 +73,7 @@ export default function ClipDetail() {
   }
 
   const src = `https://stream.fastpix.com/${clip.playbackId}.m3u8`;
-  const recommendations = (channelClips ?? []).filter(candidate => candidate.id !== clip.id).slice(0, 4);
+  const recommendations = channelClips.filter(candidate => candidate.id !== clip.id).slice(0, 4);
   return (
     <main className="min-h-screen bg-[#080808] text-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-8">

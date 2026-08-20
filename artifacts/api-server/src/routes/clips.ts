@@ -74,15 +74,30 @@ router.get("/clips", async (req, res): Promise<void> => {
     conditions.push(eq(channelsTable.matureContent, false));
   }
 
-  const rows = await db
-    .select(clipSelection)
-    .from(clipsTable)
-    .innerJoin(channelsTable, eq(clipsTable.channelId, channelsTable.id))
-    .where(and(...conditions))
-    .orderBy(desc(clipsTable.createdAt))
-    .limit(50);
+  const [rows, countRows] = await Promise.all([
+    db
+      .select(clipSelection)
+      .from(clipsTable)
+      .innerJoin(channelsTable, eq(clipsTable.channelId, channelsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(clipsTable.createdAt), desc(clipsTable.id))
+      .limit(query.data.limit)
+      .offset(query.data.offset),
+    db
+      .select({ total: sql<number>`count(*)`.mapWith(Number) })
+      .from(clipsTable)
+      .innerJoin(channelsTable, eq(clipsTable.channelId, channelsTable.id))
+      .where(and(...conditions)),
+  ]);
 
-  res.json(ListClipsResponse.parse(rows.map(toClipSummary)));
+  res.json(
+    ListClipsResponse.parse({
+      items: rows.map(toClipSummary),
+      total: countRows[0]?.total ?? 0,
+      limit: query.data.limit,
+      offset: query.data.offset,
+    }),
+  );
 });
 
 router.post("/clips/:id/reports", requireAuth, async (req, res): Promise<void> => {

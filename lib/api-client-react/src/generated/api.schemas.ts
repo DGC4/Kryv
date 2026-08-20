@@ -728,6 +728,22 @@ export interface ChannelEngagementActionResult {
   awarded?: number;
 }
 
+export interface ClipPage {
+  items: ClipSummary[];
+  /**
+     * Total ready public clips visible to the active profile for the applied filters.
+     * @minimum 0
+     */
+  total: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
 export type ClipInput = (unknown & {
   /** Ready VOD source. Only the source channel owner may request this clip type. */
   videoId?: number;
@@ -2747,6 +2763,17 @@ export type ChannelHeartbeat200 = {
 
 export type ListClipsParams = {
 channelId?: number;
+/**
+ * Maximum number of visible ready clips in one response page.
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * Zero-based visible-clip offset for stable newest-first pagination.
+ * @minimum 0
+ */
+offset?: number;
 };
 
 export type ListVideosParams = {

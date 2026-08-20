@@ -2076,11 +2076,30 @@ export const CreateClipSafetyReportResponse = zod.object({
 /**
  * @summary Browse public, ready-to-play Kryv clips
  */
+export const listClipsQueryLimitDefault = 48;
+export const listClipsQueryLimitMax = 100;
+
+export const listClipsQueryOffsetDefault = 0;
+export const listClipsQueryOffsetMin = 0;
+
+
+
 export const ListClipsQueryParams = zod.object({
-  "channelId": zod.coerce.number().optional()
+  "channelId": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().min(1).max(listClipsQueryLimitMax).default(listClipsQueryLimitDefault).describe('Maximum number of visible ready clips in one response page.'),
+  "offset": zod.coerce.number().min(listClipsQueryOffsetMin).default(listClipsQueryOffsetDefault).describe('Zero-based visible-clip offset for stable newest-first pagination.')
 })
 
-export const ListClipsResponseItem = zod.object({
+export const listClipsResponseTotalMin = 0;
+
+export const listClipsResponseLimitMax = 100;
+
+export const listClipsResponseOffsetMin = 0;
+
+
+
+export const ListClipsResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "thumbnailUrl": zod.string().nullable(),
@@ -2092,8 +2111,11 @@ export const ListClipsResponseItem = zod.object({
   "processingStatus": zod.enum(['processing', 'ready', 'errored']),
   "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
   "createdAt": zod.coerce.date()
+})),
+  "total": zod.number().min(listClipsResponseTotalMin).describe('Total ready public clips visible to the active profile for the applied filters.'),
+  "limit": zod.number().min(1).max(listClipsResponseLimitMax),
+  "offset": zod.number().min(listClipsResponseOffsetMin)
 })
-export const ListClipsResponse = zod.array(ListClipsResponseItem)
 
 
 /**

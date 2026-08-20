@@ -8,4 +8,15 @@
 
 export type ListClipsParams = {
 channelId?: number;
+/**
+ * Maximum number of visible ready clips in one response page.
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * Zero-based visible-clip offset for stable newest-first pagination.
+ * @minimum 0
+ */
+offset?: number;
 };

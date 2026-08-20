@@ -1,6 +1,7 @@
 import { Link } from 'wouter';
 import { useListClips } from '@workspace/api-client-react';
 import { Clock3, Clapperboard, Loader2, Play, Sparkles, Users } from 'lucide-react';
+import { useState } from 'react';
 
 function formatDuration(seconds: number | null) {
   const total = Math.max(0, seconds ?? 0);
@@ -10,7 +11,12 @@ function formatDuration(seconds: number | null) {
 }
 
 export default function ClipsHome() {
-  const { data: clips, isLoading, isError, refetch: refetchClips } = useListClips();
+  const [clipOffset, setClipOffset] = useState(0);
+  const { data: clipsPage, isLoading, isError, refetch: refetchClips } = useListClips({ limit: 48, offset: clipOffset });
+  const clips = clipsPage?.items ?? [];
+  const clipTotal = clipsPage?.total ?? 0;
+  const hasPreviousClips = clipOffset > 0;
+  const hasMoreClips = clipOffset + clips.length < clipTotal;
 
   return (
     <main className="min-h-screen bg-[#080808] text-white">
@@ -33,14 +39,14 @@ export default function ClipsHome() {
             <h2 className="text-xl sm:text-2xl font-black">Latest clips</h2>
             <p className="text-xs sm:text-sm text-white/40 mt-1">Published moments from the Kryv community.</p>
           </div>
-          <span className="shrink-0 rounded-full bg-white/[0.06] border border-white/[0.08] px-3 py-1.5 text-xs font-bold text-white/50">{clips?.length ?? 0} available</span>
+          <span className="shrink-0 rounded-full bg-white/[0.06] border border-white/[0.08] px-3 py-1.5 text-xs font-bold text-white/50">{clipTotal} available</span>
         </div>
 
         {isLoading ? (
           <div className="min-h-64 flex items-center justify-center"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>
         ) : isError ? (
           <div className="min-h-72 rounded-2xl border border-red-300/20 bg-red-400/[0.05] flex flex-col items-center justify-center px-6 text-center"><Clapperboard className="w-7 h-7 text-red-200/70" /><h3 className="mt-4 font-black text-red-100">Clips are temporarily unavailable</h3><p className="max-w-sm mt-2 text-sm leading-relaxed text-red-100/70">Kryv cannot safely show a partial clip feed while the published inventory is unavailable.</p><button type="button" onClick={() => refetchClips()} className="mt-5 inline-flex min-h-10 items-center rounded-xl border border-red-200/25 bg-red-200/[0.08] px-4 text-sm font-black text-red-50 transition hover:bg-red-200/[0.14]">Retry Clips</button></div>
-        ) : clips?.length ? (
+        ) : clips.length ? (
           <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {clips.map((clip) => (
               <Link key={clip.id} href={`/clips/${clip.id}`} className="group min-w-0 rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.025] hover:border-primary/40 hover:bg-white/[0.045] transition-all">
@@ -68,6 +74,14 @@ export default function ClipsHome() {
             <h3 className="font-black text-white">Clips are on their way</h3>
             <p className="max-w-sm mt-2 text-sm leading-relaxed text-white/40">Creators can turn ready Kryv videos and recorded broadcasts into shareable highlights. Published clips will appear here.</p>
           </div>
+        )}
+
+        {!isLoading && clips.length > 0 && clipTotal > clips.length && (
+          <nav className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-5" aria-label="Clip catalog pages">
+            <button type="button" onClick={() => setClipOffset(Math.max(0, clipOffset - 48))} disabled={!hasPreviousClips} className="inline-flex min-h-10 items-center rounded-xl border border-white/[0.1] px-4 text-sm font-black text-white/70 transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-35">Newer clips</button>
+            <p className="text-sm text-white/40">Showing {clipOffset + 1}–{Math.min(clipOffset + clips.length, clipTotal)} of {clipTotal}</p>
+            <button type="button" onClick={() => setClipOffset(clipOffset + 48)} disabled={!hasMoreClips} className="inline-flex min-h-10 items-center rounded-xl border border-white/[0.1] px-4 text-sm font-black text-white/70 transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-35">Older clips</button>
+          </nav>
         )}
       </section>
     </main>
