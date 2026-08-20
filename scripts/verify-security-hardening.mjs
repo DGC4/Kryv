@@ -47,6 +47,7 @@ const [
   themeStore,
   plisioLib,
   routeRegistry,
+  worker,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -77,6 +78,7 @@ const [
   source("artifacts/blyze/src/store/theme.ts"),
   source("artifacts/api-server/src/lib/plisio.ts"),
   source("artifacts/api-server/src/routes/index.ts"),
+  source("artifacts/api-server/src/worker.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -580,6 +582,21 @@ forbidMatch(
   routeRegistry,
   /locationRouter/,
   "The unused third-party IP location proxy must not be mounted without a separately reviewed privacy design.",
+);
+requireMatch(
+  worker,
+  /function validatedAnalyticsWebhookUrl/,
+  "Analytics webhook delivery must validate its configured endpoint before outbound requests.",
+);
+requireMatch(
+  worker,
+  /NODE_ENV === "production" && endpoint\.protocol !== "https:"/,
+  "Production analytics webhook delivery must require HTTPS.",
+);
+requireMatch(
+  worker,
+  /redirect: "error"/,
+  "Analytics webhook delivery must reject redirects rather than following an untrusted network hop.",
 );
 
 requireMatch(

@@ -20,14 +20,28 @@ function positivePayoutRequestId(value: unknown) {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
+function validatedAnalyticsWebhookUrl(value: string) {
+  let endpoint: URL;
+  try {
+    endpoint = new URL(value);
+  } catch {
+    throw new Error("KRYV_ANALYTICS_WEBHOOK_URL must be a valid absolute URL.");
+  }
+  if (process.env.NODE_ENV === "production" && endpoint.protocol !== "https:") {
+    throw new Error("KRYV_ANALYTICS_WEBHOOK_URL must use HTTPS in production.");
+  }
+  return endpoint.toString();
+}
+
 async function deliverAnalyticsEvent(job: KryvDurableJob) {
-  const endpoint = process.env.KRYV_ANALYTICS_WEBHOOK_URL?.trim();
+  const configuredEndpoint = process.env.KRYV_ANALYTICS_WEBHOOK_URL?.trim();
   const secret = process.env.KRYV_ANALYTICS_WEBHOOK_SECRET?.trim();
-  if (!endpoint || !secret) {
+  if (!configuredEndpoint || !secret) {
     logger.debug({ jobId: job.id, type: job.type }, "Analytics sink is not configured; event delivery skipped");
     return;
   }
 
+  const endpoint = validatedAnalyticsWebhookUrl(configuredEndpoint);
   const body = JSON.stringify({ id: job.id, occurredAt: job.occurredAt, payload: job.payload });
   const response = await fetch(endpoint, {
     method: "POST",
@@ -37,6 +51,7 @@ async function deliverAnalyticsEvent(job: KryvDurableJob) {
       "x-kryv-event-signature": timingSafeSignature(body, secret),
     },
     body,
+    redirect: "error",
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`Analytics sink returned HTTP ${response.status}`);
