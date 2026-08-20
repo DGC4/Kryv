@@ -306,7 +306,13 @@ export default function DashboardAdmin() {
   const removeChannel = (id: number) => {
     if (!confirm('Remove this channel permanently?')) return;
     deleteChannel.mutate({ id }, {
-      onSuccess: () => { toast({ title: 'Channel removed' }); invalidateAll(); },
+      onSuccess: () => {
+        if (channelRegistryQuery.data?.items.length === 1 && adminChannelOffset > 0) {
+          setAdminChannelOffset(Math.max(0, adminChannelOffset - 30));
+        }
+        toast({ title: 'Channel removed' });
+        invalidateAll();
+      },
       onError: (err: any) => toast({ title: 'Failed', description: err?.body?.error || err.message, variant: 'destructive' }),
     });
   };
@@ -314,7 +320,13 @@ export default function DashboardAdmin() {
   const removeVideo = (id: number) => {
     if (!confirm('Remove this video permanently?')) return;
     deleteVideo.mutate({ id }, {
-      onSuccess: () => { toast({ title: 'Video removed' }); invalidateAll(); },
+      onSuccess: () => {
+        if (videoRegistryQuery.data?.items.length === 1 && adminVideoOffset > 0) {
+          setAdminVideoOffset(Math.max(0, adminVideoOffset - 30));
+        }
+        toast({ title: 'Video removed' });
+        invalidateAll();
+      },
       onError: (err: any) => toast({ title: 'Failed', description: err?.body?.error || err.message, variant: 'destructive' }),
     });
   };

@@ -76,6 +76,7 @@ paths:
             application/json:
               schema:
                 type: array
+                maxItems: 5
                 items:
                   $ref: "#/components/schemas/ViewerProfile"
         "401":
@@ -686,6 +687,10 @@ paths:
           in: query
           required: false
           schema: { type: integer, minimum: 1, maximum: 30, default: 12 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
           description: Notification inbox
@@ -3744,12 +3749,15 @@ components:
 
     NotificationInbox:
       type: object
-      required: [items, unreadCount]
+      required: [items, unreadCount, total, limit, offset]
       properties:
         items:
           type: array
           items: { $ref: "#/components/schemas/NotificationItem" }
         unreadCount: { type: integer }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
 
     NotificationPreferences:
       type: object

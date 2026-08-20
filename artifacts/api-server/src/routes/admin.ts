@@ -104,6 +104,8 @@ const OPERATIONAL_FLAG_COPY: Record<string, string> = {
   provider_withdrawals: "Provider withdrawal execution. This capability is hard-disabled and cannot be activated through the owner console.",
   customer_wallet_custody: "Customer deposit addresses and stored crypto balances. This capability is hard-disabled and cannot be activated through the owner console.",
 };
+const OPERATIONAL_FEATURE_FLAG_KEYS = Object.keys(OPERATIONAL_FLAG_COPY);
+const MAX_ADMIN_OPERATIONAL_FEATURE_FLAGS = OPERATIONAL_FEATURE_FLAG_KEYS.length;
 
 function toAdminFeatureFlag(row: { key: string; enabled: boolean; description: string | null; updatedAt: Date }) {
   return {
@@ -1305,9 +1307,11 @@ router.get("/admin/feature-flags", requireOwner, async (_req, res): Promise<void
   const flags = await db
     .select({ key: featureFlagsTable.key, enabled: featureFlagsTable.enabled, description: featureFlagsTable.description, updatedAt: featureFlagsTable.updatedAt })
     .from(featureFlagsTable)
-    .orderBy(asc(featureFlagsTable.key));
+    .where(inArray(featureFlagsTable.key, OPERATIONAL_FEATURE_FLAG_KEYS))
+    .orderBy(asc(featureFlagsTable.key))
+    .limit(MAX_ADMIN_OPERATIONAL_FEATURE_FLAGS);
 
-  res.json(ListAdminFeatureFlagsResponse.parse(flags.filter((flag) => flag.key in OPERATIONAL_FLAG_COPY).map(toAdminFeatureFlag)));
+  res.json(ListAdminFeatureFlagsResponse.parse(flags.map(toAdminFeatureFlag)));
 });
 
 router.patch("/admin/feature-flags/:key", requireOwner, async (req, res): Promise<void> => {

@@ -76,6 +76,11 @@ const [
   clipDetail,
   notificationIndexMigration,
   notificationIndexValidation,
+  header,
+  webhooksRoute,
+  notificationFanoutIndexMigration,
+  notificationFanoutIndexValidation,
+  followsSchema,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -135,6 +140,11 @@ const [
   source("artifacts/blyze/src/pages/clips/Detail.tsx"),
   source("lib/db/drizzle/0025_notification_inbox_query_indexes.sql"),
   source("KRYV_NOTIFICATION_INBOX_INDEXES_NEON_VALIDATION.md"),
+  source("artifacts/blyze/src/components/Header.tsx"),
+  source("artifacts/api-server/src/routes/webhooks.ts"),
+  source("lib/db/drizzle/0026_notification_fanout_query_indexes.sql"),
+  source("KRYV_NOTIFICATION_FANOUT_INDEX_NEON_VALIDATION.md"),
+  source("lib/db/src/schema/follows.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -358,6 +368,26 @@ requireMatch(
   profileRoute,
   /existing\.isDefault && parsed\.data\.isDefault === false/,
   "The current default profile must not be unset without choosing another default.",
+);
+requireMatch(
+  profileRoute,
+  /MAX_VIEWER_PROFILES = 5[\s\S]*?listOrCreateDefaultViewerProfiles[\s\S]*?\.limit\(MAX_VIEWER_PROFILES\)/,
+  "Viewer profile list hydration must remain bounded by the five-profile product limit.",
+);
+requireMatch(
+  profileRoute,
+  /listOrCreateDefaultViewerProfiles[\s\S]*?SELECT id FROM users WHERE id = \$\{userId\} FOR UPDATE[\s\S]*?currentProfiles[\s\S]*?\.insert\(viewerProfilesTable\)/,
+  "Concurrent first visits must serialize default viewer-profile creation.",
+);
+requireMatch(
+  profileRoute,
+  /router\.post\("\/me\/profiles"[\s\S]*?SELECT id FROM users WHERE id = \$\{userId\} FOR UPDATE[\s\S]*?count\(\)[\s\S]*?MAX_VIEWER_PROFILES[\s\S]*?\.insert\(viewerProfilesTable\)/,
+  "Viewer-profile creation must serialize the five-profile cap check and insert.",
+);
+requireMatch(
+  apiSpec,
+  /\/me\/profiles:[\s\S]*?type: array[\s\S]*?maxItems: 5[\s\S]*?ViewerProfile/,
+  "The viewer-profile response contract must remain explicitly bounded to five profiles.",
 );
 requireMatch(
   apiSpec,
@@ -790,6 +820,11 @@ requireMatch(
   "Owner Watch video search must use a literal ILIKE pattern.",
 );
 requireMatch(
+  adminRoute,
+  /OPERATIONAL_FEATURE_FLAG_KEYS = Object\.keys\(OPERATIONAL_FLAG_COPY\)[\s\S]*?MAX_ADMIN_OPERATIONAL_FEATURE_FLAGS = OPERATIONAL_FEATURE_FLAG_KEYS\.length[\s\S]*?\/admin\/feature-flags[\s\S]*?inArray\(featureFlagsTable\.key, OPERATIONAL_FEATURE_FLAG_KEYS\)[\s\S]*?\.limit\(MAX_ADMIN_OPERATIONAL_FEATURE_FLAGS\)/,
+  "Owner feature-flag listing must query only the explicitly declared, bounded operational control set.",
+);
+requireMatch(
   ownerCinemaRoute,
   /literalIlikePattern\(q\)/,
   "Owner Cinema title search must use a literal ILIKE pattern.",
@@ -923,6 +958,16 @@ requireMatch(
   videosRoute,
   /clean HTTPS URLs/,
   "Watch music-credit validation must clearly reject malformed or credential-bearing external URLs.",
+);
+requireMatch(
+  videosRoute,
+  /MAX_VIDEO_MUSIC_CREDITS = 20[\s\S]*?orderBy\(videoMusicCreditsTable\.displayOrder, videoMusicCreditsTable\.createdAt\)[\s\S]*?\.limit\(MAX_VIDEO_MUSIC_CREDITS\)/,
+  "Watch music-credit retrieval must retain a bounded display query.",
+);
+requireMatch(
+  videosRoute,
+  /SELECT id FROM videos WHERE id = \$\{video\.id\} FOR UPDATE[\s\S]*?count\(\)[\s\S]*?MAX_VIDEO_MUSIC_CREDITS[\s\S]*?\.insert\(videoMusicCreditsTable\)/,
+  "Watch music-credit creation must serialize per-video cap checks with its insert.",
 );
 requireMatch(
   videosRoute,
@@ -1165,6 +1210,21 @@ requireMatch(
   "Owner finance dashboard must consume creator-balance pages with explicit continuation controls.",
 );
 requireMatch(
+  adminDashboard,
+  /useListAdminChannels\([\s\S]*?limit: 30, offset: adminChannelOffset[\s\S]*?channelRegistryQuery\.data\.total[\s\S]*?setAdminChannelOffset\(adminChannelOffset \+ 30\)/,
+  "Owner channel registry must consume its bounded page total and expose forward continuation.",
+);
+requireMatch(
+  adminDashboard,
+  /useListAdminVideos\([\s\S]*?limit: 30, offset: adminVideoOffset[\s\S]*?videoRegistryQuery\.data\.total[\s\S]*?setAdminVideoOffset\(adminVideoOffset \+ 30\)/,
+  "Owner Watch registry must consume its bounded page total and expose forward continuation.",
+);
+requireMatch(
+  adminDashboard,
+  /const removeChannel[\s\S]*?channelRegistryQuery\.data\?\.items\.length === 1[\s\S]*?setAdminChannelOffset\(Math\.max\(0, adminChannelOffset - 30\)\)[\s\S]*?const removeVideo[\s\S]*?videoRegistryQuery\.data\?\.items\.length === 1[\s\S]*?setAdminVideoOffset\(Math\.max\(0, adminVideoOffset - 30\)\)/,
+  "Owner channel and Watch deletion must recover from an empty final later page after a successful removal.",
+);
+requireMatch(
   watchHome,
   /const selectCategoryAt[\s\S]*?setVideoOffset\(0\)[\s\S]*?const submitSearch[\s\S]*?setVideoOffset\(0\)[\s\S]*?const clearFilters[\s\S]*?setVideoOffset\(0\)/,
   "Watch home must reset pagination whenever category, search, or clear-filter state changes.",
@@ -1215,6 +1275,31 @@ requireMatch(
   "Watch index validation evidence must keep the production rollout explicitly pending.",
 );
 requireMatch(
+  apiSpec,
+  /\/me\/notifications:[\s\S]*?name: limit[\s\S]*?maximum: 30[\s\S]*?name: offset[\s\S]*?minimum: 0[\s\S]*?NotificationInbox:[\s\S]*?required: \[items, unreadCount, total, limit, offset\]/,
+  "Notification inbox must expose a typed bounded continuation contract with total metadata.",
+);
+requireMatch(
+  meRoute,
+  /router\.get\([\s\S]*?"\/me\/notifications"[\s\S]*?orderBy\(desc\(notificationsTable\.createdAt\), desc\(notificationsTable\.id\)\)[\s\S]*?\.limit\(query\.data\.limit\)[\s\S]*?\.offset\(query\.data\.offset\)[\s\S]*?total: Number\(total\?\.count \?\? 0\)/,
+  "Notification inbox must use stable user-scoped bounded SQL paging and return an authoritative total.",
+);
+requireMatch(
+  header,
+  /notificationOffset[\s\S]*?useGetNotificationInbox\(\{ limit: 12, offset: notificationOffset \}[\s\S]*?notificationInbox\.data\.total[\s\S]*?Newer[\s\S]*?Older/,
+  "Notification bell must consume the bounded inbox page and expose newer and older continuation controls.",
+);
+requireMatch(
+  webhooksRoute,
+  /NOTIFICATION_FANOUT_BATCH_SIZE = 500[\s\S]*?gt\(followsTable\.id, lastFollowId\)[\s\S]*?orderBy\(asc\(followsTable\.id\)\)[\s\S]*?\.limit\(NOTIFICATION_FANOUT_BATCH_SIZE\)[\s\S]*?await process/,
+  "Webhook notification fan-out must use bounded keyset recipient batches rather than an unbounded follower read.",
+);
+requireMatch(
+  webhooksRoute,
+  /createFollowedLiveNotifications[\s\S]*?forEachFollowedRecipientBatch[\s\S]*?inArray\(notificationPreferencesTable\.userId, followerIds\)[\s\S]*?createFollowedContentNotifications[\s\S]*?forEachFollowedRecipientBatch[\s\S]*?inArray\(notificationPreferencesTable\.userId, followerIds\)/,
+  "Live and Watch/Clip followed-content notifications must evaluate preferences and insert within each bounded recipient batch.",
+);
+requireMatch(
   notificationIndexMigration,
   /CREATE INDEX CONCURRENTLY IF NOT EXISTS notifications_user_created_idx[\s\S]*?user_id, created_at DESC, id DESC[\s\S]*?CREATE INDEX CONCURRENTLY IF NOT EXISTS notifications_unread_user_idx[\s\S]*?WHERE is_read = false/,
   "Production-pending notification inbox indexes must use concurrent independently executed ordering and unread-count statements.",
@@ -1233,6 +1318,26 @@ requireMatch(
   notificationIndexValidation,
   /must run outside a transaction/,
   "Notification index validation must preserve the out-of-transaction concurrent-index operational boundary.",
+);
+requireMatch(
+  notificationFanoutIndexMigration,
+  /CREATE INDEX CONCURRENTLY IF NOT EXISTS follows_channel_id_idx[\s\S]*?channel_id, id/,
+  "Production-pending fan-out indexing must support the channel-scoped keyset recipient cursor.",
+);
+requireMatch(
+  followsSchema,
+  /channelFanoutIdx: index\("follows_channel_id_idx"\)\.on\(table\.channelId, table\.id\)/,
+  "Drizzle follow metadata must retain the notification fan-out keyset index.",
+);
+requireMatch(
+  notificationFanoutIndexValidation,
+  /VALIDATED ON AN ISOLATED NEON BRANCH ONLY[\s\S]*?br-lingering-rice-a6fszepe[\s\S]*?must run outside a transaction/,
+  "Fan-out index validation must record fresh isolated concurrent-build evidence and the operational boundary.",
+);
+requireMatch(
+  notificationFanoutIndexValidation,
+  /No production promotion has occurred[\s\S]*?no production promotion is authorized/,
+  "Fan-out index validation evidence must explicitly prohibit unapproved production promotion.",
 );
 requireMatch(
   fastpixLib,

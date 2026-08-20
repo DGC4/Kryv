@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 import { adCampaignFundingsTable, adCampaignsTable, adRevenueMovementsTable, cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, followsTable, notificationPreferencesTable, notificationsTable, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, usersTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { addCryptoAmounts, compareCryptoAmounts, KRYV_PLATFORM_FEE_BPS, normalizeCryptoAmount, quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
@@ -11,30 +11,51 @@ import { isPlisioConfigured, isSupportedKryvCryptoCode, verifyPlisioJsonCallback
 
 const router: IRouter = Router();
 const DISCOVER_SUMMARY_CACHE_KEY = "kryv:discover:summary:v1";
+const NOTIFICATION_FANOUT_BATCH_SIZE = 500;
+
+async function forEachFollowedRecipientBatch(
+  channelId: number,
+  process: (followerIds: number[]) => Promise<void>,
+) {
+  let lastFollowId = 0;
+  while (true) {
+    const followers = await db
+      .select({ id: followsTable.id, userId: followsTable.followerUserId })
+      .from(followsTable)
+      .where(
+        and(
+          eq(followsTable.channelId, channelId),
+          gt(followsTable.id, lastFollowId),
+        ),
+      )
+      .orderBy(asc(followsTable.id))
+      .limit(NOTIFICATION_FANOUT_BATCH_SIZE);
+    if (!followers.length) return;
+
+    lastFollowId = followers[followers.length - 1]!.id;
+    await process(followers.map((follower) => follower.userId));
+    if (followers.length < NOTIFICATION_FANOUT_BATCH_SIZE) return;
+  }
+}
 
 async function createFollowedLiveNotifications(channel: { id: number; slug: string; displayName: string; streamTitle: string | null }, streamSessionId: number) {
-  const followers = await db
-    .select({ userId: followsTable.followerUserId })
-    .from(followsTable)
-    .where(eq(followsTable.channelId, channel.id));
-  const followerIds = followers.map((follower) => follower.userId);
-  if (!followerIds.length) return;
+  await forEachFollowedRecipientBatch(channel.id, async (followerIds) => {
+    const preferences = await db
+      .select({ userId: notificationPreferencesTable.userId, notifyOnLive: notificationPreferencesTable.notifyOnLive })
+      .from(notificationPreferencesTable)
+      .where(and(inArray(notificationPreferencesTable.userId, followerIds), isNull(notificationPreferencesTable.channelId)));
+    const livePreferenceByUserId = new Map(preferences.map((preference) => [preference.userId, preference.notifyOnLive]));
+    const recipientIds = followerIds.filter((userId) => livePreferenceByUserId.get(userId) !== false);
+    if (!recipientIds.length) return;
 
-  const preferences = await db
-    .select({ userId: notificationPreferencesTable.userId, notifyOnLive: notificationPreferencesTable.notifyOnLive })
-    .from(notificationPreferencesTable)
-    .where(and(inArray(notificationPreferencesTable.userId, followerIds), isNull(notificationPreferencesTable.channelId)));
-  const livePreferenceByUserId = new Map(preferences.map((preference) => [preference.userId, preference.notifyOnLive]));
-  const recipientIds = followerIds.filter((userId) => livePreferenceByUserId.get(userId) !== false);
-  if (!recipientIds.length) return;
-
-  await db.insert(notificationsTable).values(recipientIds.map((userId) => ({
-    userId,
-    type: "followed_channel_live",
-    title: `${channel.displayName} is live`,
-    message: channel.streamTitle || "A creator you follow just started broadcasting on Kryv.",
-    data: { channelId: channel.id, channelSlug: channel.slug, streamSessionId },
-  })));
+    await db.insert(notificationsTable).values(recipientIds.map((userId) => ({
+      userId,
+      type: "followed_channel_live",
+      title: `${channel.displayName} is live`,
+      message: channel.streamTitle || "A creator you follow just started broadcasting on Kryv.",
+      data: { channelId: channel.id, channelSlug: channel.slug, streamSessionId },
+    })));
+  });
 }
 
 async function createFollowedContentNotifications(input: { channelId: number; notificationType: "watch_upload_ready" | "clip_ready"; contentId: number; contentTitle: string }) {
@@ -45,32 +66,27 @@ async function createFollowedContentNotifications(input: { channelId: number; no
     .limit(1);
   if (!channel) return;
 
-  const followers = await db
-    .select({ userId: followsTable.followerUserId })
-    .from(followsTable)
-    .where(eq(followsTable.channelId, channel.id));
-  const followerIds = followers.map((follower) => follower.userId);
-  if (!followerIds.length) return;
-
-  const preferences = await db
-    .select({ userId: notificationPreferencesTable.userId, notifyOnUpload: notificationPreferencesTable.notifyOnUpload, notifyOnClip: notificationPreferencesTable.notifyOnClip })
-    .from(notificationPreferencesTable)
-    .where(and(inArray(notificationPreferencesTable.userId, followerIds), isNull(notificationPreferencesTable.channelId)));
-  const preferenceByUserId = new Map(preferences.map((preference) => [preference.userId, preference]));
-  const recipientIds = followerIds.filter((userId) => {
-    const preference = preferenceByUserId.get(userId);
-    return input.notificationType === "watch_upload_ready" ? preference?.notifyOnUpload !== false : preference?.notifyOnClip === true;
-  });
-  if (!recipientIds.length) return;
-
   const isClip = input.notificationType === "clip_ready";
-  await db.insert(notificationsTable).values(recipientIds.map((userId) => ({
-    userId,
-    type: input.notificationType,
-    title: `${channel.displayName} published a ${isClip ? "Clip" : "Watch release"}`,
-    message: input.contentTitle,
-    data: { channelId: channel.id, channelSlug: channel.slug, ...(isClip ? { clipId: input.contentId } : { videoId: input.contentId }) },
-  })));
+  await forEachFollowedRecipientBatch(channel.id, async (followerIds) => {
+    const preferences = await db
+      .select({ userId: notificationPreferencesTable.userId, notifyOnUpload: notificationPreferencesTable.notifyOnUpload, notifyOnClip: notificationPreferencesTable.notifyOnClip })
+      .from(notificationPreferencesTable)
+      .where(and(inArray(notificationPreferencesTable.userId, followerIds), isNull(notificationPreferencesTable.channelId)));
+    const preferenceByUserId = new Map(preferences.map((preference) => [preference.userId, preference]));
+    const recipientIds = followerIds.filter((userId) => {
+      const preference = preferenceByUserId.get(userId);
+      return input.notificationType === "watch_upload_ready" ? preference?.notifyOnUpload !== false : preference?.notifyOnClip === true;
+    });
+    if (!recipientIds.length) return;
+
+    await db.insert(notificationsTable).values(recipientIds.map((userId) => ({
+      userId,
+      type: input.notificationType,
+      title: `${channel.displayName} published a ${isClip ? "Clip" : "Watch release"}`,
+      message: input.contentTitle,
+      data: { channelId: channel.id, channelSlug: channel.slug, ...(isClip ? { clipId: input.contentId } : { videoId: input.contentId }) },
+    })));
+  });
 }
 
 function publishAuthoritativeLiveState(channel: { id: number; isLive: boolean; viewerCount: number; fastpixPlaybackId: string | null }, providerEvent: string) {

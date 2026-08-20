@@ -18,6 +18,7 @@ export const followsTable = pgTable("follows", {
 }, (table) => ({
   followerChannelUnique: uniqueIndex("follows_follower_channel_unique").on(table.followerUserId, table.channelId),
   followerCreatedIdx: index("follows_follower_created_idx").on(table.followerUserId, table.createdAt.desc()),
+  channelFanoutIdx: index("follows_channel_id_idx").on(table.channelId, table.id),
 }));
 
 export const insertFollowSchema = createInsertSchema(followsTable).omit({

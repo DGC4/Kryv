@@ -81,7 +81,7 @@ export const ListViewerProfilesResponseItem = zod.object({
   "isLocked": zod.boolean().describe('True when the profile has a PIN. PIN data is never returned.'),
   "createdAt": zod.coerce.date()
 })
-export const ListViewerProfilesResponse = zod.array(ListViewerProfilesResponseItem)
+export const ListViewerProfilesResponse = zod.array(ListViewerProfilesResponseItem).max(5)
 
 
 /**
@@ -907,10 +907,14 @@ export const ListFollowedLiveChannelsResponse = zod.array(ListFollowedLiveChanne
 export const getNotificationInboxQueryLimitDefault = 12;
 export const getNotificationInboxQueryLimitMax = 30;
 
+export const getNotificationInboxQueryOffsetDefault = 0;
+export const getNotificationInboxQueryOffsetMin = 0;
+
 
 
 export const GetNotificationInboxQueryParams = zod.object({
-  "limit": zod.coerce.number().min(1).max(getNotificationInboxQueryLimitMax).default(getNotificationInboxQueryLimitDefault)
+  "limit": zod.coerce.number().min(1).max(getNotificationInboxQueryLimitMax).default(getNotificationInboxQueryLimitDefault),
+  "offset": zod.coerce.number().min(getNotificationInboxQueryOffsetMin).default(getNotificationInboxQueryOffsetDefault)
 })
 
 export const GetNotificationInboxResponse = zod.object({
@@ -923,7 +927,10 @@ export const GetNotificationInboxResponse = zod.object({
   "isRead": zod.boolean(),
   "createdAt": zod.coerce.date()
 })),
-  "unreadCount": zod.number()
+  "unreadCount": zod.number(),
+  "total": zod.number(),
+  "limit": zod.number(),
+  "offset": zod.number()
 })
 
 

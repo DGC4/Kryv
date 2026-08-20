@@ -421,6 +421,9 @@ export interface NotificationItem {
 export interface NotificationInbox {
   items: NotificationItem[];
   unreadCount: number;
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface NotificationPreferences {
@@ -2809,6 +2812,10 @@ export type GetNotificationInboxParams = {
  * @maximum 30
  */
 limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
 };
 
 export type ListChannelsParams = {

@@ -10,4 +10,7 @@ import type { NotificationItem } from './notificationItem';
 export interface NotificationInbox {
   items: NotificationItem[];
   unreadCount: number;
+  total: number;
+  limit: number;
+  offset: number;
 }

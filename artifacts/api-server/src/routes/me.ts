@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import {
@@ -87,29 +87,43 @@ async function listOrCreateDefaultViewerProfiles(userId: number) {
     .select()
     .from(viewerProfilesTable)
     .where(eq(viewerProfilesTable.userId, userId))
-    .orderBy(asc(viewerProfilesTable.createdAt));
+    .orderBy(asc(viewerProfilesTable.createdAt))
+    .limit(MAX_VIEWER_PROFILES);
 
   if (profiles.length > 0) return profiles;
 
-  const [user] = await db
-    .select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl })
-    .from(usersTable)
-    .where(eq(usersTable.id, userId));
+  return db.transaction(async (tx) => {
+    // The initial empty-profile check is also serialized: concurrent first visits
+    // must create exactly one default profile, never a second default identity.
+    await tx.execute(sql`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`);
+    const [user] = await tx
+      .select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+    if (!user) return [];
 
-  if (!user) return [];
+    const currentProfiles = await tx
+      .select()
+      .from(viewerProfilesTable)
+      .where(eq(viewerProfilesTable.userId, userId))
+      .orderBy(asc(viewerProfilesTable.createdAt))
+      .limit(MAX_VIEWER_PROFILES);
+    if (currentProfiles.length > 0) return currentProfiles;
 
-  const [created] = await db
-    .insert(viewerProfilesTable)
-    .values({
-      userId,
-      name: user.username,
-      avatarUrl: user.avatarUrl,
-      maturityLevel: "standard",
-      isDefault: true,
-    })
-    .returning();
+    const [created] = await tx
+      .insert(viewerProfilesTable)
+      .values({
+        userId,
+        name: user.username,
+        avatarUrl: user.avatarUrl,
+        maturityLevel: "standard",
+        isDefault: true,
+      })
+      .returning();
 
-  return created ? [created] : [];
+    return created ? [created] : [];
+  });
 }
 
 router.get("/me/profiles", requireAuth, async (req, res): Promise<void> => {
@@ -316,18 +330,21 @@ router.post("/me/profiles", requireAuth, async (req, res): Promise<void> => {
   }
 
   const userId = req.user!.userId;
-  const profiles = await listOrCreateDefaultViewerProfiles(userId);
-  if (profiles.length >= MAX_VIEWER_PROFILES) {
-    res.status(400).json({
-      error: `You can create up to ${MAX_VIEWER_PROFILES} viewer profiles.`,
-    });
-    return;
-  }
+  await listOrCreateDefaultViewerProfiles(userId);
 
   const isKidsProfile = parsed.data.isKidsProfile ?? false;
   const isDefault = parsed.data.isDefault ?? false;
 
   const created = await db.transaction(async (tx) => {
+    // Serialize a user's profile mutations so concurrent requests cannot bypass
+    // the product-wide five-profile boundary between count and insert.
+    await tx.execute(sql`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`);
+    const [profileCount] = await tx
+      .select({ total: count() })
+      .from(viewerProfilesTable)
+      .where(eq(viewerProfilesTable.userId, userId));
+    if ((profileCount?.total ?? 0) >= MAX_VIEWER_PROFILES) return null;
+
     if (isDefault) {
       await tx
         .update(viewerProfilesTable)
@@ -353,7 +370,9 @@ router.post("/me/profiles", requireAuth, async (req, res): Promise<void> => {
   });
 
   if (!created) {
-    res.status(500).json({ error: "Unable to create viewer profile" });
+    res.status(400).json({
+      error: `You can create up to ${MAX_VIEWER_PROFILES} viewer profiles.`,
+    });
     return;
   }
 
@@ -523,13 +542,14 @@ router.get(
     }
 
     const userId = req.user!.userId;
-    const [items, [unread]] = await Promise.all([
+    const [items, [unread], [total]] = await Promise.all([
       db
         .select()
         .from(notificationsTable)
         .where(eq(notificationsTable.userId, userId))
-        .orderBy(desc(notificationsTable.createdAt))
-        .limit(query.data.limit),
+        .orderBy(desc(notificationsTable.createdAt), desc(notificationsTable.id))
+        .limit(query.data.limit)
+        .offset(query.data.offset),
       db
         .select({ count: sql<number>`COALESCE(COUNT(*), 0)::int` })
         .from(notificationsTable)
@@ -539,6 +559,10 @@ router.get(
             eq(notificationsTable.isRead, false),
           ),
         ),
+      db
+        .select({ count: sql<number>`COALESCE(COUNT(*), 0)::int` })
+        .from(notificationsTable)
+        .where(eq(notificationsTable.userId, userId)),
     ]);
 
     res.json(
@@ -553,6 +577,9 @@ router.get(
           createdAt: item.createdAt.toISOString(),
         })),
         unreadCount: Number(unread?.count ?? 0),
+        total: Number(total?.count ?? 0),
+        limit: query.data.limit,
+        offset: query.data.offset,
       }),
     );
   },

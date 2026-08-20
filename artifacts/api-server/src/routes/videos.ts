@@ -42,6 +42,7 @@ import { watchHistoryTable } from "@workspace/db";
 import { literalIlikePattern } from "../lib/search";
 
 const router: IRouter = Router();
+const MAX_VIDEO_MUSIC_CREDITS = 20;
 
 function optionalTrimmed(value: string | undefined) {
   const trimmed = value?.trim();
@@ -636,7 +637,8 @@ router.get("/videos/:id/music-credits", requireAuth, async (req, res): Promise<v
     .select()
     .from(videoMusicCreditsTable)
     .where(eq(videoMusicCreditsTable.videoId, video.id))
-    .orderBy(videoMusicCreditsTable.displayOrder, videoMusicCreditsTable.createdAt);
+    .orderBy(videoMusicCreditsTable.displayOrder, videoMusicCreditsTable.createdAt)
+    .limit(MAX_VIDEO_MUSIC_CREDITS);
   res.json(ListVideoMusicCreditsResponse.parse(credits.map(toVideoMusicCredit)));
 });
 
@@ -698,21 +700,40 @@ router.post("/videos/:id/music-credits", requireAuth, async (req, res): Promise<
     }
   }
 
-  const [created] = await db.insert(videoMusicCreditsTable).values({
-    videoId: video.id,
-    trackTitle,
-    artistName,
-    albumTitle: optionalTrimmed(body.data.albumTitle),
-    labelName: optionalTrimmed(body.data.labelName),
-    artworkUrl,
-    sourceUrl,
-    musicbrainzRecordingId: recordingId,
-    musicbrainzReleaseId: optionalTrimmed(body.data.musicbrainzReleaseId),
-    metadataSource: body.data.metadataSource,
-    rightsAttestedAt: new Date(),
-    createdByUserId: req.user!.userId,
-    displayOrder: body.data.displayOrder,
-  }).returning();
+  const created = await db.transaction(async (txn) => {
+    // Lock the stable parent row so concurrent owner requests cannot exceed the
+    // display boundary between the count and insert.
+    await txn.execute(sql`SELECT id FROM videos WHERE id = ${video.id} FOR UPDATE`);
+    const [creditCount] = await txn
+      .select({ total: count() })
+      .from(videoMusicCreditsTable)
+      .where(eq(videoMusicCreditsTable.videoId, video.id));
+    if ((creditCount?.total ?? 0) >= MAX_VIDEO_MUSIC_CREDITS) return null;
+
+    const [inserted] = await txn
+      .insert(videoMusicCreditsTable)
+      .values({
+        videoId: video.id,
+        trackTitle,
+        artistName,
+        albumTitle: optionalTrimmed(body.data.albumTitle),
+        labelName: optionalTrimmed(body.data.labelName),
+        artworkUrl,
+        sourceUrl,
+        musicbrainzRecordingId: recordingId,
+        musicbrainzReleaseId: optionalTrimmed(body.data.musicbrainzReleaseId),
+        metadataSource: body.data.metadataSource,
+        rightsAttestedAt: new Date(),
+        createdByUserId: req.user!.userId,
+        displayOrder: body.data.displayOrder,
+      })
+      .returning();
+    return inserted;
+  });
+  if (!created) {
+    res.status(409).json({ error: `A Watch release may list at most ${MAX_VIDEO_MUSIC_CREDITS} music credits.` });
+    return;
+  }
 
   await writeAuditLog(req, {
     action: "video_music_credit.created",
