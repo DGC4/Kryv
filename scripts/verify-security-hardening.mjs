@@ -704,6 +704,26 @@ requireMatch(
   /inArray\(categoriesTable\.id, categoryIds\)/,
   "Live summary category names must be hydrated in one bounded database query.",
 );
+requireMatch(
+  discoverRoute,
+  /toChannelSummaries\([\s\S]*?visibleLiveChannels\.slice\(0, 8\)/,
+  "Discover featured Live channels must use the batched summary path.",
+);
+requireMatch(
+  discoverRoute,
+  /channels: await toChannelSummaries\(visibleChannels\)/,
+  "Discover search Live results must use the batched summary path.",
+);
+requireMatch(
+  discoverRoute,
+  /toVideoSummaryFromRelations\(row\.video, row\.channel, row\.categoryName\)/,
+  "Discover search Watch results must use joined relation-aware summaries.",
+);
+requireMatch(
+  discoverRoute,
+  /toChannelSummaries\(visibleRows\.map\(\(\{ channel \}\) => channel\)\)/,
+  "Followed-live discovery must use the batched summary path.",
+);
 
 requireMatch(
   migration,

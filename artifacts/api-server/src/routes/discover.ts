@@ -3,8 +3,8 @@ import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { clipsTable, db, categoriesTable, channelsTable, followsTable, videosTable } from "@workspace/db";
 import { GetDiscoverSummaryResponse, SearchKryvQueryParams } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
-import { toChannelSummary } from "../lib/channelSerializer";
-import { toVideoSummary } from "../lib/videoSerializer";
+import { toChannelSummaries } from "../lib/channelSerializer";
+import { toVideoSummaryFromRelations } from "../lib/videoSerializer";
 import { getFastPixViewerCount } from "../lib/fastpix";
 import { readSharedJson, writeSharedJson } from "../lib/realtime";
 import { getPublishedCinemaTitles } from "../lib/cinemaCatalog";
@@ -74,8 +74,8 @@ router.get("/discover/summary", async (_req, res): Promise<void> => {
     return scoreDifference !== 0 ? scoreDifference : b.viewerCount - a.viewerCount;
   });
 
-  const featuredChannels = await Promise.all(
-    visibleLiveChannels.slice(0, 8).map(toChannelSummary),
+  const featuredChannels = await toChannelSummaries(
+    visibleLiveChannels.slice(0, 8),
   );
 
   const categories = await db.select().from(categoriesTable);
@@ -128,7 +128,27 @@ router.get("/search", async (req, res): Promise<void> => {
 
   const [channels, videos, clips, cinemaCatalog] = await Promise.all([
     db.select().from(channelsTable).where(or(ilike(channelsTable.displayName, pattern), ilike(channelsTable.slug, pattern), ilike(channelsTable.streamTitle, pattern))).orderBy(desc(channelsTable.isLive), desc(channelsTable.viewerCount)).limit(8),
-    db.select().from(videosTable).where(and(eq(videosTable.uploadStatus, "ready"), ilike(videosTable.title, pattern))).orderBy(desc(videosTable.createdAt)).limit(8),
+    db
+      .select({
+        video: videosTable,
+        channel: {
+          slug: channelsTable.slug,
+          displayName: channelsTable.displayName,
+          avatarUrl: channelsTable.avatarUrl,
+        },
+        categoryName: categoriesTable.name,
+      })
+      .from(videosTable)
+      .innerJoin(channelsTable, eq(channelsTable.id, videosTable.channelId))
+      .leftJoin(categoriesTable, eq(categoriesTable.id, videosTable.categoryId))
+      .where(
+        and(
+          eq(videosTable.uploadStatus, "ready"),
+          ilike(videosTable.title, pattern),
+        ),
+      )
+      .orderBy(desc(videosTable.createdAt))
+      .limit(8),
     db.select({ clip: clipsTable, channel: { id: channelsTable.id, displayName: channelsTable.displayName, slug: channelsTable.slug, matureContent: channelsTable.matureContent } }).from(clipsTable).innerJoin(channelsTable, eq(clipsTable.channelId, channelsTable.id)).where(and(eq(clipsTable.isPublished, true), eq(clipsTable.processingStatus, "ready"), ilike(clipsTable.title, pattern))).orderBy(desc(clipsTable.createdAt)).limit(8),
     getPublishedCinemaTitles(),
   ]);
@@ -142,8 +162,10 @@ router.get("/search", async (req, res): Promise<void> => {
   );
 
   res.json({
-    channels: await Promise.all(visibleChannels.map(toChannelSummary)),
-    videos: await Promise.all(videos.map(toVideoSummary)),
+    channels: await toChannelSummaries(visibleChannels),
+    videos: videos.map((row) =>
+      toVideoSummaryFromRelations(row.video, row.channel, row.categoryName),
+    ),
     cinema,
     clips: visibleClips.map(({ clip, channel }) => ({
       id: clip.id,
@@ -174,7 +196,7 @@ router.get("/me/followed/live", requireAuth, async (req, res): Promise<void> => 
   const visibleRows = rows.filter(
     ({ channel }) => !channel.matureContent || profileMaturity === "mature",
   );
-  res.json(await Promise.all(visibleRows.map(({ channel }) => toChannelSummary(channel))));
+  res.json(await toChannelSummaries(visibleRows.map(({ channel }) => channel)));
 });
 
 export default router;
