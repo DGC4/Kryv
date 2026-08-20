@@ -29,14 +29,23 @@ export interface ChannelSummary {
      * @nullable
      */
   lastStreamAt: Date | null;
+  /** Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata. */
+  matureContent: boolean;
   /**
      * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
      * @nullable
      */
   playbackId: string | null;
   /**
-     * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+     * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.
      * @nullable
      */
   fastpixPlaybackId?: string | null;
+  /** True only when the current viewer is permitted to receive a playable Live stream reference. */
+  playbackAvailable: boolean;
+  /**
+     * Viewer-safe explanation when playback is unavailable because the active profile is not eligible.
+     * @nullable
+     */
+  playbackBlockedReason: string | null;
 }

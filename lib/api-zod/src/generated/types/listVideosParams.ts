@@ -12,4 +12,15 @@ channelId?: number;
 categorySlug?: string;
 contentType?: ListVideosContentType;
 search?: string;
+/**
+ * Maximum number of results to return in one bounded page.
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * Zero-based result offset for stable newest-first pagination.
+ * @minimum 0
+ */
+offset?: number;
 };

@@ -39,4 +39,6 @@ export interface ChannelUpdate {
   categoryId?: number;
   /** @maxLength 140 */
   streamTitle?: string;
+  /** Marks this channel as mature. Mature Live surfaces require an active profile with maturityLevel set to mature. */
+  matureContent?: boolean;
 }

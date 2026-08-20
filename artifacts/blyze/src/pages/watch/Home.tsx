@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { VideoCard } from "@/components/VideoCard";
 import { MediaRail, MediaRailSkeleton } from "@/components/media/MediaRail";
 import { AdSlot } from "@/components/ads/AdSlot";
@@ -41,6 +41,7 @@ function RailHeading({
 }
 
 export default function WatchHome() {
+  const [location, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState<
@@ -52,16 +53,26 @@ export default function WatchHome() {
     () => categories.find((category) => category.id === activeCategoryId),
     [activeCategoryId, categories],
   );
+  const creatorChannelId = useMemo(() => {
+    const candidate = Number(
+      new URLSearchParams(location.split("?")[1] ?? "").get("channelId"),
+    );
+    return Number.isSafeInteger(candidate) && candidate > 0
+      ? candidate
+      : undefined;
+  }, [location]);
   const {
-    data: videos = [],
+    data: videoPage,
     isLoading,
     isError,
     refetch: refetchVideos,
   } = useListVideos({
+    channelId: creatorChannelId,
     contentType: "upload",
     search: search || undefined,
     categorySlug: activeCategory?.slug,
   });
+  const videos = videoPage?.items ?? [];
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
@@ -71,8 +82,11 @@ export default function WatchHome() {
     setSearch("");
     setInputValue("");
     setActiveCategoryId(undefined);
+    if (creatorChannelId !== undefined) navigate("/watch");
   };
-  const isFiltered = Boolean(search || activeCategoryId !== undefined);
+  const isFiltered = Boolean(
+    search || activeCategoryId !== undefined || creatorChannelId !== undefined,
+  );
   const featuredVideo = videos[0];
   const categoryRails = useMemo(
     () =>
@@ -134,8 +148,26 @@ export default function WatchHome() {
       {/* Presentation-only future placement. The component fails closed and renders nothing until both delivery gates are separately enabled. */}
       <AdSlot surface="watch" />
 
+      {creatorChannelId !== undefined && (
+        <section className="mt-6 flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/[0.055] px-4 py-3 sm:mt-8 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-bold text-white">Creator library filter</p>
+            <p className="mt-1 text-xs leading-relaxed text-white/55">
+              Showing ready releases from this creator. Category and title search remain available.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/watch")}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl border border-primary/35 bg-black/20 px-4 text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground"
+          >
+            Show all Watch
+          </button>
+        </section>
+      )}
+
       <div
-        className="mt-6 -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:mt-8 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:mt-8 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-label="Watch categories"
       >
         <button

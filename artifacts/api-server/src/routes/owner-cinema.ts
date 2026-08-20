@@ -36,6 +36,7 @@ import {
 import { requireOwner } from "../lib/auth";
 import { createFastPixDirectUpload, FastPixNotConfiguredError } from "../lib/fastpix";
 import { writeAuditLog } from "../lib/operations";
+import { literalIlikePattern } from "../lib/search";
 
 const router: IRouter = Router();
 
@@ -171,7 +172,12 @@ router.get("/admin/cinema/titles", requireOwner, async (req, res): Promise<void>
     return;
   }
   const q = query.data.q?.trim();
-  const filter = q ? or(ilike(cinemaTitlesTable.title, `%${q}%`), ilike(cinemaTitlesTable.slug, `%${q}%`)) : undefined;
+  const filter = q
+    ? or(
+        ilike(cinemaTitlesTable.title, literalIlikePattern(q)),
+        ilike(cinemaTitlesTable.slug, literalIlikePattern(q)),
+      )
+    : undefined;
   const [titles, countRows] = await Promise.all([
     db.select().from(cinemaTitlesTable).where(filter).orderBy(desc(cinemaTitlesTable.updatedAt), desc(cinemaTitlesTable.id)).limit(query.data.limit).offset(query.data.offset),
     db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(cinemaTitlesTable).where(filter),

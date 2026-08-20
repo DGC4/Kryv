@@ -105,6 +105,7 @@ import type {
   CustomerWalletOverview,
   DiscoverSummary,
   Error,
+  GetActiveViewerProfile200,
   GetAdDecisionParams,
   GetAdminAnalyticsParams,
   GetNotificationInboxParams,
@@ -132,9 +133,13 @@ import type {
   SaveCreatorPayoutProfileInput,
   SearchKryvParams,
   SearchResults,
+  SelectViewerProfile200,
+  SelectViewerProfileBody,
   StreamCredentials,
   UpdateAdminFeatureFlagInput,
   UpdateAdminFocusModeInput,
+  UpdateViewerProfilePin200,
+  UpdateViewerProfilePinBody,
   UserProfile,
   VideoComment,
   VideoCommentInput,
@@ -143,8 +148,8 @@ import type {
   VideoInput,
   VideoMusicCredit,
   VideoMusicCreditInput,
+  VideoPage,
   VideoSafetyReport,
-  VideoSummary,
   VideoUpdate,
   ViewerProfile,
   ViewerProfileInput,
@@ -481,6 +486,298 @@ export const useCreateViewerProfile = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getCreateViewerProfileMutationOptions(options));
+    }
+
+export const getGetActiveViewerProfileUrl = () => {
+
+
+
+
+  return `/api/me/profiles/active`
+}
+
+/**
+ * @summary Get the signed-in browser session's short-lived active viewer profile grant
+ */
+export const getActiveViewerProfile = async ( options?: RequestInit): Promise<GetActiveViewerProfile200> => {
+
+  return customFetch<GetActiveViewerProfile200>(getGetActiveViewerProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetActiveViewerProfileQueryKey = () => {
+    return [
+    `/api/me/profiles/active`
+    ] as const;
+    }
+
+
+export const getGetActiveViewerProfileQueryOptions = <TData = Awaited<ReturnType<typeof getActiveViewerProfile>>, TError = ErrorType<void>>( options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getActiveViewerProfile>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetActiveViewerProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActiveViewerProfile>>> = ({ signal }) => getActiveViewerProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getActiveViewerProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetActiveViewerProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getActiveViewerProfile>>>
+export type GetActiveViewerProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the signed-in browser session's short-lived active viewer profile grant
+ */
+
+export function useGetActiveViewerProfile<TData = Awaited<ReturnType<typeof getActiveViewerProfile>>, TError = ErrorType<void>>(
+  options?: { query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getActiveViewerProfile>>, TError, TData>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetActiveViewerProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getClearActiveViewerProfileUrl = () => {
+
+
+
+
+  return `/api/me/profiles/active`
+}
+
+/**
+ * @summary Clear the signed-in browser session's active viewer profile grant
+ */
+export const clearActiveViewerProfile = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getClearActiveViewerProfileUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getClearActiveViewerProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearActiveViewerProfile>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof clearActiveViewerProfile>>, TError,void, TContext> => {
+
+const mutationKey = ['clearActiveViewerProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof clearActiveViewerProfile>>, void> = () => {
+
+
+          return  clearActiveViewerProfile(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClearActiveViewerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof clearActiveViewerProfile>>>
+
+    export type ClearActiveViewerProfileMutationError = ErrorType<void>
+
+    /**
+ * @summary Clear the signed-in browser session's active viewer profile grant
+ */
+export const useClearActiveViewerProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearActiveViewerProfile>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof clearActiveViewerProfile>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getClearActiveViewerProfileMutationOptions(options));
+    }
+
+export const getSelectViewerProfileUrl = (id: number,) => {
+
+
+
+
+  return `/api/me/profiles/${id}/select`
+}
+
+/**
+ * @summary Select an owned viewer profile and issue a short-lived session-bound HttpOnly grant
+ */
+export const selectViewerProfile = async (id: number,
+    selectViewerProfileBody: SelectViewerProfileBody, options?: RequestInit): Promise<SelectViewerProfile200> => {
+
+  return customFetch<SelectViewerProfile200>(getSelectViewerProfileUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(selectViewerProfileBody)
+  }
+);}
+
+
+
+
+
+export const getSelectViewerProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof selectViewerProfile>>, TError,{id: number;data: BodyType<SelectViewerProfileBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof selectViewerProfile>>, TError,{id: number;data: BodyType<SelectViewerProfileBody>}, TContext> => {
+
+const mutationKey = ['selectViewerProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof selectViewerProfile>>, {id: number;data: BodyType<SelectViewerProfileBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  selectViewerProfile(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SelectViewerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof selectViewerProfile>>>
+    export type SelectViewerProfileMutationBody = BodyType<SelectViewerProfileBody>
+    export type SelectViewerProfileMutationError = ErrorType<void>
+
+    /**
+ * @summary Select an owned viewer profile and issue a short-lived session-bound HttpOnly grant
+ */
+export const useSelectViewerProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof selectViewerProfile>>, TError,{id: number;data: BodyType<SelectViewerProfileBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof selectViewerProfile>>,
+        TError,
+        {id: number;data: BodyType<SelectViewerProfileBody>},
+        TContext
+      > => {
+      return useMutation(getSelectViewerProfileMutationOptions(options));
+    }
+
+export const getUpdateViewerProfilePinUrl = (id: number,) => {
+
+
+
+
+  return `/api/me/profiles/${id}/pin`
+}
+
+/**
+ * @summary Set, rotate, or remove an owned viewer profile PIN after account-password re-authentication
+ */
+export const updateViewerProfilePin = async (id: number,
+    updateViewerProfilePinBody: UpdateViewerProfilePinBody, options?: RequestInit): Promise<UpdateViewerProfilePin200> => {
+
+  return customFetch<UpdateViewerProfilePin200>(getUpdateViewerProfilePinUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateViewerProfilePinBody)
+  }
+);}
+
+
+
+
+
+export const getUpdateViewerProfilePinMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateViewerProfilePin>>, TError,{id: number;data: BodyType<UpdateViewerProfilePinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateViewerProfilePin>>, TError,{id: number;data: BodyType<UpdateViewerProfilePinBody>}, TContext> => {
+
+const mutationKey = ['updateViewerProfilePin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateViewerProfilePin>>, {id: number;data: BodyType<UpdateViewerProfilePinBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateViewerProfilePin(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateViewerProfilePinMutationResult = NonNullable<Awaited<ReturnType<typeof updateViewerProfilePin>>>
+    export type UpdateViewerProfilePinMutationBody = BodyType<UpdateViewerProfilePinBody>
+    export type UpdateViewerProfilePinMutationError = ErrorType<void>
+
+    /**
+ * @summary Set, rotate, or remove an owned viewer profile PIN after account-password re-authentication
+ */
+export const useUpdateViewerProfilePin = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateViewerProfilePin>>, TError,{id: number;data: BodyType<UpdateViewerProfilePinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateViewerProfilePin>>,
+        TError,
+        {id: number;data: BodyType<UpdateViewerProfilePinBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateViewerProfilePinMutationOptions(options));
     }
 
 export const getUpdateViewerProfileUrl = (id: number,) => {
@@ -4675,9 +4972,9 @@ export const getListVideosUrl = (params?: ListVideosParams,) => {
 /**
  * @summary Browse on-demand videos (Kryv Watch), optionally filtered by channel, genre, or search
  */
-export const listVideos = async (params?: ListVideosParams, options?: RequestInit): Promise<VideoSummary[]> => {
+export const listVideos = async (params?: ListVideosParams, options?: RequestInit): Promise<VideoPage> => {
 
-  return customFetch<VideoSummary[]>(getListVideosUrl(params),
+  return customFetch<VideoPage>(getListVideosUrl(params),
   {
     ...options,
     method: 'GET'

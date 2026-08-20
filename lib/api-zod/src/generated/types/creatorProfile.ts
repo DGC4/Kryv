@@ -13,6 +13,12 @@ import type { VideoSummary } from './videoSummary';
 export interface CreatorProfile {
   channel: ChannelDetail;
   live: CreatorProfileLive;
+  /** Newest ready Watch uploads, capped at 48 for a responsive profile rail. */
   watch: VideoSummary[];
+  /**
+     * Total ready Watch uploads for this creator, including releases beyond the initial profile rail.
+     * @minimum 0
+     */
+  watchTotal: number;
   cinemaCredits: CreatorCinemaCredit[];
 }

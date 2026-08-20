@@ -237,6 +237,18 @@ const guestCheckoutLimiter = rateLimit({
   message: { error: "Too many guest checkout attempts. Please wait before trying again." },
 });
 
+// Search is public and can invoke multiple catalog reads and ranking paths. Keep a
+// dedicated ceiling below the general API limiter to reduce bulk enumeration and
+// expensive wildcard-style probing while allowing ordinary debounced UI search.
+const searchLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:search:"),
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many search requests. Please wait a moment and try again." },
+});
+
 const apiLimiter = rateLimit({
   store: sharedRateLimitStore("kryv:rate:api:"),
   windowMs: 60 * 1000, // 1 minute
@@ -264,6 +276,7 @@ app.use("/api/me/profiles", (req, res, next) => {
   }
   next();
 });
+app.use("/api/search", searchLimiter);
 app.use("/api", apiLimiter);
 
 // ── Body parsers ──────────────────────────────────────────────────────────────

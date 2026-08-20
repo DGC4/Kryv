@@ -37,7 +37,10 @@ import {
   establishActiveProfileGrant,
   requireAuth,
 } from "../lib/auth";
-import { toChannelSummary } from "../lib/channelSerializer";
+import {
+  toChannelSummaries,
+  toChannelSummary,
+} from "../lib/channelSerializer";
 import { getActiveProfileMaturity } from "../lib/liveMaturity";
 import {
   FastPixNotConfiguredError,
@@ -827,12 +830,12 @@ router.get("/me", requireAuth, async (req, res): Promise<void> => {
     .innerJoin(channelsTable, eq(followsTable.channelId, channelsTable.id))
     .where(eq(followsTable.followerUserId, userId));
   const profileMaturity = await getActiveProfileMaturity(req);
-  const followedChannels = await Promise.all(
+  const followedChannels = await toChannelSummaries(
     followedRows
       .filter(
         ({ channel }) => !channel.matureContent || profileMaturity === "mature",
       )
-      .map((r) => toChannelSummary(r.channel)),
+      .map(({ channel }) => channel),
   );
 
   res.json(

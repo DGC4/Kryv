@@ -5,111 +5,84 @@
  * Kryv live streaming platform API
  * OpenAPI spec version: 0.1.0
  */
-import * as zod from "zod";
+import * as zod from 'zod';
+
 
 /**
  * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
-  status: zod.string(),
-});
+  "status": zod.string()
+})
+
 
 /**
  * @summary Get current user profile, own channel, and followed channels
  */
 export const GetMeResponse = zod.object({
-  id: zod.number(),
-  username: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  role: zod.enum(["user", "owner"]),
-  channel: zod.union([
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      displayName: zod.string(),
-      avatarUrl: zod.string().nullable(),
-      bannerUrl: zod.string().nullable(),
-      streamTitle: zod.string().nullable(),
-      isLive: zod.boolean(),
-      viewerCount: zod.number(),
-      followerCount: zod.number(),
-      subscriberCount: zod.number(),
-      categoryId: zod.number().nullable(),
-      categoryName: zod.string().nullable(),
-      lastStreamAt: zod.coerce
-        .date()
-        .nullable()
-        .describe(
-          "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-        ),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-      fastpixPlaybackId: zod
-        .string()
-        .nullish()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-    }),
-    zod.null(),
-  ]),
-  followedChannels: zod.array(
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      displayName: zod.string(),
-      avatarUrl: zod.string().nullable(),
-      bannerUrl: zod.string().nullable(),
-      streamTitle: zod.string().nullable(),
-      isLive: zod.boolean(),
-      viewerCount: zod.number(),
-      followerCount: zod.number(),
-      subscriberCount: zod.number(),
-      categoryId: zod.number().nullable(),
-      categoryName: zod.string().nullable(),
-      lastStreamAt: zod.coerce
-        .date()
-        .nullable()
-        .describe(
-          "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-        ),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-      fastpixPlaybackId: zod
-        .string()
-        .nullish()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-    }),
-  ),
-});
+  "id": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['user', 'owner']),
+  "channel": zod.union([zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}),zod.null()]),
+  "followedChannels": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}))
+})
+
 
 /**
  * @summary List the signed-in user's viewer profiles for profile-aware Cinema and watch state
  */
 export const ListViewerProfilesResponseItem = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  maturityLevel: zod.enum(["kids", "standard", "mature"]),
-  isKidsProfile: zod.boolean(),
-  isDefault: zod.boolean(),
-  isLocked: zod.boolean(),
-  createdAt: zod.coerce.date(),
-});
-export const ListViewerProfilesResponse = zod.array(
-  ListViewerProfilesResponseItem,
-);
+  "id": zod.number(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "isKidsProfile": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "isLocked": zod.boolean().describe('True when the profile has a PIN. PIN data is never returned.'),
+  "createdAt": zod.coerce.date()
+})
+export const ListViewerProfilesResponse = zod.array(ListViewerProfilesResponseItem)
+
 
 /**
  * @summary Create a viewer profile for the signed-in user
@@ -118,133 +91,214 @@ export const createViewerProfileBodyNameMax = 40;
 
 export const createViewerProfileBodyAvatarUrlMax = 2048;
 
+
+
 export const CreateViewerProfileBody = zod.object({
-  name: zod.string().min(1).max(createViewerProfileBodyNameMax),
-  avatarUrl: zod.string().max(createViewerProfileBodyAvatarUrlMax).optional(),
-  maturityLevel: zod.enum(["kids", "standard", "mature"]).optional(),
-  isKidsProfile: zod.boolean().optional(),
-  isDefault: zod.boolean().optional(),
-});
+  "name": zod.string().min(1).max(createViewerProfileBodyNameMax),
+  "avatarUrl": zod.string().max(createViewerProfileBodyAvatarUrlMax).optional(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']).optional(),
+  "isKidsProfile": zod.boolean().optional(),
+  "isDefault": zod.boolean().optional()
+})
 
 export const CreateViewerProfileResponse = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  maturityLevel: zod.enum(["kids", "standard", "mature"]),
-  isKidsProfile: zod.boolean(),
-  isDefault: zod.boolean(),
-  isLocked: zod.boolean(),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "isKidsProfile": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "isLocked": zod.boolean().describe('True when the profile has a PIN. PIN data is never returned.'),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get the signed-in browser session's short-lived active viewer profile grant
+ */
+export const GetActiveViewerProfileResponse = zod.object({
+  "profile": zod.union([zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "isKidsProfile": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "isLocked": zod.boolean().describe('True when the profile has a PIN. PIN data is never returned.'),
+  "createdAt": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Clear the signed-in browser session's active viewer profile grant
+ */
+export const ClearActiveViewerProfileResponse = zod.void()
+
+
+/**
+ * @summary Select an owned viewer profile and issue a short-lived session-bound HttpOnly grant
+ */
+export const SelectViewerProfileParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const selectViewerProfileBodyPinMin = 4;
+export const selectViewerProfileBodyPinMax = 8;
+
+
+export const selectViewerProfileBodyPinRegExp = new RegExp('^[0-9]+$');
+
+
+export const SelectViewerProfileBody = zod.object({
+  "pin": zod.string().min(selectViewerProfileBodyPinMin).max(selectViewerProfileBodyPinMax).regex(selectViewerProfileBodyPinRegExp).optional()
+})
+
+export const SelectViewerProfileResponse = zod.object({
+  "profile": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "isKidsProfile": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "isLocked": zod.boolean().describe('True when the profile has a PIN. PIN data is never returned.'),
+  "createdAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Set, rotate, or remove an owned viewer profile PIN after account-password re-authentication
+ */
+export const UpdateViewerProfilePinParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateViewerProfilePinBodyCurrentPasswordMax = 128;
+
+export const updateViewerProfilePinBodyNewPinOneMin = 4;
+export const updateViewerProfilePinBodyNewPinOneMax = 8;
+
+
+export const updateViewerProfilePinBodyNewPinOneRegExp = new RegExp('^[0-9]+$');
+
+
+export const UpdateViewerProfilePinBody = zod.object({
+  "currentPassword": zod.string().min(1).max(updateViewerProfilePinBodyCurrentPasswordMax),
+  "newPin": zod.union([zod.string().min(updateViewerProfilePinBodyNewPinOneMin).max(updateViewerProfilePinBodyNewPinOneMax).regex(updateViewerProfilePinBodyNewPinOneRegExp),zod.null()])
+})
+
+export const UpdateViewerProfilePinResponse = zod.object({
+  "profile": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "isKidsProfile": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "isLocked": zod.boolean().describe('True when the profile has a PIN. PIN data is never returned.'),
+  "createdAt": zod.coerce.date()
+})
+})
+
 
 /**
  * @summary Update a viewer profile owned by the signed-in user
  */
 export const UpdateViewerProfileParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const updateViewerProfileBodyNameMax = 40;
 
 export const updateViewerProfileBodyAvatarUrlMax = 2048;
 
+
+
 export const UpdateViewerProfileBody = zod.object({
-  name: zod.string().min(1).max(updateViewerProfileBodyNameMax).optional(),
-  avatarUrl: zod.string().max(updateViewerProfileBodyAvatarUrlMax).nullish(),
-  maturityLevel: zod.enum(["kids", "standard", "mature"]).optional(),
-  isKidsProfile: zod.boolean().optional(),
-  isDefault: zod.boolean().optional(),
-});
+  "name": zod.string().min(1).max(updateViewerProfileBodyNameMax).optional(),
+  "avatarUrl": zod.string().max(updateViewerProfileBodyAvatarUrlMax).nullish(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']).optional(),
+  "isKidsProfile": zod.boolean().optional(),
+  "isDefault": zod.boolean().optional()
+})
 
 export const UpdateViewerProfileResponse = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  maturityLevel: zod.enum(["kids", "standard", "mature"]),
-  isKidsProfile: zod.boolean(),
-  isDefault: zod.boolean(),
-  isLocked: zod.boolean(),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "isKidsProfile": zod.boolean(),
+  "isDefault": zod.boolean(),
+  "isLocked": zod.boolean().describe('True when the profile has a PIN. PIN data is never returned.'),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Delete a non-default viewer profile owned by the signed-in user
  */
 export const DeleteViewerProfileParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const DeleteViewerProfileResponse = zod.void();
+export const DeleteViewerProfileResponse = zod.void()
+
 
 /**
  * @summary Evaluate whether a viewer session may receive a policy-eligible ad opportunity
  */
 export const GetAdDecisionQueryParams = zod.object({
-  surface: zod.enum(["live", "watch", "cinema", "clip"]),
-  channelId: zod.coerce.number().optional(),
-  videoId: zod.coerce.number().optional(),
-  profileId: zod.coerce.number().optional(),
-});
+  "surface": zod.enum(['live', 'watch', 'cinema', 'clip']),
+  "channelId": zod.coerce.number().optional(),
+  "videoId": zod.coerce.number().optional(),
+  "profileId": zod.coerce.number().optional()
+})
 
 export const GetAdDecisionResponse = zod.object({
-  eligible: zod.boolean(),
-  reason: zod.string(),
-  adBreak: zod.union([
-    zod.object({
-      id: zod.number(),
-      surface: zod.enum(["live", "watch", "cinema", "clip"]),
-      triggerType: zod.enum(["scheduled", "creator", "system"]),
-      status: zod.enum([
-        "scheduled",
-        "serving",
-        "completed",
-        "deferred",
-        "cancelled",
-      ]),
-      scheduledAt: zod.coerce.date().nullable(),
-      maxPodDurationSeconds: zod.number().nullable(),
-    }),
-    zod.null(),
-  ]),
-  creative: zod.union([
-    zod.object({
-      id: zod.number(),
-      label: zod.string(),
-      creativeType: zod.string(),
-      assetUrl: zod.string(),
-      durationSeconds: zod.number().nullable(),
-      landingUrl: zod.string().nullable(),
-    }),
-    zod.null(),
-  ]),
-});
+  "eligible": zod.boolean(),
+  "reason": zod.string(),
+  "adBreak": zod.union([zod.object({
+  "id": zod.number(),
+  "surface": zod.enum(['live', 'watch', 'cinema', 'clip']),
+  "triggerType": zod.enum(['scheduled', 'creator', 'system']),
+  "status": zod.enum(['scheduled', 'serving', 'completed', 'deferred', 'cancelled']),
+  "scheduledAt": zod.coerce.date().nullable(),
+  "maxPodDurationSeconds": zod.number().nullable()
+}),zod.null()]),
+  "creative": zod.union([zod.object({
+  "id": zod.number(),
+  "label": zod.string(),
+  "creativeType": zod.string(),
+  "assetUrl": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "landingUrl": zod.string().nullable()
+}),zod.null()])
+})
+
 
 /**
  * @summary Schedule or trigger an eligible creator ad break after server-side policy checks
  */
 export const CreateChannelAdBreakParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const CreateChannelAdBreakBody = zod.object({
-  action: zod.enum(["schedule", "trigger", "defer"]),
-  scheduledAt: zod.coerce.date().optional(),
-});
+  "action": zod.enum(['schedule', 'trigger', 'defer']),
+  "scheduledAt": zod.coerce.date().optional()
+})
 
 export const CreateChannelAdBreakResponse = zod.object({
-  id: zod.number(),
-  surface: zod.enum(["live", "watch", "cinema", "clip"]),
-  triggerType: zod.enum(["scheduled", "creator", "system"]),
-  status: zod.enum([
-    "scheduled",
-    "serving",
-    "completed",
-    "deferred",
-    "cancelled",
-  ]),
-  scheduledAt: zod.coerce.date().nullable(),
-  maxPodDurationSeconds: zod.number().nullable(),
-});
+  "id": zod.number(),
+  "surface": zod.enum(['live', 'watch', 'cinema', 'clip']),
+  "triggerType": zod.enum(['scheduled', 'creator', 'system']),
+  "status": zod.enum(['scheduled', 'serving', 'completed', 'deferred', 'cancelled']),
+  "scheduledAt": zod.coerce.date().nullable(),
+  "maxPodDurationSeconds": zod.number().nullable()
+})
+
 
 /**
  * @summary Bounded owner-managed Cinema title registry with server-side title and slug search
@@ -257,44 +311,41 @@ export const listAdminCinemaTitlesQueryLimitMax = 100;
 export const listAdminCinemaTitlesQueryOffsetDefault = 0;
 export const listAdminCinemaTitlesQueryOffsetMin = 0;
 
+
+
 export const ListAdminCinemaTitlesQueryParams = zod.object({
-  q: zod.coerce.string().min(1).max(listAdminCinemaTitlesQueryQMax).optional(),
-  limit: zod.coerce
-    .number()
-    .min(1)
-    .max(listAdminCinemaTitlesQueryLimitMax)
-    .default(listAdminCinemaTitlesQueryLimitDefault),
-  offset: zod.coerce
-    .number()
-    .min(listAdminCinemaTitlesQueryOffsetMin)
-    .default(listAdminCinemaTitlesQueryOffsetDefault),
-});
+  "q": zod.coerce.string().min(1).max(listAdminCinemaTitlesQueryQMax).optional(),
+  "limit": zod.coerce.number().min(1).max(listAdminCinemaTitlesQueryLimitMax).default(listAdminCinemaTitlesQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminCinemaTitlesQueryOffsetMin).default(listAdminCinemaTitlesQueryOffsetDefault)
+})
 
 export const listAdminCinemaTitlesResponseTotalMin = 0;
 
+
 export const listAdminCinemaTitlesResponseOffsetMin = 0;
 
+
+
 export const ListAdminCinemaTitlesResponse = zod.object({
-  items: zod.array(
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      title: zod.string(),
-      synopsis: zod.string().nullable(),
-      publishState: zod.enum(["draft", "review", "published", "archived"]),
-      maturityLevel: zod.enum(["kids", "standard", "mature"]),
-      editorialRank: zod.number(),
-      adEligible: zod.boolean(),
-      posterUrl: zod.string().nullish(),
-      backdropUrl: zod.string().nullish(),
-      createdAt: zod.coerce.date(),
-      updatedAt: zod.coerce.date(),
-    }),
-  ),
-  total: zod.number().min(listAdminCinemaTitlesResponseTotalMin),
-  limit: zod.number().min(1),
-  offset: zod.number().min(listAdminCinemaTitlesResponseOffsetMin),
-});
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "editorialRank": zod.number(),
+  "adEligible": zod.boolean(),
+  "posterUrl": zod.string().nullish(),
+  "backdropUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})),
+  "total": zod.number().min(listAdminCinemaTitlesResponseTotalMin),
+  "limit": zod.number().min(1),
+  "offset": zod.number().min(listAdminCinemaTitlesResponseOffsetMin)
+})
+
 
 /**
  * @summary Create a lawful Cinema title draft before rights and assets are approved
@@ -312,53 +363,40 @@ export const createAdminCinemaTitleBodyRightsReferenceMax = 500;
 export const createAdminCinemaTitleBodyTerritoryCodesItemMin = 2;
 export const createAdminCinemaTitleBodyTerritoryCodesItemMax = 3;
 
+
+
 export const CreateAdminCinemaTitleBody = zod.object({
-  title: zod.string().min(1).max(createAdminCinemaTitleBodyTitleMax),
-  synopsis: zod.string().max(createAdminCinemaTitleBodySynopsisMax).optional(),
-  posterUrl: zod
-    .string()
-    .max(createAdminCinemaTitleBodyPosterUrlMax)
-    .optional(),
-  backdropUrl: zod
-    .string()
-    .max(createAdminCinemaTitleBodyBackdropUrlMax)
-    .optional(),
-  maturityLevel: zod.enum(["kids", "standard", "mature"]).optional(),
-  rightsReference: zod
-    .string()
-    .min(1)
-    .max(createAdminCinemaTitleBodyRightsReferenceMax),
-  territoryCodes: zod
-    .array(
-      zod
-        .string()
-        .min(createAdminCinemaTitleBodyTerritoryCodesItemMin)
-        .max(createAdminCinemaTitleBodyTerritoryCodesItemMax),
-    )
-    .optional(),
-});
+  "title": zod.string().min(1).max(createAdminCinemaTitleBodyTitleMax),
+  "synopsis": zod.string().max(createAdminCinemaTitleBodySynopsisMax).optional(),
+  "posterUrl": zod.string().max(createAdminCinemaTitleBodyPosterUrlMax).optional(),
+  "backdropUrl": zod.string().max(createAdminCinemaTitleBodyBackdropUrlMax).optional(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']).optional(),
+  "rightsReference": zod.string().min(1).max(createAdminCinemaTitleBodyRightsReferenceMax),
+  "territoryCodes": zod.array(zod.string().min(createAdminCinemaTitleBodyTerritoryCodesItemMin).max(createAdminCinemaTitleBodyTerritoryCodesItemMax)).optional()
+})
 
 export const CreateAdminCinemaTitleResponse = zod.object({
-  id: zod.number(),
-  slug: zod.string(),
-  title: zod.string(),
-  synopsis: zod.string().nullable(),
-  publishState: zod.enum(["draft", "review", "published", "archived"]),
-  maturityLevel: zod.enum(["kids", "standard", "mature"]),
-  editorialRank: zod.number(),
-  adEligible: zod.boolean(),
-  posterUrl: zod.string().nullish(),
-  backdropUrl: zod.string().nullish(),
-  createdAt: zod.coerce.date(),
-  updatedAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "editorialRank": zod.number(),
+  "adEligible": zod.boolean(),
+  "posterUrl": zod.string().nullish(),
+  "backdropUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Associate an approved FastPix feature, trailer, preview, or caption asset with a Cinema title
  */
 export const CreateAdminCinemaAssetParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createAdminCinemaAssetBodyFastpixPlaybackIdMax = 200;
 
@@ -366,180 +404,143 @@ export const createAdminCinemaAssetBodySourceProvenanceMax = 500;
 
 export const createAdminCinemaAssetBodyDurationSecondsMin = 0;
 
+
+
 export const CreateAdminCinemaAssetBody = zod.object({
-  assetKind: zod.enum(["feature", "trailer", "preview", "captions"]),
-  fastpixMediaId: zod.string().optional(),
-  fastpixPlaybackId: zod
-    .string()
-    .min(1)
-    .max(createAdminCinemaAssetBodyFastpixPlaybackIdMax),
-  sourceProvenance: zod
-    .string()
-    .min(1)
-    .max(createAdminCinemaAssetBodySourceProvenanceMax),
-  durationSeconds: zod
-    .number()
-    .min(createAdminCinemaAssetBodyDurationSecondsMin)
-    .optional(),
-});
+  "assetKind": zod.enum(['feature', 'trailer', 'preview', 'captions']),
+  "fastpixMediaId": zod.string().optional(),
+  "fastpixPlaybackId": zod.string().min(1).max(createAdminCinemaAssetBodyFastpixPlaybackIdMax),
+  "sourceProvenance": zod.string().min(1).max(createAdminCinemaAssetBodySourceProvenanceMax),
+  "durationSeconds": zod.number().min(createAdminCinemaAssetBodyDurationSecondsMin).optional()
+})
 
 export const CreateAdminCinemaAssetResponse = zod.object({
-  id: zod.number(),
-  cinemaTitleId: zod.number(),
-  assetKind: zod.enum(["feature", "trailer", "preview", "captions"]),
-  processingStatus: zod.enum(["waiting", "processing", "ready", "errored"]),
-  fastpixMediaId: zod.string().nullish(),
-  fastpixPlaybackId: zod.string().nullable(),
-});
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "assetKind": zod.enum(['feature', 'trailer', 'preview', 'captions']),
+  "processingStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "fastpixMediaId": zod.string().nullish(),
+  "fastpixPlaybackId": zod.string().nullable()
+})
+
 
 /**
  * @summary Create an owner-only direct upload session for a Cinema title asset
  */
 export const CreateAdminCinemaUploadSessionParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createAdminCinemaUploadSessionBodySourceProvenanceMax = 500;
 
 export const createAdminCinemaUploadSessionBodyLanguageMin = 2;
 export const createAdminCinemaUploadSessionBodyLanguageMax = 16;
 
+
+
 export const CreateAdminCinemaUploadSessionBody = zod.object({
-  assetKind: zod.enum(["feature", "trailer", "preview"]),
-  sourceProvenance: zod
-    .string()
-    .min(1)
-    .max(createAdminCinemaUploadSessionBodySourceProvenanceMax),
-  language: zod
-    .string()
-    .min(createAdminCinemaUploadSessionBodyLanguageMin)
-    .max(createAdminCinemaUploadSessionBodyLanguageMax)
-    .optional(),
-});
+  "assetKind": zod.enum(['feature', 'trailer', 'preview']),
+  "sourceProvenance": zod.string().min(1).max(createAdminCinemaUploadSessionBodySourceProvenanceMax),
+  "language": zod.string().min(createAdminCinemaUploadSessionBodyLanguageMin).max(createAdminCinemaUploadSessionBodyLanguageMax).optional()
+})
 
 export const createAdminCinemaUploadSessionResponseUploadUrlMax = 4096;
 
+
+
 export const CreateAdminCinemaUploadSessionResponse = zod.object({
-  assetId: zod.number(),
-  uploadUrl: zod
-    .string()
-    .min(1)
-    .max(createAdminCinemaUploadSessionResponseUploadUrlMax),
-});
+  "assetId": zod.number(),
+  "uploadUrl": zod.string().min(1).max(createAdminCinemaUploadSessionResponseUploadUrlMax)
+})
+
 
 /**
  * @summary Retrieve the complete owner publishing record for a Cinema title
  */
 export const GetAdminCinemaTitleParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const GetAdminCinemaTitleResponse = zod
-  .object({
-    id: zod.number(),
-    slug: zod.string(),
-    title: zod.string(),
-    synopsis: zod.string().nullable(),
-    publishState: zod.enum(["draft", "review", "published", "archived"]),
-    maturityLevel: zod.enum(["kids", "standard", "mature"]),
-    editorialRank: zod.number(),
-    adEligible: zod.boolean(),
-    posterUrl: zod.string().nullish(),
-    backdropUrl: zod.string().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  })
-  .and(
-    zod.object({
-      releaseYear: zod.number().nullable(),
-      runtimeSeconds: zod.number().nullable(),
-      contentRating: zod.string().nullable(),
-      genres: zod.array(zod.string()),
-      castMembers: zod.array(zod.string()),
-      crew: zod.array(zod.string()),
-      logoUrl: zod.string().nullable(),
-      publishedAt: zod.coerce.date().nullable(),
-      assets: zod.array(
-        zod
-          .object({
-            id: zod.number(),
-            cinemaTitleId: zod.number(),
-            assetKind: zod.enum(["feature", "trailer", "preview", "captions"]),
-            processingStatus: zod.enum([
-              "waiting",
-              "processing",
-              "ready",
-              "errored",
-            ]),
-            fastpixMediaId: zod.string().nullish(),
-            fastpixPlaybackId: zod.string().nullable(),
-          })
-          .and(
-            zod.object({
-              sourceProvenance: zod.string().nullable(),
-              language: zod.string(),
-              durationSeconds: zod.number().nullable(),
-              approvedAt: zod.coerce.date().nullable(),
-              createdAt: zod.coerce.date(),
-              updatedAt: zod.coerce.date(),
-            }),
-          ),
-      ),
-      rightsWindows: zod.array(
-        zod.object({
-          id: zod.number(),
-          cinemaTitleId: zod.number(),
-          territoryCodes: zod.array(zod.string()),
-          entitlementType: zod.enum([
-            "unconfigured",
-            "free",
-            "subscription",
-            "rental",
-            "purchase",
-          ]),
-          rightsReference: zod.string(),
-          startsAt: zod.coerce.date(),
-          endsAt: zod.coerce.date().nullable(),
-          createdAt: zod.coerce.date(),
-        }),
-      ),
-      credits: zod.array(
-        zod.object({
-          id: zod.number(),
-          cinemaTitleId: zod.number(),
-          channelId: zod.number(),
-          channelSlug: zod.string(),
-          channelDisplayName: zod.string(),
-          role: zod.string(),
-          displayOrder: zod.number(),
-          createdAt: zod.coerce.date(),
-        }),
-      ),
-      readiness: zod.object({
-        hasReadyFeature: zod.boolean(),
-        hasActiveRightsWindow: zod.boolean(),
-        isPublishEligible: zod.boolean(),
-        blockingReasons: zod.array(zod.string()),
-      }),
-      activity: zod.array(
-        zod.object({
-          id: zod.number(),
-          action: zod.string(),
-          targetType: zod.string(),
-          targetId: zod.string().nullable(),
-          reason: zod.string().nullable(),
-          createdAt: zod.coerce.date(),
-        }),
-      ),
-    }),
-  );
+export const GetAdminCinemaTitleResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "editorialRank": zod.number(),
+  "adEligible": zod.boolean(),
+  "posterUrl": zod.string().nullish(),
+  "backdropUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "releaseYear": zod.number().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "contentRating": zod.string().nullable(),
+  "genres": zod.array(zod.string()),
+  "castMembers": zod.array(zod.string()),
+  "crew": zod.array(zod.string()),
+  "logoUrl": zod.string().nullable(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "assets": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "assetKind": zod.enum(['feature', 'trailer', 'preview', 'captions']),
+  "processingStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "fastpixMediaId": zod.string().nullish(),
+  "fastpixPlaybackId": zod.string().nullable()
+}).and(zod.object({
+  "sourceProvenance": zod.string().nullable(),
+  "language": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))),
+  "rightsWindows": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "territoryCodes": zod.array(zod.string()),
+  "entitlementType": zod.enum(['unconfigured', 'free', 'subscription', 'rental', 'purchase']),
+  "rightsReference": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})),
+  "credits": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "role": zod.string(),
+  "displayOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})),
+  "readiness": zod.object({
+  "hasReadyFeature": zod.boolean(),
+  "hasActiveRightsWindow": zod.boolean(),
+  "isPublishEligible": zod.boolean(),
+  "blockingReasons": zod.array(zod.string())
+}),
+  "activity": zod.array(zod.object({
+  "id": zod.number(),
+  "action": zod.string(),
+  "targetType": zod.string(),
+  "targetId": zod.string().nullable(),
+  "reason": zod.string().nullable(),
+  "createdAt": zod.coerce.date()
+}))
+}))
+
 
 /**
  * @summary Update title metadata or move a Cinema title through the governed publication workflow
  */
 export const UpdateAdminCinemaTitleParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const updateAdminCinemaTitleBodyTitleMax = 160;
 
@@ -561,309 +562,231 @@ export const updateAdminCinemaTitleBodyEditorialRankMax = 100000;
 
 export const updateAdminCinemaTitleBodyReasonMax = 500;
 
-export const UpdateAdminCinemaTitleBody = zod.object({
-  title: zod.string().min(1).max(updateAdminCinemaTitleBodyTitleMax).optional(),
-  synopsis: zod.string().max(updateAdminCinemaTitleBodySynopsisMax).nullish(),
-  posterUrl: zod.string().max(updateAdminCinemaTitleBodyPosterUrlMax).nullish(),
-  backdropUrl: zod
-    .string()
-    .max(updateAdminCinemaTitleBodyBackdropUrlMax)
-    .nullish(),
-  logoUrl: zod.string().max(updateAdminCinemaTitleBodyLogoUrlMax).nullish(),
-  maturityLevel: zod.enum(["kids", "standard", "mature"]).optional(),
-  contentRating: zod
-    .string()
-    .max(updateAdminCinemaTitleBodyContentRatingMax)
-    .nullish(),
-  releaseYear: zod
-    .number()
-    .min(updateAdminCinemaTitleBodyReleaseYearMin)
-    .max(updateAdminCinemaTitleBodyReleaseYearMax)
-    .nullish(),
-  editorialRank: zod
-    .number()
-    .min(updateAdminCinemaTitleBodyEditorialRankMin)
-    .max(updateAdminCinemaTitleBodyEditorialRankMax)
-    .optional(),
-  adEligible: zod.boolean().optional(),
-  publishState: zod
-    .enum(["draft", "review", "published", "archived"])
-    .optional(),
-  reason: zod
-    .string()
-    .min(1)
-    .max(updateAdminCinemaTitleBodyReasonMax)
-    .optional(),
-});
 
-export const UpdateAdminCinemaTitleResponse = zod
-  .object({
-    id: zod.number(),
-    slug: zod.string(),
-    title: zod.string(),
-    synopsis: zod.string().nullable(),
-    publishState: zod.enum(["draft", "review", "published", "archived"]),
-    maturityLevel: zod.enum(["kids", "standard", "mature"]),
-    editorialRank: zod.number(),
-    adEligible: zod.boolean(),
-    posterUrl: zod.string().nullish(),
-    backdropUrl: zod.string().nullish(),
-    createdAt: zod.coerce.date(),
-    updatedAt: zod.coerce.date(),
-  })
-  .and(
-    zod.object({
-      releaseYear: zod.number().nullable(),
-      runtimeSeconds: zod.number().nullable(),
-      contentRating: zod.string().nullable(),
-      genres: zod.array(zod.string()),
-      castMembers: zod.array(zod.string()),
-      crew: zod.array(zod.string()),
-      logoUrl: zod.string().nullable(),
-      publishedAt: zod.coerce.date().nullable(),
-      assets: zod.array(
-        zod
-          .object({
-            id: zod.number(),
-            cinemaTitleId: zod.number(),
-            assetKind: zod.enum(["feature", "trailer", "preview", "captions"]),
-            processingStatus: zod.enum([
-              "waiting",
-              "processing",
-              "ready",
-              "errored",
-            ]),
-            fastpixMediaId: zod.string().nullish(),
-            fastpixPlaybackId: zod.string().nullable(),
-          })
-          .and(
-            zod.object({
-              sourceProvenance: zod.string().nullable(),
-              language: zod.string(),
-              durationSeconds: zod.number().nullable(),
-              approvedAt: zod.coerce.date().nullable(),
-              createdAt: zod.coerce.date(),
-              updatedAt: zod.coerce.date(),
-            }),
-          ),
-      ),
-      rightsWindows: zod.array(
-        zod.object({
-          id: zod.number(),
-          cinemaTitleId: zod.number(),
-          territoryCodes: zod.array(zod.string()),
-          entitlementType: zod.enum([
-            "unconfigured",
-            "free",
-            "subscription",
-            "rental",
-            "purchase",
-          ]),
-          rightsReference: zod.string(),
-          startsAt: zod.coerce.date(),
-          endsAt: zod.coerce.date().nullable(),
-          createdAt: zod.coerce.date(),
-        }),
-      ),
-      credits: zod.array(
-        zod.object({
-          id: zod.number(),
-          cinemaTitleId: zod.number(),
-          channelId: zod.number(),
-          channelSlug: zod.string(),
-          channelDisplayName: zod.string(),
-          role: zod.string(),
-          displayOrder: zod.number(),
-          createdAt: zod.coerce.date(),
-        }),
-      ),
-      readiness: zod.object({
-        hasReadyFeature: zod.boolean(),
-        hasActiveRightsWindow: zod.boolean(),
-        isPublishEligible: zod.boolean(),
-        blockingReasons: zod.array(zod.string()),
-      }),
-      activity: zod.array(
-        zod.object({
-          id: zod.number(),
-          action: zod.string(),
-          targetType: zod.string(),
-          targetId: zod.string().nullable(),
-          reason: zod.string().nullable(),
-          createdAt: zod.coerce.date(),
-        }),
-      ),
-    }),
-  );
+
+export const UpdateAdminCinemaTitleBody = zod.object({
+  "title": zod.string().min(1).max(updateAdminCinemaTitleBodyTitleMax).optional(),
+  "synopsis": zod.string().max(updateAdminCinemaTitleBodySynopsisMax).nullish(),
+  "posterUrl": zod.string().max(updateAdminCinemaTitleBodyPosterUrlMax).nullish(),
+  "backdropUrl": zod.string().max(updateAdminCinemaTitleBodyBackdropUrlMax).nullish(),
+  "logoUrl": zod.string().max(updateAdminCinemaTitleBodyLogoUrlMax).nullish(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']).optional(),
+  "contentRating": zod.string().max(updateAdminCinemaTitleBodyContentRatingMax).nullish(),
+  "releaseYear": zod.number().min(updateAdminCinemaTitleBodyReleaseYearMin).max(updateAdminCinemaTitleBodyReleaseYearMax).nullish(),
+  "editorialRank": zod.number().min(updateAdminCinemaTitleBodyEditorialRankMin).max(updateAdminCinemaTitleBodyEditorialRankMax).optional(),
+  "adEligible": zod.boolean().optional(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']).optional(),
+  "reason": zod.string().min(1).max(updateAdminCinemaTitleBodyReasonMax).optional()
+})
+
+export const UpdateAdminCinemaTitleResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "publishState": zod.enum(['draft', 'review', 'published', 'archived']),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "editorialRank": zod.number(),
+  "adEligible": zod.boolean(),
+  "posterUrl": zod.string().nullish(),
+  "backdropUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "releaseYear": zod.number().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "contentRating": zod.string().nullable(),
+  "genres": zod.array(zod.string()),
+  "castMembers": zod.array(zod.string()),
+  "crew": zod.array(zod.string()),
+  "logoUrl": zod.string().nullable(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "assets": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "assetKind": zod.enum(['feature', 'trailer', 'preview', 'captions']),
+  "processingStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "fastpixMediaId": zod.string().nullish(),
+  "fastpixPlaybackId": zod.string().nullable()
+}).and(zod.object({
+  "sourceProvenance": zod.string().nullable(),
+  "language": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))),
+  "rightsWindows": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "territoryCodes": zod.array(zod.string()),
+  "entitlementType": zod.enum(['unconfigured', 'free', 'subscription', 'rental', 'purchase']),
+  "rightsReference": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})),
+  "credits": zod.array(zod.object({
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "role": zod.string(),
+  "displayOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})),
+  "readiness": zod.object({
+  "hasReadyFeature": zod.boolean(),
+  "hasActiveRightsWindow": zod.boolean(),
+  "isPublishEligible": zod.boolean(),
+  "blockingReasons": zod.array(zod.string())
+}),
+  "activity": zod.array(zod.object({
+  "id": zod.number(),
+  "action": zod.string(),
+  "targetType": zod.string(),
+  "targetId": zod.string().nullable(),
+  "reason": zod.string().nullable(),
+  "createdAt": zod.coerce.date()
+}))
+}))
+
 
 /**
  * @summary Add a rights and entitlement window to a Cinema title
  */
 export const CreateAdminCinemaRightsWindowParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createAdminCinemaRightsWindowBodyTerritoryCodesItemMin = 2;
 export const createAdminCinemaRightsWindowBodyTerritoryCodesItemMax = 3;
 
 export const createAdminCinemaRightsWindowBodyRightsReferenceMax = 500;
 
+
+
 export const CreateAdminCinemaRightsWindowBody = zod.object({
-  territoryCodes: zod
-    .array(
-      zod
-        .string()
-        .min(createAdminCinemaRightsWindowBodyTerritoryCodesItemMin)
-        .max(createAdminCinemaRightsWindowBodyTerritoryCodesItemMax),
-    )
-    .optional(),
-  entitlementType: zod.enum(["free", "subscription", "rental", "purchase"]),
-  rightsReference: zod
-    .string()
-    .min(1)
-    .max(createAdminCinemaRightsWindowBodyRightsReferenceMax),
-  startsAt: zod.coerce.date(),
-  endsAt: zod.coerce.date().nullish(),
-});
+  "territoryCodes": zod.array(zod.string().min(createAdminCinemaRightsWindowBodyTerritoryCodesItemMin).max(createAdminCinemaRightsWindowBodyTerritoryCodesItemMax)).optional(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "rightsReference": zod.string().min(1).max(createAdminCinemaRightsWindowBodyRightsReferenceMax),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullish()
+})
 
 export const CreateAdminCinemaRightsWindowResponse = zod.object({
-  id: zod.number(),
-  cinemaTitleId: zod.number(),
-  territoryCodes: zod.array(zod.string()),
-  entitlementType: zod.enum([
-    "unconfigured",
-    "free",
-    "subscription",
-    "rental",
-    "purchase",
-  ]),
-  rightsReference: zod.string(),
-  startsAt: zod.coerce.date(),
-  endsAt: zod.coerce.date().nullable(),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "territoryCodes": zod.array(zod.string()),
+  "entitlementType": zod.enum(['unconfigured', 'free', 'subscription', 'rental', 'purchase']),
+  "rightsReference": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Attach a creator channel credit to an owner-managed Cinema title
  */
 export const CreateAdminCinemaCreditParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
+
 
 export const createAdminCinemaCreditBodyRoleMax = 80;
 
 export const createAdminCinemaCreditBodyDisplayOrderMin = -100000;
 export const createAdminCinemaCreditBodyDisplayOrderMax = 100000;
 
+
+
 export const CreateAdminCinemaCreditBody = zod.object({
-  channelId: zod.number().min(1),
-  role: zod.string().min(1).max(createAdminCinemaCreditBodyRoleMax),
-  displayOrder: zod
-    .number()
-    .min(createAdminCinemaCreditBodyDisplayOrderMin)
-    .max(createAdminCinemaCreditBodyDisplayOrderMax)
-    .optional(),
-});
+  "channelId": zod.number().min(1),
+  "role": zod.string().min(1).max(createAdminCinemaCreditBodyRoleMax),
+  "displayOrder": zod.number().min(createAdminCinemaCreditBodyDisplayOrderMin).max(createAdminCinemaCreditBodyDisplayOrderMax).optional()
+})
 
 export const CreateAdminCinemaCreditResponse = zod.object({
-  id: zod.number(),
-  cinemaTitleId: zod.number(),
-  channelId: zod.number(),
-  channelSlug: zod.string(),
-  channelDisplayName: zod.string(),
-  role: zod.string(),
-  displayOrder: zod.number(),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "role": zod.string(),
+  "displayOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Remove a creator credit from an owner-managed Cinema title
  */
 export const DeleteAdminCinemaCreditParams = zod.object({
-  id: zod.coerce.number(),
-  creditId: zod.coerce.number(),
-});
+  "id": zod.coerce.number(),
+  "creditId": zod.coerce.number()
+})
 
-export const DeleteAdminCinemaCreditResponse = zod.void();
+export const DeleteAdminCinemaCreditResponse = zod.void()
+
 
 /**
  * @summary List browse categories with live counts. Filter by kind — live_game categories for Kryv Live, genre categories for Kryv Watch/Cinema.
  */
 export const ListCategoriesQueryParams = zod.object({
-  kind: zod.enum(["live_game", "genre"]).optional(),
-});
+  "kind": zod.enum(['live_game', 'genre']).optional()
+})
 
 export const ListCategoriesResponseItem = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  slug: zod.string(),
-  kind: zod
-    .enum(["live_game", "genre"])
-    .describe(
-      "live_game categories power Kryv Live's browse sidebar; genre categories power Kryv Watch\/Cinema",
-    ),
-  imageUrl: zod.string().nullable(),
-  liveChannelCount: zod.number(),
-  viewerCount: zod.number(),
-});
-export const ListCategoriesResponse = zod.array(ListCategoriesResponseItem);
+  "id": zod.number(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "kind": zod.enum(['live_game', 'genre']).describe('live_game categories power Kryv Live\'s browse sidebar; genre categories power Kryv Watch\/Cinema'),
+  "imageUrl": zod.string().nullable(),
+  "liveChannelCount": zod.number(),
+  "viewerCount": zod.number()
+})
+export const ListCategoriesResponse = zod.array(ListCategoriesResponseItem)
+
 
 /**
  * @summary Home page aggregate — featured live channels, top categories, totals
  */
 export const GetDiscoverSummaryResponse = zod.object({
-  featuredChannels: zod.array(
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      displayName: zod.string(),
-      avatarUrl: zod.string().nullable(),
-      bannerUrl: zod.string().nullable(),
-      streamTitle: zod.string().nullable(),
-      isLive: zod.boolean(),
-      viewerCount: zod.number(),
-      followerCount: zod.number(),
-      subscriberCount: zod.number(),
-      categoryId: zod.number().nullable(),
-      categoryName: zod.string().nullable(),
-      lastStreamAt: zod.coerce
-        .date()
-        .nullable()
-        .describe(
-          "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-        ),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-      fastpixPlaybackId: zod
-        .string()
-        .nullish()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-    }),
-  ),
-  topCategories: zod.array(
-    zod.object({
-      id: zod.number(),
-      name: zod.string(),
-      slug: zod.string(),
-      kind: zod
-        .enum(["live_game", "genre"])
-        .describe(
-          "live_game categories power Kryv Live's browse sidebar; genre categories power Kryv Watch\/Cinema",
-        ),
-      imageUrl: zod.string().nullable(),
-      liveChannelCount: zod.number(),
-      viewerCount: zod.number(),
-    }),
-  ),
-  totalLiveChannels: zod.number(),
-  totalViewers: zod.number(),
-});
+  "featuredChannels": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+})),
+  "topCategories": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "kind": zod.enum(['live_game', 'genre']).describe('live_game categories power Kryv Live\'s browse sidebar; genre categories power Kryv Watch\/Cinema'),
+  "imageUrl": zod.string().nullable(),
+  "liveChannelCount": zod.number(),
+  "viewerCount": zod.number()
+})),
+  "totalLiveChannels": zod.number(),
+  "totalViewers": zod.number()
+})
+
 
 /**
  * @summary Search public live channels, uploaded videos, and ready clips
@@ -871,179 +794,112 @@ export const GetDiscoverSummaryResponse = zod.object({
 export const searchKryvQueryQMin = 2;
 export const searchKryvQueryQMax = 64;
 
+
+
 export const SearchKryvQueryParams = zod.object({
-  q: zod.coerce.string().min(searchKryvQueryQMin).max(searchKryvQueryQMax),
-});
+  "q": zod.coerce.string().min(searchKryvQueryQMin).max(searchKryvQueryQMax)
+})
 
 export const SearchKryvResponse = zod.object({
-  channels: zod.array(
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      displayName: zod.string(),
-      avatarUrl: zod.string().nullable(),
-      bannerUrl: zod.string().nullable(),
-      streamTitle: zod.string().nullable(),
-      isLive: zod.boolean(),
-      viewerCount: zod.number(),
-      followerCount: zod.number(),
-      subscriberCount: zod.number(),
-      categoryId: zod.number().nullable(),
-      categoryName: zod.string().nullable(),
-      lastStreamAt: zod.coerce
-        .date()
-        .nullable()
-        .describe(
-          "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-        ),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-      fastpixPlaybackId: zod
-        .string()
-        .nullish()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-    }),
-  ),
-  videos: zod.array(
-    zod.object({
-      id: zod.number(),
-      title: zod.string(),
-      thumbnailUrl: zod
-        .string()
-        .nullable()
-        .describe("Landscape 16:9 thumbnail — used in Kryv Watch grids"),
-      posterUrl: zod
-        .string()
-        .nullable()
-        .describe("Portrait 2:3 poster — used in Kryv Cinema rows"),
-      backdropUrl: zod
-        .string()
-        .nullable()
-        .describe("Wide cinematic backdrop — used in Kryv Cinema hero banners"),
-      durationSeconds: zod.number().nullable(),
-      viewCount: zod.number(),
-      channelId: zod.number(),
-      channelSlug: zod.string(),
-      channelName: zod.string(),
-      channelAvatarUrl: zod.string().nullable(),
-      categoryId: zod.number().nullable(),
-      categoryName: zod.string().nullable(),
-      contentType: zod.enum(["upload", "original"]),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.",
-        ),
-      playbackSource: zod
-        .enum(["fastpix", "youtube"])
-        .describe("The approved playback provider for this Watch item."),
-      youtubeVideoId: zod
-        .string()
-        .nullable()
-        .describe(
-          "Official YouTube video identifier. Present only for rights-attested YouTube embeds.",
-        ),
-      uploadStatus: zod.enum(["waiting", "processing", "ready", "errored"]),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  clips: zod.array(
-    zod.object({
-      id: zod.number(),
-      title: zod.string(),
-      thumbnailUrl: zod.string().nullable(),
-      durationSeconds: zod.number().nullable(),
-      viewCount: zod.number(),
-      channelId: zod.number(),
-      channelName: zod.string(),
-      channelSlug: zod.string(),
-      processingStatus: zod.enum(["processing", "ready", "errored"]),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback ID. Present only when the clip is ready for playback.",
-        ),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  cinema: zod.array(
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      title: zod.string(),
-      synopsis: zod.string().nullable(),
-      maturityLevel: zod.enum(["kids", "standard", "mature"]),
-      genres: zod.array(zod.string()),
-      posterUrl: zod.string().nullable(),
-      backdropUrl: zod.string().nullable(),
-      runtimeSeconds: zod.number().nullable(),
-      featurePlaybackId: zod
-        .string()
-        .nullable()
-        .describe("Feature playback identifier"),
-      playbackAvailable: zod.boolean(),
-      playbackBlockedReason: zod
-        .string()
-        .nullable()
-        .describe(
-          "Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled",
-        ),
-      trailerPlaybackId: zod.string().nullable(),
-      entitlementType: zod.enum(["free", "subscription", "rental", "purchase"]),
-      publishedAt: zod.coerce.date().nullable(),
-    }),
-  ),
-});
+  "channels": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+})),
+  "videos": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+})),
+  "clips": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelSlug": zod.string(),
+  "processingStatus": zod.enum(['processing', 'ready', 'errored']),
+  "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
+  "createdAt": zod.coerce.date()
+})),
+  "cinema": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string().nullable().describe('Feature playback identifier'),
+  "playbackAvailable": zod.boolean(),
+  "playbackBlockedReason": zod.string().nullable().describe('Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled'),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
+}))
+})
+
 
 /**
  * @summary List the signed-in viewer's followed channels that are currently live
  */
 export const ListFollowedLiveChannelsResponseItem = zod.object({
-  id: zod.number(),
-  slug: zod.string(),
-  displayName: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  bannerUrl: zod.string().nullable(),
-  streamTitle: zod.string().nullable(),
-  isLive: zod.boolean(),
-  viewerCount: zod.number(),
-  followerCount: zod.number(),
-  subscriberCount: zod.number(),
-  categoryId: zod.number().nullable(),
-  categoryName: zod.string().nullable(),
-  lastStreamAt: zod.coerce
-    .date()
-    .nullable()
-    .describe(
-      "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-    ),
-  matureContent: zod.boolean(),
-  playbackId: zod
-    .string()
-    .nullable()
-    .describe(
-      "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-    ),
-  fastpixPlaybackId: zod
-    .string()
-    .nullish()
-    .describe(
-      "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-    ),
-  playbackAvailable: zod.boolean(),
-  playbackBlockedReason: zod.string().nullable(),
-});
-export const ListFollowedLiveChannelsResponse = zod.array(
-  ListFollowedLiveChannelsResponseItem,
-);
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+})
+export const ListFollowedLiveChannelsResponse = zod.array(ListFollowedLiveChannelsResponseItem)
+
 
 /**
  * @summary List the signed-in user’s persisted in-app notifications and unread count
@@ -1051,161 +907,135 @@ export const ListFollowedLiveChannelsResponse = zod.array(
 export const getNotificationInboxQueryLimitDefault = 12;
 export const getNotificationInboxQueryLimitMax = 30;
 
+
+
 export const GetNotificationInboxQueryParams = zod.object({
-  limit: zod.coerce
-    .number()
-    .min(1)
-    .max(getNotificationInboxQueryLimitMax)
-    .default(getNotificationInboxQueryLimitDefault),
-});
+  "limit": zod.coerce.number().min(1).max(getNotificationInboxQueryLimitMax).default(getNotificationInboxQueryLimitDefault)
+})
 
 export const GetNotificationInboxResponse = zod.object({
-  items: zod.array(
-    zod.object({
-      id: zod.number(),
-      type: zod.string(),
-      title: zod.string(),
-      message: zod.string().nullable(),
-      data: zod.record(zod.string(), zod.unknown()),
-      isRead: zod.boolean(),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  unreadCount: zod.number(),
-});
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "type": zod.string(),
+  "title": zod.string(),
+  "message": zod.string().nullable(),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "isRead": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})),
+  "unreadCount": zod.number()
+})
+
 
 /**
  * @summary Mark one signed-in user notification as read
  */
 export const MarkNotificationReadParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const MarkNotificationReadResponse = zod.object({
-  id: zod.number(),
-  type: zod.string(),
-  title: zod.string(),
-  message: zod.string().nullable(),
-  data: zod.record(zod.string(), zod.unknown()),
-  isRead: zod.boolean(),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "type": zod.string(),
+  "title": zod.string(),
+  "message": zod.string().nullable(),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "isRead": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Get the signed-in user's global notification preferences
  */
 export const GetNotificationPreferencesResponse = zod.object({
-  notifyOnLive: zod.boolean(),
-  notifyOnUpload: zod.boolean(),
-  notifyOnClip: zod.boolean(),
-  emailNotifications: zod.boolean(),
-});
+  "notifyOnLive": zod.boolean(),
+  "notifyOnUpload": zod.boolean(),
+  "notifyOnClip": zod.boolean(),
+  "emailNotifications": zod.boolean()
+})
+
 
 /**
  * @summary Update the signed-in user's global notification preferences
  */
 export const UpdateNotificationPreferencesBody = zod.object({
-  notifyOnLive: zod.boolean(),
-  notifyOnUpload: zod.boolean(),
-  notifyOnClip: zod.boolean(),
-  emailNotifications: zod.boolean(),
-});
+  "notifyOnLive": zod.boolean(),
+  "notifyOnUpload": zod.boolean(),
+  "notifyOnClip": zod.boolean(),
+  "emailNotifications": zod.boolean()
+})
 
 export const UpdateNotificationPreferencesResponse = zod.object({
-  notifyOnLive: zod.boolean(),
-  notifyOnUpload: zod.boolean(),
-  notifyOnClip: zod.boolean(),
-  emailNotifications: zod.boolean(),
-});
+  "notifyOnLive": zod.boolean(),
+  "notifyOnUpload": zod.boolean(),
+  "notifyOnClip": zod.boolean(),
+  "emailNotifications": zod.boolean()
+})
+
 
 /**
  * @summary Get the signed-in user's consent for minimized Kryv in-app activity visibility
  */
 export const GetActivityObservabilityPreferencesResponse = zod.object({
-  enabled: zod.boolean(),
-});
+  "enabled": zod.boolean()
+})
+
 
 /**
  * @summary Update the signed-in user's consent for minimized Kryv in-app activity visibility
  */
 export const UpdateActivityObservabilityPreferencesBody = zod.object({
-  enabled: zod.boolean(),
-});
+  "enabled": zod.boolean()
+})
 
 export const UpdateActivityObservabilityPreferencesResponse = zod.object({
-  enabled: zod.boolean(),
-});
+  "enabled": zod.boolean()
+})
+
 
 /**
  * @summary Record a consented, minimized Kryv in-app route class and device class
  */
 export const ReportActivityPresenceBody = zod.object({
-  routeKey: zod.enum([
-    "live_home",
-    "live_categories",
-    "live_category",
-    "live_channel",
-    "watch_home",
-    "watch_detail",
-    "clips_home",
-    "clip_detail",
-    "cinema_catalog",
-    "cinema_detail",
-    "creator_studio",
-    "creator_wallet",
-    "creator_achievements",
-    "account_settings",
-  ]),
-  deviceClass: zod.enum(["desktop", "tablet", "mobile", "other"]),
-});
+  "routeKey": zod.enum(['live_home', 'live_categories', 'live_category', 'live_channel', 'watch_home', 'watch_detail', 'clips_home', 'clip_detail', 'cinema_catalog', 'cinema_detail', 'creator_studio', 'creator_wallet', 'creator_achievements', 'account_settings']),
+  "deviceClass": zod.enum(['desktop', 'tablet', 'mobile', 'other'])
+})
 
-export const ReportActivityPresenceResponse = zod.void();
+export const ReportActivityPresenceResponse = zod.void()
+
 
 /**
  * @summary Browse channels, optionally filtered by category, live status, or search
  */
 export const ListChannelsQueryParams = zod.object({
-  categorySlug: zod.coerce.string().optional(),
-  live: zod.coerce.boolean().optional(),
-  search: zod.coerce.string().optional(),
-});
+  "categorySlug": zod.coerce.string().optional(),
+  "live": zod.coerce.boolean().optional(),
+  "search": zod.coerce.string().optional()
+})
 
 export const ListChannelsResponseItem = zod.object({
-  id: zod.number(),
-  slug: zod.string(),
-  displayName: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  bannerUrl: zod.string().nullable(),
-  streamTitle: zod.string().nullable(),
-  isLive: zod.boolean(),
-  viewerCount: zod.number(),
-  followerCount: zod.number(),
-  subscriberCount: zod.number(),
-  categoryId: zod.number().nullable(),
-  categoryName: zod.string().nullable(),
-  lastStreamAt: zod.coerce
-    .date()
-    .nullable()
-    .describe(
-      "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-    ),
-  matureContent: zod.boolean(),
-  playbackId: zod
-    .string()
-    .nullable()
-    .describe(
-      "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-    ),
-  fastpixPlaybackId: zod
-    .string()
-    .nullish()
-    .describe(
-      "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-    ),
-  playbackAvailable: zod.boolean(),
-  playbackBlockedReason: zod.string().nullable(),
-});
-export const ListChannelsResponse = zod.array(ListChannelsResponseItem);
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+})
+export const ListChannelsResponse = zod.array(ListChannelsResponseItem)
+
 
 /**
  * @summary Create a channel for the current user (become a creator)
@@ -1214,788 +1044,565 @@ export const createChannelBodyDisplayNameMax = 60;
 
 export const createChannelBodyDescriptionMax = 500;
 
-export const CreateChannelBody = zod.object({
-  displayName: zod.string().min(1).max(createChannelBodyDisplayNameMax),
-  description: zod.string().max(createChannelBodyDescriptionMax).optional(),
-  categoryId: zod.number().optional(),
-});
 
-export const CreateChannelResponse = zod
-  .object({
-    id: zod.number(),
-    slug: zod.string(),
-    displayName: zod.string(),
-    avatarUrl: zod.string().nullable(),
-    bannerUrl: zod.string().nullable(),
-    streamTitle: zod.string().nullable(),
-    isLive: zod.boolean(),
-    viewerCount: zod.number(),
-    followerCount: zod.number(),
-    subscriberCount: zod.number(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    lastStreamAt: zod.coerce
-      .date()
-      .nullable()
-      .describe(
-        "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-      ),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-    fastpixPlaybackId: zod
-      .string()
-      .nullish()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      websiteUrl: zod.string().url().nullable(),
-      youtubeUrl: zod.string().url().nullable(),
-      instagramUrl: zod.string().url().nullable(),
-      xUrl: zod.string().url().nullable(),
-      isFollowing: zod.boolean(),
-      isSubscribed: zod.boolean(),
-      isOwner: zod.boolean(),
-      ownerUserId: zod.number(),
-      createdAt: zod.coerce.date(),
-    }),
-  );
+
+export const CreateChannelBody = zod.object({
+  "displayName": zod.string().min(1).max(createChannelBodyDisplayNameMax),
+  "description": zod.string().max(createChannelBodyDescriptionMax).optional(),
+  "categoryId": zod.number().optional()
+})
+
+export const CreateChannelResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
+  "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "ownerUserId": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+
 
 /**
  * @summary Get a public creator profile with live state, Watch uploads, and curated Cinema credits
  */
 export const GetCreatorProfileParams = zod.object({
-  slug: zod.coerce.string(),
-});
+  "slug": zod.coerce.string()
+})
+
+export const getCreatorProfileResponseWatchTotalMin = 0;
+
+
 
 export const GetCreatorProfileResponse = zod.object({
-  channel: zod
-    .object({
-      id: zod.number(),
-      slug: zod.string(),
-      displayName: zod.string(),
-      avatarUrl: zod.string().nullable(),
-      bannerUrl: zod.string().nullable(),
-      streamTitle: zod.string().nullable(),
-      isLive: zod.boolean(),
-      viewerCount: zod.number(),
-      followerCount: zod.number(),
-      subscriberCount: zod.number(),
-      categoryId: zod.number().nullable(),
-      categoryName: zod.string().nullable(),
-      lastStreamAt: zod.coerce
-        .date()
-        .nullable()
-        .describe(
-          "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-        ),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-      fastpixPlaybackId: zod
-        .string()
-        .nullish()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-    })
-    .and(
-      zod.object({
-        description: zod.string().nullable(),
-        websiteUrl: zod.string().url().nullable(),
-        youtubeUrl: zod.string().url().nullable(),
-        instagramUrl: zod.string().url().nullable(),
-        xUrl: zod.string().url().nullable(),
-        isFollowing: zod.boolean(),
-        isSubscribed: zod.boolean(),
-        isOwner: zod.boolean(),
-        ownerUserId: zod.number(),
-        createdAt: zod.coerce.date(),
-      }),
-    ),
-  live: zod.object({
-    isLive: zod.boolean(),
-    streamTitle: zod.string().nullable(),
-    viewerCount: zod.number(),
-    categoryName: zod.string().nullable(),
-    recentStreams: zod.array(
-      zod.object({
-        id: zod.number(),
-        title: zod.string().nullable(),
-        startedAt: zod.coerce.date(),
-        endedAt: zod.coerce.date().nullable(),
-        durationSeconds: zod.number().nullable(),
-      }),
-    ),
-  }),
-  watch: zod.array(
-    zod.object({
-      id: zod.number(),
-      title: zod.string(),
-      thumbnailUrl: zod
-        .string()
-        .nullable()
-        .describe("Landscape 16:9 thumbnail — used in Kryv Watch grids"),
-      posterUrl: zod
-        .string()
-        .nullable()
-        .describe("Portrait 2:3 poster — used in Kryv Cinema rows"),
-      backdropUrl: zod
-        .string()
-        .nullable()
-        .describe("Wide cinematic backdrop — used in Kryv Cinema hero banners"),
-      durationSeconds: zod.number().nullable(),
-      viewCount: zod.number(),
-      channelId: zod.number(),
-      channelSlug: zod.string(),
-      channelName: zod.string(),
-      channelAvatarUrl: zod.string().nullable(),
-      categoryId: zod.number().nullable(),
-      categoryName: zod.string().nullable(),
-      contentType: zod.enum(["upload", "original"]),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.",
-        ),
-      playbackSource: zod
-        .enum(["fastpix", "youtube"])
-        .describe("The approved playback provider for this Watch item."),
-      youtubeVideoId: zod
-        .string()
-        .nullable()
-        .describe(
-          "Official YouTube video identifier. Present only for rights-attested YouTube embeds.",
-        ),
-      uploadStatus: zod.enum(["waiting", "processing", "ready", "errored"]),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  cinemaCredits: zod.array(
-    zod
-      .object({
-        id: zod.number(),
-        slug: zod.string(),
-        title: zod.string(),
-        synopsis: zod.string().nullable(),
-        maturityLevel: zod.enum(["kids", "standard", "mature"]),
-        genres: zod.array(zod.string()),
-        posterUrl: zod.string().nullable(),
-        backdropUrl: zod.string().nullable(),
-        runtimeSeconds: zod.number().nullable(),
-        featurePlaybackId: zod
-          .string()
-          .nullable()
-          .describe("Feature playback identifier"),
-        playbackAvailable: zod.boolean(),
-        playbackBlockedReason: zod
-          .string()
-          .nullable()
-          .describe(
-            "Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled",
-          ),
-        trailerPlaybackId: zod.string().nullable(),
-        entitlementType: zod.enum([
-          "free",
-          "subscription",
-          "rental",
-          "purchase",
-        ]),
-        publishedAt: zod.coerce.date().nullable(),
-      })
-      .and(
-        zod.object({
-          role: zod.string(),
-        }),
-      ),
-  ),
-});
+  "channel": zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
+  "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "ownerUserId": zod.number(),
+  "createdAt": zod.coerce.date()
+})),
+  "live": zod.object({
+  "isLive": zod.boolean(),
+  "streamTitle": zod.string().nullable(),
+  "viewerCount": zod.number(),
+  "categoryName": zod.string().nullable(),
+  "recentStreams": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string().nullable(),
+  "startedAt": zod.coerce.date(),
+  "endedAt": zod.coerce.date().nullable(),
+  "durationSeconds": zod.number().nullable()
+}))
+}),
+  "watch": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+})).describe('Newest ready Watch uploads, capped at 48 for a responsive profile rail.'),
+  "watchTotal": zod.number().min(getCreatorProfileResponseWatchTotalMin).describe('Total ready Watch uploads for this creator, including releases beyond the initial profile rail.'),
+  "cinemaCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string().nullable().describe('Feature playback identifier'),
+  "playbackAvailable": zod.boolean(),
+  "playbackBlockedReason": zod.string().nullable().describe('Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled'),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
+}).and(zod.object({
+  "role": zod.string()
+})))
+})
+
 
 /**
  * @summary Get a public Kryv account identity with optional creator-channel linkage
  */
 export const GetUserProfileParams = zod.object({
-  username: zod.coerce.string(),
-});
+  "username": zod.coerce.string()
+})
 
 export const GetUserProfileResponse = zod.object({
-  id: zod.number(),
-  username: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  role: zod.enum(["owner", "user"]),
-  createdAt: zod.coerce.date(),
-  creatorChannel: zod.union([
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      displayName: zod.string(),
-      avatarUrl: zod.string().nullable(),
-      isLive: zod.boolean(),
-      streamTitle: zod.string().nullable(),
-      viewerCount: zod.number(),
-      followerCount: zod.number(),
-    }),
-    zod.null(),
-  ]),
-});
+  "id": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['owner', 'user']),
+  "createdAt": zod.coerce.date(),
+  "creatorChannel": zod.union([zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "streamTitle": zod.string().nullable(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number()
+}),zod.null()])
+})
+
 
 /**
  * @summary Get a single channel's detail
  */
 export const GetChannelParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const GetChannelResponse = zod
-  .object({
-    id: zod.number(),
-    slug: zod.string(),
-    displayName: zod.string(),
-    avatarUrl: zod.string().nullable(),
-    bannerUrl: zod.string().nullable(),
-    streamTitle: zod.string().nullable(),
-    isLive: zod.boolean(),
-    viewerCount: zod.number(),
-    followerCount: zod.number(),
-    subscriberCount: zod.number(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    lastStreamAt: zod.coerce
-      .date()
-      .nullable()
-      .describe(
-        "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-      ),
-    matureContent: zod.boolean(),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.",
-      ),
-    fastpixPlaybackId: zod
-      .string()
-      .nullish()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.",
-      ),
-    playbackAvailable: zod.boolean(),
-    playbackBlockedReason: zod.string().nullable(),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      websiteUrl: zod.string().url().nullable(),
-      youtubeUrl: zod.string().url().nullable(),
-      instagramUrl: zod.string().url().nullable(),
-      xUrl: zod.string().url().nullable(),
-      isFollowing: zod.boolean(),
-      isSubscribed: zod.boolean(),
-      isOwner: zod.boolean(),
-      ownerUserId: zod.number(),
-      createdAt: zod.coerce.date(),
-    }),
-  );
+export const GetChannelResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
+  "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "ownerUserId": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+
 
 /**
  * @summary Update the current user's own channel (profile, category, offline)
  */
 export const UpdateChannelParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const updateChannelBodyDisplayNameMax = 60;
 
 export const updateChannelBodyDescriptionMax = 500;
 
-export const updateChannelBodyWebsiteUrlRegExp = new RegExp("^https://.+");
-export const updateChannelBodyYoutubeUrlRegExp = new RegExp(
-  "^https://(www\\\\.)?(youtube\\\\.com|youtu\\\\.be)/.+",
-);
-export const updateChannelBodyInstagramUrlRegExp = new RegExp(
-  "^https://(www\\\\.)?instagram\\\\.com/.+",
-);
-export const updateChannelBodyXUrlRegExp = new RegExp(
-  "^https://(www\\\\.)?(x\\\\.com|twitter\\\\.com)/.+",
-);
+export const updateChannelBodyWebsiteUrlRegExp = new RegExp('^https://.+');
+export const updateChannelBodyYoutubeUrlRegExp = new RegExp('^https://(www\\\\.)?(youtube\\\\.com|youtu\\\\.be)/.+');
+export const updateChannelBodyInstagramUrlRegExp = new RegExp('^https://(www\\\\.)?instagram\\\\.com/.+');
+export const updateChannelBodyXUrlRegExp = new RegExp('^https://(www\\\\.)?(x\\\\.com|twitter\\\\.com)/.+');
 export const updateChannelBodyStreamTitleMax = 140;
 
-export const UpdateChannelBody = zod.object({
-  displayName: zod
-    .string()
-    .min(1)
-    .max(updateChannelBodyDisplayNameMax)
-    .optional(),
-  description: zod.string().max(updateChannelBodyDescriptionMax).optional(),
-  websiteUrl: zod
-    .string()
-    .url()
-    .regex(updateChannelBodyWebsiteUrlRegExp)
-    .nullish(),
-  youtubeUrl: zod
-    .string()
-    .url()
-    .regex(updateChannelBodyYoutubeUrlRegExp)
-    .nullish(),
-  instagramUrl: zod
-    .string()
-    .url()
-    .regex(updateChannelBodyInstagramUrlRegExp)
-    .nullish(),
-  xUrl: zod.string().url().regex(updateChannelBodyXUrlRegExp).nullish(),
-  avatarUrl: zod.string().optional(),
-  bannerUrl: zod.string().optional(),
-  categoryId: zod.number().optional(),
-  streamTitle: zod.string().max(updateChannelBodyStreamTitleMax).optional(),
-  matureContent: zod.boolean().optional(),
-});
 
-export const UpdateChannelResponse = zod
-  .object({
-    id: zod.number(),
-    slug: zod.string(),
-    displayName: zod.string(),
-    avatarUrl: zod.string().nullable(),
-    bannerUrl: zod.string().nullable(),
-    streamTitle: zod.string().nullable(),
-    isLive: zod.boolean(),
-    viewerCount: zod.number(),
-    followerCount: zod.number(),
-    subscriberCount: zod.number(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    lastStreamAt: zod.coerce
-      .date()
-      .nullable()
-      .describe(
-        "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-      ),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-    fastpixPlaybackId: zod
-      .string()
-      .nullish()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      websiteUrl: zod.string().url().nullable(),
-      youtubeUrl: zod.string().url().nullable(),
-      instagramUrl: zod.string().url().nullable(),
-      xUrl: zod.string().url().nullable(),
-      isFollowing: zod.boolean(),
-      isSubscribed: zod.boolean(),
-      isOwner: zod.boolean(),
-      ownerUserId: zod.number(),
-      createdAt: zod.coerce.date(),
-    }),
-  );
+
+export const UpdateChannelBody = zod.object({
+  "displayName": zod.string().min(1).max(updateChannelBodyDisplayNameMax).optional(),
+  "description": zod.string().max(updateChannelBodyDescriptionMax).optional(),
+  "websiteUrl": zod.string().url().regex(updateChannelBodyWebsiteUrlRegExp).nullish(),
+  "youtubeUrl": zod.string().url().regex(updateChannelBodyYoutubeUrlRegExp).nullish(),
+  "instagramUrl": zod.string().url().regex(updateChannelBodyInstagramUrlRegExp).nullish(),
+  "xUrl": zod.string().url().regex(updateChannelBodyXUrlRegExp).nullish(),
+  "avatarUrl": zod.string().optional(),
+  "bannerUrl": zod.string().optional(),
+  "categoryId": zod.number().optional(),
+  "streamTitle": zod.string().max(updateChannelBodyStreamTitleMax).optional(),
+  "matureContent": zod.boolean().optional().describe('Marks this channel as mature. Mature Live surfaces require an active profile with maturityLevel set to mature.')
+})
+
+export const UpdateChannelResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
+  "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "ownerUserId": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+
 
 /**
  * @summary Get a single channel's detail by its unique URL slug
  */
 export const GetChannelBySlugParams = zod.object({
-  slug: zod.coerce.string(),
-});
+  "slug": zod.coerce.string()
+})
 
-export const GetChannelBySlugResponse = zod
-  .object({
-    id: zod.number(),
-    slug: zod.string(),
-    displayName: zod.string(),
-    avatarUrl: zod.string().nullable(),
-    bannerUrl: zod.string().nullable(),
-    streamTitle: zod.string().nullable(),
-    isLive: zod.boolean(),
-    viewerCount: zod.number(),
-    followerCount: zod.number(),
-    subscriberCount: zod.number(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    lastStreamAt: zod.coerce
-      .date()
-      .nullable()
-      .describe(
-        "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-      ),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-    fastpixPlaybackId: zod
-      .string()
-      .nullish()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      websiteUrl: zod.string().url().nullable(),
-      youtubeUrl: zod.string().url().nullable(),
-      instagramUrl: zod.string().url().nullable(),
-      xUrl: zod.string().url().nullable(),
-      isFollowing: zod.boolean(),
-      isSubscribed: zod.boolean(),
-      isOwner: zod.boolean(),
-      ownerUserId: zod.number(),
-      createdAt: zod.coerce.date(),
-    }),
-  );
+export const GetChannelBySlugResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
+  "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "ownerUserId": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+
 
 /**
  * @summary Create or fetch this channel's live ingest credentials (RTMP URL, stream key, playback id)
  */
 export const CreateChannelStreamParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const CreateChannelStreamResponse = zod.object({
-  rtmpUrl: zod
-    .string()
-    .describe(
-      "RTMP ingest server URL to enter in broadcasting software (e.g. OBS)",
-    ),
-  streamKey: zod
-    .string()
-    .describe(
-      "Secret stream key — combined with rtmpUrl to start broadcasting. Never shown to anyone but the owner.",
-    ),
-  playbackId: zod
-    .string()
-    .describe("FastPix playback id for this channel's live stream"),
-  fastpixPlaybackId: zod
-    .string()
-    .nullish()
-    .describe("FastPix playback id for this channel's live stream"),
-});
+  "rtmpUrl": zod.string().describe('RTMP ingest server URL to enter in broadcasting software (e.g. OBS)'),
+  "streamKey": zod.string().describe('Secret stream key — combined with rtmpUrl to start broadcasting. Never shown to anyone but the owner.'),
+  "playbackId": zod.string().describe('FastPix playback id for this channel\'s live stream'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id for this channel\'s live stream')
+})
+
 
 /**
  * @summary Get actionable live analytics for the current channel owner
  */
 export const GetChannelAnalyticsParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const GetChannelAnalyticsResponse = zod.object({
-  periodDays: zod
-    .number()
-    .describe("Rolling measurement period in calendar days"),
-  isLive: zod.boolean(),
-  currentViewerCount: zod.number(),
-  followerCount: zod.number(),
-  subscriberCount: zod.number(),
-  totalStreams: zod.number(),
-  totalStreamSeconds: zod.number(),
-  peakViewers: zod.number(),
-  averageViewers: zod.number(),
-  totalChatMessages: zod.number(),
-  completedTipCount: zod
-    .number()
-    .describe(
-      "Completed tip records received during the rolling measurement period; does not aggregate asset amounts across currencies",
-    ),
-  activeSubscriptionCount: zod
-    .number()
-    .describe(
-      "Current active subscriptions whose expiry is absent or in the future",
-    ),
-  recentStreams: zod.array(
-    zod.object({
-      id: zod.number(),
-      title: zod.string().nullable(),
-      startedAt: zod.coerce.date(),
-      endedAt: zod.coerce.date().nullable(),
-      durationSeconds: zod.number().nullable(),
-      peakViewers: zod.number(),
-      averageViewers: zod.number(),
-      totalChatMessages: zod.number(),
-    }),
-  ),
-});
+  "periodDays": zod.number().describe('Rolling measurement period in calendar days'),
+  "isLive": zod.boolean(),
+  "currentViewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "totalStreams": zod.number(),
+  "totalStreamSeconds": zod.number(),
+  "peakViewers": zod.number(),
+  "averageViewers": zod.number(),
+  "totalChatMessages": zod.number(),
+  "completedTipCount": zod.number().describe('Completed tip records received during the rolling measurement period; does not aggregate asset amounts across currencies'),
+  "activeSubscriptionCount": zod.number().describe('Current active subscriptions whose expiry is absent or in the future'),
+  "recentStreams": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string().nullable(),
+  "startedAt": zod.coerce.date(),
+  "endedAt": zod.coerce.date().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "peakViewers": zod.number(),
+  "averageViewers": zod.number(),
+  "totalChatMessages": zod.number()
+}))
+})
+
 
 /**
  * @summary Viewer heartbeat — increments viewer count while watching a live stream. Call every 30 seconds.
  */
 export const ChannelHeartbeatParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const ChannelHeartbeatResponse = zod.object({
-  viewerCount: zod.number(),
-});
+  "viewerCount": zod.number()
+})
+
 
 /**
  * @summary Regenerate the stream key (invalidates the old one)
  */
 export const ResetChannelStreamParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const ResetChannelStreamResponse = zod.object({
-  rtmpUrl: zod
-    .string()
-    .describe(
-      "RTMP ingest server URL to enter in broadcasting software (e.g. OBS)",
-    ),
-  streamKey: zod
-    .string()
-    .describe(
-      "Secret stream key — combined with rtmpUrl to start broadcasting. Never shown to anyone but the owner.",
-    ),
-  playbackId: zod
-    .string()
-    .describe("FastPix playback id for this channel's live stream"),
-  fastpixPlaybackId: zod
-    .string()
-    .nullish()
-    .describe("FastPix playback id for this channel's live stream"),
-});
+  "rtmpUrl": zod.string().describe('RTMP ingest server URL to enter in broadcasting software (e.g. OBS)'),
+  "streamKey": zod.string().describe('Secret stream key — combined with rtmpUrl to start broadcasting. Never shown to anyone but the owner.'),
+  "playbackId": zod.string().describe('FastPix playback id for this channel\'s live stream'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id for this channel\'s live stream')
+})
+
 
 /**
  * @summary Follow a channel
  */
 export const FollowChannelParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const FollowChannelResponse = zod
-  .object({
-    id: zod.number(),
-    slug: zod.string(),
-    displayName: zod.string(),
-    avatarUrl: zod.string().nullable(),
-    bannerUrl: zod.string().nullable(),
-    streamTitle: zod.string().nullable(),
-    isLive: zod.boolean(),
-    viewerCount: zod.number(),
-    followerCount: zod.number(),
-    subscriberCount: zod.number(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    lastStreamAt: zod.coerce
-      .date()
-      .nullable()
-      .describe(
-        "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-      ),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-    fastpixPlaybackId: zod
-      .string()
-      .nullish()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      websiteUrl: zod.string().url().nullable(),
-      youtubeUrl: zod.string().url().nullable(),
-      instagramUrl: zod.string().url().nullable(),
-      xUrl: zod.string().url().nullable(),
-      isFollowing: zod.boolean(),
-      isSubscribed: zod.boolean(),
-      isOwner: zod.boolean(),
-      ownerUserId: zod.number(),
-      createdAt: zod.coerce.date(),
-    }),
-  );
+export const FollowChannelResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
+  "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "ownerUserId": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+
 
 /**
  * @summary Unfollow a channel
  */
 export const UnfollowChannelParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const UnfollowChannelResponse = zod
-  .object({
-    id: zod.number(),
-    slug: zod.string(),
-    displayName: zod.string(),
-    avatarUrl: zod.string().nullable(),
-    bannerUrl: zod.string().nullable(),
-    streamTitle: zod.string().nullable(),
-    isLive: zod.boolean(),
-    viewerCount: zod.number(),
-    followerCount: zod.number(),
-    subscriberCount: zod.number(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    lastStreamAt: zod.coerce
-      .date()
-      .nullable()
-      .describe(
-        "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-      ),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-    fastpixPlaybackId: zod
-      .string()
-      .nullish()
-      .describe(
-        "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-      ),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      websiteUrl: zod.string().url().nullable(),
-      youtubeUrl: zod.string().url().nullable(),
-      instagramUrl: zod.string().url().nullable(),
-      xUrl: zod.string().url().nullable(),
-      isFollowing: zod.boolean(),
-      isSubscribed: zod.boolean(),
-      isOwner: zod.boolean(),
-      ownerUserId: zod.number(),
-      createdAt: zod.coerce.date(),
-    }),
-  );
+export const UnfollowChannelResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "websiteUrl": zod.string().url().nullable(),
+  "youtubeUrl": zod.string().url().nullable(),
+  "instagramUrl": zod.string().url().nullable(),
+  "xUrl": zod.string().url().nullable(),
+  "isFollowing": zod.boolean(),
+  "isSubscribed": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "ownerUserId": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+
 
 /**
  * @summary Get the public chat participation settings for a channel
  */
 export const GetChannelChatSettingsParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const getChannelChatSettingsResponseSlowModeSecondsMin = 0;
 export const getChannelChatSettingsResponseSlowModeSecondsMax = 300;
 
+
+
 export const GetChannelChatSettingsResponse = zod.object({
-  slowModeSeconds: zod
-    .number()
-    .min(getChannelChatSettingsResponseSlowModeSecondsMin)
-    .max(getChannelChatSettingsResponseSlowModeSecondsMax),
-  followersOnly: zod.boolean(),
-});
+  "slowModeSeconds": zod.number().min(getChannelChatSettingsResponseSlowModeSecondsMin).max(getChannelChatSettingsResponseSlowModeSecondsMax),
+  "followersOnly": zod.boolean()
+})
+
 
 /**
  * @summary Update chat slow mode and follower-only mode for the current channel owner
  */
 export const UpdateChannelChatSettingsParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const updateChannelChatSettingsBodySlowModeSecondsMin = 0;
 export const updateChannelChatSettingsBodySlowModeSecondsMax = 300;
 
+
+
 export const UpdateChannelChatSettingsBody = zod.object({
-  slowModeSeconds: zod
-    .number()
-    .min(updateChannelChatSettingsBodySlowModeSecondsMin)
-    .max(updateChannelChatSettingsBodySlowModeSecondsMax)
-    .optional(),
-  followersOnly: zod.boolean().optional(),
-});
+  "slowModeSeconds": zod.number().min(updateChannelChatSettingsBodySlowModeSecondsMin).max(updateChannelChatSettingsBodySlowModeSecondsMax).optional(),
+  "followersOnly": zod.boolean().optional()
+})
 
 export const updateChannelChatSettingsResponseSlowModeSecondsMin = 0;
 export const updateChannelChatSettingsResponseSlowModeSecondsMax = 300;
 
+
+
 export const UpdateChannelChatSettingsResponse = zod.object({
-  slowModeSeconds: zod
-    .number()
-    .min(updateChannelChatSettingsResponseSlowModeSecondsMin)
-    .max(updateChannelChatSettingsResponseSlowModeSecondsMax),
-  followersOnly: zod.boolean(),
-});
+  "slowModeSeconds": zod.number().min(updateChannelChatSettingsResponseSlowModeSecondsMin).max(updateChannelChatSettingsResponseSlowModeSecondsMax),
+  "followersOnly": zod.boolean()
+})
+
 
 /**
  * @summary Perform an owner or moderator action in a channel
  */
 export const CreateChannelModerationActionParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createChannelModerationActionBodyDurationSecondsMax = 2592000;
 
 export const createChannelModerationActionBodyReasonMax = 500;
 
+
+
 export const CreateChannelModerationActionBody = zod.object({
-  action: zod.enum([
-    "add_moderator",
-    "remove_moderator",
-    "timeout",
-    "ban",
-    "unban",
-    "delete_message",
-  ]),
-  targetUserId: zod.number().optional(),
-  messageId: zod.number().optional(),
-  durationSeconds: zod
-    .number()
-    .min(1)
-    .max(createChannelModerationActionBodyDurationSecondsMax)
-    .optional(),
-  reason: zod
-    .string()
-    .max(createChannelModerationActionBodyReasonMax)
-    .optional(),
-});
+  "action": zod.enum(['add_moderator', 'remove_moderator', 'timeout', 'ban', 'unban', 'delete_message']),
+  "targetUserId": zod.number().optional(),
+  "messageId": zod.number().optional(),
+  "durationSeconds": zod.number().min(1).max(createChannelModerationActionBodyDurationSecondsMax).optional(),
+  "reason": zod.string().max(createChannelModerationActionBodyReasonMax).optional()
+})
 
 export const CreateChannelModerationActionResponse = zod.object({
-  action: zod.enum([
-    "add_moderator",
-    "remove_moderator",
-    "timeout",
-    "ban",
-    "unban",
-    "delete_message",
-  ]),
-  targetUserId: zod.number().nullish(),
-  messageId: zod.number().nullish(),
-  expiresAt: zod.coerce.date().nullish(),
-});
+  "action": zod.enum(['add_moderator', 'remove_moderator', 'timeout', 'ban', 'unban', 'delete_message']),
+  "targetUserId": zod.number().nullish(),
+  "messageId": zod.number().nullish(),
+  "expiresAt": zod.coerce.date().nullish()
+})
+
 
 /**
  * @summary Start a crypto-only channel subscription invoice; no entitlement is granted until a signed callback settles it
  */
 export const CreateCryptoSubscriptionParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createCryptoSubscriptionBodyTierDefault = 1;
 export const createCryptoSubscriptionBodyTierMax = 3;
 
+
+
 export const CreateCryptoSubscriptionBody = zod.object({
-  tier: zod
-    .number()
-    .min(1)
-    .max(createCryptoSubscriptionBodyTierMax)
-    .default(createCryptoSubscriptionBodyTierDefault),
-  cryptoCurrency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]).optional(),
-});
+  "tier": zod.number().min(1).max(createCryptoSubscriptionBodyTierMax).default(createCryptoSubscriptionBodyTierDefault),
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional()
+})
 
 export const createCryptoSubscriptionResponseCreatorShareBpsMin = 0;
 export const createCryptoSubscriptionResponseCreatorShareBpsMax = 10000;
@@ -2003,92 +1610,45 @@ export const createCryptoSubscriptionResponseCreatorShareBpsMax = 10000;
 export const createCryptoSubscriptionResponsePlatformFeeBpsMin = 0;
 export const createCryptoSubscriptionResponsePlatformFeeBpsMax = 10000;
 
+
+
 export const CreateCryptoSubscriptionResponse = zod.object({
-  paymentIntentId: zod.number(),
-  invoiceUrl: zod
-    .string()
-    .describe(
-      "Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.",
-    ),
-  provider: zod
-    .enum(["crypto"])
-    .describe(
-      "Customer-facing payment method label; payment-provider identity is not displayed to viewers.",
-    ),
-  status: zod.enum(["pending"]),
-  selectedCurrency: zod.union([
-    zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-    zod.null(),
-  ]),
-  expiresAt: zod.union([zod.coerce.date(), zod.null()]),
-  paymentAddress: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Per-invoice public payment address. It is never a creator payout destination.",
-    ),
-  qrCodeDataUrl: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe("Per-invoice QR image data URL for Kryv checkout presentation."),
-  invoiceAmount: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.",
-    ),
-  invoiceCommission: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe("Provider-confirmed commission in the selected cryptocurrency."),
-  invoiceTotal: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Provider-confirmed total amount the customer must send in the selected cryptocurrency.",
-    ),
-  providerFeePaidBy: zod.enum(["client"]).optional(),
-  creatorShareBps: zod
-    .number()
-    .min(createCryptoSubscriptionResponseCreatorShareBpsMin)
-    .max(createCryptoSubscriptionResponseCreatorShareBpsMax)
-    .optional()
-    .describe(
-      "Creator share in basis points under the active Kryv settlement policy.",
-    ),
-  platformFeeBps: zod
-    .number()
-    .min(createCryptoSubscriptionResponsePlatformFeeBpsMin)
-    .max(createCryptoSubscriptionResponsePlatformFeeBpsMax)
-    .optional()
-    .describe(
-      "Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.",
-    ),
-});
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
+  "provider": zod.enum(['crypto']).describe('Customer-facing payment method label; payment-provider identity is not displayed to viewers.'),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice public payment address. It is never a creator payout destination.'),
+  "qrCodeDataUrl": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice QR image data URL for Kryv checkout presentation.'),
+  "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
+  "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
+  "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
+  "providerFeePaidBy": zod.enum(['client']).optional(),
+  "creatorShareBps": zod.number().min(createCryptoSubscriptionResponseCreatorShareBpsMin).max(createCryptoSubscriptionResponseCreatorShareBpsMax).optional().describe('Creator share in basis points under the active Kryv settlement policy.'),
+  "platformFeeBps": zod.number().min(createCryptoSubscriptionResponsePlatformFeeBpsMin).max(createCryptoSubscriptionResponsePlatformFeeBpsMax).optional().describe('Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.')
+})
+
 
 /**
  * @summary Start a crypto-only creator tip invoice; a balance changes only after signed provider confirmation
  */
 export const CreateCryptoTipParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createCryptoTipBodyAmountExclusiveMin = 0;
 export const createCryptoTipBodyAmountMax = 100000;
 
 export const createCryptoTipBodyMessageMax = 500;
 
+
+
 export const CreateCryptoTipBody = zod.object({
-  amount: zod
-    .number()
-    .gt(createCryptoTipBodyAmountExclusiveMin)
-    .max(createCryptoTipBodyAmountMax)
-    .describe(
-      "USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.",
-    ),
-  cryptoCurrency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]).optional(),
-  message: zod.string().max(createCryptoTipBodyMessageMax).optional(),
-});
+  "amount": zod.number().gt(createCryptoTipBodyAmountExclusiveMin).max(createCryptoTipBodyAmountMax).describe('USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.'),
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional(),
+  "message": zod.string().max(createCryptoTipBodyMessageMax).optional()
+})
 
 export const createCryptoTipResponseCreatorShareBpsMin = 0;
 export const createCryptoTipResponseCreatorShareBpsMax = 10000;
@@ -2096,75 +1656,32 @@ export const createCryptoTipResponseCreatorShareBpsMax = 10000;
 export const createCryptoTipResponsePlatformFeeBpsMin = 0;
 export const createCryptoTipResponsePlatformFeeBpsMax = 10000;
 
+
+
 export const CreateCryptoTipResponse = zod.object({
-  paymentIntentId: zod.number(),
-  invoiceUrl: zod
-    .string()
-    .describe(
-      "Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.",
-    ),
-  provider: zod
-    .enum(["crypto"])
-    .describe(
-      "Customer-facing payment method label; payment-provider identity is not displayed to viewers.",
-    ),
-  status: zod.enum(["pending"]),
-  selectedCurrency: zod.union([
-    zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-    zod.null(),
-  ]),
-  expiresAt: zod.union([zod.coerce.date(), zod.null()]),
-  paymentAddress: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Per-invoice public payment address. It is never a creator payout destination.",
-    ),
-  qrCodeDataUrl: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe("Per-invoice QR image data URL for Kryv checkout presentation."),
-  invoiceAmount: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.",
-    ),
-  invoiceCommission: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe("Provider-confirmed commission in the selected cryptocurrency."),
-  invoiceTotal: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Provider-confirmed total amount the customer must send in the selected cryptocurrency.",
-    ),
-  providerFeePaidBy: zod.enum(["client"]).optional(),
-  creatorShareBps: zod
-    .number()
-    .min(createCryptoTipResponseCreatorShareBpsMin)
-    .max(createCryptoTipResponseCreatorShareBpsMax)
-    .optional()
-    .describe(
-      "Creator share in basis points under the active Kryv settlement policy.",
-    ),
-  platformFeeBps: zod
-    .number()
-    .min(createCryptoTipResponsePlatformFeeBpsMin)
-    .max(createCryptoTipResponsePlatformFeeBpsMax)
-    .optional()
-    .describe(
-      "Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.",
-    ),
-});
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
+  "provider": zod.enum(['crypto']).describe('Customer-facing payment method label; payment-provider identity is not displayed to viewers.'),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice public payment address. It is never a creator payout destination.'),
+  "qrCodeDataUrl": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice QR image data URL for Kryv checkout presentation.'),
+  "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
+  "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
+  "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
+  "providerFeePaidBy": zod.enum(['client']).optional(),
+  "creatorShareBps": zod.number().min(createCryptoTipResponseCreatorShareBpsMin).max(createCryptoTipResponseCreatorShareBpsMax).optional().describe('Creator share in basis points under the active Kryv settlement policy.'),
+  "platformFeeBps": zod.number().min(createCryptoTipResponsePlatformFeeBpsMin).max(createCryptoTipResponsePlatformFeeBpsMax).optional().describe('Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.')
+})
+
 
 /**
  * @summary Start an anonymous one-time crypto creator-support invoice; no ledger movement occurs until a signed provider callback settles it
  */
 export const CreateGuestCryptoTipParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createGuestCryptoTipBodyAmountExclusiveMin = 0;
 export const createGuestCryptoTipBodyAmountMax = 100000;
@@ -2174,31 +1691,14 @@ export const createGuestCryptoTipBodyMessageMax = 500;
 export const createGuestCryptoTipBodyGuestDisplayNameMin = 2;
 export const createGuestCryptoTipBodyGuestDisplayNameMax = 48;
 
+
+
 export const CreateGuestCryptoTipBody = zod.object({
-  amount: zod
-    .number()
-    .gt(createGuestCryptoTipBodyAmountExclusiveMin)
-    .max(createGuestCryptoTipBodyAmountMax)
-    .describe(
-      "USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.",
-    ),
-  cryptoCurrency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]).optional(),
-  message: zod
-    .string()
-    .max(createGuestCryptoTipBodyMessageMax)
-    .optional()
-    .describe(
-      "Optional note attached to the guest support record after confirmed settlement.",
-    ),
-  guestDisplayName: zod
-    .string()
-    .min(createGuestCryptoTipBodyGuestDisplayNameMin)
-    .max(createGuestCryptoTipBodyGuestDisplayNameMax)
-    .optional()
-    .describe(
-      "Optional unverified guest display name recorded only for this support action; it is not a Kryv account identity.",
-    ),
-});
+  "amount": zod.number().gt(createGuestCryptoTipBodyAmountExclusiveMin).max(createGuestCryptoTipBodyAmountMax).describe('USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.'),
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional(),
+  "message": zod.string().max(createGuestCryptoTipBodyMessageMax).optional().describe('Optional note attached to the guest support record after confirmed settlement.'),
+  "guestDisplayName": zod.string().min(createGuestCryptoTipBodyGuestDisplayNameMin).max(createGuestCryptoTipBodyGuestDisplayNameMax).optional().describe('Optional unverified guest display name recorded only for this support action; it is not a Kryv account identity.')
+})
 
 export const createGuestCryptoTipResponseCreatorShareBpsMin = 0;
 export const createGuestCryptoTipResponseCreatorShareBpsMax = 10000;
@@ -2206,75 +1706,32 @@ export const createGuestCryptoTipResponseCreatorShareBpsMax = 10000;
 export const createGuestCryptoTipResponsePlatformFeeBpsMin = 0;
 export const createGuestCryptoTipResponsePlatformFeeBpsMax = 10000;
 
+
+
 export const CreateGuestCryptoTipResponse = zod.object({
-  paymentIntentId: zod.number(),
-  invoiceUrl: zod
-    .string()
-    .describe(
-      "Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.",
-    ),
-  provider: zod
-    .enum(["crypto"])
-    .describe(
-      "Customer-facing payment method label; payment-provider identity is not displayed to viewers.",
-    ),
-  status: zod.enum(["pending"]),
-  selectedCurrency: zod.union([
-    zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-    zod.null(),
-  ]),
-  expiresAt: zod.union([zod.coerce.date(), zod.null()]),
-  paymentAddress: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Per-invoice public payment address. It is never a creator payout destination.",
-    ),
-  qrCodeDataUrl: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe("Per-invoice QR image data URL for Kryv checkout presentation."),
-  invoiceAmount: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.",
-    ),
-  invoiceCommission: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe("Provider-confirmed commission in the selected cryptocurrency."),
-  invoiceTotal: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Provider-confirmed total amount the customer must send in the selected cryptocurrency.",
-    ),
-  providerFeePaidBy: zod.enum(["client"]).optional(),
-  creatorShareBps: zod
-    .number()
-    .min(createGuestCryptoTipResponseCreatorShareBpsMin)
-    .max(createGuestCryptoTipResponseCreatorShareBpsMax)
-    .optional()
-    .describe(
-      "Creator share in basis points under the active Kryv settlement policy.",
-    ),
-  platformFeeBps: zod
-    .number()
-    .min(createGuestCryptoTipResponsePlatformFeeBpsMin)
-    .max(createGuestCryptoTipResponsePlatformFeeBpsMax)
-    .optional()
-    .describe(
-      "Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.",
-    ),
-});
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
+  "provider": zod.enum(['crypto']).describe('Customer-facing payment method label; payment-provider identity is not displayed to viewers.'),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice public payment address. It is never a creator payout destination.'),
+  "qrCodeDataUrl": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice QR image data URL for Kryv checkout presentation.'),
+  "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
+  "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
+  "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
+  "providerFeePaidBy": zod.enum(['client']).optional(),
+  "creatorShareBps": zod.number().min(createGuestCryptoTipResponseCreatorShareBpsMin).max(createGuestCryptoTipResponseCreatorShareBpsMax).optional().describe('Creator share in basis points under the active Kryv settlement policy.'),
+  "platformFeeBps": zod.number().min(createGuestCryptoTipResponsePlatformFeeBpsMin).max(createGuestCryptoTipResponsePlatformFeeBpsMax).optional().describe('Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.')
+})
+
 
 /**
  * @summary Start an anonymous crypto membership gift for a named Kryv account; the recipient receives no entitlement until a signed provider callback settles it
  */
 export const CreateGuestCryptoSubscriptionGiftParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createGuestCryptoSubscriptionGiftBodyTierDefault = 1;
 export const createGuestCryptoSubscriptionGiftBodyTierMax = 3;
@@ -2285,29 +1742,14 @@ export const createGuestCryptoSubscriptionGiftBodyRecipientUsernameMax = 32;
 export const createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMin = 2;
 export const createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMax = 48;
 
+
+
 export const CreateGuestCryptoSubscriptionGiftBody = zod.object({
-  tier: zod
-    .number()
-    .min(1)
-    .max(createGuestCryptoSubscriptionGiftBodyTierMax)
-    .default(createGuestCryptoSubscriptionGiftBodyTierDefault),
-  cryptoCurrency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]).optional(),
-  recipientUsername: zod
-    .string()
-    .min(createGuestCryptoSubscriptionGiftBodyRecipientUsernameMin)
-    .max(createGuestCryptoSubscriptionGiftBodyRecipientUsernameMax)
-    .describe(
-      "Existing Kryv account username that will receive the membership only after signed provider confirmation.",
-    ),
-  guestDisplayName: zod
-    .string()
-    .min(createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMin)
-    .max(createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMax)
-    .optional()
-    .describe(
-      "Optional unverified guest display name recorded only for this gift action; it is not a Kryv account identity.",
-    ),
-});
+  "tier": zod.number().min(1).max(createGuestCryptoSubscriptionGiftBodyTierMax).default(createGuestCryptoSubscriptionGiftBodyTierDefault),
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional(),
+  "recipientUsername": zod.string().min(createGuestCryptoSubscriptionGiftBodyRecipientUsernameMin).max(createGuestCryptoSubscriptionGiftBodyRecipientUsernameMax).describe('Existing Kryv account username that will receive the membership only after signed provider confirmation.'),
+  "guestDisplayName": zod.string().min(createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMin).max(createGuestCryptoSubscriptionGiftBodyGuestDisplayNameMax).optional().describe('Optional unverified guest display name recorded only for this gift action; it is not a Kryv account identity.')
+})
 
 export const createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMin = 0;
 export const createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMax = 10000;
@@ -2315,160 +1757,104 @@ export const createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMax = 10000
 export const createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMin = 0;
 export const createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMax = 10000;
 
+
+
 export const CreateGuestCryptoSubscriptionGiftResponse = zod.object({
-  paymentIntentId: zod.number(),
-  invoiceUrl: zod
-    .string()
-    .describe(
-      "Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.",
-    ),
-  provider: zod
-    .enum(["crypto"])
-    .describe(
-      "Customer-facing payment method label; payment-provider identity is not displayed to viewers.",
-    ),
-  status: zod.enum(["pending"]),
-  selectedCurrency: zod.union([
-    zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-    zod.null(),
-  ]),
-  expiresAt: zod.union([zod.coerce.date(), zod.null()]),
-  paymentAddress: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Per-invoice public payment address. It is never a creator payout destination.",
-    ),
-  qrCodeDataUrl: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe("Per-invoice QR image data URL for Kryv checkout presentation."),
-  invoiceAmount: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.",
-    ),
-  invoiceCommission: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe("Provider-confirmed commission in the selected cryptocurrency."),
-  invoiceTotal: zod
-    .union([zod.string(), zod.null()])
-    .optional()
-    .describe(
-      "Provider-confirmed total amount the customer must send in the selected cryptocurrency.",
-    ),
-  providerFeePaidBy: zod.enum(["client"]).optional(),
-  creatorShareBps: zod
-    .number()
-    .min(createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMin)
-    .max(createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMax)
-    .optional()
-    .describe(
-      "Creator share in basis points under the active Kryv settlement policy.",
-    ),
-  platformFeeBps: zod
-    .number()
-    .min(createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMin)
-    .max(createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMax)
-    .optional()
-    .describe(
-      "Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.",
-    ),
-});
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string().describe('Branded fallback checkout URL. Kryv clients prefer returned payment instructions when available.'),
+  "provider": zod.enum(['crypto']).describe('Customer-facing payment method label; payment-provider identity is not displayed to viewers.'),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice public payment address. It is never a creator payout destination.'),
+  "qrCodeDataUrl": zod.union([zod.string(),zod.null()]).optional().describe('Per-invoice QR image data URL for Kryv checkout presentation.'),
+  "invoiceAmount": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed merchant invoice amount in the selected cryptocurrency, excluding the client-borne provider commission.'),
+  "invoiceCommission": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed commission in the selected cryptocurrency.'),
+  "invoiceTotal": zod.union([zod.string(),zod.null()]).optional().describe('Provider-confirmed total amount the customer must send in the selected cryptocurrency.'),
+  "providerFeePaidBy": zod.enum(['client']).optional(),
+  "creatorShareBps": zod.number().min(createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMin).max(createGuestCryptoSubscriptionGiftResponseCreatorShareBpsMax).optional().describe('Creator share in basis points under the active Kryv settlement policy.'),
+  "platformFeeBps": zod.number().min(createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMin).max(createGuestCryptoSubscriptionGiftResponsePlatformFeeBpsMax).optional().describe('Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.')
+})
+
 
 /**
  * @summary Debit a customer’s confirmed Kryv wallet balance and settle a creator tip atomically in the crypto ledger
  */
 export const CreateWalletTipParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const createWalletTipBodyAmountRegExp = new RegExp(
-  "^\\d+(\\.\\d{1,8})?$",
-);
+export const createWalletTipBodyAmountRegExp = new RegExp('^\\d+(\\.\\d{1,8})?$');
 export const createWalletTipBodyMessageMax = 500;
 
+
+
 export const CreateWalletTipBody = zod.object({
-  currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-  amount: zod
-    .string()
-    .regex(createWalletTipBodyAmountRegExp)
-    .describe(
-      "Exact crypto amount to debit from the customer’s confirmed Kryv wallet balance.",
-    ),
-  message: zod.string().max(createWalletTipBodyMessageMax).optional(),
-});
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string().regex(createWalletTipBodyAmountRegExp).describe('Exact crypto amount to debit from the customer’s confirmed Kryv wallet balance.'),
+  "message": zod.string().max(createWalletTipBodyMessageMax).optional()
+})
 
 export const CreateWalletTipResponse = zod.object({
-  paymentIntentId: zod.number(),
-  tipId: zod.number(),
-  currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-  grossAmount: zod.string(),
-  platformFeeAmount: zod.string(),
-  creatorNetAmount: zod.string(),
-  status: zod.enum(["completed"]),
-});
+  "paymentIntentId": zod.number(),
+  "tipId": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "grossAmount": zod.string(),
+  "platformFeeAmount": zod.string(),
+  "creatorNetAmount": zod.string(),
+  "status": zod.enum(['completed'])
+})
+
 
 /**
  * @summary Get public channel-points, poll, and prediction state for a channel
  */
 export const GetChannelEngagementParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const GetChannelEngagementResponse = zod.object({
-  pointsBalance: zod.number().nullable(),
-  pointsEnabled: zod.boolean(),
-  activePoll: zod.union([
-    zod.object({
-      id: zod.number(),
-      title: zod.string(),
-      status: zod.string(),
-      durationSeconds: zod.number(),
-      startedAt: zod.coerce.date(),
-      choices: zod.array(
-        zod.object({
-          id: zod.number(),
-          title: zod.string(),
-          votes: zod.number(),
-          channelPoints: zod.number().optional(),
-          users: zod.number().optional(),
-          color: zod.string().optional(),
-        }),
-      ),
-    }),
-    zod.null(),
-  ]),
-  activePrediction: zod.union([
-    zod.object({
-      id: zod.number(),
-      title: zod.string(),
-      status: zod.string(),
-      predictionWindowSeconds: zod.number(),
-      startedAt: zod.coerce.date(),
-      outcomes: zod.array(
-        zod.object({
-          id: zod.number(),
-          title: zod.string(),
-          votes: zod.number(),
-          channelPoints: zod.number().optional(),
-          users: zod.number().optional(),
-          color: zod.string().optional(),
-        }),
-      ),
-    }),
-    zod.null(),
-  ]),
-});
+  "pointsBalance": zod.number().nullable(),
+  "pointsEnabled": zod.boolean(),
+  "activePoll": zod.union([zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "status": zod.string(),
+  "durationSeconds": zod.number(),
+  "startedAt": zod.coerce.date(),
+  "choices": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "votes": zod.number(),
+  "channelPoints": zod.number().optional(),
+  "users": zod.number().optional(),
+  "color": zod.string().optional()
+}))
+}),zod.null()]),
+  "activePrediction": zod.union([zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "status": zod.string(),
+  "predictionWindowSeconds": zod.number(),
+  "startedAt": zod.coerce.date(),
+  "outcomes": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "votes": zod.number(),
+  "channelPoints": zod.number().optional(),
+  "users": zod.number().optional(),
+  "color": zod.string().optional()
+}))
+}),zod.null()])
+})
+
 
 /**
  * @summary Perform an authenticated viewer or channel-owner engagement action
  */
 export const CreateChannelEngagementActionParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createChannelEngagementActionBodyTitleMax = 140;
 
@@ -2486,256 +1872,207 @@ export const createChannelEngagementActionBodyDurationSecondsMax = 3600;
 
 export const createChannelEngagementActionBodyUserInputMax = 300;
 
+
+
 export const CreateChannelEngagementActionBody = zod.object({
-  action: zod.enum([
-    "claim_points",
-    "create_reward",
-    "redeem_reward",
-    "create_poll",
-    "vote_poll",
-    "end_poll",
-    "create_prediction",
-    "enter_prediction",
-    "lock_prediction",
-    "resolve_prediction",
-    "raid",
-    "set_host",
-    "clear_host",
-  ]),
-  title: zod.string().max(createChannelEngagementActionBodyTitleMax).optional(),
-  description: zod
-    .string()
-    .max(createChannelEngagementActionBodyDescriptionMax)
-    .optional(),
-  choices: zod
-    .array(zod.string().max(createChannelEngagementActionBodyChoicesItemMax))
-    .min(createChannelEngagementActionBodyChoicesMin)
-    .max(createChannelEngagementActionBodyChoicesMax)
-    .optional(),
-  pollId: zod.number().optional(),
-  choiceId: zod.number().optional(),
-  predictionId: zod.number().optional(),
-  outcomeId: zod.number().optional(),
-  rewardId: zod.number().optional(),
-  targetChannelId: zod.number().optional(),
-  channelPoints: zod
-    .number()
-    .min(1)
-    .max(createChannelEngagementActionBodyChannelPointsMax)
-    .optional(),
-  durationSeconds: zod
-    .number()
-    .min(createChannelEngagementActionBodyDurationSecondsMin)
-    .max(createChannelEngagementActionBodyDurationSecondsMax)
-    .optional(),
-  autoHost: zod.boolean().optional(),
-  userInput: zod
-    .string()
-    .max(createChannelEngagementActionBodyUserInputMax)
-    .optional(),
-});
+  "action": zod.enum(['claim_points', 'create_reward', 'redeem_reward', 'create_poll', 'vote_poll', 'end_poll', 'create_prediction', 'enter_prediction', 'lock_prediction', 'resolve_prediction', 'raid', 'set_host', 'clear_host']),
+  "title": zod.string().max(createChannelEngagementActionBodyTitleMax).optional(),
+  "description": zod.string().max(createChannelEngagementActionBodyDescriptionMax).optional(),
+  "choices": zod.array(zod.string().max(createChannelEngagementActionBodyChoicesItemMax)).min(createChannelEngagementActionBodyChoicesMin).max(createChannelEngagementActionBodyChoicesMax).optional(),
+  "pollId": zod.number().optional(),
+  "choiceId": zod.number().optional(),
+  "predictionId": zod.number().optional(),
+  "outcomeId": zod.number().optional(),
+  "rewardId": zod.number().optional(),
+  "targetChannelId": zod.number().optional(),
+  "channelPoints": zod.number().min(1).max(createChannelEngagementActionBodyChannelPointsMax).optional(),
+  "durationSeconds": zod.number().min(createChannelEngagementActionBodyDurationSecondsMin).max(createChannelEngagementActionBodyDurationSecondsMax).optional(),
+  "autoHost": zod.boolean().optional(),
+  "userInput": zod.string().max(createChannelEngagementActionBodyUserInputMax).optional()
+})
 
 export const CreateChannelEngagementActionResponse = zod.object({
-  action: zod.string(),
-  status: zod.string().optional(),
-  entityId: zod.number().optional(),
-  targetChannelId: zod.number().optional(),
-  pointsBalance: zod.number().optional(),
-  awarded: zod.number().optional(),
-});
+  "action": zod.string(),
+  "status": zod.string().optional(),
+  "entityId": zod.number().optional(),
+  "targetChannelId": zod.number().optional(),
+  "pointsBalance": zod.number().optional(),
+  "awarded": zod.number().optional()
+})
+
 
 /**
  * @summary List recent chat messages for a channel
  */
 export const ListChannelMessagesParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const ListChannelMessagesResponseItem = zod.object({
-  id: zod.number(),
-  channelId: zod.number(),
-  userId: zod.string(),
-  username: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  message: zod.string(),
-  createdAt: zod.coerce.date(),
-});
-export const ListChannelMessagesResponse = zod.array(
-  ListChannelMessagesResponseItem,
-);
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "userId": zod.string(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListChannelMessagesResponse = zod.array(ListChannelMessagesResponseItem)
+
 
 /**
  * @summary Post a chat message to a channel
  */
 export const CreateChannelMessageParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createChannelMessageBodyMessageMax = 500;
 
+
+
 export const CreateChannelMessageBody = zod.object({
-  message: zod.string().min(1).max(createChannelMessageBodyMessageMax),
-});
+  "message": zod.string().min(1).max(createChannelMessageBodyMessageMax)
+})
 
 export const CreateChannelMessageResponse = zod.object({
-  id: zod.number(),
-  channelId: zod.number(),
-  userId: zod.string(),
-  username: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  message: zod.string(),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "userId": zod.string(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Report a chat message for channel-owner and owner review
  */
 export const CreateChannelChatReportParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
+
 
 export const createChannelChatReportBodyDetailsMax = 500;
 
+
+
 export const CreateChannelChatReportBody = zod.object({
-  messageId: zod.number().min(1),
-  reason: zod.enum([
-    "harassment",
-    "hate_or_harm",
-    "spam_or_scam",
-    "sexual_content",
-    "violence_or_threat",
-    "other",
-  ]),
-  details: zod.string().max(createChannelChatReportBodyDetailsMax).optional(),
-});
+  "messageId": zod.number().min(1),
+  "reason": zod.enum(['harassment', 'hate_or_harm', 'spam_or_scam', 'sexual_content', 'violence_or_threat', 'other']),
+  "details": zod.string().max(createChannelChatReportBodyDetailsMax).optional()
+})
 
 export const CreateChannelChatReportResponse = zod.object({
-  id: zod.number(),
-  channelId: zod.number(),
-  messageId: zod.number(),
-  subjectUserId: zod.number(),
-  status: zod.enum(["open"]),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "messageId": zod.number(),
+  "subjectUserId": zod.number(),
+  "status": zod.enum(['open']),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Report a public creator channel for owner safety review
  */
 export const CreateChannelSafetyReportParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createChannelSafetyReportBodyDetailsMax = 500;
 
+
+
 export const CreateChannelSafetyReportBody = zod.object({
-  reason: zod.enum([
-    "harassment",
-    "hate_or_harm",
-    "spam_or_scam",
-    "sexual_content",
-    "violence_or_threat",
-    "impersonation",
-    "other",
-  ]),
-  details: zod.string().max(createChannelSafetyReportBodyDetailsMax).optional(),
-});
+  "reason": zod.enum(['harassment', 'hate_or_harm', 'spam_or_scam', 'sexual_content', 'violence_or_threat', 'impersonation', 'other']),
+  "details": zod.string().max(createChannelSafetyReportBodyDetailsMax).optional()
+})
 
 export const CreateChannelSafetyReportResponse = zod.object({
-  id: zod.number(),
-  channelId: zod.number(),
-  subjectUserId: zod.number(),
-  status: zod.enum(["open"]),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "subjectUserId": zod.number(),
+  "status": zod.enum(['open']),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Report a published Watch video for owner safety review
  */
 export const CreateVideoSafetyReportParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createVideoSafetyReportBodyDetailsMax = 500;
 
+
+
 export const CreateVideoSafetyReportBody = zod.object({
-  reason: zod.enum([
-    "harassment",
-    "hate_or_harm",
-    "spam_or_scam",
-    "sexual_content",
-    "violence_or_threat",
-    "impersonation",
-    "other",
-  ]),
-  details: zod.string().max(createVideoSafetyReportBodyDetailsMax).optional(),
-});
+  "reason": zod.enum(['harassment', 'hate_or_harm', 'spam_or_scam', 'sexual_content', 'violence_or_threat', 'impersonation', 'other']),
+  "details": zod.string().max(createVideoSafetyReportBodyDetailsMax).optional()
+})
 
 export const CreateVideoSafetyReportResponse = zod.object({
-  id: zod.number(),
-  videoId: zod.number(),
-  channelId: zod.number(),
-  subjectUserId: zod.number(),
-  status: zod.enum(["open"]),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "videoId": zod.number(),
+  "channelId": zod.number(),
+  "subjectUserId": zod.number(),
+  "status": zod.enum(['open']),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Report a published Clip for owner safety review
  */
 export const CreateClipSafetyReportParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createClipSafetyReportBodyDetailsMax = 500;
 
+
+
 export const CreateClipSafetyReportBody = zod.object({
-  reason: zod.enum([
-    "harassment",
-    "hate_or_harm",
-    "spam_or_scam",
-    "sexual_content",
-    "violence_or_threat",
-    "impersonation",
-    "other",
-  ]),
-  details: zod.string().max(createClipSafetyReportBodyDetailsMax).optional(),
-});
+  "reason": zod.enum(['harassment', 'hate_or_harm', 'spam_or_scam', 'sexual_content', 'violence_or_threat', 'impersonation', 'other']),
+  "details": zod.string().max(createClipSafetyReportBodyDetailsMax).optional()
+})
 
 export const CreateClipSafetyReportResponse = zod.object({
-  id: zod.number(),
-  clipId: zod.number(),
-  channelId: zod.number(),
-  subjectUserId: zod.number(),
-  status: zod.enum(["open"]),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "clipId": zod.number(),
+  "channelId": zod.number(),
+  "subjectUserId": zod.number(),
+  "status": zod.enum(['open']),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Browse public, ready-to-play Kryv clips
  */
 export const ListClipsQueryParams = zod.object({
-  channelId: zod.coerce.number().optional(),
-});
+  "channelId": zod.coerce.number().optional()
+})
 
 export const ListClipsResponseItem = zod.object({
-  id: zod.number(),
-  title: zod.string(),
-  thumbnailUrl: zod.string().nullable(),
-  durationSeconds: zod.number().nullable(),
-  viewCount: zod.number(),
-  channelId: zod.number(),
-  channelName: zod.string(),
-  channelSlug: zod.string(),
-  processingStatus: zod.enum(["processing", "ready", "errored"]),
-  playbackId: zod
-    .string()
-    .nullable()
-    .describe(
-      "FastPix playback ID. Present only when the clip is ready for playback.",
-    ),
-  createdAt: zod.coerce.date(),
-});
-export const ListClipsResponse = zod.array(ListClipsResponseItem);
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelSlug": zod.string(),
+  "processingStatus": zod.enum(['processing', 'ready', 'errored']),
+  "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
+  "createdAt": zod.coerce.date()
+})
+export const ListClipsResponse = zod.array(ListClipsResponseItem)
+
 
 /**
  * @summary Request a FastPix clip from an owned, ready Kryv video
@@ -2746,124 +2083,108 @@ export const createClipBodyThreeEndTimeExclusiveMin = 0;
 
 export const createClipBodyThreeTitleMax = 100;
 
-export const CreateClipBody = zod.union([zod.unknown(), zod.unknown()]).and(
-  zod.object({
-    videoId: zod
-      .number()
-      .optional()
-      .describe(
-        "Ready VOD source. Only the source channel owner may request this clip type.",
-      ),
-    channelId: zod
-      .number()
-      .optional()
-      .describe(
-        "Active public live-channel source. An authenticated viewer may request this clip type while the broadcast is active.",
-      ),
-    startTime: zod.number().min(createClipBodyThreeStartTimeMin),
-    endTime: zod.number().gt(createClipBodyThreeEndTimeExclusiveMin),
-    title: zod.string().min(1).max(createClipBodyThreeTitleMax),
-  }),
-);
+
+
+export const CreateClipBody = zod.union([zod.unknown(),zod.unknown()]).and(zod.object({
+  "videoId": zod.number().optional().describe('Ready VOD source. Only the source channel owner may request this clip type.'),
+  "channelId": zod.number().optional().describe('Active public live-channel source. An authenticated viewer may request this clip type while the broadcast is active.'),
+  "startTime": zod.number().min(createClipBodyThreeStartTimeMin),
+  "endTime": zod.number().gt(createClipBodyThreeEndTimeExclusiveMin),
+  "title": zod.string().min(1).max(createClipBodyThreeTitleMax)
+}))
 
 export const CreateClipResponse = zod.object({
-  id: zod.number(),
-  title: zod.string(),
-  thumbnailUrl: zod.string().nullable(),
-  durationSeconds: zod.number().nullable(),
-  viewCount: zod.number(),
-  channelId: zod.number(),
-  channelName: zod.string(),
-  channelSlug: zod.string(),
-  processingStatus: zod.enum(["processing", "ready", "errored"]),
-  playbackId: zod
-    .string()
-    .nullable()
-    .describe(
-      "FastPix playback ID. Present only when the clip is ready for playback.",
-    ),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelSlug": zod.string(),
+  "processingStatus": zod.enum(['processing', 'ready', 'errored']),
+  "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Get a public, ready-to-play Kryv clip
  */
 export const GetClipParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const GetClipResponse = zod.object({
-  id: zod.number(),
-  title: zod.string(),
-  thumbnailUrl: zod.string().nullable(),
-  durationSeconds: zod.number().nullable(),
-  viewCount: zod.number(),
-  channelId: zod.number(),
-  channelName: zod.string(),
-  channelSlug: zod.string(),
-  processingStatus: zod.enum(["processing", "ready", "errored"]),
-  playbackId: zod
-    .string()
-    .nullable()
-    .describe(
-      "FastPix playback ID. Present only when the clip is ready for playback.",
-    ),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable(),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelName": zod.string(),
+  "channelSlug": zod.string(),
+  "processingStatus": zod.enum(['processing', 'ready', 'errored']),
+  "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Browse on-demand videos (Kryv Watch), optionally filtered by channel, genre, or search
  */
-export const ListVideosQueryParams = zod.object({
-  channelId: zod.coerce.number().optional(),
-  categorySlug: zod.coerce.string().optional(),
-  contentType: zod.enum(["upload", "original"]).optional(),
-  search: zod.coerce.string().optional(),
-});
+export const listVideosQueryLimitDefault = 48;
+export const listVideosQueryLimitMax = 100;
 
-export const ListVideosResponseItem = zod.object({
-  id: zod.number(),
-  title: zod.string(),
-  thumbnailUrl: zod
-    .string()
-    .nullable()
-    .describe("Landscape 16:9 thumbnail — used in Kryv Watch grids"),
-  posterUrl: zod
-    .string()
-    .nullable()
-    .describe("Portrait 2:3 poster — used in Kryv Cinema rows"),
-  backdropUrl: zod
-    .string()
-    .nullable()
-    .describe("Wide cinematic backdrop — used in Kryv Cinema hero banners"),
-  durationSeconds: zod.number().nullable(),
-  viewCount: zod.number(),
-  channelId: zod.number(),
-  channelSlug: zod.string(),
-  channelName: zod.string(),
-  channelAvatarUrl: zod.string().nullable(),
-  categoryId: zod.number().nullable(),
-  categoryName: zod.string().nullable(),
-  contentType: zod.enum(["upload", "original"]),
-  playbackId: zod
-    .string()
-    .nullable()
-    .describe(
-      "FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.",
-    ),
-  playbackSource: zod
-    .enum(["fastpix", "youtube"])
-    .describe("The approved playback provider for this Watch item."),
-  youtubeVideoId: zod
-    .string()
-    .nullable()
-    .describe(
-      "Official YouTube video identifier. Present only for rights-attested YouTube embeds.",
-    ),
-  uploadStatus: zod.enum(["waiting", "processing", "ready", "errored"]),
-  createdAt: zod.coerce.date(),
-});
-export const ListVideosResponse = zod.array(ListVideosResponseItem);
+export const listVideosQueryOffsetDefault = 0;
+export const listVideosQueryOffsetMin = 0;
+
+
+
+export const ListVideosQueryParams = zod.object({
+  "channelId": zod.coerce.number().optional(),
+  "categorySlug": zod.coerce.string().optional(),
+  "contentType": zod.enum(['upload', 'original']).optional(),
+  "search": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().min(1).max(listVideosQueryLimitMax).default(listVideosQueryLimitDefault).describe('Maximum number of results to return in one bounded page.'),
+  "offset": zod.coerce.number().min(listVideosQueryOffsetMin).default(listVideosQueryOffsetDefault).describe('Zero-based result offset for stable newest-first pagination.')
+})
+
+export const listVideosResponseTotalMin = 0;
+
+export const listVideosResponseLimitMax = 100;
+
+export const listVideosResponseOffsetMin = 0;
+
+
+
+export const ListVideosResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+})),
+  "total": zod.number().min(listVideosResponseTotalMin).describe('Total results matching the current public, creator, category, and search filters.'),
+  "limit": zod.number().min(1).max(listVideosResponseLimitMax),
+  "offset": zod.number().min(listVideosResponseOffsetMin)
+})
+
 
 /**
  * @summary Create a video record and start a direct upload session for the current user's channel
@@ -2876,290 +2197,213 @@ export const createVideoBodyPlaybackSourceDefault = `fastpix`;
 export const createVideoBodyYoutubeVideoIdMin = 11;
 export const createVideoBodyYoutubeVideoIdMax = 32;
 
-export const createVideoBodyYoutubeVideoIdRegExp = new RegExp(
-  "^[A-Za-z0-9_-]+$",
-);
+
+export const createVideoBodyYoutubeVideoIdRegExp = new RegExp('^[A-Za-z0-9_-]+$');
+
 
 export const CreateVideoBody = zod.object({
-  title: zod.string().min(1).max(createVideoBodyTitleMax),
-  description: zod.string().max(createVideoBodyDescriptionMax).optional(),
-  categoryId: zod.number().optional(),
-  contentType: zod.enum(["upload", "original"]).optional(),
-  playbackSource: zod
-    .enum(["fastpix", "youtube"])
-    .default(createVideoBodyPlaybackSourceDefault),
-  youtubeVideoId: zod
-    .string()
-    .min(createVideoBodyYoutubeVideoIdMin)
-    .max(createVideoBodyYoutubeVideoIdMax)
-    .regex(createVideoBodyYoutubeVideoIdRegExp)
-    .optional(),
-  rightsAttested: zod
-    .boolean()
-    .optional()
-    .describe(
-      "Creator attests they have the rights to embed the official YouTube source in Kryv Watch.",
-    ),
-});
+  "title": zod.string().min(1).max(createVideoBodyTitleMax),
+  "description": zod.string().max(createVideoBodyDescriptionMax).optional(),
+  "categoryId": zod.number().optional(),
+  "contentType": zod.enum(['upload', 'original']).optional(),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).default(createVideoBodyPlaybackSourceDefault),
+  "youtubeVideoId": zod.string().min(createVideoBodyYoutubeVideoIdMin).max(createVideoBodyYoutubeVideoIdMax).regex(createVideoBodyYoutubeVideoIdRegExp).optional(),
+  "rightsAttested": zod.boolean().optional().describe('Creator attests they have the rights to embed the official YouTube source in Kryv Watch.')
+})
 
 export const createVideoResponseOneTwoMusicCreditsItemDisplayOrderMin = 0;
 
-export const CreateVideoResponse = zod
-  .object({
-    id: zod.number(),
-    title: zod.string(),
-    thumbnailUrl: zod
-      .string()
-      .nullable()
-      .describe("Landscape 16:9 thumbnail — used in Kryv Watch grids"),
-    posterUrl: zod
-      .string()
-      .nullable()
-      .describe("Portrait 2:3 poster — used in Kryv Cinema rows"),
-    backdropUrl: zod
-      .string()
-      .nullable()
-      .describe("Wide cinematic backdrop — used in Kryv Cinema hero banners"),
-    durationSeconds: zod.number().nullable(),
-    viewCount: zod.number(),
-    channelId: zod.number(),
-    channelSlug: zod.string(),
-    channelName: zod.string(),
-    channelAvatarUrl: zod.string().nullable(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    contentType: zod.enum(["upload", "original"]),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.",
-      ),
-    playbackSource: zod
-      .enum(["fastpix", "youtube"])
-      .describe("The approved playback provider for this Watch item."),
-    youtubeVideoId: zod
-      .string()
-      .nullable()
-      .describe(
-        "Official YouTube video identifier. Present only for rights-attested YouTube embeds.",
-      ),
-    uploadStatus: zod.enum(["waiting", "processing", "ready", "errored"]),
-    createdAt: zod.coerce.date(),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      isOwner: zod.boolean(),
-      musicCredits: zod
-        .array(
-          zod.object({
-            id: zod.number(),
-            trackTitle: zod.string(),
-            artistName: zod.string(),
-            albumTitle: zod.string().nullable(),
-            labelName: zod.string().nullable(),
-            artworkUrl: zod.string().url().nullable(),
-            sourceUrl: zod.string().url().nullable(),
-            musicbrainzRecordingId: zod.string().uuid().nullable(),
-            musicbrainzReleaseId: zod.string().uuid().nullable(),
-            metadataSource: zod.enum(["publisher_attested", "musicbrainz"]),
-            rightsAttestedAt: zod.coerce.date(),
-            displayOrder: zod
-              .number()
-              .min(createVideoResponseOneTwoMusicCreditsItemDisplayOrderMin),
-          }),
-        )
-        .describe(
-          "Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.",
-        ),
-    }),
-  )
-  .and(
-    zod.object({
-      uploadUrl: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.",
-        ),
-    }),
-  );
+
+
+export const CreateVideoResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "isOwner": zod.boolean(),
+  "musicCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(createVideoResponseOneTwoMusicCreditsItemDisplayOrderMin)
+})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
+})).and(zod.object({
+  "uploadUrl": zod.string().nullable().describe('FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.')
+}))
+
 
 /**
  * @summary Refresh the FastPix processing and playback state for a Watch upload (owner only)
  */
 export const RefreshVideoProviderStatusParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const refreshVideoProviderStatusResponseTwoMusicCreditsItemDisplayOrderMin = 0;
 
-export const RefreshVideoProviderStatusResponse = zod
-  .object({
-    id: zod.number(),
-    title: zod.string(),
-    thumbnailUrl: zod
-      .string()
-      .nullable()
-      .describe("Landscape 16:9 thumbnail — used in Kryv Watch grids"),
-    posterUrl: zod
-      .string()
-      .nullable()
-      .describe("Portrait 2:3 poster — used in Kryv Cinema rows"),
-    backdropUrl: zod
-      .string()
-      .nullable()
-      .describe("Wide cinematic backdrop — used in Kryv Cinema hero banners"),
-    durationSeconds: zod.number().nullable(),
-    viewCount: zod.number(),
-    channelId: zod.number(),
-    channelSlug: zod.string(),
-    channelName: zod.string(),
-    channelAvatarUrl: zod.string().nullable(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    contentType: zod.enum(["upload", "original"]),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.",
-      ),
-    playbackSource: zod
-      .enum(["fastpix", "youtube"])
-      .describe("The approved playback provider for this Watch item."),
-    youtubeVideoId: zod
-      .string()
-      .nullable()
-      .describe(
-        "Official YouTube video identifier. Present only for rights-attested YouTube embeds.",
-      ),
-    uploadStatus: zod.enum(["waiting", "processing", "ready", "errored"]),
-    createdAt: zod.coerce.date(),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      isOwner: zod.boolean(),
-      musicCredits: zod
-        .array(
-          zod.object({
-            id: zod.number(),
-            trackTitle: zod.string(),
-            artistName: zod.string(),
-            albumTitle: zod.string().nullable(),
-            labelName: zod.string().nullable(),
-            artworkUrl: zod.string().url().nullable(),
-            sourceUrl: zod.string().url().nullable(),
-            musicbrainzRecordingId: zod.string().uuid().nullable(),
-            musicbrainzReleaseId: zod.string().uuid().nullable(),
-            metadataSource: zod.enum(["publisher_attested", "musicbrainz"]),
-            rightsAttestedAt: zod.coerce.date(),
-            displayOrder: zod
-              .number()
-              .min(
-                refreshVideoProviderStatusResponseTwoMusicCreditsItemDisplayOrderMin,
-              ),
-          }),
-        )
-        .describe(
-          "Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.",
-        ),
-    }),
-  );
+
+
+export const RefreshVideoProviderStatusResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "isOwner": zod.boolean(),
+  "musicCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(refreshVideoProviderStatusResponseTwoMusicCreditsItemDisplayOrderMin)
+})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
+}))
+
 
 /**
  * @summary List visible discussion for a published Kryv Watch release
  */
 export const ListVideoCommentsParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const ListVideoCommentsResponseItem = zod.object({
-  id: zod.number(),
-  videoId: zod.number(),
-  parentCommentId: zod.number().nullable(),
-  userId: zod.number(),
-  username: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  message: zod.string(),
-  createdAt: zod.coerce.date(),
-  replies: zod.array(zod.unknown()),
-});
-export const ListVideoCommentsResponse = zod.array(
-  ListVideoCommentsResponseItem,
-);
+  "id": zod.number(),
+  "videoId": zod.number(),
+  "parentCommentId": zod.number().nullable(),
+  "userId": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "replies": zod.array(zod.unknown())
+})
+export const ListVideoCommentsResponse = zod.array(ListVideoCommentsResponseItem)
+
 
 /**
  * @summary Add a comment or reply to a published Kryv Watch release
  */
 export const CreateVideoCommentParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createVideoCommentBodyMessageMax = 1000;
 
+
+
+
 export const CreateVideoCommentBody = zod.object({
-  message: zod.string().min(1).max(createVideoCommentBodyMessageMax),
-  parentCommentId: zod.number().min(1).optional(),
-});
+  "message": zod.string().min(1).max(createVideoCommentBodyMessageMax),
+  "parentCommentId": zod.number().min(1).optional()
+})
 
 export const CreateVideoCommentResponse = zod.object({
-  id: zod.number(),
-  videoId: zod.number(),
-  parentCommentId: zod.number().nullable(),
-  userId: zod.number(),
-  username: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  message: zod.string(),
-  createdAt: zod.coerce.date(),
-  replies: zod.array(zod.unknown()),
-});
+  "id": zod.number(),
+  "videoId": zod.number(),
+  "parentCommentId": zod.number().nullable(),
+  "userId": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "replies": zod.array(zod.unknown())
+})
+
 
 /**
  * @summary Remove a Watch comment or reply (author or channel owner only)
  */
 export const DeleteVideoCommentParams = zod.object({
-  id: zod.coerce.number(),
-  commentId: zod.coerce.number(),
-});
+  "id": zod.coerce.number(),
+  "commentId": zod.coerce.number()
+})
 
-export const DeleteVideoCommentResponse = zod.void();
+export const DeleteVideoCommentResponse = zod.void()
+
 
 /**
  * @summary List owner-attested music acknowledgements for a Watch release (owner only)
  */
 export const ListVideoMusicCreditsParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const listVideoMusicCreditsResponseDisplayOrderMin = 0;
 
+
+
 export const ListVideoMusicCreditsResponseItem = zod.object({
-  id: zod.number(),
-  trackTitle: zod.string(),
-  artistName: zod.string(),
-  albumTitle: zod.string().nullable(),
-  labelName: zod.string().nullable(),
-  artworkUrl: zod.string().url().nullable(),
-  sourceUrl: zod.string().url().nullable(),
-  musicbrainzRecordingId: zod.string().uuid().nullable(),
-  musicbrainzReleaseId: zod.string().uuid().nullable(),
-  metadataSource: zod.enum(["publisher_attested", "musicbrainz"]),
-  rightsAttestedAt: zod.coerce.date(),
-  displayOrder: zod.number().min(listVideoMusicCreditsResponseDisplayOrderMin),
-});
-export const ListVideoMusicCreditsResponse = zod.array(
-  ListVideoMusicCreditsResponseItem,
-);
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(listVideoMusicCreditsResponseDisplayOrderMin)
+})
+export const ListVideoMusicCreditsResponse = zod.array(ListVideoMusicCreditsResponseItem)
+
 
 /**
  * @summary Add an owner-attested music acknowledgement to a Watch release
  */
 export const CreateVideoMusicCreditParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createVideoMusicCreditBodyTrackTitleMax = 200;
 
@@ -3178,427 +2422,316 @@ export const createVideoMusicCreditBodyDisplayOrderDefault = 0;
 export const createVideoMusicCreditBodyDisplayOrderMin = 0;
 export const createVideoMusicCreditBodyDisplayOrderMax = 1000;
 
+
+
 export const CreateVideoMusicCreditBody = zod.object({
-  trackTitle: zod.string().min(1).max(createVideoMusicCreditBodyTrackTitleMax),
-  artistName: zod.string().min(1).max(createVideoMusicCreditBodyArtistNameMax),
-  albumTitle: zod
-    .string()
-    .max(createVideoMusicCreditBodyAlbumTitleMax)
-    .optional(),
-  labelName: zod
-    .string()
-    .max(createVideoMusicCreditBodyLabelNameMax)
-    .optional(),
-  artworkUrl: zod
-    .string()
-    .url()
-    .max(createVideoMusicCreditBodyArtworkUrlMax)
-    .optional(),
-  sourceUrl: zod
-    .string()
-    .url()
-    .max(createVideoMusicCreditBodySourceUrlMax)
-    .optional(),
-  musicbrainzRecordingId: zod.string().uuid().optional(),
-  musicbrainzReleaseId: zod.string().uuid().optional(),
-  metadataSource: zod
-    .enum(["publisher_attested", "musicbrainz"])
-    .default(createVideoMusicCreditBodyMetadataSourceDefault),
-  displayOrder: zod
-    .number()
-    .min(createVideoMusicCreditBodyDisplayOrderMin)
-    .max(createVideoMusicCreditBodyDisplayOrderMax)
-    .default(createVideoMusicCreditBodyDisplayOrderDefault),
-  rightsAttested: zod
-    .boolean()
-    .describe(
-      "The owner confirms these credits and any linked artwork\/source are appropriate to display with this Watch release.",
-    ),
-});
+  "trackTitle": zod.string().min(1).max(createVideoMusicCreditBodyTrackTitleMax),
+  "artistName": zod.string().min(1).max(createVideoMusicCreditBodyArtistNameMax),
+  "albumTitle": zod.string().max(createVideoMusicCreditBodyAlbumTitleMax).optional(),
+  "labelName": zod.string().max(createVideoMusicCreditBodyLabelNameMax).optional(),
+  "artworkUrl": zod.string().url().max(createVideoMusicCreditBodyArtworkUrlMax).optional(),
+  "sourceUrl": zod.string().url().max(createVideoMusicCreditBodySourceUrlMax).optional(),
+  "musicbrainzRecordingId": zod.string().uuid().optional(),
+  "musicbrainzReleaseId": zod.string().uuid().optional(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']).default(createVideoMusicCreditBodyMetadataSourceDefault),
+  "displayOrder": zod.number().min(createVideoMusicCreditBodyDisplayOrderMin).max(createVideoMusicCreditBodyDisplayOrderMax).default(createVideoMusicCreditBodyDisplayOrderDefault),
+  "rightsAttested": zod.boolean().describe('The owner confirms these credits and any linked artwork\/source are appropriate to display with this Watch release.')
+})
 
 export const createVideoMusicCreditResponseDisplayOrderMin = 0;
 
+
+
 export const CreateVideoMusicCreditResponse = zod.object({
-  id: zod.number(),
-  trackTitle: zod.string(),
-  artistName: zod.string(),
-  albumTitle: zod.string().nullable(),
-  labelName: zod.string().nullable(),
-  artworkUrl: zod.string().url().nullable(),
-  sourceUrl: zod.string().url().nullable(),
-  musicbrainzRecordingId: zod.string().uuid().nullable(),
-  musicbrainzReleaseId: zod.string().uuid().nullable(),
-  metadataSource: zod.enum(["publisher_attested", "musicbrainz"]),
-  rightsAttestedAt: zod.coerce.date(),
-  displayOrder: zod.number().min(createVideoMusicCreditResponseDisplayOrderMin),
-});
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(createVideoMusicCreditResponseDisplayOrderMin)
+})
+
 
 /**
  * @summary Remove an owner-attested music acknowledgement from a Watch release
  */
 export const DeleteVideoMusicCreditParams = zod.object({
-  id: zod.coerce.number(),
-  creditId: zod.coerce.number(),
-});
+  "id": zod.coerce.number(),
+  "creditId": zod.coerce.number()
+})
 
-export const DeleteVideoMusicCreditResponse = zod.void();
+export const DeleteVideoMusicCreditResponse = zod.void()
+
 
 /**
  * @summary Get a single video's detail and register a view
  */
 export const GetVideoParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const getVideoResponseTwoMusicCreditsItemDisplayOrderMin = 0;
 
-export const GetVideoResponse = zod
-  .object({
-    id: zod.number(),
-    title: zod.string(),
-    thumbnailUrl: zod
-      .string()
-      .nullable()
-      .describe("Landscape 16:9 thumbnail — used in Kryv Watch grids"),
-    posterUrl: zod
-      .string()
-      .nullable()
-      .describe("Portrait 2:3 poster — used in Kryv Cinema rows"),
-    backdropUrl: zod
-      .string()
-      .nullable()
-      .describe("Wide cinematic backdrop — used in Kryv Cinema hero banners"),
-    durationSeconds: zod.number().nullable(),
-    viewCount: zod.number(),
-    channelId: zod.number(),
-    channelSlug: zod.string(),
-    channelName: zod.string(),
-    channelAvatarUrl: zod.string().nullable(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    contentType: zod.enum(["upload", "original"]),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.",
-      ),
-    playbackSource: zod
-      .enum(["fastpix", "youtube"])
-      .describe("The approved playback provider for this Watch item."),
-    youtubeVideoId: zod
-      .string()
-      .nullable()
-      .describe(
-        "Official YouTube video identifier. Present only for rights-attested YouTube embeds.",
-      ),
-    uploadStatus: zod.enum(["waiting", "processing", "ready", "errored"]),
-    createdAt: zod.coerce.date(),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      isOwner: zod.boolean(),
-      musicCredits: zod
-        .array(
-          zod.object({
-            id: zod.number(),
-            trackTitle: zod.string(),
-            artistName: zod.string(),
-            albumTitle: zod.string().nullable(),
-            labelName: zod.string().nullable(),
-            artworkUrl: zod.string().url().nullable(),
-            sourceUrl: zod.string().url().nullable(),
-            musicbrainzRecordingId: zod.string().uuid().nullable(),
-            musicbrainzReleaseId: zod.string().uuid().nullable(),
-            metadataSource: zod.enum(["publisher_attested", "musicbrainz"]),
-            rightsAttestedAt: zod.coerce.date(),
-            displayOrder: zod
-              .number()
-              .min(getVideoResponseTwoMusicCreditsItemDisplayOrderMin),
-          }),
-        )
-        .describe(
-          "Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.",
-        ),
-    }),
-  );
+
+
+export const GetVideoResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "isOwner": zod.boolean(),
+  "musicCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(getVideoResponseTwoMusicCreditsItemDisplayOrderMin)
+})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
+}))
+
 
 /**
  * @summary Update a video's metadata (owner only)
  */
 export const UpdateVideoParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const updateVideoBodyTitleMax = 100;
 
 export const updateVideoBodyDescriptionMax = 5000;
 
+
+
 export const UpdateVideoBody = zod.object({
-  title: zod.string().min(1).max(updateVideoBodyTitleMax).optional(),
-  description: zod.string().max(updateVideoBodyDescriptionMax).optional(),
-  categoryId: zod.number().optional(),
-});
+  "title": zod.string().min(1).max(updateVideoBodyTitleMax).optional(),
+  "description": zod.string().max(updateVideoBodyDescriptionMax).optional(),
+  "categoryId": zod.number().optional()
+})
 
 export const updateVideoResponseTwoMusicCreditsItemDisplayOrderMin = 0;
 
-export const UpdateVideoResponse = zod
-  .object({
-    id: zod.number(),
-    title: zod.string(),
-    thumbnailUrl: zod
-      .string()
-      .nullable()
-      .describe("Landscape 16:9 thumbnail — used in Kryv Watch grids"),
-    posterUrl: zod
-      .string()
-      .nullable()
-      .describe("Portrait 2:3 poster — used in Kryv Cinema rows"),
-    backdropUrl: zod
-      .string()
-      .nullable()
-      .describe("Wide cinematic backdrop — used in Kryv Cinema hero banners"),
-    durationSeconds: zod.number().nullable(),
-    viewCount: zod.number(),
-    channelId: zod.number(),
-    channelSlug: zod.string(),
-    channelName: zod.string(),
-    channelAvatarUrl: zod.string().nullable(),
-    categoryId: zod.number().nullable(),
-    categoryName: zod.string().nullable(),
-    contentType: zod.enum(["upload", "original"]),
-    playbackId: zod
-      .string()
-      .nullable()
-      .describe(
-        "FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.",
-      ),
-    playbackSource: zod
-      .enum(["fastpix", "youtube"])
-      .describe("The approved playback provider for this Watch item."),
-    youtubeVideoId: zod
-      .string()
-      .nullable()
-      .describe(
-        "Official YouTube video identifier. Present only for rights-attested YouTube embeds.",
-      ),
-    uploadStatus: zod.enum(["waiting", "processing", "ready", "errored"]),
-    createdAt: zod.coerce.date(),
-  })
-  .and(
-    zod.object({
-      description: zod.string().nullable(),
-      isOwner: zod.boolean(),
-      musicCredits: zod
-        .array(
-          zod.object({
-            id: zod.number(),
-            trackTitle: zod.string(),
-            artistName: zod.string(),
-            albumTitle: zod.string().nullable(),
-            labelName: zod.string().nullable(),
-            artworkUrl: zod.string().url().nullable(),
-            sourceUrl: zod.string().url().nullable(),
-            musicbrainzRecordingId: zod.string().uuid().nullable(),
-            musicbrainzReleaseId: zod.string().uuid().nullable(),
-            metadataSource: zod.enum(["publisher_attested", "musicbrainz"]),
-            rightsAttestedAt: zod.coerce.date(),
-            displayOrder: zod
-              .number()
-              .min(updateVideoResponseTwoMusicCreditsItemDisplayOrderMin),
-          }),
-        )
-        .describe(
-          "Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.",
-        ),
-    }),
-  );
+
+
+export const UpdateVideoResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "description": zod.string().nullable(),
+  "isOwner": zod.boolean(),
+  "musicCredits": zod.array(zod.object({
+  "id": zod.number(),
+  "trackTitle": zod.string(),
+  "artistName": zod.string(),
+  "albumTitle": zod.string().nullable(),
+  "labelName": zod.string().nullable(),
+  "artworkUrl": zod.string().url().nullable(),
+  "sourceUrl": zod.string().url().nullable(),
+  "musicbrainzRecordingId": zod.string().uuid().nullable(),
+  "musicbrainzReleaseId": zod.string().uuid().nullable(),
+  "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
+  "rightsAttestedAt": zod.coerce.date(),
+  "displayOrder": zod.number().min(updateVideoResponseTwoMusicCreditsItemDisplayOrderMin)
+})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
+}))
+
 
 /**
  * @summary Delete a video (owner only)
  */
 export const DeleteVideoParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const DeleteVideoResponse = zod.void();
+export const DeleteVideoResponse = zod.void()
+
 
 /**
  * @summary Retrieve a published and rights-cleared Cinema title for viewer playback
  */
 export const GetCinemaTitleParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const GetCinemaTitleResponse = zod
-  .object({
-    id: zod.number(),
-    slug: zod.string(),
-    title: zod.string(),
-    synopsis: zod.string().nullable(),
-    maturityLevel: zod.enum(["kids", "standard", "mature"]),
-    genres: zod.array(zod.string()),
-    posterUrl: zod.string().nullable(),
-    backdropUrl: zod.string().nullable(),
-    runtimeSeconds: zod.number().nullable(),
-    featurePlaybackId: zod
-      .string()
-      .nullable()
-      .describe("Feature playback identifier"),
-    playbackAvailable: zod.boolean(),
-    playbackBlockedReason: zod
-      .string()
-      .nullable()
-      .describe(
-        "Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled",
-      ),
-    trailerPlaybackId: zod.string().nullable(),
-    entitlementType: zod.enum(["free", "subscription", "rental", "purchase"]),
-    publishedAt: zod.coerce.date().nullable(),
-  })
-  .and(
-    zod.object({
-      credits: zod.array(
-        zod.object({
-          channelId: zod.number(),
-          channelSlug: zod.string(),
-          channelDisplayName: zod.string(),
-          channelAvatarUrl: zod.string().nullable(),
-          role: zod.string(),
-        }),
-      ),
-    }),
-  );
+export const GetCinemaTitleResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string().nullable().describe('Feature playback identifier'),
+  "playbackAvailable": zod.boolean(),
+  "playbackBlockedReason": zod.string().nullable().describe('Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled'),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
+}).and(zod.object({
+  "credits": zod.array(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "role": zod.string()
+}))
+}))
+
 
 /**
  * @summary List visible discussion for a published Kryv Cinema title
  */
 export const ListCinemaCommentsParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const ListCinemaCommentsResponseItem = zod.object({
-  id: zod.number(),
-  cinemaTitleId: zod.number(),
-  parentCommentId: zod.number().nullable(),
-  userId: zod.number(),
-  username: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  message: zod.string(),
-  createdAt: zod.coerce.date(),
-  replies: zod.array(zod.unknown()),
-});
-export const ListCinemaCommentsResponse = zod.array(
-  ListCinemaCommentsResponseItem,
-);
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "parentCommentId": zod.number().nullable(),
+  "userId": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "replies": zod.array(zod.unknown())
+})
+export const ListCinemaCommentsResponse = zod.array(ListCinemaCommentsResponseItem)
+
 
 /**
  * @summary Add a comment or reply to a published Kryv Cinema title
  */
 export const CreateCinemaCommentParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const createCinemaCommentBodyMessageMax = 1000;
 
+
+
+
 export const CreateCinemaCommentBody = zod.object({
-  message: zod.string().min(1).max(createCinemaCommentBodyMessageMax),
-  parentCommentId: zod.number().min(1).optional(),
-});
+  "message": zod.string().min(1).max(createCinemaCommentBodyMessageMax),
+  "parentCommentId": zod.number().min(1).optional()
+})
 
 export const CreateCinemaCommentResponse = zod.object({
-  id: zod.number(),
-  cinemaTitleId: zod.number(),
-  parentCommentId: zod.number().nullable(),
-  userId: zod.number(),
-  username: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  message: zod.string(),
-  createdAt: zod.coerce.date(),
-  replies: zod.array(zod.unknown()),
-});
+  "id": zod.number(),
+  "cinemaTitleId": zod.number(),
+  "parentCommentId": zod.number().nullable(),
+  "userId": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "replies": zod.array(zod.unknown())
+})
+
 
 /**
  * @summary Remove a Cinema comment or reply (author or owner only)
  */
 export const DeleteCinemaCommentParams = zod.object({
-  id: zod.coerce.number(),
-  commentId: zod.coerce.number(),
-});
+  "id": zod.coerce.number(),
+  "commentId": zod.coerce.number()
+})
 
-export const DeleteCinemaCommentResponse = zod.void();
+export const DeleteCinemaCommentResponse = zod.void()
+
 
 /**
  * @summary Kryv Cinema home page — hero title plus genre rows of curated originals
  */
 export const GetCinemaHomeResponse = zod.object({
-  hero: zod.union([
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      title: zod.string(),
-      synopsis: zod.string().nullable(),
-      maturityLevel: zod.enum(["kids", "standard", "mature"]),
-      genres: zod.array(zod.string()),
-      posterUrl: zod.string().nullable(),
-      backdropUrl: zod.string().nullable(),
-      runtimeSeconds: zod.number().nullable(),
-      featurePlaybackId: zod
-        .string()
-        .nullable()
-        .describe("Feature playback identifier"),
-      playbackAvailable: zod.boolean(),
-      playbackBlockedReason: zod
-        .string()
-        .nullable()
-        .describe(
-          "Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled",
-        ),
-      trailerPlaybackId: zod.string().nullable(),
-      entitlementType: zod.enum(["free", "subscription", "rental", "purchase"]),
-      publishedAt: zod.coerce.date().nullable(),
-    }),
-    zod.null(),
-  ]),
-  rows: zod.array(
-    zod.object({
-      title: zod.string(),
-      items: zod.array(
-        zod.object({
-          id: zod.number(),
-          slug: zod.string(),
-          title: zod.string(),
-          synopsis: zod.string().nullable(),
-          maturityLevel: zod.enum(["kids", "standard", "mature"]),
-          genres: zod.array(zod.string()),
-          posterUrl: zod.string().nullable(),
-          backdropUrl: zod.string().nullable(),
-          runtimeSeconds: zod.number().nullable(),
-          featurePlaybackId: zod
-            .string()
-            .nullable()
-            .describe("Feature playback identifier"),
-          playbackAvailable: zod.boolean(),
-          playbackBlockedReason: zod
-            .string()
-            .nullable()
-            .describe(
-              "Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled",
-            ),
-          trailerPlaybackId: zod.string().nullable(),
-          entitlementType: zod.enum([
-            "free",
-            "subscription",
-            "rental",
-            "purchase",
-          ]),
-          publishedAt: zod.coerce.date().nullable(),
-        }),
-      ),
-    }),
-  ),
-});
+  "hero": zod.union([zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string().nullable().describe('Feature playback identifier'),
+  "playbackAvailable": zod.boolean(),
+  "playbackBlockedReason": zod.string().nullable().describe('Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled'),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
+}),zod.null()]),
+  "rows": zod.array(zod.object({
+  "title": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "synopsis": zod.string().nullable(),
+  "maturityLevel": zod.enum(['kids', 'standard', 'mature']),
+  "genres": zod.array(zod.string()),
+  "posterUrl": zod.string().nullable(),
+  "backdropUrl": zod.string().nullable(),
+  "runtimeSeconds": zod.number().nullable(),
+  "featurePlaybackId": zod.string().nullable().describe('Feature playback identifier'),
+  "playbackAvailable": zod.boolean(),
+  "playbackBlockedReason": zod.string().nullable().describe('Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled'),
+  "trailerPlaybackId": zod.string().nullable(),
+  "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
+  "publishedAt": zod.coerce.date().nullable()
+}))
+}))
+})
+
 
 /**
  * @summary Retrieve the authenticated customer’s provider-backed crypto wallet balances, deposit addresses, and recent immutable movements
@@ -3606,73 +2739,56 @@ export const GetCinemaHomeResponse = zod.object({
 export const getCustomerWalletResponseDepositAddressesItemAddressMin = 10;
 export const getCustomerWalletResponseDepositAddressesItemAddressMax = 256;
 
+
+
 export const GetCustomerWalletResponse = zod.object({
-  balances: zod.array(
-    zod.object({
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      pendingAmount: zod.string(),
-      availableAmount: zod.string(),
-      heldAmount: zod.string(),
-      usdReferenceValue: zod
-        .string()
-        .nullable()
-        .describe(
-          "Provider-rate reference only; never used to settle crypto balances.",
-        ),
-      rateUpdatedAt: zod.coerce.date().nullable(),
-    }),
-  ),
-  depositAddresses: zod.array(
-    zod.object({
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      address: zod
-        .string()
-        .min(getCustomerWalletResponseDepositAddressesItemAddressMin)
-        .max(getCustomerWalletResponseDepositAddressesItemAddressMax)
-        .describe(
-          "Kryv-managed customer deposit address; it is not a creator payout address.",
-        ),
-      status: zod.enum(["active", "disabled"]),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  movements: zod.array(
-    zod.object({
-      id: zod.number(),
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      movementType: zod.string(),
-      availableDelta: zod.string(),
-      heldDelta: zod.string(),
-      pendingDelta: zod.string(),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  depositsEnabled: zod.boolean(),
-  providerRateAvailable: zod.boolean(),
-});
+  "balances": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "usdReferenceValue": zod.string().nullable().describe('Provider-rate reference only; never used to settle crypto balances.'),
+  "rateUpdatedAt": zod.coerce.date().nullable()
+})),
+  "depositAddresses": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "address": zod.string().min(getCustomerWalletResponseDepositAddressesItemAddressMin).max(getCustomerWalletResponseDepositAddressesItemAddressMax).describe('Kryv-managed customer deposit address; it is not a creator payout address.'),
+  "status": zod.enum(['active', 'disabled']),
+  "createdAt": zod.coerce.date()
+})),
+  "movements": zod.array(zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "movementType": zod.string(),
+  "availableDelta": zod.string(),
+  "heldDelta": zod.string(),
+  "pendingDelta": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "depositsEnabled": zod.boolean(),
+  "providerRateAvailable": zod.boolean()
+})
+
 
 /**
  * @summary Create or return a permanent Kryv-branded customer deposit address for one approved cryptocurrency
  */
 export const CreateCustomerWalletDepositAddressBody = zod.object({
-  currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-});
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE'])
+})
 
 export const createCustomerWalletDepositAddressResponseAddressMin = 10;
 export const createCustomerWalletDepositAddressResponseAddressMax = 256;
 
+
+
 export const CreateCustomerWalletDepositAddressResponse = zod.object({
-  currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-  address: zod
-    .string()
-    .min(createCustomerWalletDepositAddressResponseAddressMin)
-    .max(createCustomerWalletDepositAddressResponseAddressMax)
-    .describe(
-      "Kryv-managed customer deposit address; it is not a creator payout address.",
-    ),
-  status: zod.enum(["active", "disabled"]),
-  createdAt: zod.coerce.date(),
-});
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "address": zod.string().min(createCustomerWalletDepositAddressResponseAddressMin).max(createCustomerWalletDepositAddressResponseAddressMax).describe('Kryv-managed customer deposit address; it is not a creator payout address.'),
+  "status": zod.enum(['active', 'disabled']),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Creator-only wallet, earnings, payout readiness, and recent payout requests
@@ -3684,88 +2800,66 @@ export const getCreatorFinanceResponsePayoutPreferenceMonthDayMax = 28;
 
 export const getCreatorFinanceResponsePayoutRequestsItemProviderTransactionUrlMax = 2048;
 
+
+
 export const GetCreatorFinanceResponse = zod.object({
-  channelId: zod.number(),
-  balances: zod.array(
-    zod.object({
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      pendingAmount: zod.string(),
-      availableAmount: zod.string(),
-      heldAmount: zod.string(),
-      usdReferenceValue: zod.string().nullable(),
-      rateUpdatedAt: zod.coerce.date().nullable(),
-    }),
-  ),
-  payoutProfiles: zod.array(
-    zod.object({
-      id: zod.number(),
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      addressMasked: zod.string(),
-      confirmationStatus: zod.enum(["pending", "confirmed", "rejected"]),
-      reviewStatus: zod.enum(["pending", "approved", "rejected"]),
-      confirmedAt: zod.coerce.date().nullish(),
-      updatedAt: zod.coerce.date(),
-    }),
-  ),
-  payoutPreference: zod.object({
-    cadence: zod
-      .enum(["manual"])
-      .describe(
-        "Scheduled cadence is unavailable because scheduled payout requests are hard-disabled.",
-      ),
-    minimumAmount: zod.string(),
-    weekday: zod
-      .number()
-      .min(getCreatorFinanceResponsePayoutPreferenceWeekdayMin)
-      .max(getCreatorFinanceResponsePayoutPreferenceWeekdayMax)
-      .nullish(),
-    monthDay: zod
-      .number()
-      .min(1)
-      .max(getCreatorFinanceResponsePayoutPreferenceMonthDayMax)
-      .nullish(),
-    timezone: zod.string(),
-    enabled: zod.boolean(),
-    nextRunAt: zod.coerce.date().nullable(),
-    updatedAt: zod.coerce.date(),
-  }),
-  payoutRequests: zod.array(
-    zod.object({
-      id: zod.number(),
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      amount: zod.string(),
-      destinationMasked: zod.string().nullable(),
-      requestSource: zod.enum(["manual", "scheduled"]),
-      feeAmount: zod.string().nullish(),
-      feeCurrency: zod.string().nullish(),
-      usdReferenceAmount: zod.string().nullish(),
-      status: zod.string(),
-      riskHoldReason: zod.string().nullish(),
-      requestedAt: zod.coerce.date(),
-      reviewedAt: zod.coerce.date().nullish(),
-      completedAt: zod.coerce.date().nullish(),
-      providerTransactionUrl: zod
-        .string()
-        .max(
-          getCreatorFinanceResponsePayoutRequestsItemProviderTransactionUrlMax,
-        )
-        .nullish(),
-    }),
-  ),
-  achievements: zod.array(
-    zod.object({
-      key: zod.string(),
-      title: zod.string(),
-      description: zod.string(),
-      currentValue: zod.number(),
-      targetValue: zod.number(),
-      completed: zod.boolean(),
-      evidence: zod.string(),
-    }),
-  ),
-  payoutRequestsEnabled: zod.boolean(),
-  providerRateAvailable: zod.boolean().optional(),
-});
+  "channelId": zod.number(),
+  "balances": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "usdReferenceValue": zod.string().nullable(),
+  "rateUpdatedAt": zod.coerce.date().nullable()
+})),
+  "payoutProfiles": zod.array(zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "addressMasked": zod.string(),
+  "confirmationStatus": zod.enum(['pending', 'confirmed', 'rejected']),
+  "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "confirmedAt": zod.coerce.date().nullish(),
+  "updatedAt": zod.coerce.date()
+})),
+  "payoutPreference": zod.object({
+  "cadence": zod.enum(['manual']).describe('Scheduled cadence is unavailable because scheduled payout requests are hard-disabled.'),
+  "minimumAmount": zod.string(),
+  "weekday": zod.number().min(getCreatorFinanceResponsePayoutPreferenceWeekdayMin).max(getCreatorFinanceResponsePayoutPreferenceWeekdayMax).nullish(),
+  "monthDay": zod.number().min(1).max(getCreatorFinanceResponsePayoutPreferenceMonthDayMax).nullish(),
+  "timezone": zod.string(),
+  "enabled": zod.boolean(),
+  "nextRunAt": zod.coerce.date().nullable(),
+  "updatedAt": zod.coerce.date()
+}),
+  "payoutRequests": zod.array(zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string(),
+  "destinationMasked": zod.string().nullable(),
+  "requestSource": zod.enum(['manual', 'scheduled']),
+  "feeAmount": zod.string().nullish(),
+  "feeCurrency": zod.string().nullish(),
+  "usdReferenceAmount": zod.string().nullish(),
+  "status": zod.string(),
+  "riskHoldReason": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "providerTransactionUrl": zod.string().max(getCreatorFinanceResponsePayoutRequestsItemProviderTransactionUrlMax).nullish()
+})),
+  "achievements": zod.array(zod.object({
+  "key": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "currentValue": zod.number(),
+  "targetValue": zod.number(),
+  "completed": zod.boolean(),
+  "evidence": zod.string()
+})),
+  "payoutRequestsEnabled": zod.boolean(),
+  "providerRateAvailable": zod.boolean().optional()
+})
+
 
 /**
  * @summary Save or replace an encrypted creator payout destination for an approved asset
@@ -3773,169 +2867,163 @@ export const GetCreatorFinanceResponse = zod.object({
 export const saveCreatorPayoutProfileBodyAddressMin = 12;
 export const saveCreatorPayoutProfileBodyAddressMax = 240;
 
+
+
 export const SaveCreatorPayoutProfileBody = zod.object({
-  currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-  address: zod
-    .string()
-    .min(saveCreatorPayoutProfileBodyAddressMin)
-    .max(saveCreatorPayoutProfileBodyAddressMax),
-});
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "address": zod.string().min(saveCreatorPayoutProfileBodyAddressMin).max(saveCreatorPayoutProfileBodyAddressMax)
+})
 
 export const SaveCreatorPayoutProfileResponse = zod.object({
-  id: zod.number(),
-  currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-  addressMasked: zod.string(),
-  confirmationStatus: zod.enum(["pending", "confirmed", "rejected"]),
-  reviewStatus: zod.enum(["pending", "approved", "rejected"]),
-  confirmedAt: zod.coerce.date().nullish(),
-  updatedAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "addressMasked": zod.string(),
+  "confirmationStatus": zod.enum(['pending', 'confirmed', 'rejected']),
+  "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "confirmedAt": zod.coerce.date().nullish(),
+  "updatedAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Create a server-calculated, owner-reviewable payout request without executing a withdrawal
  */
-export const createCreatorPayoutRequestBodyAmountRegExp = new RegExp(
-  "^\\d+(\\.\\d{1,8})?$",
-);
+export const createCreatorPayoutRequestBodyAmountRegExp = new RegExp('^\\d+(\\.\\d{1,8})?$');
+
 
 export const CreateCreatorPayoutRequestBody = zod.object({
-  currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-  amount: zod.string().regex(createCreatorPayoutRequestBodyAmountRegExp),
-});
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string().regex(createCreatorPayoutRequestBodyAmountRegExp)
+})
 
 export const createCreatorPayoutRequestResponseProviderTransactionUrlMax = 2048;
 
+
+
 export const CreateCreatorPayoutRequestResponse = zod.object({
-  id: zod.number(),
-  currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-  amount: zod.string(),
-  destinationMasked: zod.string().nullable(),
-  requestSource: zod.enum(["manual", "scheduled"]),
-  feeAmount: zod.string().nullish(),
-  feeCurrency: zod.string().nullish(),
-  usdReferenceAmount: zod.string().nullish(),
-  status: zod.string(),
-  riskHoldReason: zod.string().nullish(),
-  requestedAt: zod.coerce.date(),
-  reviewedAt: zod.coerce.date().nullish(),
-  completedAt: zod.coerce.date().nullish(),
-  providerTransactionUrl: zod
-    .string()
-    .max(createCreatorPayoutRequestResponseProviderTransactionUrlMax)
-    .nullish(),
-});
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string(),
+  "destinationMasked": zod.string().nullable(),
+  "requestSource": zod.enum(['manual', 'scheduled']),
+  "feeAmount": zod.string().nullish(),
+  "feeCurrency": zod.string().nullish(),
+  "usdReferenceAmount": zod.string().nullish(),
+  "status": zod.string(),
+  "riskHoldReason": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "providerTransactionUrl": zod.string().max(createCreatorPayoutRequestResponseProviderTransactionUrlMax).nullish()
+})
+
 
 /**
  * @summary Creator-only server-computed payout-readiness milestones
  */
 export const GetCreatorAchievementsResponseItem = zod.object({
-  key: zod.string(),
-  title: zod.string(),
-  description: zod.string(),
-  currentValue: zod.number(),
-  targetValue: zod.number(),
-  completed: zod.boolean(),
-  evidence: zod.string(),
-});
-export const GetCreatorAchievementsResponse = zod.array(
-  GetCreatorAchievementsResponseItem,
-);
+  "key": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "currentValue": zod.number(),
+  "targetValue": zod.number(),
+  "completed": zod.boolean(),
+  "evidence": zod.string()
+})
+export const GetCreatorAchievementsResponse = zod.array(GetCreatorAchievementsResponseItem)
+
 
 /**
  * @summary List open and resolved viewer safety reports for owner review
  */
 export const ListAdminModerationCasesQueryParams = zod.object({
-  status: zod.enum(["open", "resolved", "dismissed"]).optional(),
-});
+  "status": zod.enum(['open', 'resolved', 'dismissed']).optional()
+})
 
 export const ListAdminModerationCasesResponseItem = zod.object({
-  id: zod.number(),
-  channelId: zod.number().nullable(),
-  reporterUserId: zod.number().nullable(),
-  subjectUserId: zod.number().nullable(),
-  reporterUsername: zod.string().nullish(),
-  subjectUsername: zod.string().nullish(),
-  caseType: zod.string(),
-  status: zod.enum(["open", "resolved", "dismissed"]),
-  summary: zod.string().nullable(),
-  evidence: zod.array(zod.record(zod.string(), zod.unknown())),
-  resolution: zod.string().nullish(),
-  createdAt: zod.coerce.date(),
-  updatedAt: zod.coerce.date(),
-});
-export const ListAdminModerationCasesResponse = zod.array(
-  ListAdminModerationCasesResponseItem,
-);
+  "id": zod.number(),
+  "channelId": zod.number().nullable(),
+  "reporterUserId": zod.number().nullable(),
+  "subjectUserId": zod.number().nullable(),
+  "reporterUsername": zod.string().nullish(),
+  "subjectUsername": zod.string().nullish(),
+  "caseType": zod.string(),
+  "status": zod.enum(['open', 'resolved', 'dismissed']),
+  "summary": zod.string().nullable(),
+  "evidence": zod.array(zod.record(zod.string(), zod.unknown())),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminModerationCasesResponse = zod.array(ListAdminModerationCasesResponseItem)
+
 
 /**
  * @summary Resolve or dismiss a viewer safety report
  */
 export const ReviewAdminModerationCaseParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const reviewAdminModerationCaseBodyResolutionMax = 1000;
 
+
+
 export const ReviewAdminModerationCaseBody = zod.object({
-  decision: zod.enum(["resolved", "dismissed"]),
-  resolution: zod
-    .string()
-    .min(1)
-    .max(reviewAdminModerationCaseBodyResolutionMax)
-    .optional(),
-});
+  "decision": zod.enum(['resolved', 'dismissed']),
+  "resolution": zod.string().min(1).max(reviewAdminModerationCaseBodyResolutionMax).optional()
+})
 
 export const ReviewAdminModerationCaseResponse = zod.object({
-  id: zod.number(),
-  channelId: zod.number().nullable(),
-  reporterUserId: zod.number().nullable(),
-  subjectUserId: zod.number().nullable(),
-  reporterUsername: zod.string().nullish(),
-  subjectUsername: zod.string().nullish(),
-  caseType: zod.string(),
-  status: zod.enum(["open", "resolved", "dismissed"]),
-  summary: zod.string().nullable(),
-  evidence: zod.array(zod.record(zod.string(), zod.unknown())),
-  resolution: zod.string().nullish(),
-  createdAt: zod.coerce.date(),
-  updatedAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "channelId": zod.number().nullable(),
+  "reporterUserId": zod.number().nullable(),
+  "subjectUserId": zod.number().nullable(),
+  "reporterUsername": zod.string().nullish(),
+  "subjectUsername": zod.string().nullish(),
+  "caseType": zod.string(),
+  "status": zod.enum(['open', 'resolved', 'dismissed']),
+  "summary": zod.string().nullable(),
+  "evidence": zod.array(zod.record(zod.string(), zod.unknown())),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Public, read-only Focus Mode presentation state. Returns no owner controls or credentials.
  */
 export const getPlatformFocusModeResponseAnnouncementTextMax = 500;
 
+
+
 export const GetPlatformFocusModeResponse = zod.object({
-  isEnabled: zod.boolean(),
-  sourceType: zod
-    .union([zod.literal("live"), zod.literal("cinema"), zod.literal(null)])
-    .nullable(),
-  sourceId: zod.number().nullable(),
-  chatEnabled: zod.boolean(),
-  announcementText: zod
-    .string()
-    .max(getPlatformFocusModeResponseAnnouncementTextMax)
-    .nullable(),
-  updatedAt: zod.coerce.date(),
-});
+  "isEnabled": zod.boolean(),
+  "sourceType": zod.union([zod.literal('live'),zod.literal('cinema'),zod.literal(null)]).nullable(),
+  "sourceId": zod.number().nullable(),
+  "chatEnabled": zod.boolean(),
+  "announcementText": zod.string().max(getPlatformFocusModeResponseAnnouncementTextMax).nullable(),
+  "updatedAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Owner-only Focus Mode settings
  */
 export const getAdminFocusModeResponseAnnouncementTextMax = 500;
 
+
+
 export const GetAdminFocusModeResponse = zod.object({
-  isEnabled: zod.boolean(),
-  sourceType: zod.enum(["live", "cinema"]),
-  sourceId: zod.number().nullable(),
-  chatEnabled: zod.boolean(),
-  announcementText: zod
-    .string()
-    .max(getAdminFocusModeResponseAnnouncementTextMax)
-    .nullable(),
-  updatedAt: zod.coerce.date(),
-});
+  "isEnabled": zod.boolean(),
+  "sourceType": zod.enum(['live', 'cinema']),
+  "sourceId": zod.number().nullable(),
+  "chatEnabled": zod.boolean(),
+  "announcementText": zod.string().max(getAdminFocusModeResponseAnnouncementTextMax).nullable(),
+  "updatedAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Owner-only update to the public Focus Mode presentation
@@ -3943,78 +3031,72 @@ export const GetAdminFocusModeResponse = zod.object({
 
 export const updateAdminFocusModeBodyAnnouncementTextMax = 500;
 
+
+
 export const UpdateAdminFocusModeBody = zod.object({
-  isEnabled: zod.boolean(),
-  sourceType: zod.enum(["live", "cinema"]),
-  sourceId: zod.number().min(1).nullish(),
-  chatEnabled: zod.boolean(),
-  announcementText: zod
-    .string()
-    .max(updateAdminFocusModeBodyAnnouncementTextMax)
-    .nullish(),
-});
+  "isEnabled": zod.boolean(),
+  "sourceType": zod.enum(['live', 'cinema']),
+  "sourceId": zod.number().min(1).nullish(),
+  "chatEnabled": zod.boolean(),
+  "announcementText": zod.string().max(updateAdminFocusModeBodyAnnouncementTextMax).nullish()
+})
 
 export const updateAdminFocusModeResponseAnnouncementTextMax = 500;
 
+
+
 export const UpdateAdminFocusModeResponse = zod.object({
-  isEnabled: zod.boolean(),
-  sourceType: zod.enum(["live", "cinema"]),
-  sourceId: zod.number().nullable(),
-  chatEnabled: zod.boolean(),
-  announcementText: zod
-    .string()
-    .max(updateAdminFocusModeResponseAnnouncementTextMax)
-    .nullable(),
-  updatedAt: zod.coerce.date(),
-});
+  "isEnabled": zod.boolean(),
+  "sourceType": zod.enum(['live', 'cinema']),
+  "sourceId": zod.number().nullable(),
+  "chatEnabled": zod.boolean(),
+  "announcementText": zod.string().max(updateAdminFocusModeResponseAnnouncementTextMax).nullable(),
+  "updatedAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Owner-only command-center overview of platform, commerce, safety, and content operations
  */
 export const GetAdminCommandOverviewResponse = zod.object({
-  platform: zod.object({
-    creatorChannels: zod.number(),
-    liveChannels: zod.number(),
-    watchItems: zod.number(),
-    readyWatchItems: zod.number(),
-    cinemaTitles: zod.number(),
-    totalViews: zod.number(),
-  }),
-  commerce: zod.object({
-    providerConfigured: zod.boolean(),
-    cryptoCommerceEnabled: zod.boolean(),
-    payoutRequestsEnabled: zod.boolean(),
-    scheduledPayoutRequestsEnabled: zod.boolean(),
-    providerWithdrawalsEnabled: zod.boolean(),
-    customerWalletCustodyEnabled: zod.boolean(),
-    adsDeliveryEnabled: zod.boolean(),
-    pendingProfileReviews: zod.number(),
-    pendingPayoutReviews: zod.number(),
-  }),
-  payments: zod.array(
-    zod.object({
-      status: zod.string(),
-      count: zod.number(),
-    }),
-  ),
-  revenueByAsset: zod.array(
-    zod.object({
-      currency: zod.string(),
-      grossAmount: zod.string(),
-      platformFeeAmount: zod.string(),
-      creatorNetAmount: zod.string(),
-    }),
-  ),
-  payoutStatusCounts: zod.array(
-    zod.object({
-      status: zod.string(),
-      count: zod.number(),
-    }),
-  ),
-  safety: zod.object({
-    openCases: zod.number(),
-  }),
-});
+  "platform": zod.object({
+  "creatorChannels": zod.number(),
+  "liveChannels": zod.number(),
+  "watchItems": zod.number(),
+  "readyWatchItems": zod.number(),
+  "cinemaTitles": zod.number(),
+  "totalViews": zod.number()
+}),
+  "commerce": zod.object({
+  "providerConfigured": zod.boolean(),
+  "cryptoCommerceEnabled": zod.boolean(),
+  "payoutRequestsEnabled": zod.boolean(),
+  "scheduledPayoutRequestsEnabled": zod.boolean(),
+  "providerWithdrawalsEnabled": zod.boolean(),
+  "customerWalletCustodyEnabled": zod.boolean(),
+  "adsDeliveryEnabled": zod.boolean(),
+  "pendingProfileReviews": zod.number(),
+  "pendingPayoutReviews": zod.number()
+}),
+  "payments": zod.array(zod.object({
+  "status": zod.string(),
+  "count": zod.number()
+})),
+  "revenueByAsset": zod.array(zod.object({
+  "currency": zod.string(),
+  "grossAmount": zod.string(),
+  "platformFeeAmount": zod.string(),
+  "creatorNetAmount": zod.string()
+})),
+  "payoutStatusCounts": zod.array(zod.object({
+  "status": zod.string(),
+  "count": zod.number()
+})),
+  "safety": zod.object({
+  "openCases": zod.number()
+})
+})
+
 
 /**
  * @summary Owner-only connected platform analytics from recorded stream, chat, subscription, and immutable revenue data
@@ -4022,81 +3104,67 @@ export const GetAdminCommandOverviewResponse = zod.object({
 export const getAdminAnalyticsQueryRangeDaysDefault = 7;
 
 export const GetAdminAnalyticsQueryParams = zod.object({
-  rangeDays: zod
-    .union([zod.literal(1), zod.literal(7), zod.literal(30)])
-    .default(getAdminAnalyticsQueryRangeDaysDefault),
-});
+  "rangeDays": zod.union([zod.literal(1),zod.literal(7),zod.literal(30)]).default(getAdminAnalyticsQueryRangeDaysDefault)
+})
 
 export const GetAdminAnalyticsResponse = zod.object({
-  rangeDays: zod.union([zod.literal(1), zod.literal(7), zod.literal(30)]),
-  summary: zod.object({
-    streamSessions: zod.number(),
-    streamSeconds: zod.number(),
-    chatMessages: zod.number(),
-    activeCreators: zod.number(),
-    activeSubscriptions: zod.number(),
-  }),
-  activity: zod.array(
-    zod.object({
-      bucket: zod.coerce.date(),
-      streamSessions: zod.number(),
-      chatMessages: zod.number(),
-    }),
-  ),
-  topCreators: zod.array(
-    zod.object({
-      channelId: zod.number(),
-      channelDisplayName: zod.string(),
-      streamSessions: zod.number(),
-      streamSeconds: zod.number(),
-      chatMessages: zod.number(),
-    }),
-  ),
-  topWatchVideos: zod
-    .array(
-      zod.object({
-        videoId: zod.number(),
-        videoTitle: zod.string(),
-        channelDisplayName: zod.string(),
-        recordedViewerCount: zod.number(),
-      }),
-    )
-    .describe(
-      "Titles ranked by recorded Watch-history rows whose latest recorded activity falls within the selected range; this is not a total-play or watch-time metric.",
-    ),
-  revenueByAsset: zod.array(
-    zod.object({
-      currency: zod.string(),
-      grossAmount: zod.string(),
-      platformFeeAmount: zod.string(),
-      creatorNetAmount: zod.string(),
-    }),
-  ),
-});
+  "rangeDays": zod.union([zod.literal(1),zod.literal(7),zod.literal(30)]),
+  "summary": zod.object({
+  "streamSessions": zod.number(),
+  "streamSeconds": zod.number(),
+  "chatMessages": zod.number(),
+  "activeCreators": zod.number(),
+  "activeSubscriptions": zod.number()
+}),
+  "activity": zod.array(zod.object({
+  "bucket": zod.coerce.date(),
+  "streamSessions": zod.number(),
+  "chatMessages": zod.number()
+})),
+  "topCreators": zod.array(zod.object({
+  "channelId": zod.number(),
+  "channelDisplayName": zod.string(),
+  "streamSessions": zod.number(),
+  "streamSeconds": zod.number(),
+  "chatMessages": zod.number()
+})),
+  "topWatchVideos": zod.array(zod.object({
+  "videoId": zod.number(),
+  "videoTitle": zod.string(),
+  "channelDisplayName": zod.string(),
+  "recordedViewerCount": zod.number()
+})).describe('Titles ranked by recorded Watch-history rows whose latest recorded activity falls within the selected range; this is not a total-play or watch-time metric.'),
+  "revenueByAsset": zod.array(zod.object({
+  "currency": zod.string(),
+  "grossAmount": zod.string(),
+  "platformFeeAmount": zod.string(),
+  "creatorNetAmount": zod.string()
+}))
+})
+
 
 /**
  * @summary Owner-only finance command overview with asset liabilities and controlled-launch status
  */
 export const GetAdminFinanceOverviewResponse = zod.object({
-  assetLiabilities: zod.array(
-    zod.object({
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      pendingAmount: zod.string(),
-      availableAmount: zod.string(),
-      heldAmount: zod.string(),
-      providerTreasuryBalance: zod.string().nullable(),
-      priceUsd: zod.string().nullable(),
-      rateUpdatedAt: zod.coerce.date().nullable(),
-    }),
-  ),
-  pendingProfileReviews: zod.number(),
-  requestedPayouts: zod.number(),
-  cryptoCommerceEnabled: zod.boolean(),
-  payoutRequestsEnabled: zod.boolean(),
-  scheduledPayoutRequestsEnabled: zod.boolean(),
-  providerWithdrawalsEnabled: zod.boolean(),
-  providerConfigured: zod.boolean(),
-});
+  "assetLiabilities": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "providerTreasuryBalance": zod.string().nullable(),
+  "priceUsd": zod.string().nullable(),
+  "rateUpdatedAt": zod.coerce.date().nullable()
+})),
+  "pendingProfileReviews": zod.number(),
+  "requestedPayouts": zod.number(),
+  "cryptoCommerceEnabled": zod.boolean(),
+  "payoutRequestsEnabled": zod.boolean(),
+  "scheduledPayoutRequestsEnabled": zod.boolean(),
+  "providerWithdrawalsEnabled": zod.boolean(),
+  "providerConfigured": zod.boolean()
+})
+
 
 /**
  * @summary Owner-only safe treasury operating labels and notes; never includes provider credentials, wallet addresses, or payout controls
@@ -4105,19 +3173,14 @@ export const getAdminTreasuryContextResponseLabelMax = 120;
 
 export const getAdminTreasuryContextResponseNotesMax = 2000;
 
+
+
 export const GetAdminTreasuryContextResponse = zod.object({
-  label: zod
-    .string()
-    .max(getAdminTreasuryContextResponseLabelMax)
-    .nullable()
-    .describe("Owner-visible non-secret treasury label only"),
-  notes: zod
-    .string()
-    .max(getAdminTreasuryContextResponseNotesMax)
-    .nullable()
-    .describe("Owner-visible non-secret operational notes only"),
-  updatedAt: zod.coerce.date().nullable(),
-});
+  "label": zod.string().max(getAdminTreasuryContextResponseLabelMax).nullable().describe('Owner-visible non-secret treasury label only'),
+  "notes": zod.string().max(getAdminTreasuryContextResponseNotesMax).nullable().describe('Owner-visible non-secret operational notes only'),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
 
 /**
  * @summary Owner-only update of safe treasury operating labels and notes
@@ -4126,270 +3189,244 @@ export const updateAdminTreasuryContextBodyLabelMax = 120;
 
 export const updateAdminTreasuryContextBodyNotesMax = 2000;
 
+
+
 export const UpdateAdminTreasuryContextBody = zod.object({
-  label: zod.string().max(updateAdminTreasuryContextBodyLabelMax).nullable(),
-  notes: zod.string().max(updateAdminTreasuryContextBodyNotesMax).nullable(),
-});
+  "label": zod.string().max(updateAdminTreasuryContextBodyLabelMax).nullable(),
+  "notes": zod.string().max(updateAdminTreasuryContextBodyNotesMax).nullable()
+})
 
 export const updateAdminTreasuryContextResponseLabelMax = 120;
 
 export const updateAdminTreasuryContextResponseNotesMax = 2000;
 
+
+
 export const UpdateAdminTreasuryContextResponse = zod.object({
-  label: zod
-    .string()
-    .max(updateAdminTreasuryContextResponseLabelMax)
-    .nullable()
-    .describe("Owner-visible non-secret treasury label only"),
-  notes: zod
-    .string()
-    .max(updateAdminTreasuryContextResponseNotesMax)
-    .nullable()
-    .describe("Owner-visible non-secret operational notes only"),
-  updatedAt: zod.coerce.date().nullable(),
-});
+  "label": zod.string().max(updateAdminTreasuryContextResponseLabelMax).nullable().describe('Owner-visible non-secret treasury label only'),
+  "notes": zod.string().max(updateAdminTreasuryContextResponseNotesMax).nullable().describe('Owner-visible non-secret operational notes only'),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
 
 /**
  * @summary Owner-only recent immutable revenue, creator-balance, and sanitized payment-event activity
  */
 export const GetAdminFinanceLedgerResponse = zod.object({
-  platformRevenue: zod.array(
-    zod.object({
-      id: zod.number(),
-      channelId: zod.number(),
-      channelDisplayName: zod.string(),
-      currency: zod.string(),
-      paymentKind: zod.string(),
-      grossAmount: zod.string(),
-      platformFeeAmount: zod.string(),
-      creatorNetAmount: zod.string(),
-      sourceType: zod.string(),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  creatorBalanceMovements: zod.array(
-    zod.object({
-      id: zod.number(),
-      channelId: zod.number(),
-      channelDisplayName: zod.string(),
-      currency: zod.string(),
-      movementType: zod.string(),
-      availableDelta: zod.string(),
-      heldDelta: zod.string(),
-      pendingDelta: zod.string(),
-      sourceType: zod.string(),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  paymentEvents: zod.array(
-    zod.object({
-      id: zod.number(),
-      provider: zod.string(),
-      eventType: zod.string(),
-      processingStatus: zod.string(),
-      errorCode: zod.string().nullable(),
-      processedAt: zod.coerce.date().nullable(),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-});
+  "platformRevenue": zod.array(zod.object({
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "channelDisplayName": zod.string(),
+  "currency": zod.string(),
+  "paymentKind": zod.string(),
+  "grossAmount": zod.string(),
+  "platformFeeAmount": zod.string(),
+  "creatorNetAmount": zod.string(),
+  "sourceType": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "creatorBalanceMovements": zod.array(zod.object({
+  "id": zod.number(),
+  "channelId": zod.number(),
+  "channelDisplayName": zod.string(),
+  "currency": zod.string(),
+  "movementType": zod.string(),
+  "availableDelta": zod.string(),
+  "heldDelta": zod.string(),
+  "pendingDelta": zod.string(),
+  "sourceType": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "paymentEvents": zod.array(zod.object({
+  "id": zod.number(),
+  "provider": zod.string(),
+  "eventType": zod.string(),
+  "processingStatus": zod.string(),
+  "errorCode": zod.string().nullable(),
+  "processedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
 
 /**
  * @summary Owner-only current creator balances grouped by channel and crypto asset
  */
 export const ListAdminCreatorBalancesResponseItem = zod.object({
-  channelId: zod.number(),
-  channelSlug: zod.string(),
-  channelDisplayName: zod.string(),
-  creatorUsername: zod.string(),
-  currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-  pendingAmount: zod.string(),
-  availableAmount: zod.string(),
-  heldAmount: zod.string(),
-  updatedAt: zod.coerce.date(),
-});
-export const ListAdminCreatorBalancesResponse = zod.array(
-  ListAdminCreatorBalancesResponseItem,
-);
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminCreatorBalancesResponse = zod.array(ListAdminCreatorBalancesResponseItem)
+
 
 /**
  * @summary Owner-only per-creator balances and recent immutable balance movements
  */
 export const GetAdminCreatorBalanceDetailParams = zod.object({
-  channelId: zod.coerce.number(),
-});
+  "channelId": zod.coerce.number()
+})
 
 export const GetAdminCreatorBalanceDetailResponse = zod.object({
-  channelId: zod.number(),
-  channelSlug: zod.string(),
-  channelDisplayName: zod.string(),
-  creatorUsername: zod.string(),
-  balances: zod.array(
-    zod.object({
-      channelId: zod.number(),
-      channelSlug: zod.string(),
-      channelDisplayName: zod.string(),
-      creatorUsername: zod.string(),
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      pendingAmount: zod.string(),
-      availableAmount: zod.string(),
-      heldAmount: zod.string(),
-      updatedAt: zod.coerce.date(),
-    }),
-  ),
-  movements: zod.array(
-    zod.object({
-      id: zod.number(),
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      movementType: zod.string(),
-      availableDelta: zod.string(),
-      heldDelta: zod.string(),
-      pendingDelta: zod.string(),
-      sourceType: zod.string(),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-});
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string(),
+  "balances": zod.array(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "pendingAmount": zod.string(),
+  "availableAmount": zod.string(),
+  "heldAmount": zod.string(),
+  "updatedAt": zod.coerce.date()
+})),
+  "movements": zod.array(zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "movementType": zod.string(),
+  "availableDelta": zod.string(),
+  "heldDelta": zod.string(),
+  "pendingDelta": zod.string(),
+  "sourceType": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
 
 /**
  * @summary Owner-only masked creator payout profiles awaiting or completing review
  */
-export const ListAdminPayoutProfilesResponseItem = zod
-  .object({
-    id: zod.number(),
-    currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-    addressMasked: zod.string(),
-    confirmationStatus: zod.enum(["pending", "confirmed", "rejected"]),
-    reviewStatus: zod.enum(["pending", "approved", "rejected"]),
-    confirmedAt: zod.coerce.date().nullish(),
-    updatedAt: zod.coerce.date(),
-  })
-  .and(
-    zod.object({
-      channelId: zod.number(),
-      channelSlug: zod.string(),
-      channelDisplayName: zod.string(),
-      creatorUsername: zod.string(),
-    }),
-  );
-export const ListAdminPayoutProfilesResponse = zod.array(
-  ListAdminPayoutProfilesResponseItem,
-);
+export const ListAdminPayoutProfilesResponseItem = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "addressMasked": zod.string(),
+  "confirmationStatus": zod.enum(['pending', 'confirmed', 'rejected']),
+  "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "confirmedAt": zod.coerce.date().nullish(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string()
+}))
+export const ListAdminPayoutProfilesResponse = zod.array(ListAdminPayoutProfilesResponseItem)
+
 
 /**
  * @summary Owner-only approval or rejection of a masked payout destination
  */
 export const ReviewAdminPayoutProfileParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const reviewAdminPayoutProfileBodyReasonMax = 500;
 
-export const ReviewAdminPayoutProfileBody = zod.object({
-  decision: zod.enum(["approved", "rejected"]),
-  reason: zod.string().max(reviewAdminPayoutProfileBodyReasonMax).optional(),
-});
 
-export const ReviewAdminPayoutProfileResponse = zod
-  .object({
-    id: zod.number(),
-    currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-    addressMasked: zod.string(),
-    confirmationStatus: zod.enum(["pending", "confirmed", "rejected"]),
-    reviewStatus: zod.enum(["pending", "approved", "rejected"]),
-    confirmedAt: zod.coerce.date().nullish(),
-    updatedAt: zod.coerce.date(),
-  })
-  .and(
-    zod.object({
-      channelId: zod.number(),
-      channelSlug: zod.string(),
-      channelDisplayName: zod.string(),
-      creatorUsername: zod.string(),
-    }),
-  );
+
+export const ReviewAdminPayoutProfileBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected']),
+  "reason": zod.string().max(reviewAdminPayoutProfileBodyReasonMax).optional()
+})
+
+export const ReviewAdminPayoutProfileResponse = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "addressMasked": zod.string(),
+  "confirmationStatus": zod.enum(['pending', 'confirmed', 'rejected']),
+  "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "confirmedAt": zod.coerce.date().nullish(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string()
+}))
+
 
 /**
  * @summary Owner-only creator payout review queue and settlement history
  */
 export const listAdminPayoutRequestsResponseOneProviderTransactionUrlMax = 2048;
 
-export const ListAdminPayoutRequestsResponseItem = zod
-  .object({
-    id: zod.number(),
-    currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-    amount: zod.string(),
-    destinationMasked: zod.string().nullable(),
-    requestSource: zod.enum(["manual", "scheduled"]),
-    feeAmount: zod.string().nullish(),
-    feeCurrency: zod.string().nullish(),
-    usdReferenceAmount: zod.string().nullish(),
-    status: zod.string(),
-    riskHoldReason: zod.string().nullish(),
-    requestedAt: zod.coerce.date(),
-    reviewedAt: zod.coerce.date().nullish(),
-    completedAt: zod.coerce.date().nullish(),
-    providerTransactionUrl: zod
-      .string()
-      .max(listAdminPayoutRequestsResponseOneProviderTransactionUrlMax)
-      .nullish(),
-  })
-  .and(
-    zod.object({
-      channelId: zod.number(),
-      channelSlug: zod.string(),
-      channelDisplayName: zod.string(),
-      creatorUsername: zod.string(),
-    }),
-  );
-export const ListAdminPayoutRequestsResponse = zod.array(
-  ListAdminPayoutRequestsResponseItem,
-);
+
+
+export const ListAdminPayoutRequestsResponseItem = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string(),
+  "destinationMasked": zod.string().nullable(),
+  "requestSource": zod.enum(['manual', 'scheduled']),
+  "feeAmount": zod.string().nullish(),
+  "feeCurrency": zod.string().nullish(),
+  "usdReferenceAmount": zod.string().nullish(),
+  "status": zod.string(),
+  "riskHoldReason": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "providerTransactionUrl": zod.string().max(listAdminPayoutRequestsResponseOneProviderTransactionUrlMax).nullish()
+}).and(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string()
+}))
+export const ListAdminPayoutRequestsResponse = zod.array(ListAdminPayoutRequestsResponseItem)
+
 
 /**
  * @summary Owner-only payout decision; approval does not execute a provider withdrawal
  */
 export const ReviewAdminPayoutRequestParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const reviewAdminPayoutRequestBodyReasonMax = 500;
 
+
+
 export const ReviewAdminPayoutRequestBody = zod.object({
-  decision: zod.enum(["approved", "rejected", "held"]),
-  reason: zod.string().max(reviewAdminPayoutRequestBodyReasonMax).optional(),
-});
+  "decision": zod.enum(['approved', 'rejected', 'held']),
+  "reason": zod.string().max(reviewAdminPayoutRequestBodyReasonMax).optional()
+})
 
 export const reviewAdminPayoutRequestResponseOneProviderTransactionUrlMax = 2048;
 
-export const ReviewAdminPayoutRequestResponse = zod
-  .object({
-    id: zod.number(),
-    currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-    amount: zod.string(),
-    destinationMasked: zod.string().nullable(),
-    requestSource: zod.enum(["manual", "scheduled"]),
-    feeAmount: zod.string().nullish(),
-    feeCurrency: zod.string().nullish(),
-    usdReferenceAmount: zod.string().nullish(),
-    status: zod.string(),
-    riskHoldReason: zod.string().nullish(),
-    requestedAt: zod.coerce.date(),
-    reviewedAt: zod.coerce.date().nullish(),
-    completedAt: zod.coerce.date().nullish(),
-    providerTransactionUrl: zod
-      .string()
-      .max(reviewAdminPayoutRequestResponseOneProviderTransactionUrlMax)
-      .nullish(),
-  })
-  .and(
-    zod.object({
-      channelId: zod.number(),
-      channelSlug: zod.string(),
-      channelDisplayName: zod.string(),
-      creatorUsername: zod.string(),
-    }),
-  );
+
+
+export const ReviewAdminPayoutRequestResponse = zod.object({
+  "id": zod.number(),
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "amount": zod.string(),
+  "destinationMasked": zod.string().nullable(),
+  "requestSource": zod.enum(['manual', 'scheduled']),
+  "feeAmount": zod.string().nullish(),
+  "feeCurrency": zod.string().nullish(),
+  "usdReferenceAmount": zod.string().nullish(),
+  "status": zod.string(),
+  "riskHoldReason": zod.string().nullish(),
+  "requestedAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "providerTransactionUrl": zod.string().max(reviewAdminPayoutRequestResponseOneProviderTransactionUrlMax).nullish()
+}).and(zod.object({
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelDisplayName": zod.string(),
+  "creatorUsername": zod.string()
+}))
+
 
 /**
  * @summary Owner-only advertising campaign, funding, and revenue-control overview
@@ -4397,55 +3434,42 @@ export const ReviewAdminPayoutRequestResponse = zod
 export const getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMin = 0;
 export const getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMax = 10000;
 
+
+
 export const GetAdminAdsOverviewResponse = zod.object({
-  campaigns: zod.array(
-    zod.object({
-      id: zod.number(),
-      name: zod.string(),
-      advertiserName: zod.string().nullable(),
-      campaignType: zod.enum(["house", "sponsored"]),
-      status: zod.enum(["draft", "active", "paused", "completed", "cancelled"]),
-      fundingMode: zod.enum(["promotional", "paid"]),
-      fundingStatus: zod.enum([
-        "not_required",
-        "promotional_pending",
-        "promotional_approved",
-        "unfunded",
-        "invoice_pending",
-        "funded",
-        "cancelled",
-        "failed",
-      ]),
-      budgetAmount: zod.string().nullable(),
-      budgetCurrency: zod.string().nullable(),
-      budgetSpentAmount: zod.string(),
-      creatorShareBps: zod
-        .number()
-        .min(getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMin)
-        .max(getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMax),
-      startsAt: zod.coerce.date().nullable(),
-      endsAt: zod.coerce.date().nullable(),
-      approvedAt: zod.coerce.date().nullable(),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  pendingFundings: zod.number(),
-  confirmedFundings: zod.number(),
-  revenue: zod.array(
-    zod.object({
-      currency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-      grossAmount: zod.string(),
-      platformAmount: zod.string(),
-      creatorAmount: zod.string(),
-    }),
-  ),
-  deliveryEnabled: zod.boolean(),
-  policy: zod.object({
-    paidDelivery: zod.string(),
-    promotion: zod.string(),
-    creatorAllocation: zod.string(),
-  }),
-});
+  "campaigns": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "advertiserName": zod.string().nullable(),
+  "campaignType": zod.enum(['house', 'sponsored']),
+  "status": zod.enum(['draft', 'active', 'paused', 'completed', 'cancelled']),
+  "fundingMode": zod.enum(['promotional', 'paid']),
+  "fundingStatus": zod.enum(['not_required', 'promotional_pending', 'promotional_approved', 'unfunded', 'invoice_pending', 'funded', 'cancelled', 'failed']),
+  "budgetAmount": zod.string().nullable(),
+  "budgetCurrency": zod.string().nullable(),
+  "budgetSpentAmount": zod.string(),
+  "creatorShareBps": zod.number().min(getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMin).max(getAdminAdsOverviewResponseCampaignsItemCreatorShareBpsMax),
+  "startsAt": zod.coerce.date().nullable(),
+  "endsAt": zod.coerce.date().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})),
+  "pendingFundings": zod.number(),
+  "confirmedFundings": zod.number(),
+  "revenue": zod.array(zod.object({
+  "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
+  "grossAmount": zod.string(),
+  "platformAmount": zod.string(),
+  "creatorAmount": zod.string()
+})),
+  "deliveryEnabled": zod.boolean(),
+  "policy": zod.object({
+  "paidDelivery": zod.string(),
+  "promotion": zod.string(),
+  "creatorAllocation": zod.string()
+})
+})
+
 
 /**
  * @summary Create a draft owner-controlled promotional or crypto-funded advertiser campaign
@@ -4456,186 +3480,150 @@ export const createAdminAdCampaignBodyNameMax = 140;
 export const createAdminAdCampaignBodyAdvertiserNameMin = 2;
 export const createAdminAdCampaignBodyAdvertiserNameMax = 140;
 
-export const createAdminAdCampaignBodyBudgetUsdRegExp = new RegExp(
-  "^\\d+(\\.\\d{1,2})?$",
-);
+export const createAdminAdCampaignBodyBudgetUsdRegExp = new RegExp('^\\d+(\\.\\d{1,2})?$');
 export const createAdminAdCampaignBodyCreatorShareBpsDefault = 0;
 export const createAdminAdCampaignBodyCreatorShareBpsMin = 0;
 export const createAdminAdCampaignBodyCreatorShareBpsMax = 10000;
 
+
+
 export const CreateAdminAdCampaignBody = zod.object({
-  name: zod
-    .string()
-    .min(createAdminAdCampaignBodyNameMin)
-    .max(createAdminAdCampaignBodyNameMax),
-  advertiserName: zod
-    .string()
-    .min(createAdminAdCampaignBodyAdvertiserNameMin)
-    .max(createAdminAdCampaignBodyAdvertiserNameMax)
-    .optional(),
-  fundingMode: zod.enum(["promotional", "paid"]),
-  budgetUsd: zod
-    .string()
-    .regex(createAdminAdCampaignBodyBudgetUsdRegExp)
-    .optional()
-    .describe(
-      "USD reference amount used only to obtain a crypto funding invoice; it is not a fiat charge.",
-    ),
-  creatorShareBps: zod
-    .number()
-    .min(createAdminAdCampaignBodyCreatorShareBpsMin)
-    .max(createAdminAdCampaignBodyCreatorShareBpsMax)
-    .default(createAdminAdCampaignBodyCreatorShareBpsDefault),
-  startsAt: zod.coerce.date().optional(),
-  endsAt: zod.coerce.date(),
-});
+  "name": zod.string().min(createAdminAdCampaignBodyNameMin).max(createAdminAdCampaignBodyNameMax),
+  "advertiserName": zod.string().min(createAdminAdCampaignBodyAdvertiserNameMin).max(createAdminAdCampaignBodyAdvertiserNameMax).optional(),
+  "fundingMode": zod.enum(['promotional', 'paid']),
+  "budgetUsd": zod.string().regex(createAdminAdCampaignBodyBudgetUsdRegExp).optional().describe('USD reference amount used only to obtain a crypto funding invoice; it is not a fiat charge.'),
+  "creatorShareBps": zod.number().min(createAdminAdCampaignBodyCreatorShareBpsMin).max(createAdminAdCampaignBodyCreatorShareBpsMax).default(createAdminAdCampaignBodyCreatorShareBpsDefault),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date()
+})
 
 export const createAdminAdCampaignResponseCreatorShareBpsMin = 0;
 export const createAdminAdCampaignResponseCreatorShareBpsMax = 10000;
 
+
+
 export const CreateAdminAdCampaignResponse = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  advertiserName: zod.string().nullable(),
-  campaignType: zod.enum(["house", "sponsored"]),
-  status: zod.enum(["draft", "active", "paused", "completed", "cancelled"]),
-  fundingMode: zod.enum(["promotional", "paid"]),
-  fundingStatus: zod.enum([
-    "not_required",
-    "promotional_pending",
-    "promotional_approved",
-    "unfunded",
-    "invoice_pending",
-    "funded",
-    "cancelled",
-    "failed",
-  ]),
-  budgetAmount: zod.string().nullable(),
-  budgetCurrency: zod.string().nullable(),
-  budgetSpentAmount: zod.string(),
-  creatorShareBps: zod
-    .number()
-    .min(createAdminAdCampaignResponseCreatorShareBpsMin)
-    .max(createAdminAdCampaignResponseCreatorShareBpsMax),
-  startsAt: zod.coerce.date().nullable(),
-  endsAt: zod.coerce.date().nullable(),
-  approvedAt: zod.coerce.date().nullable(),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "name": zod.string(),
+  "advertiserName": zod.string().nullable(),
+  "campaignType": zod.enum(['house', 'sponsored']),
+  "status": zod.enum(['draft', 'active', 'paused', 'completed', 'cancelled']),
+  "fundingMode": zod.enum(['promotional', 'paid']),
+  "fundingStatus": zod.enum(['not_required', 'promotional_pending', 'promotional_approved', 'unfunded', 'invoice_pending', 'funded', 'cancelled', 'failed']),
+  "budgetAmount": zod.string().nullable(),
+  "budgetCurrency": zod.string().nullable(),
+  "budgetSpentAmount": zod.string(),
+  "creatorShareBps": zod.number().min(createAdminAdCampaignResponseCreatorShareBpsMin).max(createAdminAdCampaignResponseCreatorShareBpsMax),
+  "startsAt": zod.coerce.date().nullable(),
+  "endsAt": zod.coerce.date().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Create a crypto-only advertiser funding invoice for an unfunded paid campaign
  */
 export const CreateAdminAdFundingInvoiceParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const CreateAdminAdFundingInvoiceBody = zod.object({
-  cryptoCurrency: zod.enum(["BTC", "LTC", "ETH", "DOGE"]).optional(),
-});
+  "cryptoCurrency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']).optional()
+})
 
 export const CreateAdminAdFundingInvoiceResponse = zod.object({
-  campaignId: zod.number(),
-  fundingId: zod.number(),
-  paymentIntentId: zod.number(),
-  invoiceUrl: zod.string(),
-  provider: zod.enum(["crypto"]),
-  status: zod.enum(["pending"]),
-  selectedCurrency: zod.union([
-    zod.enum(["BTC", "LTC", "ETH", "DOGE"]),
-    zod.null(),
-  ]),
-  expiresAt: zod.union([zod.coerce.date(), zod.null()]),
-  paymentAddress: zod.string().nullable(),
-  qrCodeDataUrl: zod.string().nullable(),
-  invoiceAmount: zod.string().nullable(),
-  invoiceCommission: zod.string().nullable(),
-  invoiceTotal: zod.string().nullable(),
-  providerFeePaidBy: zod.enum(["client"]),
-});
+  "campaignId": zod.number(),
+  "fundingId": zod.number(),
+  "paymentIntentId": zod.number(),
+  "invoiceUrl": zod.string(),
+  "provider": zod.enum(['crypto']),
+  "status": zod.enum(['pending']),
+  "selectedCurrency": zod.union([zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),zod.null()]),
+  "expiresAt": zod.union([zod.coerce.date(),zod.null()]),
+  "paymentAddress": zod.string().nullable(),
+  "qrCodeDataUrl": zod.string().nullable(),
+  "invoiceAmount": zod.string().nullable(),
+  "invoiceCommission": zod.string().nullable(),
+  "invoiceTotal": zod.string().nullable(),
+  "providerFeePaidBy": zod.enum(['client'])
+})
+
 
 /**
  * @summary Approve an owner-controlled promotional flight or signed crypto-funded campaign for delivery
  */
 export const ApproveAdminAdCampaignParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
 export const approveAdminAdCampaignResponseCreatorShareBpsMin = 0;
 export const approveAdminAdCampaignResponseCreatorShareBpsMax = 10000;
 
+
+
 export const ApproveAdminAdCampaignResponse = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  advertiserName: zod.string().nullable(),
-  campaignType: zod.enum(["house", "sponsored"]),
-  status: zod.enum(["draft", "active", "paused", "completed", "cancelled"]),
-  fundingMode: zod.enum(["promotional", "paid"]),
-  fundingStatus: zod.enum([
-    "not_required",
-    "promotional_pending",
-    "promotional_approved",
-    "unfunded",
-    "invoice_pending",
-    "funded",
-    "cancelled",
-    "failed",
-  ]),
-  budgetAmount: zod.string().nullable(),
-  budgetCurrency: zod.string().nullable(),
-  budgetSpentAmount: zod.string(),
-  creatorShareBps: zod
-    .number()
-    .min(approveAdminAdCampaignResponseCreatorShareBpsMin)
-    .max(approveAdminAdCampaignResponseCreatorShareBpsMax),
-  startsAt: zod.coerce.date().nullable(),
-  endsAt: zod.coerce.date().nullable(),
-  approvedAt: zod.coerce.date().nullable(),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "name": zod.string(),
+  "advertiserName": zod.string().nullable(),
+  "campaignType": zod.enum(['house', 'sponsored']),
+  "status": zod.enum(['draft', 'active', 'paused', 'completed', 'cancelled']),
+  "fundingMode": zod.enum(['promotional', 'paid']),
+  "fundingStatus": zod.enum(['not_required', 'promotional_pending', 'promotional_approved', 'unfunded', 'invoice_pending', 'funded', 'cancelled', 'failed']),
+  "budgetAmount": zod.string().nullable(),
+  "budgetCurrency": zod.string().nullable(),
+  "budgetSpentAmount": zod.string(),
+  "creatorShareBps": zod.number().min(approveAdminAdCampaignResponseCreatorShareBpsMin).max(approveAdminAdCampaignResponseCreatorShareBpsMax),
+  "startsAt": zod.coerce.date().nullable(),
+  "endsAt": zod.coerce.date().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Owner-only platform totals
  */
 export const GetAdminStatsResponse = zod.object({
-  totalUsers: zod.number(),
-  totalChannels: zod.number(),
-  liveChannels: zod.number(),
-  totalVideos: zod.number(),
-  totalViews: zod.number(),
-  bannedUsers: zod.number(),
-});
+  "totalUsers": zod.number(),
+  "totalChannels": zod.number(),
+  "liveChannels": zod.number(),
+  "totalVideos": zod.number(),
+  "totalViews": zod.number(),
+  "bannedUsers": zod.number()
+})
+
 
 /**
  * @summary Owner-only platform feature flags and emergency kill switches
  */
 export const ListAdminFeatureFlagsResponseItem = zod.object({
-  key: zod.string(),
-  enabled: zod.boolean(),
-  description: zod.string(),
-  updatedAt: zod.coerce.date(),
-});
-export const ListAdminFeatureFlagsResponse = zod.array(
-  ListAdminFeatureFlagsResponseItem,
-);
+  "key": zod.string(),
+  "enabled": zod.boolean(),
+  "description": zod.string(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminFeatureFlagsResponse = zod.array(ListAdminFeatureFlagsResponseItem)
+
 
 /**
  * @summary Owner-only — change a platform feature flag or kill switch
  */
 export const UpdateAdminFeatureFlagParams = zod.object({
-  key: zod.coerce.string(),
-});
+  "key": zod.coerce.string()
+})
 
 export const UpdateAdminFeatureFlagBody = zod.object({
-  enabled: zod.boolean(),
-});
+  "enabled": zod.boolean()
+})
 
 export const UpdateAdminFeatureFlagResponse = zod.object({
-  key: zod.string(),
-  enabled: zod.boolean(),
-  description: zod.string(),
-  updatedAt: zod.coerce.date(),
-});
+  "key": zod.string(),
+  "enabled": zod.boolean(),
+  "description": zod.string(),
+  "updatedAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Owner-only paginated user registry
@@ -4648,134 +3636,112 @@ export const listAdminUsersQueryLimitMax = 100;
 export const listAdminUsersQueryOffsetDefault = 0;
 export const listAdminUsersQueryOffsetMin = 0;
 
+
+
 export const ListAdminUsersQueryParams = zod.object({
-  q: zod.coerce.string().min(1).max(listAdminUsersQueryQMax).optional(),
-  limit: zod.coerce
-    .number()
-    .min(1)
-    .max(listAdminUsersQueryLimitMax)
-    .default(listAdminUsersQueryLimitDefault),
-  offset: zod.coerce
-    .number()
-    .min(listAdminUsersQueryOffsetMin)
-    .default(listAdminUsersQueryOffsetDefault),
-});
+  "q": zod.coerce.string().min(1).max(listAdminUsersQueryQMax).optional(),
+  "limit": zod.coerce.number().min(1).max(listAdminUsersQueryLimitMax).default(listAdminUsersQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminUsersQueryOffsetMin).default(listAdminUsersQueryOffsetDefault)
+})
 
 export const listAdminUsersResponseTotalMin = 0;
 
+
 export const listAdminUsersResponseOffsetMin = 0;
 
+
+
 export const ListAdminUsersResponse = zod.object({
-  items: zod.array(
-    zod.object({
-      id: zod.number(),
-      username: zod.string(),
-      avatarUrl: zod.string().nullable(),
-      role: zod.enum(["user", "owner"]),
-      banned: zod.boolean(),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  total: zod.number().min(listAdminUsersResponseTotalMin),
-  limit: zod.number().min(1),
-  offset: zod.number().min(listAdminUsersResponseOffsetMin),
-});
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['user', 'owner']),
+  "banned": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})),
+  "total": zod.number().min(listAdminUsersResponseTotalMin),
+  "limit": zod.number().min(1),
+  "offset": zod.number().min(listAdminUsersResponseOffsetMin)
+})
+
 
 /**
  * @summary Owner-only — ban or unban a user
  */
 export const UpdateAdminUserParams = zod.object({
-  id: zod.coerce.string(),
-});
+  "id": zod.coerce.string()
+})
 
 export const UpdateAdminUserBody = zod.object({
-  banned: zod.boolean().optional(),
-});
+  "banned": zod.boolean().optional()
+})
 
 export const UpdateAdminUserResponse = zod.object({
-  id: zod.number(),
-  username: zod.string(),
-  avatarUrl: zod.string().nullable(),
-  role: zod.enum(["user", "owner"]),
-  banned: zod.boolean(),
-  createdAt: zod.coerce.date(),
-});
+  "id": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['user', 'owner']),
+  "banned": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
 
 /**
  * @summary Owner-only minimized user activity detail with audited access
  */
 export const GetAdminUserActivityParams = zod.object({
-  id: zod.coerce.string(),
-});
+  "id": zod.coerce.string()
+})
 
 export const GetAdminUserActivityResponse = zod.object({
-  user: zod.object({
-    id: zod.number(),
-    username: zod.string(),
-    avatarUrl: zod.string().nullable(),
-    role: zod.enum(["user", "owner"]),
-    banned: zod.boolean(),
-    createdAt: zod.coerce.date(),
-  }),
-  activityObservabilityEnabled: zod.boolean(),
-  currentPresence: zod.union([
-    zod.object({
-      routeKey: zod.string(),
-      deviceClass: zod.string(),
-      updatedAt: zod.coerce.date(),
-    }),
-    zod.null(),
-  ]),
-  devices: zod.array(
-    zod.object({
-      deviceName: zod.string().nullable(),
-      deviceOs: zod.string().nullable(),
-      deviceBrowser: zod.string().nullable(),
-      lastSeen: zod.coerce.date().nullable(),
-      loginCount: zod.number(),
-    }),
-  ),
-  activity: zod.array(
-    zod.object({
-      action: zod.string(),
-      createdAt: zod.coerce.date(),
-    }),
-  ),
-  channels: zod.array(
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      displayName: zod.string(),
-      avatarUrl: zod.string().nullable(),
-      bannerUrl: zod.string().nullable(),
-      streamTitle: zod.string().nullable(),
-      isLive: zod.boolean(),
-      viewerCount: zod.number(),
-      followerCount: zod.number(),
-      subscriberCount: zod.number(),
-      categoryId: zod.number().nullable(),
-      categoryName: zod.string().nullable(),
-      lastStreamAt: zod.coerce
-        .date()
-        .nullable()
-        .describe(
-          "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-        ),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-      fastpixPlaybackId: zod
-        .string()
-        .nullish()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-    }),
-  ),
-});
+  "user": zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "role": zod.enum(['user', 'owner']),
+  "banned": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}),
+  "activityObservabilityEnabled": zod.boolean(),
+  "currentPresence": zod.union([zod.object({
+  "routeKey": zod.string(),
+  "deviceClass": zod.string(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "devices": zod.array(zod.object({
+  "deviceName": zod.string().nullable(),
+  "deviceOs": zod.string().nullable(),
+  "deviceBrowser": zod.string().nullable(),
+  "lastSeen": zod.coerce.date().nullable(),
+  "loginCount": zod.number()
+})),
+  "activity": zod.array(zod.object({
+  "action": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "channels": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+}))
+})
+
 
 /**
  * @summary Owner-only paginated creator-channel registry
@@ -4788,71 +3754,57 @@ export const listAdminChannelsQueryLimitMax = 100;
 export const listAdminChannelsQueryOffsetDefault = 0;
 export const listAdminChannelsQueryOffsetMin = 0;
 
+
+
 export const ListAdminChannelsQueryParams = zod.object({
-  q: zod.coerce.string().min(1).max(listAdminChannelsQueryQMax).optional(),
-  limit: zod.coerce
-    .number()
-    .min(1)
-    .max(listAdminChannelsQueryLimitMax)
-    .default(listAdminChannelsQueryLimitDefault),
-  offset: zod.coerce
-    .number()
-    .min(listAdminChannelsQueryOffsetMin)
-    .default(listAdminChannelsQueryOffsetDefault),
-});
+  "q": zod.coerce.string().min(1).max(listAdminChannelsQueryQMax).optional(),
+  "limit": zod.coerce.number().min(1).max(listAdminChannelsQueryLimitMax).default(listAdminChannelsQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminChannelsQueryOffsetMin).default(listAdminChannelsQueryOffsetDefault)
+})
 
 export const listAdminChannelsResponseTotalMin = 0;
 
+
 export const listAdminChannelsResponseOffsetMin = 0;
 
+
+
 export const ListAdminChannelsResponse = zod.object({
-  items: zod.array(
-    zod.object({
-      id: zod.number(),
-      slug: zod.string(),
-      displayName: zod.string(),
-      avatarUrl: zod.string().nullable(),
-      bannerUrl: zod.string().nullable(),
-      streamTitle: zod.string().nullable(),
-      isLive: zod.boolean(),
-      viewerCount: zod.number(),
-      followerCount: zod.number(),
-      subscriberCount: zod.number(),
-      categoryId: zod.number().nullable(),
-      categoryName: zod.string().nullable(),
-      lastStreamAt: zod.coerce
-        .date()
-        .nullable()
-        .describe(
-          "Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.",
-        ),
-      playbackId: zod
-        .string()
-        .nullable()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-      fastpixPlaybackId: zod
-        .string()
-        .nullish()
-        .describe(
-          "FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.",
-        ),
-    }),
-  ),
-  total: zod.number().min(listAdminChannelsResponseTotalMin),
-  limit: zod.number().min(1),
-  offset: zod.number().min(listAdminChannelsResponseOffsetMin),
-});
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "streamTitle": zod.string().nullable(),
+  "isLive": zod.boolean(),
+  "viewerCount": zod.number(),
+  "followerCount": zod.number(),
+  "subscriberCount": zod.number(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "lastStreamAt": zod.coerce.date().nullable().describe('Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.'),
+  "matureContent": zod.boolean().describe('Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata.'),
+  "playbackId": zod.string().nullable().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.'),
+  "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
+  "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
+  "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
+})),
+  "total": zod.number().min(listAdminChannelsResponseTotalMin),
+  "limit": zod.number().min(1),
+  "offset": zod.number().min(listAdminChannelsResponseOffsetMin)
+})
+
 
 /**
  * @summary Owner-only — remove a channel
  */
 export const DeleteAdminChannelParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const DeleteAdminChannelResponse = zod.void();
+export const DeleteAdminChannelResponse = zod.void()
+
 
 /**
  * @summary Bounded owner-only Watch moderation registry with server-side title search
@@ -4865,91 +3817,56 @@ export const listAdminVideosQueryLimitMax = 100;
 export const listAdminVideosQueryOffsetDefault = 0;
 export const listAdminVideosQueryOffsetMin = 0;
 
+
+
 export const ListAdminVideosQueryParams = zod.object({
-  q: zod.coerce.string().min(1).max(listAdminVideosQueryQMax).optional(),
-  limit: zod.coerce
-    .number()
-    .min(1)
-    .max(listAdminVideosQueryLimitMax)
-    .default(listAdminVideosQueryLimitDefault),
-  offset: zod.coerce
-    .number()
-    .min(listAdminVideosQueryOffsetMin)
-    .default(listAdminVideosQueryOffsetDefault),
-});
+  "q": zod.coerce.string().min(1).max(listAdminVideosQueryQMax).optional(),
+  "limit": zod.coerce.number().min(1).max(listAdminVideosQueryLimitMax).default(listAdminVideosQueryLimitDefault),
+  "offset": zod.coerce.number().min(listAdminVideosQueryOffsetMin).default(listAdminVideosQueryOffsetDefault)
+})
 
 export const listAdminVideosResponseTotalMin = 0;
 
+
 export const listAdminVideosResponseOffsetMin = 0;
 
+
+
 export const ListAdminVideosResponse = zod.object({
-  items: zod.array(
-    zod
-      .object({
-        id: zod.number(),
-        title: zod.string(),
-        thumbnailUrl: zod
-          .string()
-          .nullable()
-          .describe("Landscape 16:9 thumbnail — used in Kryv Watch grids"),
-        posterUrl: zod
-          .string()
-          .nullable()
-          .describe("Portrait 2:3 poster — used in Kryv Cinema rows"),
-        backdropUrl: zod
-          .string()
-          .nullable()
-          .describe(
-            "Wide cinematic backdrop — used in Kryv Cinema hero banners",
-          ),
-        durationSeconds: zod.number().nullable(),
-        viewCount: zod.number(),
-        channelId: zod.number(),
-        channelSlug: zod.string(),
-        channelName: zod.string(),
-        channelAvatarUrl: zod.string().nullable(),
-        categoryId: zod.number().nullable(),
-        categoryName: zod.string().nullable(),
-        contentType: zod.enum(["upload", "original"]),
-        playbackId: zod
-          .string()
-          .nullable()
-          .describe(
-            "FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.",
-          ),
-        playbackSource: zod
-          .enum(["fastpix", "youtube"])
-          .describe("The approved playback provider for this Watch item."),
-        youtubeVideoId: zod
-          .string()
-          .nullable()
-          .describe(
-            "Official YouTube video identifier. Present only for rights-attested YouTube embeds.",
-          ),
-        uploadStatus: zod.enum(["waiting", "processing", "ready", "errored"]),
-        createdAt: zod.coerce.date(),
-      })
-      .and(
-        zod.object({
-          rightsAttestedAt: zod.coerce
-            .date()
-            .nullable()
-            .describe(
-              "Owner-only timestamp recording the creator's official-source rights attestation. Null for FastPix uploads.",
-            ),
-        }),
-      ),
-  ),
-  total: zod.number().min(listAdminVideosResponseTotalMin),
-  limit: zod.number().min(1),
-  offset: zod.number().min(listAdminVideosResponseOffsetMin),
-});
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string().nullable().describe('Landscape 16:9 thumbnail — used in Kryv Watch grids'),
+  "posterUrl": zod.string().nullable().describe('Portrait 2:3 poster — used in Kryv Cinema rows'),
+  "backdropUrl": zod.string().nullable().describe('Wide cinematic backdrop — used in Kryv Cinema hero banners'),
+  "durationSeconds": zod.number().nullable(),
+  "viewCount": zod.number(),
+  "channelId": zod.number(),
+  "channelSlug": zod.string(),
+  "channelName": zod.string(),
+  "channelAvatarUrl": zod.string().nullable(),
+  "categoryId": zod.number().nullable(),
+  "categoryName": zod.string().nullable(),
+  "contentType": zod.enum(['upload', 'original']),
+  "playbackId": zod.string().nullable().describe('FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.'),
+  "playbackSource": zod.enum(['fastpix', 'youtube']).describe('The approved playback provider for this Watch item.'),
+  "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
+  "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "rightsAttestedAt": zod.coerce.date().nullable().describe('Owner-only timestamp recording the creator\'s official-source rights attestation. Null for FastPix uploads.')
+}))),
+  "total": zod.number().min(listAdminVideosResponseTotalMin),
+  "limit": zod.number().min(1),
+  "offset": zod.number().min(listAdminVideosResponseOffsetMin)
+})
+
 
 /**
  * @summary Owner-only — remove a video
  */
 export const DeleteAdminVideoParams = zod.object({
-  id: zod.coerce.number(),
-});
+  "id": zod.coerce.number()
+})
 
-export const DeleteAdminVideoResponse = zod.void();
+export const DeleteAdminVideoResponse = zod.void()

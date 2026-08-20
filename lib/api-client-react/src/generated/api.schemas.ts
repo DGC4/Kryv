@@ -16,11 +16,12 @@ export interface Error {
 /**
  * live_game categories power Kryv Live's browse sidebar; genre categories power Kryv Watch/Cinema
  */
-export type CategoryKind = (typeof CategoryKind)[keyof typeof CategoryKind];
+export type CategoryKind = typeof CategoryKind[keyof typeof CategoryKind];
+
 
 export const CategoryKind = {
-  live_game: "live_game",
-  genre: "genre",
+  live_game: 'live_game',
+  genre: 'genre',
 } as const;
 
 export interface Category {
@@ -54,32 +55,32 @@ export interface ChannelSummary {
   /** @nullable */
   categoryName: string | null;
   /**
-   * Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.
-   * @nullable
-   */
+     * Authoritative timestamp for the current or most recent live session. Null until the channel has started a stream.
+     * @nullable
+     */
   lastStreamAt: string | null;
   /** Indicates that the channel requires a mature active viewer profile for Live playback, chat, clips, and audience metadata. */
   matureContent: boolean;
   /**
-   * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.
-   * @nullable
-   */
+     * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once.
+     * @nullable
+     */
   playbackId: string | null;
   /**
-   * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.
-   * @nullable
-   */
+     * FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.
+     * @nullable
+     */
   fastpixPlaybackId?: string | null;
   /** True only when the current viewer is permitted to receive a playable Live stream reference. */
   playbackAvailable: boolean;
   /**
-   * Viewer-safe explanation when playback is unavailable because the active profile is not eligible.
-   * @nullable
-   */
+     * Viewer-safe explanation when playback is unavailable because the active profile is not eligible.
+     * @nullable
+     */
   playbackBlockedReason: string | null;
 }
 
-export type ChannelDetail = ChannelSummary & {
+export type ChannelDetail = ChannelSummary & ({
   /** @nullable */
   description: string | null;
   /** @nullable */
@@ -95,14 +96,14 @@ export type ChannelDetail = ChannelSummary & {
   isOwner: boolean;
   ownerUserId: number;
   createdAt: string;
-};
+});
 
-export type UserProfileRole =
-  (typeof UserProfileRole)[keyof typeof UserProfileRole];
+export type UserProfileRole = typeof UserProfileRole[keyof typeof UserProfileRole];
+
 
 export const UserProfileRole = {
-  owner: "owner",
-  user: "user",
+  owner: 'owner',
+  user: 'user',
 } as const;
 
 export interface UserProfileChannel {
@@ -149,52 +150,52 @@ export interface CreatorProfileLive {
   recentStreams: CreatorProfileStream[];
 }
 
-export type VideoSummaryContentType =
-  (typeof VideoSummaryContentType)[keyof typeof VideoSummaryContentType];
+export type VideoSummaryContentType = typeof VideoSummaryContentType[keyof typeof VideoSummaryContentType];
+
 
 export const VideoSummaryContentType = {
-  upload: "upload",
-  original: "original",
+  upload: 'upload',
+  original: 'original',
 } as const;
 
 /**
  * The approved playback provider for this Watch item.
  */
-export type VideoSummaryPlaybackSource =
-  (typeof VideoSummaryPlaybackSource)[keyof typeof VideoSummaryPlaybackSource];
+export type VideoSummaryPlaybackSource = typeof VideoSummaryPlaybackSource[keyof typeof VideoSummaryPlaybackSource];
+
 
 export const VideoSummaryPlaybackSource = {
-  fastpix: "fastpix",
-  youtube: "youtube",
+  fastpix: 'fastpix',
+  youtube: 'youtube',
 } as const;
 
-export type VideoSummaryUploadStatus =
-  (typeof VideoSummaryUploadStatus)[keyof typeof VideoSummaryUploadStatus];
+export type VideoSummaryUploadStatus = typeof VideoSummaryUploadStatus[keyof typeof VideoSummaryUploadStatus];
+
 
 export const VideoSummaryUploadStatus = {
-  waiting: "waiting",
-  processing: "processing",
-  ready: "ready",
-  errored: "errored",
+  waiting: 'waiting',
+  processing: 'processing',
+  ready: 'ready',
+  errored: 'errored',
 } as const;
 
 export interface VideoSummary {
   id: number;
   title: string;
   /**
-   * Landscape 16:9 thumbnail — used in Kryv Watch grids
-   * @nullable
-   */
+     * Landscape 16:9 thumbnail — used in Kryv Watch grids
+     * @nullable
+     */
   thumbnailUrl: string | null;
   /**
-   * Portrait 2:3 poster — used in Kryv Cinema rows
-   * @nullable
-   */
+     * Portrait 2:3 poster — used in Kryv Cinema rows
+     * @nullable
+     */
   posterUrl: string | null;
   /**
-   * Wide cinematic backdrop — used in Kryv Cinema hero banners
-   * @nullable
-   */
+     * Wide cinematic backdrop — used in Kryv Cinema hero banners
+     * @nullable
+     */
   backdropUrl: string | null;
   /** @nullable */
   durationSeconds: number | null;
@@ -210,38 +211,38 @@ export interface VideoSummary {
   categoryName: string | null;
   contentType: VideoSummaryContentType;
   /**
-   * FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.
-   * @nullable
-   */
+     * FastPix playback id for HLS playback. Null until FastPix finishes processing the upload.
+     * @nullable
+     */
   playbackId: string | null;
   /** The approved playback provider for this Watch item. */
   playbackSource: VideoSummaryPlaybackSource;
   /**
-   * Official YouTube video identifier. Present only for rights-attested YouTube embeds.
-   * @nullable
-   */
+     * Official YouTube video identifier. Present only for rights-attested YouTube embeds.
+     * @nullable
+     */
   youtubeVideoId: string | null;
   uploadStatus: VideoSummaryUploadStatus;
   createdAt: string;
 }
 
-export type CinemaTitleMaturityLevel =
-  (typeof CinemaTitleMaturityLevel)[keyof typeof CinemaTitleMaturityLevel];
+export type CinemaTitleMaturityLevel = typeof CinemaTitleMaturityLevel[keyof typeof CinemaTitleMaturityLevel];
+
 
 export const CinemaTitleMaturityLevel = {
-  kids: "kids",
-  standard: "standard",
-  mature: "mature",
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
 } as const;
 
-export type CinemaTitleEntitlementType =
-  (typeof CinemaTitleEntitlementType)[keyof typeof CinemaTitleEntitlementType];
+export type CinemaTitleEntitlementType = typeof CinemaTitleEntitlementType[keyof typeof CinemaTitleEntitlementType];
+
 
 export const CinemaTitleEntitlementType = {
-  free: "free",
-  subscription: "subscription",
-  rental: "rental",
-  purchase: "purchase",
+  free: 'free',
+  subscription: 'subscription',
+  rental: 'rental',
+  purchase: 'purchase',
 } as const;
 
 export interface CinemaTitle {
@@ -259,15 +260,15 @@ export interface CinemaTitle {
   /** @nullable */
   runtimeSeconds: number | null;
   /**
-   * Feature playback identifier
-   * @nullable
-   */
+     * Feature playback identifier
+     * @nullable
+     */
   featurePlaybackId: string | null;
   playbackAvailable: boolean;
   /**
-   * Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled
-   * @nullable
-   */
+     * Honest current-access explanation when a published title’s entitlement cannot yet be fulfilled
+     * @nullable
+     */
   playbackBlockedReason: string | null;
   /** @nullable */
   trailerPlaybackId: string | null;
@@ -283,15 +284,21 @@ export type CreatorCinemaCredit = CinemaTitle & {
 export interface CreatorProfile {
   channel: ChannelDetail;
   live: CreatorProfileLive;
+  /** Newest ready Watch uploads, capped at 48 for a responsive profile rail. */
   watch: VideoSummary[];
+  /**
+     * Total ready Watch uploads for this creator, including releases beyond the initial profile rail.
+     * @minimum 0
+     */
+  watchTotal: number;
   cinemaCredits: CreatorCinemaCredit[];
 }
 
 export interface ChannelInput {
   /**
-   * @minLength 1
-   * @maxLength 60
-   */
+     * @minLength 1
+     * @maxLength 60
+     */
   displayName: string;
   /** @maxLength 500 */
   description?: string;
@@ -300,31 +307,31 @@ export interface ChannelInput {
 
 export interface ChannelUpdate {
   /**
-   * @minLength 1
-   * @maxLength 60
-   */
+     * @minLength 1
+     * @maxLength 60
+     */
   displayName?: string;
   /** @maxLength 500 */
   description?: string;
   /**
-   * @nullable
-   * @pattern ^https://.+
-   */
+     * @nullable
+     * @pattern ^https://.+
+     */
   websiteUrl?: string | null;
   /**
-   * @nullable
-   * @pattern ^https://(www\\.)?(youtube\\.com|youtu\\.be)/.+
-   */
+     * @nullable
+     * @pattern ^https://(www\\.)?(youtube\\.com|youtu\\.be)/.+
+     */
   youtubeUrl?: string | null;
   /**
-   * @nullable
-   * @pattern ^https://(www\\.)?instagram\\.com/.+
-   */
+     * @nullable
+     * @pattern ^https://(www\\.)?instagram\\.com/.+
+     */
   instagramUrl?: string | null;
   /**
-   * @nullable
-   * @pattern ^https://(www\\.)?(x\\.com|twitter\\.com)/.+
-   */
+     * @nullable
+     * @pattern ^https://(www\\.)?(x\\.com|twitter\\.com)/.+
+     */
   xUrl?: string | null;
   avatarUrl?: string;
   bannerUrl?: string;
@@ -376,9 +383,9 @@ export interface StreamCredentials {
   /** FastPix playback id for this channel's live stream */
   playbackId: string;
   /**
-   * FastPix playback id for this channel's live stream
-   * @nullable
-   */
+     * FastPix playback id for this channel's live stream
+     * @nullable
+     */
   fastpixPlaybackId?: string | null;
 }
 
@@ -414,13 +421,13 @@ export interface NotificationPreferencesInput {
   emailNotifications: boolean;
 }
 
-export type ClipSummaryProcessingStatus =
-  (typeof ClipSummaryProcessingStatus)[keyof typeof ClipSummaryProcessingStatus];
+export type ClipSummaryProcessingStatus = typeof ClipSummaryProcessingStatus[keyof typeof ClipSummaryProcessingStatus];
+
 
 export const ClipSummaryProcessingStatus = {
-  processing: "processing",
-  ready: "ready",
-  errored: "errored",
+  processing: 'processing',
+  ready: 'ready',
+  errored: 'errored',
 } as const;
 
 export interface ClipSummary {
@@ -436,9 +443,9 @@ export interface ClipSummary {
   channelSlug: string;
   processingStatus: ClipSummaryProcessingStatus;
   /**
-   * FastPix playback ID. Present only when the clip is ready for playback.
-   * @nullable
-   */
+     * FastPix playback ID. Present only when the clip is ready for playback.
+     * @nullable
+     */
   playbackId: string | null;
   createdAt: string;
 }
@@ -450,38 +457,38 @@ export interface SearchResults {
   cinema: CinemaTitle[];
 }
 
-export type CryptoCurrency =
-  (typeof CryptoCurrency)[keyof typeof CryptoCurrency];
+export type CryptoCurrency = typeof CryptoCurrency[keyof typeof CryptoCurrency];
+
 
 export const CryptoCurrency = {
-  BTC: "BTC",
-  LTC: "LTC",
-  ETH: "ETH",
-  DOGE: "DOGE",
+  BTC: 'BTC',
+  LTC: 'LTC',
+  ETH: 'ETH',
+  DOGE: 'DOGE',
 } as const;
 
 /**
  * Customer-facing payment method label; payment-provider identity is not displayed to viewers.
  */
-export type CryptoCheckoutProvider =
-  (typeof CryptoCheckoutProvider)[keyof typeof CryptoCheckoutProvider];
+export type CryptoCheckoutProvider = typeof CryptoCheckoutProvider[keyof typeof CryptoCheckoutProvider];
+
 
 export const CryptoCheckoutProvider = {
-  crypto: "crypto",
+  crypto: 'crypto',
 } as const;
 
-export type CryptoCheckoutStatus =
-  (typeof CryptoCheckoutStatus)[keyof typeof CryptoCheckoutStatus];
+export type CryptoCheckoutStatus = typeof CryptoCheckoutStatus[keyof typeof CryptoCheckoutStatus];
+
 
 export const CryptoCheckoutStatus = {
-  pending: "pending",
+  pending: 'pending',
 } as const;
 
-export type CryptoCheckoutProviderFeePaidBy =
-  (typeof CryptoCheckoutProviderFeePaidBy)[keyof typeof CryptoCheckoutProviderFeePaidBy];
+export type CryptoCheckoutProviderFeePaidBy = typeof CryptoCheckoutProviderFeePaidBy[keyof typeof CryptoCheckoutProviderFeePaidBy];
+
 
 export const CryptoCheckoutProviderFeePaidBy = {
-  client: "client",
+  client: 'client',
 } as const;
 
 export interface CryptoCheckout {
@@ -505,34 +512,34 @@ export interface CryptoCheckout {
   invoiceTotal?: string | null;
   providerFeePaidBy?: CryptoCheckoutProviderFeePaidBy;
   /**
-   * Creator share in basis points under the active Kryv settlement policy.
-   * @minimum 0
-   * @maximum 10000
-   */
+     * Creator share in basis points under the active Kryv settlement policy.
+     * @minimum 0
+     * @maximum 10000
+     */
   creatorShareBps?: number;
   /**
-   * Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.
-   * @minimum 0
-   * @maximum 10000
-   */
+     * Kryv platform share in basis points under the active settlement policy. This is separate from the client-borne provider checkout commission.
+     * @minimum 0
+     * @maximum 10000
+     */
   platformFeeBps?: number;
 }
 
 export interface CryptoSubscriptionInput {
   /**
-   * @minimum 1
-   * @maximum 3
-   */
+     * @minimum 1
+     * @maximum 3
+     */
   tier?: number;
   cryptoCurrency?: CryptoCurrency;
 }
 
 export interface CryptoTipInput {
   /**
-   * USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.
-   * @maximum 100000
-   * @exclusiveMinimum 0
-   */
+     * USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.
+     * @maximum 100000
+     * @exclusiveMinimum 0
+     */
   amount: number;
   cryptoCurrency?: CryptoCurrency;
   /** @maxLength 500 */
@@ -541,62 +548,62 @@ export interface CryptoTipInput {
 
 export interface GuestCryptoTipInput {
   /**
-   * USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.
-   * @maximum 100000
-   * @exclusiveMinimum 0
-   */
+     * USD price quote used to create the selected crypto invoice; it is not a card or fiat checkout.
+     * @maximum 100000
+     * @exclusiveMinimum 0
+     */
   amount: number;
   cryptoCurrency?: CryptoCurrency;
   /**
-   * Optional note attached to the guest support record after confirmed settlement.
-   * @maxLength 500
-   */
+     * Optional note attached to the guest support record after confirmed settlement.
+     * @maxLength 500
+     */
   message?: string;
   /**
-   * Optional unverified guest display name recorded only for this support action; it is not a Kryv account identity.
-   * @minLength 2
-   * @maxLength 48
-   */
+     * Optional unverified guest display name recorded only for this support action; it is not a Kryv account identity.
+     * @minLength 2
+     * @maxLength 48
+     */
   guestDisplayName?: string;
 }
 
 export interface GuestCryptoSubscriptionGiftInput {
   /**
-   * @minimum 1
-   * @maximum 3
-   */
+     * @minimum 1
+     * @maximum 3
+     */
   tier?: number;
   cryptoCurrency?: CryptoCurrency;
   /**
-   * Existing Kryv account username that will receive the membership only after signed provider confirmation.
-   * @minLength 3
-   * @maxLength 32
-   */
+     * Existing Kryv account username that will receive the membership only after signed provider confirmation.
+     * @minLength 3
+     * @maxLength 32
+     */
   recipientUsername: string;
   /**
-   * Optional unverified guest display name recorded only for this gift action; it is not a Kryv account identity.
-   * @minLength 2
-   * @maxLength 48
-   */
+     * Optional unverified guest display name recorded only for this gift action; it is not a Kryv account identity.
+     * @minLength 2
+     * @maxLength 48
+     */
   guestDisplayName?: string;
 }
 
 export interface WalletTipInput {
   currency: CryptoCurrency;
   /**
-   * Exact crypto amount to debit from the customer’s confirmed Kryv wallet balance.
-   * @pattern ^\d+(\.\d{1,8})?$
-   */
+     * Exact crypto amount to debit from the customer’s confirmed Kryv wallet balance.
+     * @pattern ^\d+(\.\d{1,8})?$
+     */
   amount: string;
   /** @maxLength 500 */
   message?: string;
 }
 
-export type WalletTipPaymentStatus =
-  (typeof WalletTipPaymentStatus)[keyof typeof WalletTipPaymentStatus];
+export type WalletTipPaymentStatus = typeof WalletTipPaymentStatus[keyof typeof WalletTipPaymentStatus];
+
 
 export const WalletTipPaymentStatus = {
-  completed: "completed",
+  completed: 'completed',
 } as const;
 
 export interface WalletTipPayment {
@@ -644,23 +651,23 @@ export interface ChannelEngagement {
   activePrediction: ChannelEngagementPrediction | null;
 }
 
-export type ChannelEngagementActionInputAction =
-  (typeof ChannelEngagementActionInputAction)[keyof typeof ChannelEngagementActionInputAction];
+export type ChannelEngagementActionInputAction = typeof ChannelEngagementActionInputAction[keyof typeof ChannelEngagementActionInputAction];
+
 
 export const ChannelEngagementActionInputAction = {
-  claim_points: "claim_points",
-  create_reward: "create_reward",
-  redeem_reward: "redeem_reward",
-  create_poll: "create_poll",
-  vote_poll: "vote_poll",
-  end_poll: "end_poll",
-  create_prediction: "create_prediction",
-  enter_prediction: "enter_prediction",
-  lock_prediction: "lock_prediction",
-  resolve_prediction: "resolve_prediction",
-  raid: "raid",
-  set_host: "set_host",
-  clear_host: "clear_host",
+  claim_points: 'claim_points',
+  create_reward: 'create_reward',
+  redeem_reward: 'redeem_reward',
+  create_poll: 'create_poll',
+  vote_poll: 'vote_poll',
+  end_poll: 'end_poll',
+  create_prediction: 'create_prediction',
+  enter_prediction: 'enter_prediction',
+  lock_prediction: 'lock_prediction',
+  resolve_prediction: 'resolve_prediction',
+  raid: 'raid',
+  set_host: 'set_host',
+  clear_host: 'clear_host',
 } as const;
 
 export interface ChannelEngagementActionInput {
@@ -670,10 +677,10 @@ export interface ChannelEngagementActionInput {
   /** @maxLength 500 */
   description?: string;
   /**
-   * @minItems 2
-   * @maxItems 5
-   * @items.maxLength 80
-   */
+     * @minItems 2
+     * @maxItems 5
+     * @items.maxLength 80
+     */
   choices?: string[];
   pollId?: number;
   choiceId?: number;
@@ -682,14 +689,14 @@ export interface ChannelEngagementActionInput {
   rewardId?: number;
   targetChannelId?: number;
   /**
-   * @minimum 1
-   * @maximum 100000
-   */
+     * @minimum 1
+     * @maximum 100000
+     */
   channelPoints?: number;
   /**
-   * @minimum 30
-   * @maximum 3600
-   */
+     * @minimum 30
+     * @maximum 3600
+     */
   durationSeconds?: number;
   autoHost?: boolean;
   /** @maxLength 300 */
@@ -705,7 +712,7 @@ export interface ChannelEngagementActionResult {
   awarded?: number;
 }
 
-export type ClipInput = unknown & {
+export type ClipInput = (unknown & {
   /** Ready VOD source. Only the source channel owner may request this clip type. */
   videoId?: number;
   /** Active public live-channel source. An authenticated viewer may request this clip type while the broadcast is active. */
@@ -715,19 +722,35 @@ export type ClipInput = unknown & {
   /** @exclusiveMinimum 0 */
   endTime: number;
   /**
-   * @minLength 1
-   * @maxLength 100
-   */
+     * @minLength 1
+     * @maxLength 100
+     */
   title: string;
-};
+});
 
-export type AdminVideo = VideoSummary & {
+export interface VideoPage {
+  items: VideoSummary[];
   /**
-   * Owner-only timestamp recording the creator's official-source rights attestation. Null for FastPix uploads.
-   * @nullable
-   */
+     * Total results matching the current public, creator, category, and search filters.
+     * @minimum 0
+     */
+  total: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  limit: number;
+  /** @minimum 0 */
+  offset: number;
+}
+
+export type AdminVideo = VideoSummary & ({
+  /**
+     * Owner-only timestamp recording the creator's official-source rights attestation. Null for FastPix uploads.
+     * @nullable
+     */
   rightsAttestedAt: string | null;
-};
+});
 
 export interface AdminVideoPage {
   items: AdminVideo[];
@@ -739,12 +762,12 @@ export interface AdminVideoPage {
   offset: number;
 }
 
-export type VideoMusicCreditMetadataSource =
-  (typeof VideoMusicCreditMetadataSource)[keyof typeof VideoMusicCreditMetadataSource];
+export type VideoMusicCreditMetadataSource = typeof VideoMusicCreditMetadataSource[keyof typeof VideoMusicCreditMetadataSource];
+
 
 export const VideoMusicCreditMetadataSource = {
-  publisher_attested: "publisher_attested",
-  musicbrainz: "musicbrainz",
+  publisher_attested: 'publisher_attested',
+  musicbrainz: 'musicbrainz',
 } as const;
 
 export interface VideoMusicCredit {
@@ -769,24 +792,24 @@ export interface VideoMusicCredit {
   displayOrder: number;
 }
 
-export type VideoMusicCreditInputMetadataSource =
-  (typeof VideoMusicCreditInputMetadataSource)[keyof typeof VideoMusicCreditInputMetadataSource];
+export type VideoMusicCreditInputMetadataSource = typeof VideoMusicCreditInputMetadataSource[keyof typeof VideoMusicCreditInputMetadataSource];
+
 
 export const VideoMusicCreditInputMetadataSource = {
-  publisher_attested: "publisher_attested",
-  musicbrainz: "musicbrainz",
+  publisher_attested: 'publisher_attested',
+  musicbrainz: 'musicbrainz',
 } as const;
 
 export interface VideoMusicCreditInput {
   /**
-   * @minLength 1
-   * @maxLength 200
-   */
+     * @minLength 1
+     * @maxLength 200
+     */
   trackTitle: string;
   /**
-   * @minLength 1
-   * @maxLength 200
-   */
+     * @minLength 1
+     * @maxLength 200
+     */
   artistName: string;
   /** @maxLength 200 */
   albumTitle?: string;
@@ -800,21 +823,21 @@ export interface VideoMusicCreditInput {
   musicbrainzReleaseId?: string;
   metadataSource?: VideoMusicCreditInputMetadataSource;
   /**
-   * @minimum 0
-   * @maximum 1000
-   */
+     * @minimum 0
+     * @maximum 1000
+     */
   displayOrder?: number;
   /** The owner confirms these credits and any linked artwork/source are appropriate to display with this Watch release. */
   rightsAttested: boolean;
 }
 
-export type VideoDetail = VideoSummary & {
+export type VideoDetail = VideoSummary & ({
   /** @nullable */
   description: string | null;
   isOwner: boolean;
   /** Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published. */
   musicCredits: VideoMusicCredit[];
-};
+});
 
 export interface VideoComment {
   id: number;
@@ -832,35 +855,35 @@ export interface VideoComment {
 
 export interface VideoCommentInput {
   /**
-   * @minLength 1
-   * @maxLength 1000
-   */
+     * @minLength 1
+     * @maxLength 1000
+     */
   message: string;
   /** @minimum 1 */
   parentCommentId?: number;
 }
 
-export type VideoInputContentType =
-  (typeof VideoInputContentType)[keyof typeof VideoInputContentType];
+export type VideoInputContentType = typeof VideoInputContentType[keyof typeof VideoInputContentType];
+
 
 export const VideoInputContentType = {
-  upload: "upload",
-  original: "original",
+  upload: 'upload',
+  original: 'original',
 } as const;
 
-export type VideoInputPlaybackSource =
-  (typeof VideoInputPlaybackSource)[keyof typeof VideoInputPlaybackSource];
+export type VideoInputPlaybackSource = typeof VideoInputPlaybackSource[keyof typeof VideoInputPlaybackSource];
+
 
 export const VideoInputPlaybackSource = {
-  fastpix: "fastpix",
-  youtube: "youtube",
+  fastpix: 'fastpix',
+  youtube: 'youtube',
 } as const;
 
 export interface VideoInput {
   /**
-   * @minLength 1
-   * @maxLength 100
-   */
+     * @minLength 1
+     * @maxLength 100
+     */
   title: string;
   /** @maxLength 5000 */
   description?: string;
@@ -868,28 +891,28 @@ export interface VideoInput {
   contentType?: VideoInputContentType;
   playbackSource?: VideoInputPlaybackSource;
   /**
-   * @minLength 11
-   * @maxLength 32
-   * @pattern ^[A-Za-z0-9_-]+$
-   */
+     * @minLength 11
+     * @maxLength 32
+     * @pattern ^[A-Za-z0-9_-]+$
+     */
   youtubeVideoId?: string;
   /** Creator attests they have the rights to embed the official YouTube source in Kryv Watch. */
   rightsAttested?: boolean;
 }
 
-export type VideoCreateResponse = VideoDetail & {
+export type VideoCreateResponse = VideoDetail & ({
   /**
-   * FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.
-   * @nullable
-   */
+     * FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.
+     * @nullable
+     */
   uploadUrl: string | null;
-};
+});
 
 export interface VideoUpdate {
   /**
-   * @minLength 1
-   * @maxLength 100
-   */
+     * @minLength 1
+     * @maxLength 100
+     */
   title?: string;
   /** @maxLength 5000 */
   description?: string;
@@ -925,9 +948,9 @@ export interface CinemaComment {
 
 export interface CinemaCommentInput {
   /**
-   * @minLength 1
-   * @maxLength 1000
-   */
+     * @minLength 1
+     * @maxLength 1000
+     */
   message: string;
   /** @minimum 1 */
   parentCommentId?: number;
@@ -945,32 +968,32 @@ export interface CinemaHome {
 
 export interface ChannelChatSettings {
   /**
-   * @minimum 0
-   * @maximum 300
-   */
+     * @minimum 0
+     * @maximum 300
+     */
   slowModeSeconds: number;
   followersOnly: boolean;
 }
 
 export interface ChannelChatSettingsUpdate {
   /**
-   * @minimum 0
-   * @maximum 300
-   */
+     * @minimum 0
+     * @maximum 300
+     */
   slowModeSeconds?: number;
   followersOnly?: boolean;
 }
 
-export type ChannelModerationActionInputAction =
-  (typeof ChannelModerationActionInputAction)[keyof typeof ChannelModerationActionInputAction];
+export type ChannelModerationActionInputAction = typeof ChannelModerationActionInputAction[keyof typeof ChannelModerationActionInputAction];
+
 
 export const ChannelModerationActionInputAction = {
-  add_moderator: "add_moderator",
-  remove_moderator: "remove_moderator",
-  timeout: "timeout",
-  ban: "ban",
-  unban: "unban",
-  delete_message: "delete_message",
+  add_moderator: 'add_moderator',
+  remove_moderator: 'remove_moderator',
+  timeout: 'timeout',
+  ban: 'ban',
+  unban: 'unban',
+  delete_message: 'delete_message',
 } as const;
 
 export interface ChannelModerationActionInput {
@@ -978,24 +1001,24 @@ export interface ChannelModerationActionInput {
   targetUserId?: number;
   messageId?: number;
   /**
-   * @minimum 1
-   * @maximum 2592000
-   */
+     * @minimum 1
+     * @maximum 2592000
+     */
   durationSeconds?: number;
   /** @maxLength 500 */
   reason?: string;
 }
 
-export type ChannelModerationActionResultAction =
-  (typeof ChannelModerationActionResultAction)[keyof typeof ChannelModerationActionResultAction];
+export type ChannelModerationActionResultAction = typeof ChannelModerationActionResultAction[keyof typeof ChannelModerationActionResultAction];
+
 
 export const ChannelModerationActionResultAction = {
-  add_moderator: "add_moderator",
-  remove_moderator: "remove_moderator",
-  timeout: "timeout",
-  ban: "ban",
-  unban: "unban",
-  delete_message: "delete_message",
+  add_moderator: 'add_moderator',
+  remove_moderator: 'remove_moderator',
+  timeout: 'timeout',
+  ban: 'ban',
+  unban: 'unban',
+  delete_message: 'delete_message',
 } as const;
 
 export interface ChannelModerationActionResult {
@@ -1021,22 +1044,22 @@ export interface ChatMessage {
 
 export interface ChatMessageInput {
   /**
-   * @minLength 1
-   * @maxLength 500
-   */
+     * @minLength 1
+     * @maxLength 500
+     */
   message: string;
 }
 
-export type ChatReportInputReason =
-  (typeof ChatReportInputReason)[keyof typeof ChatReportInputReason];
+export type ChatReportInputReason = typeof ChatReportInputReason[keyof typeof ChatReportInputReason];
+
 
 export const ChatReportInputReason = {
-  harassment: "harassment",
-  hate_or_harm: "hate_or_harm",
-  spam_or_scam: "spam_or_scam",
-  sexual_content: "sexual_content",
-  violence_or_threat: "violence_or_threat",
-  other: "other",
+  harassment: 'harassment',
+  hate_or_harm: 'hate_or_harm',
+  spam_or_scam: 'spam_or_scam',
+  sexual_content: 'sexual_content',
+  violence_or_threat: 'violence_or_threat',
+  other: 'other',
 } as const;
 
 export interface ChatReportInput {
@@ -1047,11 +1070,11 @@ export interface ChatReportInput {
   details?: string;
 }
 
-export type ChatReportStatus =
-  (typeof ChatReportStatus)[keyof typeof ChatReportStatus];
+export type ChatReportStatus = typeof ChatReportStatus[keyof typeof ChatReportStatus];
+
 
 export const ChatReportStatus = {
-  open: "open",
+  open: 'open',
 } as const;
 
 export interface ChatReport {
@@ -1063,17 +1086,17 @@ export interface ChatReport {
   createdAt: string;
 }
 
-export type ChannelSafetyReportInputReason =
-  (typeof ChannelSafetyReportInputReason)[keyof typeof ChannelSafetyReportInputReason];
+export type ChannelSafetyReportInputReason = typeof ChannelSafetyReportInputReason[keyof typeof ChannelSafetyReportInputReason];
+
 
 export const ChannelSafetyReportInputReason = {
-  harassment: "harassment",
-  hate_or_harm: "hate_or_harm",
-  spam_or_scam: "spam_or_scam",
-  sexual_content: "sexual_content",
-  violence_or_threat: "violence_or_threat",
-  impersonation: "impersonation",
-  other: "other",
+  harassment: 'harassment',
+  hate_or_harm: 'hate_or_harm',
+  spam_or_scam: 'spam_or_scam',
+  sexual_content: 'sexual_content',
+  violence_or_threat: 'violence_or_threat',
+  impersonation: 'impersonation',
+  other: 'other',
 } as const;
 
 export interface ChannelSafetyReportInput {
@@ -1082,11 +1105,11 @@ export interface ChannelSafetyReportInput {
   details?: string;
 }
 
-export type ChannelSafetyReportStatus =
-  (typeof ChannelSafetyReportStatus)[keyof typeof ChannelSafetyReportStatus];
+export type ChannelSafetyReportStatus = typeof ChannelSafetyReportStatus[keyof typeof ChannelSafetyReportStatus];
+
 
 export const ChannelSafetyReportStatus = {
-  open: "open",
+  open: 'open',
 } as const;
 
 export interface ChannelSafetyReport {
@@ -1097,11 +1120,11 @@ export interface ChannelSafetyReport {
   createdAt: string;
 }
 
-export type VideoSafetyReportStatus =
-  (typeof VideoSafetyReportStatus)[keyof typeof VideoSafetyReportStatus];
+export type VideoSafetyReportStatus = typeof VideoSafetyReportStatus[keyof typeof VideoSafetyReportStatus];
+
 
 export const VideoSafetyReportStatus = {
-  open: "open",
+  open: 'open',
 } as const;
 
 export interface VideoSafetyReport {
@@ -1113,11 +1136,11 @@ export interface VideoSafetyReport {
   createdAt: string;
 }
 
-export type ClipSafetyReportStatus =
-  (typeof ClipSafetyReportStatus)[keyof typeof ClipSafetyReportStatus];
+export type ClipSafetyReportStatus = typeof ClipSafetyReportStatus[keyof typeof ClipSafetyReportStatus];
+
 
 export const ClipSafetyReportStatus = {
-  open: "open",
+  open: 'open',
 } as const;
 
 export interface ClipSafetyReport {
@@ -1129,13 +1152,13 @@ export interface ClipSafetyReport {
   createdAt: string;
 }
 
-export type AdminModerationCaseStatus =
-  (typeof AdminModerationCaseStatus)[keyof typeof AdminModerationCaseStatus];
+export type AdminModerationCaseStatus = typeof AdminModerationCaseStatus[keyof typeof AdminModerationCaseStatus];
+
 
 export const AdminModerationCaseStatus = {
-  open: "open",
-  resolved: "resolved",
-  dismissed: "dismissed",
+  open: 'open',
+  resolved: 'resolved',
+  dismissed: 'dismissed',
 } as const;
 
 export type AdminModerationCaseEvidenceItem = { [key: string]: unknown };
@@ -1163,40 +1186,40 @@ export interface AdminModerationCase {
   updatedAt: string;
 }
 
-export type ReviewAdminModerationCaseInputDecision =
-  (typeof ReviewAdminModerationCaseInputDecision)[keyof typeof ReviewAdminModerationCaseInputDecision];
+export type ReviewAdminModerationCaseInputDecision = typeof ReviewAdminModerationCaseInputDecision[keyof typeof ReviewAdminModerationCaseInputDecision];
+
 
 export const ReviewAdminModerationCaseInputDecision = {
-  resolved: "resolved",
-  dismissed: "dismissed",
+  resolved: 'resolved',
+  dismissed: 'dismissed',
 } as const;
 
 export interface ReviewAdminModerationCaseInput {
   decision: ReviewAdminModerationCaseInputDecision;
   /**
-   * @minLength 1
-   * @maxLength 1000
-   */
+     * @minLength 1
+     * @maxLength 1000
+     */
   resolution?: string;
 }
 
-export type AdminCinemaTitlePublishState =
-  (typeof AdminCinemaTitlePublishState)[keyof typeof AdminCinemaTitlePublishState];
+export type AdminCinemaTitlePublishState = typeof AdminCinemaTitlePublishState[keyof typeof AdminCinemaTitlePublishState];
+
 
 export const AdminCinemaTitlePublishState = {
-  draft: "draft",
-  review: "review",
-  published: "published",
-  archived: "archived",
+  draft: 'draft',
+  review: 'review',
+  published: 'published',
+  archived: 'archived',
 } as const;
 
-export type AdminCinemaTitleMaturityLevel =
-  (typeof AdminCinemaTitleMaturityLevel)[keyof typeof AdminCinemaTitleMaturityLevel];
+export type AdminCinemaTitleMaturityLevel = typeof AdminCinemaTitleMaturityLevel[keyof typeof AdminCinemaTitleMaturityLevel];
+
 
 export const AdminCinemaTitleMaturityLevel = {
-  kids: "kids",
-  standard: "standard",
-  mature: "mature",
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
 } as const;
 
 export interface AdminCinemaTitle {
@@ -1227,20 +1250,20 @@ export interface AdminCinemaTitlePage {
   offset: number;
 }
 
-export type AdminCinemaTitleInputMaturityLevel =
-  (typeof AdminCinemaTitleInputMaturityLevel)[keyof typeof AdminCinemaTitleInputMaturityLevel];
+export type AdminCinemaTitleInputMaturityLevel = typeof AdminCinemaTitleInputMaturityLevel[keyof typeof AdminCinemaTitleInputMaturityLevel];
+
 
 export const AdminCinemaTitleInputMaturityLevel = {
-  kids: "kids",
-  standard: "standard",
-  mature: "mature",
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
 } as const;
 
 export interface AdminCinemaTitleInput {
   /**
-   * @minLength 1
-   * @maxLength 160
-   */
+     * @minLength 1
+     * @maxLength 160
+     */
   title: string;
   /** @maxLength 5000 */
   synopsis?: string;
@@ -1250,35 +1273,35 @@ export interface AdminCinemaTitleInput {
   backdropUrl?: string;
   maturityLevel?: AdminCinemaTitleInputMaturityLevel;
   /**
-   * @minLength 1
-   * @maxLength 500
-   */
+     * @minLength 1
+     * @maxLength 500
+     */
   rightsReference: string;
   /**
-   * @items.minLength 2
-   * @items.maxLength 3
-   */
+     * @items.minLength 2
+     * @items.maxLength 3
+     */
   territoryCodes?: string[];
 }
 
-export type AdminCinemaAssetAssetKind =
-  (typeof AdminCinemaAssetAssetKind)[keyof typeof AdminCinemaAssetAssetKind];
+export type AdminCinemaAssetAssetKind = typeof AdminCinemaAssetAssetKind[keyof typeof AdminCinemaAssetAssetKind];
+
 
 export const AdminCinemaAssetAssetKind = {
-  feature: "feature",
-  trailer: "trailer",
-  preview: "preview",
-  captions: "captions",
+  feature: 'feature',
+  trailer: 'trailer',
+  preview: 'preview',
+  captions: 'captions',
 } as const;
 
-export type AdminCinemaAssetProcessingStatus =
-  (typeof AdminCinemaAssetProcessingStatus)[keyof typeof AdminCinemaAssetProcessingStatus];
+export type AdminCinemaAssetProcessingStatus = typeof AdminCinemaAssetProcessingStatus[keyof typeof AdminCinemaAssetProcessingStatus];
+
 
 export const AdminCinemaAssetProcessingStatus = {
-  waiting: "waiting",
-  processing: "processing",
-  ready: "ready",
-  errored: "errored",
+  waiting: 'waiting',
+  processing: 'processing',
+  ready: 'ready',
+  errored: 'errored',
 } as const;
 
 export interface AdminCinemaAsset {
@@ -1292,66 +1315,66 @@ export interface AdminCinemaAsset {
   fastpixPlaybackId: string | null;
 }
 
-export type AdminCinemaAssetInputAssetKind =
-  (typeof AdminCinemaAssetInputAssetKind)[keyof typeof AdminCinemaAssetInputAssetKind];
+export type AdminCinemaAssetInputAssetKind = typeof AdminCinemaAssetInputAssetKind[keyof typeof AdminCinemaAssetInputAssetKind];
+
 
 export const AdminCinemaAssetInputAssetKind = {
-  feature: "feature",
-  trailer: "trailer",
-  preview: "preview",
-  captions: "captions",
+  feature: 'feature',
+  trailer: 'trailer',
+  preview: 'preview',
+  captions: 'captions',
 } as const;
 
 export interface AdminCinemaAssetInput {
   assetKind: AdminCinemaAssetInputAssetKind;
   fastpixMediaId?: string;
   /**
-   * @minLength 1
-   * @maxLength 200
-   */
+     * @minLength 1
+     * @maxLength 200
+     */
   fastpixPlaybackId: string;
   /**
-   * @minLength 1
-   * @maxLength 500
-   */
+     * @minLength 1
+     * @maxLength 500
+     */
   sourceProvenance: string;
   /** @minimum 0 */
   durationSeconds?: number;
 }
 
-export type AdminCinemaUploadSessionInputAssetKind =
-  (typeof AdminCinemaUploadSessionInputAssetKind)[keyof typeof AdminCinemaUploadSessionInputAssetKind];
+export type AdminCinemaUploadSessionInputAssetKind = typeof AdminCinemaUploadSessionInputAssetKind[keyof typeof AdminCinemaUploadSessionInputAssetKind];
+
 
 export const AdminCinemaUploadSessionInputAssetKind = {
-  feature: "feature",
-  trailer: "trailer",
-  preview: "preview",
+  feature: 'feature',
+  trailer: 'trailer',
+  preview: 'preview',
 } as const;
 
 export interface AdminCinemaUploadSessionInput {
   assetKind: AdminCinemaUploadSessionInputAssetKind;
   /**
-   * @minLength 1
-   * @maxLength 500
-   */
+     * @minLength 1
+     * @maxLength 500
+     */
   sourceProvenance: string;
   /**
-   * @minLength 2
-   * @maxLength 16
-   */
+     * @minLength 2
+     * @maxLength 16
+     */
   language?: string;
 }
 
 export interface AdminCinemaUploadSession {
   assetId: number;
   /**
-   * @minLength 1
-   * @maxLength 4096
-   */
+     * @minLength 1
+     * @maxLength 4096
+     */
   uploadUrl: string;
 }
 
-export type AdminCinemaAssetDetail = AdminCinemaAsset & {
+export type AdminCinemaAssetDetail = AdminCinemaAsset & ({
   /** @nullable */
   sourceProvenance: string | null;
   language: string;
@@ -1361,17 +1384,17 @@ export type AdminCinemaAssetDetail = AdminCinemaAsset & {
   approvedAt: string | null;
   createdAt: string;
   updatedAt: string;
-};
+});
 
-export type AdminCinemaRightsWindowEntitlementType =
-  (typeof AdminCinemaRightsWindowEntitlementType)[keyof typeof AdminCinemaRightsWindowEntitlementType];
+export type AdminCinemaRightsWindowEntitlementType = typeof AdminCinemaRightsWindowEntitlementType[keyof typeof AdminCinemaRightsWindowEntitlementType];
+
 
 export const AdminCinemaRightsWindowEntitlementType = {
-  unconfigured: "unconfigured",
-  free: "free",
-  subscription: "subscription",
-  rental: "rental",
-  purchase: "purchase",
+  unconfigured: 'unconfigured',
+  free: 'free',
+  subscription: 'subscription',
+  rental: 'rental',
+  purchase: 'purchase',
 } as const;
 
 export interface AdminCinemaRightsWindow {
@@ -1415,7 +1438,7 @@ export interface AdminCinemaCredit {
   createdAt: string;
 }
 
-export type AdminCinemaTitleDetail = AdminCinemaTitle & {
+export type AdminCinemaTitleDetail = AdminCinemaTitle & ({
   /** @nullable */
   releaseYear: number | null;
   /** @nullable */
@@ -1434,115 +1457,115 @@ export type AdminCinemaTitleDetail = AdminCinemaTitle & {
   credits: AdminCinemaCredit[];
   readiness: AdminCinemaReadiness;
   activity: AdminCinemaActivity[];
-};
+});
 
 export interface AdminCinemaCreditInput {
   /** @minimum 1 */
   channelId: number;
   /**
-   * @minLength 1
-   * @maxLength 80
-   */
+     * @minLength 1
+     * @maxLength 80
+     */
   role: string;
   /**
-   * @minimum -100000
-   * @maximum 100000
-   */
+     * @minimum -100000
+     * @maximum 100000
+     */
   displayOrder?: number;
 }
 
-export type AdminCinemaTitleUpdateMaturityLevel =
-  (typeof AdminCinemaTitleUpdateMaturityLevel)[keyof typeof AdminCinemaTitleUpdateMaturityLevel];
+export type AdminCinemaTitleUpdateMaturityLevel = typeof AdminCinemaTitleUpdateMaturityLevel[keyof typeof AdminCinemaTitleUpdateMaturityLevel];
+
 
 export const AdminCinemaTitleUpdateMaturityLevel = {
-  kids: "kids",
-  standard: "standard",
-  mature: "mature",
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
 } as const;
 
-export type AdminCinemaTitleUpdatePublishState =
-  (typeof AdminCinemaTitleUpdatePublishState)[keyof typeof AdminCinemaTitleUpdatePublishState];
+export type AdminCinemaTitleUpdatePublishState = typeof AdminCinemaTitleUpdatePublishState[keyof typeof AdminCinemaTitleUpdatePublishState];
+
 
 export const AdminCinemaTitleUpdatePublishState = {
-  draft: "draft",
-  review: "review",
-  published: "published",
-  archived: "archived",
+  draft: 'draft',
+  review: 'review',
+  published: 'published',
+  archived: 'archived',
 } as const;
 
 export interface AdminCinemaTitleUpdate {
   /**
-   * @minLength 1
-   * @maxLength 160
-   */
+     * @minLength 1
+     * @maxLength 160
+     */
   title?: string;
   /**
-   * @maxLength 5000
-   * @nullable
-   */
+     * @maxLength 5000
+     * @nullable
+     */
   synopsis?: string | null;
   /**
-   * @maxLength 2048
-   * @nullable
-   */
+     * @maxLength 2048
+     * @nullable
+     */
   posterUrl?: string | null;
   /**
-   * @maxLength 2048
-   * @nullable
-   */
+     * @maxLength 2048
+     * @nullable
+     */
   backdropUrl?: string | null;
   /**
-   * @maxLength 2048
-   * @nullable
-   */
+     * @maxLength 2048
+     * @nullable
+     */
   logoUrl?: string | null;
   maturityLevel?: AdminCinemaTitleUpdateMaturityLevel;
   /**
-   * @maxLength 32
-   * @nullable
-   */
+     * @maxLength 32
+     * @nullable
+     */
   contentRating?: string | null;
   /**
-   * @minimum 1888
-   * @maximum 2200
-   * @nullable
-   */
+     * @minimum 1888
+     * @maximum 2200
+     * @nullable
+     */
   releaseYear?: number | null;
   /**
-   * @minimum -100000
-   * @maximum 100000
-   */
+     * @minimum -100000
+     * @maximum 100000
+     */
   editorialRank?: number;
   adEligible?: boolean;
   publishState?: AdminCinemaTitleUpdatePublishState;
   /**
-   * @minLength 1
-   * @maxLength 500
-   */
+     * @minLength 1
+     * @maxLength 500
+     */
   reason?: string;
 }
 
-export type AdminCinemaRightsWindowInputEntitlementType =
-  (typeof AdminCinemaRightsWindowInputEntitlementType)[keyof typeof AdminCinemaRightsWindowInputEntitlementType];
+export type AdminCinemaRightsWindowInputEntitlementType = typeof AdminCinemaRightsWindowInputEntitlementType[keyof typeof AdminCinemaRightsWindowInputEntitlementType];
+
 
 export const AdminCinemaRightsWindowInputEntitlementType = {
-  free: "free",
-  subscription: "subscription",
-  rental: "rental",
-  purchase: "purchase",
+  free: 'free',
+  subscription: 'subscription',
+  rental: 'rental',
+  purchase: 'purchase',
 } as const;
 
 export interface AdminCinemaRightsWindowInput {
   /**
-   * @items.minLength 2
-   * @items.maxLength 3
-   */
+     * @items.minLength 2
+     * @items.maxLength 3
+     */
   territoryCodes?: string[];
   entitlementType: AdminCinemaRightsWindowInputEntitlementType;
   /**
-   * @minLength 1
-   * @maxLength 500
-   */
+     * @minLength 1
+     * @maxLength 500
+     */
   rightsReference: string;
   startsAt: string;
   /** @nullable */
@@ -1560,33 +1583,34 @@ export interface AdCreativeSummary {
   landingUrl: string | null;
 }
 
-export type AdBreakSurface =
-  (typeof AdBreakSurface)[keyof typeof AdBreakSurface];
+export type AdBreakSurface = typeof AdBreakSurface[keyof typeof AdBreakSurface];
+
 
 export const AdBreakSurface = {
-  live: "live",
-  watch: "watch",
-  cinema: "cinema",
-  clip: "clip",
+  live: 'live',
+  watch: 'watch',
+  cinema: 'cinema',
+  clip: 'clip',
 } as const;
 
-export type AdBreakTriggerType =
-  (typeof AdBreakTriggerType)[keyof typeof AdBreakTriggerType];
+export type AdBreakTriggerType = typeof AdBreakTriggerType[keyof typeof AdBreakTriggerType];
+
 
 export const AdBreakTriggerType = {
-  scheduled: "scheduled",
-  creator: "creator",
-  system: "system",
+  scheduled: 'scheduled',
+  creator: 'creator',
+  system: 'system',
 } as const;
 
-export type AdBreakStatus = (typeof AdBreakStatus)[keyof typeof AdBreakStatus];
+export type AdBreakStatus = typeof AdBreakStatus[keyof typeof AdBreakStatus];
+
 
 export const AdBreakStatus = {
-  scheduled: "scheduled",
-  serving: "serving",
-  completed: "completed",
-  deferred: "deferred",
-  cancelled: "cancelled",
+  scheduled: 'scheduled',
+  serving: 'serving',
+  completed: 'completed',
+  deferred: 'deferred',
+  cancelled: 'cancelled',
 } as const;
 
 export interface AdBreak {
@@ -1607,13 +1631,13 @@ export interface AdDecision {
   creative: AdCreativeSummary | null;
 }
 
-export type AdBreakInputAction =
-  (typeof AdBreakInputAction)[keyof typeof AdBreakInputAction];
+export type AdBreakInputAction = typeof AdBreakInputAction[keyof typeof AdBreakInputAction];
+
 
 export const AdBreakInputAction = {
-  schedule: "schedule",
-  trigger: "trigger",
-  defer: "defer",
+  schedule: 'schedule',
+  trigger: 'trigger',
+  defer: 'defer',
 } as const;
 
 export interface AdBreakInput {
@@ -1621,13 +1645,13 @@ export interface AdBreakInput {
   scheduledAt?: string;
 }
 
-export type ViewerProfileMaturityLevel =
-  (typeof ViewerProfileMaturityLevel)[keyof typeof ViewerProfileMaturityLevel];
+export type ViewerProfileMaturityLevel = typeof ViewerProfileMaturityLevel[keyof typeof ViewerProfileMaturityLevel];
+
 
 export const ViewerProfileMaturityLevel = {
-  kids: "kids",
-  standard: "standard",
-  mature: "mature",
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
 } as const;
 
 export interface ViewerProfile {
@@ -1638,24 +1662,25 @@ export interface ViewerProfile {
   maturityLevel: ViewerProfileMaturityLevel;
   isKidsProfile: boolean;
   isDefault: boolean;
+  /** True when the profile has a PIN. PIN data is never returned. */
   isLocked: boolean;
   createdAt: string;
 }
 
-export type ViewerProfileInputMaturityLevel =
-  (typeof ViewerProfileInputMaturityLevel)[keyof typeof ViewerProfileInputMaturityLevel];
+export type ViewerProfileInputMaturityLevel = typeof ViewerProfileInputMaturityLevel[keyof typeof ViewerProfileInputMaturityLevel];
+
 
 export const ViewerProfileInputMaturityLevel = {
-  kids: "kids",
-  standard: "standard",
-  mature: "mature",
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
 } as const;
 
 export interface ViewerProfileInput {
   /**
-   * @minLength 1
-   * @maxLength 40
-   */
+     * @minLength 1
+     * @maxLength 40
+     */
   name: string;
   /** @maxLength 2048 */
   avatarUrl?: string;
@@ -1664,36 +1689,37 @@ export interface ViewerProfileInput {
   isDefault?: boolean;
 }
 
-export type ViewerProfileUpdateMaturityLevel =
-  (typeof ViewerProfileUpdateMaturityLevel)[keyof typeof ViewerProfileUpdateMaturityLevel];
+export type ViewerProfileUpdateMaturityLevel = typeof ViewerProfileUpdateMaturityLevel[keyof typeof ViewerProfileUpdateMaturityLevel];
+
 
 export const ViewerProfileUpdateMaturityLevel = {
-  kids: "kids",
-  standard: "standard",
-  mature: "mature",
+  kids: 'kids',
+  standard: 'standard',
+  mature: 'mature',
 } as const;
 
 export interface ViewerProfileUpdate {
   /**
-   * @minLength 1
-   * @maxLength 40
-   */
+     * @minLength 1
+     * @maxLength 40
+     */
   name?: string;
   /**
-   * @maxLength 2048
-   * @nullable
-   */
+     * @maxLength 2048
+     * @nullable
+     */
   avatarUrl?: string | null;
   maturityLevel?: ViewerProfileUpdateMaturityLevel;
   isKidsProfile?: boolean;
   isDefault?: boolean;
 }
 
-export type MeRole = (typeof MeRole)[keyof typeof MeRole];
+export type MeRole = typeof MeRole[keyof typeof MeRole];
+
 
 export const MeRole = {
-  user: "user",
-  owner: "owner",
+  user: 'user',
+  owner: 'owner',
 } as const;
 
 export interface Me {
@@ -1712,29 +1738,29 @@ export interface CustomerWalletBalance {
   availableAmount: string;
   heldAmount: string;
   /**
-   * Provider-rate reference only; never used to settle crypto balances.
-   * @nullable
-   */
+     * Provider-rate reference only; never used to settle crypto balances.
+     * @nullable
+     */
   usdReferenceValue: string | null;
   /** @nullable */
   rateUpdatedAt: string | null;
 }
 
-export type CustomerWalletDepositAddressStatus =
-  (typeof CustomerWalletDepositAddressStatus)[keyof typeof CustomerWalletDepositAddressStatus];
+export type CustomerWalletDepositAddressStatus = typeof CustomerWalletDepositAddressStatus[keyof typeof CustomerWalletDepositAddressStatus];
+
 
 export const CustomerWalletDepositAddressStatus = {
-  active: "active",
-  disabled: "disabled",
+  active: 'active',
+  disabled: 'disabled',
 } as const;
 
 export interface CustomerWalletDepositAddress {
   currency: CryptoCurrency;
   /**
-   * Kryv-managed customer deposit address; it is not a creator payout address.
-   * @minLength 10
-   * @maxLength 256
-   */
+     * Kryv-managed customer deposit address; it is not a creator payout address.
+     * @minLength 10
+     * @maxLength 256
+     */
   address: string;
   status: CustomerWalletDepositAddressStatus;
   createdAt: string;
@@ -1773,22 +1799,22 @@ export interface CreatorBalance {
   rateUpdatedAt: string | null;
 }
 
-export type CreatorPayoutProfileConfirmationStatus =
-  (typeof CreatorPayoutProfileConfirmationStatus)[keyof typeof CreatorPayoutProfileConfirmationStatus];
+export type CreatorPayoutProfileConfirmationStatus = typeof CreatorPayoutProfileConfirmationStatus[keyof typeof CreatorPayoutProfileConfirmationStatus];
+
 
 export const CreatorPayoutProfileConfirmationStatus = {
-  pending: "pending",
-  confirmed: "confirmed",
-  rejected: "rejected",
+  pending: 'pending',
+  confirmed: 'confirmed',
+  rejected: 'rejected',
 } as const;
 
-export type CreatorPayoutProfileReviewStatus =
-  (typeof CreatorPayoutProfileReviewStatus)[keyof typeof CreatorPayoutProfileReviewStatus];
+export type CreatorPayoutProfileReviewStatus = typeof CreatorPayoutProfileReviewStatus[keyof typeof CreatorPayoutProfileReviewStatus];
+
 
 export const CreatorPayoutProfileReviewStatus = {
-  pending: "pending",
-  approved: "approved",
-  rejected: "rejected",
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
 } as const;
 
 export interface CreatorPayoutProfile {
@@ -1805,11 +1831,11 @@ export interface CreatorPayoutProfile {
 /**
  * Scheduled cadence is unavailable because scheduled payout requests are hard-disabled.
  */
-export type CreatorPayoutPreferenceCadence =
-  (typeof CreatorPayoutPreferenceCadence)[keyof typeof CreatorPayoutPreferenceCadence];
+export type CreatorPayoutPreferenceCadence = typeof CreatorPayoutPreferenceCadence[keyof typeof CreatorPayoutPreferenceCadence];
+
 
 export const CreatorPayoutPreferenceCadence = {
-  manual: "manual",
+  manual: 'manual',
 } as const;
 
 export interface CreatorPayoutPreference {
@@ -1817,16 +1843,16 @@ export interface CreatorPayoutPreference {
   cadence: CreatorPayoutPreferenceCadence;
   minimumAmount: string;
   /**
-   * @minimum 0
-   * @maximum 6
-   * @nullable
-   */
+     * @minimum 0
+     * @maximum 6
+     * @nullable
+     */
   weekday?: number | null;
   /**
-   * @minimum 1
-   * @maximum 28
-   * @nullable
-   */
+     * @minimum 1
+     * @maximum 28
+     * @nullable
+     */
   monthDay?: number | null;
   timezone: string;
   enabled: boolean;
@@ -1835,12 +1861,12 @@ export interface CreatorPayoutPreference {
   updatedAt: string;
 }
 
-export type CreatorPayoutRequestRequestSource =
-  (typeof CreatorPayoutRequestRequestSource)[keyof typeof CreatorPayoutRequestRequestSource];
+export type CreatorPayoutRequestRequestSource = typeof CreatorPayoutRequestRequestSource[keyof typeof CreatorPayoutRequestRequestSource];
+
 
 export const CreatorPayoutRequestRequestSource = {
-  manual: "manual",
-  scheduled: "scheduled",
+  manual: 'manual',
+  scheduled: 'scheduled',
 } as const;
 
 export interface CreatorPayoutRequest {
@@ -1865,9 +1891,9 @@ export interface CreatorPayoutRequest {
   /** @nullable */
   completedAt?: string | null;
   /**
-   * @maxLength 2048
-   * @nullable
-   */
+     * @maxLength 2048
+     * @nullable
+     */
   providerTransactionUrl?: string | null;
 }
 
@@ -1895,9 +1921,9 @@ export interface CreatorFinanceOverview {
 export interface SaveCreatorPayoutProfileInput {
   currency: CryptoCurrency;
   /**
-   * @minLength 12
-   * @maxLength 240
-   */
+     * @minLength 12
+     * @maxLength 240
+     */
   address: string;
 }
 
@@ -1936,16 +1962,16 @@ export interface AdminFinanceAssetLiability {
 
 export interface AdminTreasuryContext {
   /**
-   * Owner-visible non-secret treasury label only
-   * @maxLength 120
-   * @nullable
-   */
+     * Owner-visible non-secret treasury label only
+     * @maxLength 120
+     * @nullable
+     */
   label: string | null;
   /**
-   * Owner-visible non-secret operational notes only
-   * @maxLength 2000
-   * @nullable
-   */
+     * Owner-visible non-secret operational notes only
+     * @maxLength 2000
+     * @nullable
+     */
   notes: string | null;
   /** @nullable */
   updatedAt: string | null;
@@ -1953,14 +1979,14 @@ export interface AdminTreasuryContext {
 
 export interface AdminTreasuryContextUpdate {
   /**
-   * @maxLength 120
-   * @nullable
-   */
+     * @maxLength 120
+     * @nullable
+     */
   label: string | null;
   /**
-   * @maxLength 2000
-   * @nullable
-   */
+     * @maxLength 2000
+     * @nullable
+     */
   notes: string | null;
 }
 
@@ -2051,12 +2077,12 @@ export interface AdminFinanceOverview {
   providerConfigured: boolean;
 }
 
-export type ReviewPayoutProfileInputDecision =
-  (typeof ReviewPayoutProfileInputDecision)[keyof typeof ReviewPayoutProfileInputDecision];
+export type ReviewPayoutProfileInputDecision = typeof ReviewPayoutProfileInputDecision[keyof typeof ReviewPayoutProfileInputDecision];
+
 
 export const ReviewPayoutProfileInputDecision = {
-  approved: "approved",
-  rejected: "rejected",
+  approved: 'approved',
+  rejected: 'rejected',
 } as const;
 
 export interface ReviewPayoutProfileInput {
@@ -2065,13 +2091,13 @@ export interface ReviewPayoutProfileInput {
   reason?: string;
 }
 
-export type ReviewPayoutRequestInputDecision =
-  (typeof ReviewPayoutRequestInputDecision)[keyof typeof ReviewPayoutRequestInputDecision];
+export type ReviewPayoutRequestInputDecision = typeof ReviewPayoutRequestInputDecision[keyof typeof ReviewPayoutRequestInputDecision];
+
 
 export const ReviewPayoutRequestInputDecision = {
-  approved: "approved",
-  rejected: "rejected",
-  held: "held",
+  approved: 'approved',
+  rejected: 'rejected',
+  held: 'held',
 } as const;
 
 export interface ReviewPayoutRequestInput {
@@ -2083,13 +2109,12 @@ export interface ReviewPayoutRequestInput {
 /**
  * @nullable
  */
-export type PlatformFocusModeSourceType =
-  | (typeof PlatformFocusModeSourceType)[keyof typeof PlatformFocusModeSourceType]
-  | null;
+export type PlatformFocusModeSourceType = typeof PlatformFocusModeSourceType[keyof typeof PlatformFocusModeSourceType] | null;
+
 
 export const PlatformFocusModeSourceType = {
-  live: "live",
-  cinema: "cinema",
+  live: 'live',
+  cinema: 'cinema',
 } as const;
 
 export interface PlatformFocusMode {
@@ -2100,19 +2125,19 @@ export interface PlatformFocusMode {
   sourceId: number | null;
   chatEnabled: boolean;
   /**
-   * @maxLength 500
-   * @nullable
-   */
+     * @maxLength 500
+     * @nullable
+     */
   announcementText: string | null;
   updatedAt: string;
 }
 
-export type AdminFocusModeSourceType =
-  (typeof AdminFocusModeSourceType)[keyof typeof AdminFocusModeSourceType];
+export type AdminFocusModeSourceType = typeof AdminFocusModeSourceType[keyof typeof AdminFocusModeSourceType];
+
 
 export const AdminFocusModeSourceType = {
-  live: "live",
-  cinema: "cinema",
+  live: 'live',
+  cinema: 'cinema',
 } as const;
 
 export interface AdminFocusMode {
@@ -2122,34 +2147,34 @@ export interface AdminFocusMode {
   sourceId: number | null;
   chatEnabled: boolean;
   /**
-   * @maxLength 500
-   * @nullable
-   */
+     * @maxLength 500
+     * @nullable
+     */
   announcementText: string | null;
   updatedAt: string;
 }
 
-export type UpdateAdminFocusModeInputSourceType =
-  (typeof UpdateAdminFocusModeInputSourceType)[keyof typeof UpdateAdminFocusModeInputSourceType];
+export type UpdateAdminFocusModeInputSourceType = typeof UpdateAdminFocusModeInputSourceType[keyof typeof UpdateAdminFocusModeInputSourceType];
+
 
 export const UpdateAdminFocusModeInputSourceType = {
-  live: "live",
-  cinema: "cinema",
+  live: 'live',
+  cinema: 'cinema',
 } as const;
 
 export interface UpdateAdminFocusModeInput {
   isEnabled: boolean;
   sourceType: UpdateAdminFocusModeInputSourceType;
   /**
-   * @minimum 1
-   * @nullable
-   */
+     * @minimum 1
+     * @nullable
+     */
   sourceId?: number | null;
   chatEnabled: boolean;
   /**
-   * @maxLength 500
-   * @nullable
-   */
+     * @maxLength 500
+     * @nullable
+     */
   announcementText?: string | null;
 }
 
@@ -2164,45 +2189,45 @@ export interface UpdateAdminFeatureFlagInput {
   enabled: boolean;
 }
 
-export type AdminAdCampaignCampaignType =
-  (typeof AdminAdCampaignCampaignType)[keyof typeof AdminAdCampaignCampaignType];
+export type AdminAdCampaignCampaignType = typeof AdminAdCampaignCampaignType[keyof typeof AdminAdCampaignCampaignType];
+
 
 export const AdminAdCampaignCampaignType = {
-  house: "house",
-  sponsored: "sponsored",
+  house: 'house',
+  sponsored: 'sponsored',
 } as const;
 
-export type AdminAdCampaignStatus =
-  (typeof AdminAdCampaignStatus)[keyof typeof AdminAdCampaignStatus];
+export type AdminAdCampaignStatus = typeof AdminAdCampaignStatus[keyof typeof AdminAdCampaignStatus];
+
 
 export const AdminAdCampaignStatus = {
-  draft: "draft",
-  active: "active",
-  paused: "paused",
-  completed: "completed",
-  cancelled: "cancelled",
+  draft: 'draft',
+  active: 'active',
+  paused: 'paused',
+  completed: 'completed',
+  cancelled: 'cancelled',
 } as const;
 
-export type AdminAdCampaignFundingMode =
-  (typeof AdminAdCampaignFundingMode)[keyof typeof AdminAdCampaignFundingMode];
+export type AdminAdCampaignFundingMode = typeof AdminAdCampaignFundingMode[keyof typeof AdminAdCampaignFundingMode];
+
 
 export const AdminAdCampaignFundingMode = {
-  promotional: "promotional",
-  paid: "paid",
+  promotional: 'promotional',
+  paid: 'paid',
 } as const;
 
-export type AdminAdCampaignFundingStatus =
-  (typeof AdminAdCampaignFundingStatus)[keyof typeof AdminAdCampaignFundingStatus];
+export type AdminAdCampaignFundingStatus = typeof AdminAdCampaignFundingStatus[keyof typeof AdminAdCampaignFundingStatus];
+
 
 export const AdminAdCampaignFundingStatus = {
-  not_required: "not_required",
-  promotional_pending: "promotional_pending",
-  promotional_approved: "promotional_approved",
-  unfunded: "unfunded",
-  invoice_pending: "invoice_pending",
-  funded: "funded",
-  cancelled: "cancelled",
-  failed: "failed",
+  not_required: 'not_required',
+  promotional_pending: 'promotional_pending',
+  promotional_approved: 'promotional_approved',
+  unfunded: 'unfunded',
+  invoice_pending: 'invoice_pending',
+  funded: 'funded',
+  cancelled: 'cancelled',
+  failed: 'failed',
 } as const;
 
 export interface AdminAdCampaign {
@@ -2220,9 +2245,9 @@ export interface AdminAdCampaign {
   budgetCurrency: string | null;
   budgetSpentAmount: string;
   /**
-   * @minimum 0
-   * @maximum 10000
-   */
+     * @minimum 0
+     * @maximum 10000
+     */
   creatorShareBps: number;
   /** @nullable */
   startsAt: string | null;
@@ -2255,35 +2280,35 @@ export interface AdminAdsOverview {
   policy: AdminAdsOverviewPolicy;
 }
 
-export type CreateAdminAdCampaignInputFundingMode =
-  (typeof CreateAdminAdCampaignInputFundingMode)[keyof typeof CreateAdminAdCampaignInputFundingMode];
+export type CreateAdminAdCampaignInputFundingMode = typeof CreateAdminAdCampaignInputFundingMode[keyof typeof CreateAdminAdCampaignInputFundingMode];
+
 
 export const CreateAdminAdCampaignInputFundingMode = {
-  promotional: "promotional",
-  paid: "paid",
+  promotional: 'promotional',
+  paid: 'paid',
 } as const;
 
 export interface CreateAdminAdCampaignInput {
   /**
-   * @minLength 2
-   * @maxLength 140
-   */
+     * @minLength 2
+     * @maxLength 140
+     */
   name: string;
   /**
-   * @minLength 2
-   * @maxLength 140
-   */
+     * @minLength 2
+     * @maxLength 140
+     */
   advertiserName?: string;
   fundingMode: CreateAdminAdCampaignInputFundingMode;
   /**
-   * USD reference amount used only to obtain a crypto funding invoice; it is not a fiat charge.
-   * @pattern ^\d+(\.\d{1,2})?$
-   */
+     * USD reference amount used only to obtain a crypto funding invoice; it is not a fiat charge.
+     * @pattern ^\d+(\.\d{1,2})?$
+     */
   budgetUsd?: string;
   /**
-   * @minimum 0
-   * @maximum 10000
-   */
+     * @minimum 0
+     * @maximum 10000
+     */
   creatorShareBps?: number;
   startsAt?: string;
   endsAt: string;
@@ -2293,25 +2318,25 @@ export interface CreateAdminAdFundingInvoiceInput {
   cryptoCurrency?: CryptoCurrency;
 }
 
-export type AdminAdFundingInvoiceProvider =
-  (typeof AdminAdFundingInvoiceProvider)[keyof typeof AdminAdFundingInvoiceProvider];
+export type AdminAdFundingInvoiceProvider = typeof AdminAdFundingInvoiceProvider[keyof typeof AdminAdFundingInvoiceProvider];
+
 
 export const AdminAdFundingInvoiceProvider = {
-  crypto: "crypto",
+  crypto: 'crypto',
 } as const;
 
-export type AdminAdFundingInvoiceStatus =
-  (typeof AdminAdFundingInvoiceStatus)[keyof typeof AdminAdFundingInvoiceStatus];
+export type AdminAdFundingInvoiceStatus = typeof AdminAdFundingInvoiceStatus[keyof typeof AdminAdFundingInvoiceStatus];
+
 
 export const AdminAdFundingInvoiceStatus = {
-  pending: "pending",
+  pending: 'pending',
 } as const;
 
-export type AdminAdFundingInvoiceProviderFeePaidBy =
-  (typeof AdminAdFundingInvoiceProviderFeePaidBy)[keyof typeof AdminAdFundingInvoiceProviderFeePaidBy];
+export type AdminAdFundingInvoiceProviderFeePaidBy = typeof AdminAdFundingInvoiceProviderFeePaidBy[keyof typeof AdminAdFundingInvoiceProviderFeePaidBy];
+
 
 export const AdminAdFundingInvoiceProviderFeePaidBy = {
-  client: "client",
+  client: 'client',
 } as const;
 
 export interface AdminAdFundingInvoice {
@@ -2336,8 +2361,8 @@ export interface AdminAdFundingInvoice {
   providerFeePaidBy: AdminAdFundingInvoiceProviderFeePaidBy;
 }
 
-export type AdminAnalyticsRangeDays =
-  (typeof AdminAnalyticsRangeDays)[keyof typeof AdminAnalyticsRangeDays];
+export type AdminAnalyticsRangeDays = typeof AdminAnalyticsRangeDays[keyof typeof AdminAnalyticsRangeDays];
+
 
 export const AdminAnalyticsRangeDays = {
   NUMBER_1: 1,
@@ -2459,34 +2484,34 @@ export interface ActivityObservabilityPreferencesInput {
   enabled: boolean;
 }
 
-export type ActivityPresenceInputRouteKey =
-  (typeof ActivityPresenceInputRouteKey)[keyof typeof ActivityPresenceInputRouteKey];
+export type ActivityPresenceInputRouteKey = typeof ActivityPresenceInputRouteKey[keyof typeof ActivityPresenceInputRouteKey];
+
 
 export const ActivityPresenceInputRouteKey = {
-  live_home: "live_home",
-  live_categories: "live_categories",
-  live_category: "live_category",
-  live_channel: "live_channel",
-  watch_home: "watch_home",
-  watch_detail: "watch_detail",
-  clips_home: "clips_home",
-  clip_detail: "clip_detail",
-  cinema_catalog: "cinema_catalog",
-  cinema_detail: "cinema_detail",
-  creator_studio: "creator_studio",
-  creator_wallet: "creator_wallet",
-  creator_achievements: "creator_achievements",
-  account_settings: "account_settings",
+  live_home: 'live_home',
+  live_categories: 'live_categories',
+  live_category: 'live_category',
+  live_channel: 'live_channel',
+  watch_home: 'watch_home',
+  watch_detail: 'watch_detail',
+  clips_home: 'clips_home',
+  clip_detail: 'clip_detail',
+  cinema_catalog: 'cinema_catalog',
+  cinema_detail: 'cinema_detail',
+  creator_studio: 'creator_studio',
+  creator_wallet: 'creator_wallet',
+  creator_achievements: 'creator_achievements',
+  account_settings: 'account_settings',
 } as const;
 
-export type ActivityPresenceInputDeviceClass =
-  (typeof ActivityPresenceInputDeviceClass)[keyof typeof ActivityPresenceInputDeviceClass];
+export type ActivityPresenceInputDeviceClass = typeof ActivityPresenceInputDeviceClass[keyof typeof ActivityPresenceInputDeviceClass];
+
 
 export const ActivityPresenceInputDeviceClass = {
-  desktop: "desktop",
-  tablet: "tablet",
-  mobile: "mobile",
-  other: "other",
+  desktop: 'desktop',
+  tablet: 'tablet',
+  mobile: 'mobile',
+  other: 'other',
 } as const;
 
 export interface ActivityPresenceInput {
@@ -2517,11 +2542,12 @@ export interface AdminUserActivityEvent {
   createdAt: string;
 }
 
-export type AdminUserRole = (typeof AdminUserRole)[keyof typeof AdminUserRole];
+export type AdminUserRole = typeof AdminUserRole[keyof typeof AdminUserRole];
+
 
 export const AdminUserRole = {
-  user: "user",
-  owner: "owner",
+  user: 'user',
+  owner: 'owner',
 } as const;
 
 export interface AdminUser {
@@ -2574,72 +2600,102 @@ export interface DiscoverSummary {
   totalViewers: number;
 }
 
-export type GetAdDecisionParams = {
-  surface: GetAdDecisionSurface;
-  channelId?: number;
-  videoId?: number;
-  profileId?: number;
+export type GetActiveViewerProfile200 = {
+  profile: ViewerProfile | null;
 };
 
-export type GetAdDecisionSurface =
-  (typeof GetAdDecisionSurface)[keyof typeof GetAdDecisionSurface];
+export type SelectViewerProfileBody = {
+  /**
+     * @minLength 4
+     * @maxLength 8
+     * @pattern ^[0-9]+$
+     */
+  pin?: string;
+};
+
+export type SelectViewerProfile200 = {
+  profile: ViewerProfile;
+};
+
+export type UpdateViewerProfilePinBody = {
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  currentPassword: string;
+  newPin: string | null;
+};
+
+export type UpdateViewerProfilePin200 = {
+  profile: ViewerProfile;
+};
+
+export type GetAdDecisionParams = {
+surface: GetAdDecisionSurface;
+channelId?: number;
+videoId?: number;
+profileId?: number;
+};
+
+export type GetAdDecisionSurface = typeof GetAdDecisionSurface[keyof typeof GetAdDecisionSurface];
+
 
 export const GetAdDecisionSurface = {
-  live: "live",
-  watch: "watch",
-  cinema: "cinema",
-  clip: "clip",
+  live: 'live',
+  watch: 'watch',
+  cinema: 'cinema',
+  clip: 'clip',
 } as const;
 
 export type ListAdminCinemaTitlesParams = {
-  /**
-   * @minLength 1
-   * @maxLength 100
-   */
-  q?: string;
-  /**
-   * @minimum 1
-   * @maximum 100
-   */
-  limit?: number;
-  /**
-   * @minimum 0
-   */
-  offset?: number;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
 };
 
 export type ListCategoriesParams = {
-  kind?: ListCategoriesKind;
+kind?: ListCategoriesKind;
 };
 
-export type ListCategoriesKind =
-  (typeof ListCategoriesKind)[keyof typeof ListCategoriesKind];
+export type ListCategoriesKind = typeof ListCategoriesKind[keyof typeof ListCategoriesKind];
+
 
 export const ListCategoriesKind = {
-  live_game: "live_game",
-  genre: "genre",
+  live_game: 'live_game',
+  genre: 'genre',
 } as const;
 
 export type SearchKryvParams = {
-  /**
-   * @minLength 2
-   * @maxLength 64
-   */
-  q: string;
+/**
+ * @minLength 2
+ * @maxLength 64
+ */
+q: string;
 };
 
 export type GetNotificationInboxParams = {
-  /**
-   * @minimum 1
-   * @maximum 30
-   */
-  limit?: number;
+/**
+ * @minimum 1
+ * @maximum 30
+ */
+limit?: number;
 };
 
 export type ListChannelsParams = {
-  categorySlug?: string;
-  live?: boolean;
-  search?: string;
+categorySlug?: string;
+live?: boolean;
+search?: string;
 };
 
 export type ChannelHeartbeat200 = {
@@ -2647,43 +2703,54 @@ export type ChannelHeartbeat200 = {
 };
 
 export type ListClipsParams = {
-  channelId?: number;
+channelId?: number;
 };
 
 export type ListVideosParams = {
-  channelId?: number;
-  categorySlug?: string;
-  contentType?: ListVideosContentType;
-  search?: string;
+channelId?: number;
+categorySlug?: string;
+contentType?: ListVideosContentType;
+search?: string;
+/**
+ * Maximum number of results to return in one bounded page.
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * Zero-based result offset for stable newest-first pagination.
+ * @minimum 0
+ */
+offset?: number;
 };
 
-export type ListVideosContentType =
-  (typeof ListVideosContentType)[keyof typeof ListVideosContentType];
+export type ListVideosContentType = typeof ListVideosContentType[keyof typeof ListVideosContentType];
+
 
 export const ListVideosContentType = {
-  upload: "upload",
-  original: "original",
+  upload: 'upload',
+  original: 'original',
 } as const;
 
 export type ListAdminModerationCasesParams = {
-  status?: ListAdminModerationCasesStatus;
+status?: ListAdminModerationCasesStatus;
 };
 
-export type ListAdminModerationCasesStatus =
-  (typeof ListAdminModerationCasesStatus)[keyof typeof ListAdminModerationCasesStatus];
+export type ListAdminModerationCasesStatus = typeof ListAdminModerationCasesStatus[keyof typeof ListAdminModerationCasesStatus];
+
 
 export const ListAdminModerationCasesStatus = {
-  open: "open",
-  resolved: "resolved",
-  dismissed: "dismissed",
+  open: 'open',
+  resolved: 'resolved',
+  dismissed: 'dismissed',
 } as const;
 
 export type GetAdminAnalyticsParams = {
-  rangeDays?: GetAdminAnalyticsRangeDays;
+rangeDays?: GetAdminAnalyticsRangeDays;
 };
 
-export type GetAdminAnalyticsRangeDays =
-  (typeof GetAdminAnalyticsRangeDays)[keyof typeof GetAdminAnalyticsRangeDays];
+export type GetAdminAnalyticsRangeDays = typeof GetAdminAnalyticsRangeDays[keyof typeof GetAdminAnalyticsRangeDays];
+
 
 export const GetAdminAnalyticsRangeDays = {
   NUMBER_1: 1,
@@ -2692,52 +2759,52 @@ export const GetAdminAnalyticsRangeDays = {
 } as const;
 
 export type ListAdminUsersParams = {
-  /**
-   * @minLength 1
-   * @maxLength 80
-   */
-  q?: string;
-  /**
-   * @minimum 1
-   * @maximum 100
-   */
-  limit?: number;
-  /**
-   * @minimum 0
-   */
-  offset?: number;
+/**
+ * @minLength 1
+ * @maxLength 80
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
 };
 
 export type ListAdminChannelsParams = {
-  /**
-   * @minLength 1
-   * @maxLength 80
-   */
-  q?: string;
-  /**
-   * @minimum 1
-   * @maximum 100
-   */
-  limit?: number;
-  /**
-   * @minimum 0
-   */
-  offset?: number;
+/**
+ * @minLength 1
+ * @maxLength 80
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
 };
 
 export type ListAdminVideosParams = {
-  /**
-   * @minLength 1
-   * @maxLength 100
-   */
-  q?: string;
-  /**
-   * @minimum 1
-   * @maximum 100
-   */
-  limit?: number;
-  /**
-   * @minimum 0
-   */
-  offset?: number;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
 };

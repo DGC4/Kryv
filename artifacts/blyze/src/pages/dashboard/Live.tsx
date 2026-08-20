@@ -209,10 +209,11 @@ export default function DashboardLive() {
       },
     },
   );
-  const { data: creatorVideos, isLoading: creatorVideosLoading } = useListVideos(
+  const { data: creatorVideosPage, isLoading: creatorVideosLoading } = useListVideos(
     { channelId: me?.channel?.id },
     { query: { enabled: Boolean(me?.channel && activeTab === 'content') } },
   );
+  const creatorVideos = creatorVideosPage?.items ?? [];
   const { data: studioMessages, isFetching: isRefreshingStudioMessages, refetch: refetchStudioMessages } = useListChannelMessages(
     me?.channel?.id ?? 0,
     { query: { enabled: Boolean(me?.channel && activeTab === 'stream'), refetchInterval: activeTab === 'stream' ? 5000 : false } },
@@ -946,7 +947,7 @@ export default function DashboardLive() {
               <div className="flex min-h-48 items-center justify-center rounded-2xl border border-white/[0.07] bg-white/[0.02]">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : creatorVideos?.length ? (
+            ) : creatorVideos.length ? (
               <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02]">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-white/[0.07] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/35 sm:grid-cols-[minmax(0,1.5fr)_0.75fr_0.7fr_0.45fr]">
                   <span>Title</span><span className="hidden sm:block">Status</span><span className="hidden sm:block">Published</span><span className="text-right">Views</span>

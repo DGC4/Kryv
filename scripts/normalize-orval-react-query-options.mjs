@@ -9,15 +9,33 @@ const generatedClientPath = resolve(
   "generated",
   "api.ts",
 );
+const generatedTypesIndexPath = resolve(
+  process.cwd(),
+  "..",
+  "api-zod",
+  "src",
+  "generated",
+  "types",
+  "index.ts",
+);
 
-const source = await readFile(generatedClientPath, "utf8");
+const [source, typesIndex] = await Promise.all([
+  readFile(generatedClientPath, "utf8"),
+  readFile(generatedTypesIndexPath, "utf8"),
+]);
 const normalized = source.replace(
   /query\?\s*:\s*UseQueryOptions<([\s\S]*?)>,\s*request\?\s*:/g,
   "query?: Omit<UseQueryOptions<$1>, 'queryKey' | 'queryFn'> & { queryKey?: QueryKey }, request?:",
 );
+const normalizedTypesIndex = typesIndex
+  .replace(/^export \* from '\.\/selectViewerProfileBody';\r?\n/m, "")
+  .replace(/^export \* from '\.\/updateViewerProfilePinBody';\r?\n/m, "");
 
-if (normalized === source) {
-  throw new Error("No generated React Query option signatures were normalized.");
+if (normalized === source && normalizedTypesIndex === typesIndex) {
+  throw new Error("No generated contract outputs required normalization.");
 }
 
-await writeFile(generatedClientPath, normalized);
+await Promise.all([
+  writeFile(generatedClientPath, normalized),
+  writeFile(generatedTypesIndexPath, normalizedTypesIndex),
+]);

@@ -38,6 +38,7 @@ import { createFastPixDirectUpload, FastPixNotConfiguredError, getFastPixOnDeman
 import { logActivity } from "../lib/tracking";
 import { writeAuditLog } from "../lib/operations";
 import { watchHistoryTable } from "@workspace/db";
+import { literalIlikePattern } from "../lib/search";
 
 const router: IRouter = Router();
 
@@ -57,10 +58,6 @@ function optionalHttpsUrl(value: string | undefined) {
   } catch {
     return null;
   }
-}
-
-function literalIlikePattern(value: string) {
-  return `%${value.replace(/[\\%_]/g, "\\$&")}%`;
 }
 
 router.get("/videos", attachUserId, async (req, res): Promise<void> => {
@@ -111,32 +108,55 @@ router.get("/videos", attachUserId, async (req, res): Promise<void> => {
       .where(eq(categoriesTable.slug, query.data.categorySlug))
       .limit(1);
     if (!category) {
-      res.json(ListVideosResponse.parse([]));
+      res.json(
+        ListVideosResponse.parse({
+          items: [],
+          total: 0,
+          limit: query.data.limit,
+          offset: query.data.offset,
+        }),
+      );
       return;
     }
     conditions.push(eq(videosTable.categoryId, category.id));
   }
 
-  const rows = await db
-    .select({
-      video: videosTable,
-      channel: {
-        slug: channelsTable.slug,
-        displayName: channelsTable.displayName,
-        avatarUrl: channelsTable.avatarUrl,
-      },
-      categoryName: categoriesTable.name,
-    })
-    .from(videosTable)
-    .innerJoin(channelsTable, eq(channelsTable.id, videosTable.channelId))
-    .leftJoin(categoriesTable, eq(categoriesTable.id, videosTable.categoryId))
-    .where(and(...conditions))
-    .orderBy(desc(videosTable.createdAt));
+  const where = and(...conditions);
+  const [rows, countRows] = await Promise.all([
+    db
+      .select({
+        video: videosTable,
+        channel: {
+          slug: channelsTable.slug,
+          displayName: channelsTable.displayName,
+          avatarUrl: channelsTable.avatarUrl,
+        },
+        categoryName: categoriesTable.name,
+      })
+      .from(videosTable)
+      .innerJoin(channelsTable, eq(channelsTable.id, videosTable.channelId))
+      .leftJoin(categoriesTable, eq(categoriesTable.id, videosTable.categoryId))
+      .where(where)
+      .orderBy(desc(videosTable.createdAt), desc(videosTable.id))
+      .limit(query.data.limit)
+      .offset(query.data.offset),
+    db
+      .select({ total: sql<number>`count(*)`.mapWith(Number) })
+      .from(videosTable)
+      .where(where),
+  ]);
 
-  const results = rows.map((row) =>
+  const items = rows.map((row) =>
     toVideoSummaryFromRelations(row.video, row.channel, row.categoryName),
   );
-  res.json(ListVideosResponse.parse(results));
+  res.json(
+    ListVideosResponse.parse({
+      items,
+      total: countRows[0]?.total ?? 0,
+      limit: query.data.limit,
+      offset: query.data.offset,
+    }),
+  );
 });
 
 router.post("/videos/:id/reports", requireAuth, async (req, res): Promise<void> => {
@@ -706,9 +726,14 @@ router.get("/videos/:id", attachUserId, async (req, res): Promise<void> => {
   }
 
   const [row] = await db
-    .select({ video: videosTable, channel: channelsTable })
+    .select({
+      video: videosTable,
+      channel: channelsTable,
+      categoryName: categoriesTable.name,
+    })
     .from(videosTable)
     .innerJoin(channelsTable, eq(videosTable.channelId, channelsTable.id))
+    .leftJoin(categoriesTable, eq(categoriesTable.id, videosTable.categoryId))
     .where(eq(videosTable.id, params.data.id));
   if (!row) {
     res.status(404).json({ error: "Video not found" });
@@ -745,7 +770,14 @@ router.get("/videos/:id", attachUserId, async (req, res): Promise<void> => {
     );
   }
 
-  res.json(GetVideoResponse.parse(await toVideoDetail(video, viewerUserId)));
+  res.json(
+    GetVideoResponse.parse(
+      await toVideoDetail(video, viewerUserId, {
+        channel: row.channel,
+        categoryName: row.categoryName,
+      }),
+    ),
+  );
 });
 
 router.patch("/videos/:id", requireAuth, async (req, res): Promise<void> => {

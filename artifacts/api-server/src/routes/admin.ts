@@ -82,6 +82,7 @@ import {
 import { requireOwner } from "../lib/auth";
 import { toChannelSummaries } from "../lib/channelSerializer";
 import { toVideoSummaryFromRelations } from "../lib/videoSerializer";
+import { literalIlikePattern } from "../lib/search";
 import { writeAuditLog } from "../lib/operations";
 import { createPlisioInvoice, getPlisioAssetSnapshots, isPlisioConfigured, isSupportedKryvCryptoCode, type KryvCryptoCode } from "../lib/plisio";
 
@@ -1336,7 +1337,9 @@ router.get("/admin/users", requireOwner, async (req, res): Promise<void> => {
 
   const { limit, offset } = parsed.data;
   const query = parsed.data.q?.trim();
-  const where = query ? ilike(usersTable.username, `%${query}%`) : undefined;
+  const where = query
+    ? ilike(usersTable.username, literalIlikePattern(query))
+    : undefined;
   const [rows, totals] = await Promise.all([
     (where ? db.select().from(usersTable).where(where) : db.select().from(usersTable))
       .orderBy(desc(usersTable.createdAt))
@@ -1496,7 +1499,10 @@ router.get(
     const { limit, offset } = parsed.data;
     const query = parsed.data.q?.trim();
     const where = query
-      ? or(ilike(channelsTable.displayName, `%${query}%`), ilike(channelsTable.slug, `%${query}%`))
+      ? or(
+          ilike(channelsTable.displayName, literalIlikePattern(query)),
+          ilike(channelsTable.slug, literalIlikePattern(query)),
+        )
       : undefined;
     const [rows, totals] = await Promise.all([
       (where ? db.select().from(channelsTable).where(where) : db.select().from(channelsTable))
@@ -1545,7 +1551,9 @@ router.get("/admin/videos", requireOwner, async (req, res): Promise<void> => {
     return;
   }
   const q = query.data.q?.trim();
-  const filter = q ? ilike(videosTable.title, `%${q}%`) : undefined;
+  const filter = q
+    ? ilike(videosTable.title, literalIlikePattern(q))
+    : undefined;
   const [rows, countRows] = await Promise.all([
     db
       .select({

@@ -94,7 +94,8 @@ export default function WatchDetail() {
   const [location, navigate] = useLocation();
   const videoId = parseInt(id || '0', 10);
   const { data: video, isLoading, refetch: refetchVideo } = useGetVideo(videoId, { query: { enabled: !!videoId } });
-  const { data: allUploads = [] } = useListVideos({ contentType: 'upload' }, { query: { enabled: !!videoId } });
+  const { data: allUploadsPage } = useListVideos({ contentType: 'upload' }, { query: { enabled: !!videoId } });
+  const allUploads = allUploadsPage?.items ?? [];
   const { data: comments = [], isLoading: commentsLoading } = useListVideoComments(videoId, { query: { enabled: Boolean(videoId && video?.uploadStatus === 'ready') } });
   const channelEngagement = useGetChannelEngagement(video?.channelId ?? 0, {
     query: { enabled: Boolean(video?.channelId), refetchInterval: 15000 },

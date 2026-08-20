@@ -1904,15 +1904,30 @@ paths:
           required: false
           schema:
             type: string
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results to return in one bounded page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 48
+        - name: offset
+          in: query
+          required: false
+          description: Zero-based result offset for stable newest-first pagination.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         "200":
-          description: List of videos
+          description: Bounded page of videos
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/VideoSummary"
+                $ref: "#/components/schemas/VideoPage"
     post:
       operationId: createVideo
       tags: [videos]
@@ -3437,16 +3452,21 @@ components:
 
     CreatorProfile:
       type: object
-      required: [channel, live, watch, cinemaCredits]
+      required: [channel, live, watch, watchTotal, cinemaCredits]
       properties:
         channel:
           $ref: "#/components/schemas/ChannelDetail"
         live:
           $ref: "#/components/schemas/CreatorProfileLive"
         watch:
+          description: Newest ready Watch uploads, capped at 48 for a responsive profile rail.
           type: array
           items:
             $ref: "#/components/schemas/VideoSummary"
+        watchTotal:
+          description: Total ready Watch uploads for this creator, including releases beyond the initial profile rail.
+          type: integer
+          minimum: 0
         cinemaCredits:
           type: array
           items:
@@ -4057,6 +4077,21 @@ components:
           type: string
           enum: [waiting, processing, ready, errored]
         createdAt: { type: string, format: date-time }
+
+    VideoPage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VideoSummary"
+        total:
+          description: Total results matching the current public, creator, category, and search filters.
+          type: integer
+          minimum: 0
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0 }
 
     AdminVideo:
       allOf:

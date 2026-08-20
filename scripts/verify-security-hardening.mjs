@@ -53,6 +53,11 @@ const [
   channelSerializer,
   adminRoute,
   creatorProfileRoute,
+  searchLib,
+  ownerCinemaRoute,
+  watchHome,
+  creatorProfilePage,
+  orvalNormalizer,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -89,6 +94,11 @@ const [
   source("artifacts/api-server/src/lib/channelSerializer.ts"),
   source("artifacts/api-server/src/routes/admin.ts"),
   source("artifacts/api-server/src/routes/profiles.ts"),
+  source("artifacts/api-server/src/lib/search.ts"),
+  source("artifacts/api-server/src/routes/owner-cinema.ts"),
+  source("artifacts/blyze/src/pages/watch/Home.tsx"),
+  source("artifacts/blyze/src/pages/profile/CreatorProfile.tsx"),
+  source("scripts/normalize-orval-react-query-options.mjs"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -531,7 +541,47 @@ requireMatch(
 requireMatch(
   appServer,
   /kryv:rate:profile-security:/,
-  "Profile security rate-limit state must be independently scoped.",
+  "Profile PIN security operations must have a dedicated shared rate-limit namespace.",
+);
+requireMatch(
+  appServer,
+  /kryv:rate:search:/,
+  "Public search must have a dedicated shared rate-limit namespace.",
+);
+requireMatch(
+  appServer,
+  /app\.use\("\/api\/search", searchLimiter\);/,
+  "Public search must be mounted behind its dedicated rate limiter.",
+);
+requireMatch(
+  searchLib,
+  /value\.replace\(\/\[\\\\%_\]\/g, "\\\\\$&"\)/,
+  "Literal search patterns must escape PostgreSQL ILIKE wildcard metacharacters.",
+);
+requireMatch(
+  videosRoute,
+  /literalIlikePattern\(query\.data\.search\.trim\(\)\)/,
+  "Watch browse search must use the shared literal ILIKE pattern.",
+);
+requireMatch(
+  discoverRoute,
+  /const pattern = literalIlikePattern\(term\)/,
+  "Unified Discover search must use the shared literal ILIKE pattern.",
+);
+requireMatch(
+  adminRoute,
+  /literalIlikePattern\(query\)/,
+  "Owner user and channel searches must use literal ILIKE patterns.",
+);
+requireMatch(
+  adminRoute,
+  /literalIlikePattern\(q\)/,
+  "Owner Watch video search must use a literal ILIKE pattern.",
+);
+requireMatch(
+  ownerCinemaRoute,
+  /literalIlikePattern\(q\)/,
+  "Owner Cinema title search must use a literal ILIKE pattern.",
 );
 requireMatch(
   appServer,
@@ -729,6 +779,11 @@ requireMatch(
   "Followed-live discovery must use the batched summary path.",
 );
 requireMatch(
+  meRoute,
+  /const followedChannels = await toChannelSummaries\(/,
+  "Authenticated account followed channels must use the batched summary path.",
+);
+requireMatch(
   adminRoute,
   /channels: await toChannelSummaries\(channels\)/,
   "Admin user activity channel summaries must use the batched path.",
@@ -752,6 +807,66 @@ requireMatch(
   creatorProfileRoute,
   /toVideoSummaryFromRelations\(video, channel, categoryName\)/,
   "Creator profile Watch rails must use the already-loaded channel summary relation.",
+);
+requireMatch(
+  videoSerializer,
+  /relations\?: VideoDetailRelations/,
+  "Watch detail serialization must accept already-hydrated channel and category relations.",
+);
+requireMatch(
+  videosRoute,
+  /categoryName: categoriesTable\.name/,
+  "Watch detail retrieval must join its category name alongside the authorized channel.",
+);
+requireMatch(
+  videosRoute,
+  /toVideoDetail\(video, viewerUserId, \{[\s\S]*?channel: row\.channel,[\s\S]*?categoryName: row\.categoryName/,
+  "Watch detail must reuse its joined channel and category relations when serializing.",
+);
+requireMatch(
+  apiSpec,
+  /name: limit[\s\S]*?maximum: 100[\s\S]*?default: 48[\s\S]*?name: offset/,
+  "Watch browse must expose bounded typed limit and offset query controls.",
+);
+requireMatch(
+  apiSpec,
+  /VideoPage:[\s\S]*?required: \[items, total, limit, offset\]/,
+  "Watch browse must return a typed bounded page with total metadata.",
+);
+requireMatch(
+  videosRoute,
+  /\.orderBy\(desc\(videosTable\.createdAt\), desc\(videosTable\.id\)\)[\s\S]*?\.limit\(query\.data\.limit\)[\s\S]*?\.offset\(query\.data\.offset\)/,
+  "Watch browse must enforce stable bounded database pagination.",
+);
+requireMatch(
+  videosRoute,
+  /select\(\{ total: sql<number>`count\(\*\)`\.mapWith\(Number\) \}\)[\s\S]*?ListVideosResponse\.parse\(\{[\s\S]*?total: countRows\[0\]\?\.total/,
+  "Watch browse must return authoritative total metadata alongside its bounded page.",
+);
+requireMatch(
+  creatorProfileRoute,
+  /\.orderBy\(desc\(videosTable\.createdAt\), desc\(videosTable\.id\)\)[\s\S]*?\.limit\(48\)/,
+  "Creator profile Watch rails must cap initial media hydration to 48 newest releases.",
+);
+requireMatch(
+  creatorProfileRoute,
+  /watchTotal: watchCountRows\[0\]\?\.total/,
+  "Creator profile responses must disclose the full ready Watch release count.",
+);
+requireMatch(
+  watchHome,
+  /channelId: creatorChannelId/,
+  "Watch home must accept the creator-profile channel filter in its bounded browse query.",
+);
+requireMatch(
+  creatorProfilePage,
+  /watchTotal > watch\.length[\s\S]*?\/watch\?channelId=\$\{channel\.id\}/,
+  "Creator profiles must make capped Watch rails explicit and link to their complete filtered catalog.",
+);
+requireMatch(
+  orvalNormalizer,
+  /selectViewerProfileBody/,
+  "Contract generation must normalize colliding viewer-profile type exports.",
 );
 
 requireMatch(

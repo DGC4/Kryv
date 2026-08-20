@@ -96,23 +96,40 @@ export function toVideoMusicCredit(credit: VideoMusicCredit) {
   };
 }
 
+type VideoDetailRelations = {
+  channel: Channel;
+  categoryName: string | null;
+};
+
 export async function toVideoDetail(
   video: Video,
   viewerUserId: number | undefined,
+  relations?: VideoDetailRelations,
 ) {
-  const summary = await toVideoSummary(video);
-  const [channel, musicCredits] = await Promise.all([
-    db
-      .select()
-      .from(channelsTable)
-      .where(eq(channelsTable.id, video.channelId))
-      .then((rows) => rows[0]),
+  const [channel, categoryName, musicCredits] = await Promise.all([
+    relations
+      ? Promise.resolve(relations.channel)
+      : db
+          .select()
+          .from(channelsTable)
+          .where(eq(channelsTable.id, video.channelId))
+          .then((rows) => rows[0]),
+    relations
+      ? Promise.resolve(relations.categoryName)
+      : video.categoryId === null
+        ? Promise.resolve(null)
+        : db
+            .select({ name: categoriesTable.name })
+            .from(categoriesTable)
+            .where(eq(categoriesTable.id, video.categoryId))
+            .then((rows) => rows[0]?.name ?? null),
     db
       .select()
       .from(videoMusicCreditsTable)
       .where(eq(videoMusicCreditsTable.videoId, video.id))
       .orderBy(asc(videoMusicCreditsTable.displayOrder), asc(videoMusicCreditsTable.createdAt)),
   ]);
+  const summary = toVideoSummaryFromRelations(video, channel, categoryName);
   return {
     ...summary,
     description: video.description,

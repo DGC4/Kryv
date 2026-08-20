@@ -9,6 +9,7 @@ import { getFastPixViewerCount } from "../lib/fastpix";
 import { readSharedJson, writeSharedJson } from "../lib/realtime";
 import { getPublishedCinemaTitles } from "../lib/cinemaCatalog";
 import { getActiveProfileMaturity } from "../lib/liveMaturity";
+import { literalIlikePattern } from "../lib/search";
 
 const router: IRouter = Router();
 const DISCOVER_SUMMARY_CACHE_KEY = "kryv:discover:summary:v1";
@@ -124,7 +125,7 @@ router.get("/search", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Search for at least two letters or numbers." });
     return;
   }
-  const pattern = `%${term}%`;
+  const pattern = literalIlikePattern(term);
 
   const [channels, videos, clips, cinemaCatalog] = await Promise.all([
     db.select().from(channelsTable).where(or(ilike(channelsTable.displayName, pattern), ilike(channelsTable.slug, pattern), ilike(channelsTable.streamTitle, pattern))).orderBy(desc(channelsTable.isLive), desc(channelsTable.viewerCount)).limit(8),

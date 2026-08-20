@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   categoriesTable,
   channelsTable,
@@ -40,7 +40,7 @@ router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
     return;
   }
 
-  const [watchRows, recentStreams, creditRows] = await Promise.all([
+  const [watchRows, recentStreams, creditRows, watchCountRows] = await Promise.all([
     db
       .select({ video: videosTable, categoryName: categoriesTable.name })
       .from(videosTable)
@@ -50,7 +50,8 @@ router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
         eq(videosTable.contentType, "upload"),
         eq(videosTable.uploadStatus, "ready"),
       ))
-      .orderBy(desc(videosTable.createdAt)),
+      .orderBy(desc(videosTable.createdAt), desc(videosTable.id))
+      .limit(48),
     db.select({
       id: streamSessionsTable.id,
       title: streamSessionsTable.title,
@@ -66,6 +67,14 @@ router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
       .from(cinemaCreditsTable)
       .where(eq(cinemaCreditsTable.channelId, channel.id))
       .orderBy(cinemaCreditsTable.displayOrder, desc(cinemaCreditsTable.createdAt)),
+    db
+      .select({ total: sql<number>`count(*)`.mapWith(Number) })
+      .from(videosTable)
+      .where(and(
+        eq(videosTable.channelId, channel.id),
+        eq(videosTable.contentType, "upload"),
+        eq(videosTable.uploadStatus, "ready"),
+      )),
   ]);
 
   const publicTitlesById = new Map(
@@ -93,6 +102,7 @@ router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
       recentStreams,
     },
     watch,
+    watchTotal: watchCountRows[0]?.total ?? 0,
     cinemaCredits,
   }));
 });
