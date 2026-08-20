@@ -28,6 +28,8 @@ const [
   channelPage,
   profileRoute,
   cinemaHome,
+  cinemaDetail,
+  cinemaRoute,
   apiSpec,
   adsRoute,
   adSlot,
@@ -42,6 +44,8 @@ const [
   source("artifacts/blyze/src/pages/live/Channel.tsx"),
   source("artifacts/api-server/src/routes/me.ts"),
   source("artifacts/blyze/src/pages/cinema/Home.tsx"),
+  source("artifacts/blyze/src/pages/cinema/Detail.tsx"),
+  source("artifacts/api-server/src/routes/cinema.ts"),
   source("lib/api-spec/openapi.yaml"),
   source("artifacts/api-server/src/routes/ads.ts"),
   source("artifacts/blyze/src/components/ads/AdSlot.tsx"),
@@ -143,6 +147,36 @@ requireMatch(
   cinemaHome,
   /\/me\/profiles\/\$\{profile\.id\}\/select/,
   "Cinema profile selection must call the server-owned selection endpoint.",
+);
+requireMatch(
+  cinemaDetail,
+  /\/me\/profiles\/active/,
+  "Cinema detail must hydrate the server-issued active-profile grant before requesting playback data.",
+);
+requireMatch(
+  cinemaDetail,
+  /maturityBlocked/,
+  "Cinema detail must withhold feature and trailer playback below the active profile's maturity setting.",
+);
+requireMatch(
+  cinemaRoute,
+  /router\.get\(\s*"\/cinema\/titles\/:id",\s*attachUserId/,
+  "Cinema title detail must resolve the optional session and active-profile grant server-side.",
+);
+requireMatch(
+  cinemaRoute,
+  /Select a viewer profile to request Cinema playback\./,
+  "Cinema title detail must fail closed without an active profile grant.",
+);
+requireMatch(
+  cinemaRoute,
+  /This title is outside the active profile's maturity setting\./,
+  "Cinema title detail must fail closed when the active profile maturity is insufficient.",
+);
+requireMatch(
+  cinemaRoute,
+  /featurePlaybackId:\s*null,[\s\S]*?trailerPlaybackId:\s*null/,
+  "Cinema playback restriction must remove both feature and trailer playback identifiers.",
 );
 requireMatch(
   profileRoute,

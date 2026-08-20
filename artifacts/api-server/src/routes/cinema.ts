@@ -1,6 +1,13 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, isNull, or } from "drizzle-orm";
-import { categoriesTable, cinemaCommentsTable, cinemaTitlesTable, db, usersTable } from "@workspace/db";
+import {
+  categoriesTable,
+  cinemaCommentsTable,
+  cinemaTitlesTable,
+  db,
+  usersTable,
+  viewerProfilesTable,
+} from "@workspace/db";
 import {
   CreateCinemaCommentBody,
   CreateCinemaCommentParams,
@@ -13,16 +20,43 @@ import {
   ListCinemaCommentsResponse,
 } from "@workspace/api-zod";
 import { attachUserId, requireAuth } from "../lib/auth";
-import { getPublishedCinemaTitleDetail, getPublishedCinemaTitles } from "../lib/cinemaCatalog";
+import {
+  getPublishedCinemaTitleDetail,
+  getPublishedCinemaTitles,
+} from "../lib/cinemaCatalog";
 import { writeAuditLog } from "../lib/operations";
 
 const router: IRouter = Router();
+
+const maturityRank = { kids: 0, standard: 1, mature: 2 } as const;
+
+type PublishedCinemaTitle = Awaited<
+  ReturnType<typeof getPublishedCinemaTitleDetail>
+>;
+
+function restrictCinemaPlayback(
+  title: NonNullable<PublishedCinemaTitle>,
+  playbackBlockedReason: string,
+) {
+  return {
+    ...title,
+    featurePlaybackId: null,
+    trailerPlaybackId: null,
+    playbackAvailable: false,
+    playbackBlockedReason,
+  };
+}
 
 async function getPublishedCinemaTitle(id: number) {
   const [title] = await db
     .select({ id: cinemaTitlesTable.id, title: cinemaTitlesTable.title })
     .from(cinemaTitlesTable)
-    .where(and(eq(cinemaTitlesTable.id, id), eq(cinemaTitlesTable.publishState, "published")))
+    .where(
+      and(
+        eq(cinemaTitlesTable.id, id),
+        eq(cinemaTitlesTable.publishState, "published"),
+      ),
+    )
     .limit(1);
   return title ?? null;
 }
@@ -37,30 +71,83 @@ router.get("/cinema/home", async (_req, res): Promise<void> => {
     { title: "New on Kryv", items: publishedTitles },
     ...genres.map((genre) => ({
       title: genre.name,
-      items: publishedTitles.filter((title) => (
-        title.genres.some((value) => value.toLowerCase() === genre.name.toLowerCase())
-      )),
+      items: publishedTitles.filter((title) =>
+        title.genres.some(
+          (value) => value.toLowerCase() === genre.name.toLowerCase(),
+        ),
+      ),
     })),
   ].filter((row) => row.items.length > 0);
 
-  res.json(GetCinemaHomeResponse.parse({ hero: publishedTitles[0] ?? null, rows }));
+  res.json(
+    GetCinemaHomeResponse.parse({ hero: publishedTitles[0] ?? null, rows }),
+  );
 });
 
-router.get("/cinema/titles/:id", async (req, res): Promise<void> => {
-  const parsed = GetCinemaTitleParams.safeParse(req.params);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+router.get(
+  "/cinema/titles/:id",
+  attachUserId,
+  async (req, res): Promise<void> => {
+    const parsed = GetCinemaTitleParams.safeParse(req.params);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
 
-  const title = await getPublishedCinemaTitleDetail(parsed.data.id);
-  if (!title) {
-    res.status(404).json({ error: "Cinema title is unavailable" });
-    return;
-  }
+    const title = await getPublishedCinemaTitleDetail(parsed.data.id);
+    if (!title) {
+      res.status(404).json({ error: "Cinema title is unavailable" });
+      return;
+    }
 
-  res.json(GetCinemaTitleResponse.parse(title));
-});
+    if (!req.user || !req.activeProfileId) {
+      res.json(
+        GetCinemaTitleResponse.parse(
+          restrictCinemaPlayback(
+            title,
+            "Select a viewer profile to request Cinema playback.",
+          ),
+        ),
+      );
+      return;
+    }
+
+    const [profile] = await db
+      .select({ maturityLevel: viewerProfilesTable.maturityLevel })
+      .from(viewerProfilesTable)
+      .where(
+        and(
+          eq(viewerProfilesTable.id, req.activeProfileId),
+          eq(viewerProfilesTable.userId, req.user.userId),
+        ),
+      )
+      .limit(1);
+    const profileMaturity = profile?.maturityLevel as
+      keyof typeof maturityRank | undefined;
+    const titleMaturity = title.maturityLevel as keyof typeof maturityRank;
+    const profileMaturityRank = profileMaturity
+      ? maturityRank[profileMaturity]
+      : undefined;
+    const titleMaturityRank = maturityRank[titleMaturity];
+    if (
+      profileMaturityRank === undefined ||
+      titleMaturityRank === undefined ||
+      profileMaturityRank < titleMaturityRank
+    ) {
+      res.json(
+        GetCinemaTitleResponse.parse(
+          restrictCinemaPlayback(
+            title,
+            "This title is outside the active profile's maturity setting.",
+          ),
+        ),
+      );
+      return;
+    }
+
+    res.json(GetCinemaTitleResponse.parse(title));
+  },
+);
 
 router.get("/cinema/titles/:id/comments", async (req, res): Promise<void> => {
   const params = ListCinemaCommentsParams.safeParse(req.params);
@@ -88,14 +175,22 @@ router.get("/cinema/titles/:id/comments", async (req, res): Promise<void> => {
     })
     .from(cinemaCommentsTable)
     .innerJoin(usersTable, eq(usersTable.id, cinemaCommentsTable.userId))
-    .where(and(eq(cinemaCommentsTable.cinemaTitleId, title.id), isNull(cinemaCommentsTable.deletedAt)))
+    .where(
+      and(
+        eq(cinemaCommentsTable.cinemaTitleId, title.id),
+        isNull(cinemaCommentsTable.deletedAt),
+      ),
+    )
     .orderBy(desc(cinemaCommentsTable.createdAt), desc(cinemaCommentsTable.id));
 
-  type CommentNode = (typeof rows)[number] & { replies: Array<(typeof rows)[number] & { replies: [] }> };
+  type CommentNode = (typeof rows)[number] & {
+    replies: Array<(typeof rows)[number] & { replies: [] }>;
+  };
   const parentComments = new Map<number, CommentNode>();
   const replyRows: Array<(typeof rows)[number]> = [];
   for (const row of rows) {
-    if (row.parentCommentId === null) parentComments.set(row.id, { ...row, replies: [] });
+    if (row.parentCommentId === null)
+      parentComments.set(row.id, { ...row, replies: [] });
     else replyRows.push(row);
   }
   for (const reply of replyRows) {
@@ -103,111 +198,169 @@ router.get("/cinema/titles/:id/comments", async (req, res): Promise<void> => {
     if (parent) parent.replies.push({ ...reply, replies: [] });
   }
 
-  res.json(ListCinemaCommentsResponse.parse(Array.from(parentComments.values())));
+  res.json(
+    ListCinemaCommentsResponse.parse(Array.from(parentComments.values())),
+  );
 });
 
-router.post("/cinema/titles/:id/comments", attachUserId, requireAuth, async (req, res): Promise<void> => {
-  const params = CreateCinemaCommentParams.safeParse(req.params);
-  const body = CreateCinemaCommentBody.safeParse(req.body);
-  if (!params.success || !body.success) {
-    res.status(400).json({ error: !params.success ? params.error.message : body.error?.message ?? "Invalid Cinema comment body" });
-    return;
-  }
-
-  const message = body.data.message.trim();
-  if (!message) {
-    res.status(400).json({ error: "A comment cannot be empty." });
-    return;
-  }
-
-  const title = await getPublishedCinemaTitle(params.data.id);
-  if (!title) {
-    res.status(404).json({ error: "Published Cinema title not found." });
-    return;
-  }
-
-  if (body.data.parentCommentId) {
-    const [parent] = await db
-      .select({ cinemaTitleId: cinemaCommentsTable.cinemaTitleId, parentCommentId: cinemaCommentsTable.parentCommentId, deletedAt: cinemaCommentsTable.deletedAt })
-      .from(cinemaCommentsTable)
-      .where(eq(cinemaCommentsTable.id, body.data.parentCommentId))
-      .limit(1);
-    if (!parent || parent.cinemaTitleId !== title.id || parent.deletedAt || parent.parentCommentId !== null) {
-      res.status(400).json({ error: "Replies must target a visible top-level comment on this Cinema title." });
+router.post(
+  "/cinema/titles/:id/comments",
+  attachUserId,
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const params = CreateCinemaCommentParams.safeParse(req.params);
+    const body = CreateCinemaCommentBody.safeParse(req.body);
+    if (!params.success || !body.success) {
+      res.status(400).json({
+        error: !params.success
+          ? params.error.message
+          : (body.error?.message ?? "Invalid Cinema comment body"),
+      });
       return;
     }
-  }
 
-  const [created] = await db
-    .insert(cinemaCommentsTable)
-    .values({
-      cinemaTitleId: title.id,
-      userId: req.user!.userId,
-      parentCommentId: body.data.parentCommentId ?? null,
-      message,
-    })
-    .returning();
-  const [author] = await db
-    .select({ username: usersTable.username, avatarUrl: usersTable.avatarUrl })
-    .from(usersTable)
-    .where(eq(usersTable.id, created.userId))
-    .limit(1);
+    const message = body.data.message.trim();
+    if (!message) {
+      res.status(400).json({ error: "A comment cannot be empty." });
+      return;
+    }
 
-  await writeAuditLog(req, {
-    action: "cinema_comment_created",
-    targetType: "cinema_comment",
-    targetId: created.id,
-    afterState: { cinemaTitleId: title.id, parentCommentId: created.parentCommentId },
-  });
+    const title = await getPublishedCinemaTitle(params.data.id);
+    if (!title) {
+      res.status(404).json({ error: "Published Cinema title not found." });
+      return;
+    }
 
-  res.status(201).json(CreateCinemaCommentResponse.parse({
-    id: created.id,
-    cinemaTitleId: created.cinemaTitleId,
-    parentCommentId: created.parentCommentId,
-    userId: created.userId,
-    username: author?.username ?? "Kryv viewer",
-    avatarUrl: author?.avatarUrl ?? null,
-    message: created.message,
-    createdAt: created.createdAt,
-    replies: [],
-  }));
-});
+    if (body.data.parentCommentId) {
+      const [parent] = await db
+        .select({
+          cinemaTitleId: cinemaCommentsTable.cinemaTitleId,
+          parentCommentId: cinemaCommentsTable.parentCommentId,
+          deletedAt: cinemaCommentsTable.deletedAt,
+        })
+        .from(cinemaCommentsTable)
+        .where(eq(cinemaCommentsTable.id, body.data.parentCommentId))
+        .limit(1);
+      if (
+        !parent ||
+        parent.cinemaTitleId !== title.id ||
+        parent.deletedAt ||
+        parent.parentCommentId !== null
+      ) {
+        res.status(400).json({
+          error:
+            "Replies must target a visible top-level comment on this Cinema title.",
+        });
+        return;
+      }
+    }
 
-router.delete("/cinema/titles/:id/comments/:commentId", attachUserId, requireAuth, async (req, res): Promise<void> => {
-  const params = DeleteCinemaCommentParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+    const [created] = await db
+      .insert(cinemaCommentsTable)
+      .values({
+        cinemaTitleId: title.id,
+        userId: req.user!.userId,
+        parentCommentId: body.data.parentCommentId ?? null,
+        message,
+      })
+      .returning();
+    const [author] = await db
+      .select({
+        username: usersTable.username,
+        avatarUrl: usersTable.avatarUrl,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, created.userId))
+      .limit(1);
 
-  const [comment] = await db
-    .select({ comment: cinemaCommentsTable })
-    .from(cinemaCommentsTable)
-    .where(and(eq(cinemaCommentsTable.id, params.data.commentId), eq(cinemaCommentsTable.cinemaTitleId, params.data.id)))
-    .limit(1);
-  if (!comment || comment.comment.deletedAt) {
-    res.status(404).json({ error: "Cinema comment not found." });
-    return;
-  }
-  if (comment.comment.userId !== req.user!.userId && req.user!.role !== "owner") {
-    res.status(403).json({ error: "Only the comment author or owner can remove this Cinema comment." });
-    return;
-  }
+    await writeAuditLog(req, {
+      action: "cinema_comment_created",
+      targetType: "cinema_comment",
+      targetId: created.id,
+      afterState: {
+        cinemaTitleId: title.id,
+        parentCommentId: created.parentCommentId,
+      },
+    });
 
-  const deletedAt = new Date();
-  await db
-    .update(cinemaCommentsTable)
-    .set({ deletedAt, deletedByUserId: req.user!.userId })
-    .where(or(eq(cinemaCommentsTable.id, comment.comment.id), eq(cinemaCommentsTable.parentCommentId, comment.comment.id)));
+    res.status(201).json(
+      CreateCinemaCommentResponse.parse({
+        id: created.id,
+        cinemaTitleId: created.cinemaTitleId,
+        parentCommentId: created.parentCommentId,
+        userId: created.userId,
+        username: author?.username ?? "Kryv viewer",
+        avatarUrl: author?.avatarUrl ?? null,
+        message: created.message,
+        createdAt: created.createdAt,
+        replies: [],
+      }),
+    );
+  },
+);
 
-  await writeAuditLog(req, {
-    action: "cinema_comment_deleted",
-    targetType: "cinema_comment",
-    targetId: comment.comment.id,
-    afterState: { cinemaTitleId: params.data.id, deletedAt: deletedAt.toISOString(), removedByOwner: req.user!.role === "owner" && comment.comment.userId !== req.user!.userId },
-  });
+router.delete(
+  "/cinema/titles/:id/comments/:commentId",
+  attachUserId,
+  requireAuth,
+  async (req, res): Promise<void> => {
+    const params = DeleteCinemaCommentParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
 
-  res.sendStatus(204);
-});
+    const [comment] = await db
+      .select({ comment: cinemaCommentsTable })
+      .from(cinemaCommentsTable)
+      .where(
+        and(
+          eq(cinemaCommentsTable.id, params.data.commentId),
+          eq(cinemaCommentsTable.cinemaTitleId, params.data.id),
+        ),
+      )
+      .limit(1);
+    if (!comment || comment.comment.deletedAt) {
+      res.status(404).json({ error: "Cinema comment not found." });
+      return;
+    }
+    if (
+      comment.comment.userId !== req.user!.userId &&
+      req.user!.role !== "owner"
+    ) {
+      res.status(403).json({
+        error:
+          "Only the comment author or owner can remove this Cinema comment.",
+      });
+      return;
+    }
+
+    const deletedAt = new Date();
+    await db
+      .update(cinemaCommentsTable)
+      .set({ deletedAt, deletedByUserId: req.user!.userId })
+      .where(
+        or(
+          eq(cinemaCommentsTable.id, comment.comment.id),
+          eq(cinemaCommentsTable.parentCommentId, comment.comment.id),
+        ),
+      );
+
+    await writeAuditLog(req, {
+      action: "cinema_comment_deleted",
+      targetType: "cinema_comment",
+      targetId: comment.comment.id,
+      afterState: {
+        cinemaTitleId: params.data.id,
+        deletedAt: deletedAt.toISOString(),
+        removedByOwner:
+          req.user!.role === "owner" &&
+          comment.comment.userId !== req.user!.userId,
+      },
+    });
+
+    res.sendStatus(204);
+  },
+);
 
 export default router;
