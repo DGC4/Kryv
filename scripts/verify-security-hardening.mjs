@@ -26,6 +26,10 @@ const [
   renderBlueprint,
   ownerBootstrap,
   channelPage,
+  profileRoute,
+  cinemaHome,
+  apiSpec,
+  adsRoute,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -35,6 +39,10 @@ const [
   source("render.yaml"),
   source("scripts/seed-owner.ts"),
   source("artifacts/blyze/src/pages/live/Channel.tsx"),
+  source("artifacts/api-server/src/routes/me.ts"),
+  source("artifacts/blyze/src/pages/cinema/Home.tsx"),
+  source("lib/api-spec/openapi.yaml"),
+  source("artifacts/api-server/src/routes/ads.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -52,6 +60,21 @@ requireMatch(
   authLib,
   /revokeAllUserSessions/,
   "Account-wide session invalidation must remain available.",
+);
+requireMatch(
+  authLib,
+  /PROFILE_GRANT_COOKIE_NAME/,
+  "Viewer profile selection must use an explicit HttpOnly cookie name.",
+);
+requireMatch(
+  authLib,
+  /establishActiveProfileGrant/,
+  "Viewer profile selection must be established only through a session-bound grant.",
+);
+requireMatch(
+  authLib,
+  /payload\.sessionId === row\.session\.id/,
+  "Viewer profile grants must be bound to the current opaque session.",
 );
 requireMatch(
   authRoute,
@@ -93,6 +116,61 @@ forbidMatch(
   channelPage,
   /Authorization:\s*`Bearer/,
   "Direct client calls must not inject a browser bearer token.",
+);
+forbidMatch(
+  cinemaHome,
+  /localStorage/,
+  "Cinema profile selection must not persist profile identifiers in browser storage.",
+);
+requireMatch(
+  cinemaHome,
+  /\/me\/profiles\/active/,
+  "Cinema must restore and clear only a server-issued active-profile grant.",
+);
+requireMatch(
+  cinemaHome,
+  /\/me\/profiles\/\$\{profile\.id\}\/select/,
+  "Cinema profile selection must call the server-owned selection endpoint.",
+);
+requireMatch(
+  profileRoute,
+  /PROFILE_PIN_MAX_ATTEMPTS/,
+  "Profile PIN attempts must be bounded.",
+);
+requireMatch(
+  profileRoute,
+  /viewer_profile_pin_failed/,
+  "Failed profile PIN attempts must be durably audited for throttling.",
+);
+requireMatch(
+  profileRoute,
+  /bcrypt\.compare\(parsed\.data\.currentPassword, user\.passwordHash\)/,
+  "Profile PIN changes must require account-password re-authentication.",
+);
+requireMatch(
+  profileRoute,
+  /clearActiveProfileGrant\(res\)/,
+  "Profile PIN changes and explicit switching must revoke the active-profile grant.",
+);
+requireMatch(
+  apiSpec,
+  /\/me\/profiles\/\{id\}\/select/,
+  "The secured viewer-profile selection endpoint must remain documented.",
+);
+requireMatch(
+  apiSpec,
+  /\/me\/profiles\/\{id\}\/pin/,
+  "The re-authenticated viewer-profile PIN endpoint must remain documented.",
+);
+requireMatch(
+  apiSpec,
+  /isLocked:/,
+  "The public profile contract may disclose lock state but never PIN material.",
+);
+requireMatch(
+  adsRoute,
+  /AD_DELIVERY_RUNTIME_ENABLED\s*=\s*false/,
+  "Advertising delivery must remain explicitly disabled during control-plane work.",
 );
 
 requireMatch(
