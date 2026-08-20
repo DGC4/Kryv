@@ -213,6 +213,17 @@ const chatMessageLimiter = rateLimit({
   message: { error: "You are sending chat messages too quickly. Please slow down." },
 });
 
+// Safety reports create persistent moderation work. Keep submissions below the
+// broad API ceiling across Live, Watch, and Clip reporting routes while preserving reads.
+const safetyReportLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:safety-report:"),
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many safety reports. Please wait before submitting another." },
+});
+
 // Cinema discussion writes create persistent community content. Keep comment and
 // removal actions below the broad API ceiling while leaving maturity-gated reads open.
 const cinemaDiscussionLimiter = rateLimit({
@@ -279,6 +290,9 @@ app.use("/api/channels", (req, res, next) => {
   if (req.path.includes("/stream")) return streamKeyLimiter(req, res, next);
   if (/^\/\d+\/messages\/?$/.test(req.path)) return chatMessageLimiter(req, res, next);
   if (/^\/\d+\/guest-(tip|subscription-gift)\/?$/.test(req.path)) return guestCheckoutLimiter(req, res, next);
+  if (req.method === "POST" && /^\/\d+\/(reports|channel-reports)\/?$/.test(req.path)) {
+    return safetyReportLimiter(req, res, next);
+  }
   next();
 });
 app.use("/api/me/profiles", (req, res, next) => {
@@ -293,6 +307,18 @@ app.use("/api/cinema/titles", (req, res, next) => {
     && /^\/\d+\/comments(?:\/\d+)?\/?$/.test(req.path)
   ) {
     return cinemaDiscussionLimiter(req, res, next);
+  }
+  next();
+});
+app.use("/api/clips", (req, res, next) => {
+  if (req.method === "POST" && /^\/\d+\/reports\/?$/.test(req.path)) {
+    return safetyReportLimiter(req, res, next);
+  }
+  next();
+});
+app.use("/api/videos", (req, res, next) => {
+  if (req.method === "POST" && /^\/\d+\/reports\/?$/.test(req.path)) {
+    return safetyReportLimiter(req, res, next);
   }
   next();
 });

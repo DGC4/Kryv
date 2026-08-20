@@ -66,6 +66,14 @@ router.get("/clips", async (req, res): Promise<void> => {
   ];
   if (query.data.channelId !== undefined) conditions.push(eq(clipsTable.channelId, query.data.channelId));
 
+  // Keep mature channels outside the bounded database result unless the active
+  // session-bound profile is explicitly mature, so they cannot consume public
+  // page capacity or leak through summary processing.
+  const profileMaturity = await getActiveProfileMaturity(req);
+  if (profileMaturity !== "mature") {
+    conditions.push(eq(channelsTable.matureContent, false));
+  }
+
   const rows = await db
     .select(clipSelection)
     .from(clipsTable)
@@ -74,11 +82,7 @@ router.get("/clips", async (req, res): Promise<void> => {
     .orderBy(desc(clipsTable.createdAt))
     .limit(50);
 
-  const profileMaturity = await getActiveProfileMaturity(req);
-  const visibleRows = rows.filter(
-    (row) => !row.channel.matureContent || profileMaturity === "mature",
-  );
-  res.json(ListClipsResponse.parse(visibleRows.map(toClipSummary)));
+  res.json(ListClipsResponse.parse(rows.map(toClipSummary)));
 });
 
 router.post("/clips/:id/reports", requireAuth, async (req, res): Promise<void> => {

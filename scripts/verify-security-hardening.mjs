@@ -472,8 +472,8 @@ requireMatch(
 );
 requireMatch(
   liveClipsRoute,
-  /!row\.channel\.matureContent \|\| profileMaturity === "mature"/,
-  "Live clip discovery must omit clips sourced from restricted mature channels.",
+  /profileMaturity !== "mature"[\s\S]*?eq\(channelsTable\.matureContent, false\)[\s\S]*?\.limit\(50\)[\s\S]*?rows\.map\(toClipSummary\)/,
+  "Live clip discovery must apply maturity visibility before its bounded database fetch.",
 );
 requireMatch(
   liveClipsRoute,
@@ -579,6 +579,21 @@ requireMatch(
   appServer,
   /app\.use\("\/api\/search", searchLimiter\);/,
   "Public search must be mounted behind its dedicated rate limiter.",
+);
+requireMatch(
+  appServer,
+  /kryv:rate:safety-report:/,
+  "Safety-report submissions must have a dedicated shared rate-limit namespace.",
+);
+requireMatch(
+  appServer,
+  /app\.use\("\/api\/channels"[\s\S]*?\(reports\|channel-reports\)[\s\S]*?safetyReportLimiter/,
+  "Live safety-report limiter must be narrowly mounted for chat and channel report submissions.",
+);
+requireMatch(
+  appServer,
+  /app\.use\("\/api\/clips"[\s\S]*?reports[\s\S]*?safetyReportLimiter[\s\S]*?app\.use\("\/api\/videos"[\s\S]*?reports[\s\S]*?safetyReportLimiter/,
+  "Clip and Watch safety-report submissions must share the dedicated limiter.",
 );
 requireMatch(
   appServer,
