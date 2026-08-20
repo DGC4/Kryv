@@ -434,7 +434,7 @@ export default function DashboardAdmin() {
   const reviewModerationCase = (id: number, decision: 'resolved' | 'dismissed') => {
     if (!confirm(`${decision === 'resolved' ? 'Resolve' : 'Dismiss'} this safety report? This review is final and recorded in Kryv's audit ledger.`)) return;
     reviewAdminModerationCase.mutate({ id, data: { decision } }, {
-      onSuccess: () => { moderationCasesQuery.refetch(); toast({ title: `Safety report ${decision}`, description: 'The report review was recorded without altering the original evidence.' }); },
+      onSuccess: () => { if ((moderationCasesQuery.data?.items.length ?? 0) === 1 && moderationOffset > 0) setModerationOffset((current) => Math.max(0, current - 50)); moderationCasesQuery.refetch(); toast({ title: `Safety report ${decision}`, description: 'The report review was recorded without altering the original evidence.' }); },
       onError: (err: any) => toast({ title: 'Safety review blocked', description: err?.body?.error || err?.message || 'Review could not be recorded.', variant: 'destructive' }),
     });
   };

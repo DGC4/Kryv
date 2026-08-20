@@ -1106,6 +1106,11 @@ requireMatch(
   "Owner safety dashboard must consume moderation page items and expose explicit newer/older continuation controls.",
 );
 requireMatch(
+  adminDashboard,
+  /const reviewModerationCase[\s\S]*?items\.length[\s\S]*?setModerationOffset/,
+  "Owner safety dashboard must recover to a valid preceding page when a final review removes the last later-page case.",
+);
+requireMatch(
   watchHome,
   /const selectCategoryAt[\s\S]*?setVideoOffset\(0\)[\s\S]*?const submitSearch[\s\S]*?setVideoOffset\(0\)[\s\S]*?const clearFilters[\s\S]*?setVideoOffset\(0\)/,
   "Watch home must reset pagination whenever category, search, or clear-filter state changes.",
