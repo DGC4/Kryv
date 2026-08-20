@@ -73,7 +73,7 @@ export function Header() {
             <DropdownMenuContent align="start" className="w-48 border-white/10 bg-black/95 p-1 backdrop-blur-xl">{NAV.map((item) => <DropdownMenuItem key={item.path} asChild><Link href={item.path} className="flex cursor-pointer items-center gap-2.5"><item.icon className="h-4 w-4 text-primary" /><span>{item.label}</span></Link></DropdownMenuItem>)}</DropdownMenuContent>
           </DropdownMenu>
 
-          <nav className="hidden shrink-0 items-center gap-0 sm:flex sm:gap-0.5">
+          <nav aria-label="Primary navigation" className="hidden shrink-0 items-center gap-0 sm:flex sm:gap-0.5">
             {NAV.map(item => {
               const active = item.match.some(m => location === m || location.startsWith(`${m}/`));
               return (
@@ -181,7 +181,7 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <button type="button" aria-label="Open account menu" className="h-10 w-10 rounded-full overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
                     {user?.avatarUrl
-                      ? <img src={user.avatarUrl} alt={user.username || ''} className="w-full h-full object-cover" />
+                      ? <img src={user.avatarUrl} alt={user.username || ''} decoding="async" className="w-full h-full object-cover" />
                       : <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">{user?.username?.[0]?.toUpperCase()}</div>
                     }
                   </button>

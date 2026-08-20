@@ -46,8 +46,18 @@ export function Layout({ children }: LayoutProps) {
     <div className="min-h-[100dvh] flex flex-col relative text-foreground">
       <AnimatedBackground />
       <ActivityPresenceTracker />
+      <a
+        href="#kryv-main-content"
+        className="sr-only fixed left-4 top-4 z-[60] rounded-xl bg-primary px-4 py-2 text-sm font-black text-primary-foreground shadow-lg focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-white"
+      >
+        Skip to main content
+      </a>
       <Header />
-      <main className="flex-1 min-h-0 relative z-10 flex flex-col">
+      <main
+        id="kryv-main-content"
+        tabIndex={-1}
+        className="flex-1 min-h-0 relative z-10 flex flex-col focus:outline-none"
+      >
         {showFocus ? <FocusModeShell sourceType={focus!.sourceType as 'live' | 'cinema'} sourceId={focus!.sourceId!} chatEnabled={focus!.chatEnabled} announcementText={focus!.announcementText} /> : children}
       </main>
       <Footer />
