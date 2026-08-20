@@ -567,6 +567,21 @@ forbidMatch(
 );
 requireMatch(
   plisioLib,
+  /function validatedPlisioApiBase/,
+  "Plisio API base URLs must pass a dedicated server-side validation boundary.",
+);
+requireMatch(
+  plisioLib,
+  /endpoint\.protocol !== "https:"[\s\S]*?endpoint\.username[\s\S]*?endpoint\.password/,
+  "Plisio API base URLs must require HTTPS and reject embedded credentials.",
+);
+requireMatch(
+  plisioLib,
+  /allowedPlisioApiHosts/,
+  "Plisio API base URLs must be host allowlisted before secret-bearing requests.",
+);
+requireMatch(
+  plisioLib,
   /function validatedInvoiceUrl/,
   "Provider invoice URLs must pass a dedicated server-side validation boundary.",
 );
@@ -589,6 +604,11 @@ requireMatch(
   plisioLib,
   /invoiceUrl: validatedInvoiceUrl\(payload\.data\.invoice_url\)/,
   "Kryv checkout responses must use the validated provider invoice URL.",
+);
+requireMatch(
+  renderBlueprint,
+  /PLISIO_API_ALLOWED_HOSTS/,
+  "Deployment configuration must declare the reviewed Plisio API host allowlist.",
 );
 requireMatch(
   renderBlueprint,

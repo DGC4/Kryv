@@ -4,6 +4,7 @@ const PLISIO_API_BASE = process.env.PLISIO_API_BASE ?? "https://api.plisio.net/a
 // Plisio documents its White Label deposit-address API on the merchant domain.
 const PLISIO_DEPOSITS_API_BASE = process.env.PLISIO_DEPOSITS_API_BASE ?? "https://plisio.net/api/v1";
 const DEFAULT_ALLOWED_COINS = ["BTC", "LTC", "ETH", "DOGE"] as const;
+const DEFAULT_PLISIO_API_HOSTS = ["api.plisio.net", "plisio.net"];
 
 export type KryvCryptoCode = (typeof DEFAULT_ALLOWED_COINS)[number];
 
@@ -84,6 +85,45 @@ function getAppUrl() {
   return appUrl.origin;
 }
 
+function allowedPlisioApiHosts() {
+  const configured = process.env.PLISIO_API_ALLOWED_HOSTS
+    ?.split(",")
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean);
+  return configured?.length ? configured : DEFAULT_PLISIO_API_HOSTS;
+}
+
+function validatedPlisioApiBase(value: string, name: string) {
+  let endpoint: URL;
+  try {
+    endpoint = new URL(value);
+  } catch {
+    throw new PlisioNotConfiguredError(`${name} must be a valid absolute URL.`);
+  }
+  if (
+    endpoint.protocol !== "https:" ||
+    endpoint.username ||
+    endpoint.password ||
+    !isAllowedInvoiceHost(endpoint.hostname.toLowerCase(), allowedPlisioApiHosts())
+  ) {
+    throw new PlisioNotConfiguredError(
+      `${name} must use a clean HTTPS URL on an allowlisted Plisio host.`,
+    );
+  }
+  return endpoint.toString().replace(/\/$/, "");
+}
+
+function plisioApiBase() {
+  return validatedPlisioApiBase(PLISIO_API_BASE, "PLISIO_API_BASE");
+}
+
+function plisioDepositsApiBase() {
+  return validatedPlisioApiBase(
+    PLISIO_DEPOSITS_API_BASE,
+    "PLISIO_DEPOSITS_API_BASE",
+  );
+}
+
 function allowedInvoiceHosts() {
   const configured = process.env.PLISIO_CHECKOUT_ALLOWED_HOSTS
     ?.split(",")
@@ -161,7 +201,7 @@ export async function getPlisioAssetSnapshots(): Promise<PlisioAssetSnapshot[]> 
   if (assetSnapshotCache && assetSnapshotCache.expiresAt > Date.now()) return assetSnapshotCache.values;
 
   const secretKey = getSecretKey();
-  const base = PLISIO_API_BASE.replace(/\/$/, "");
+  const base = plisioApiBase();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10_000);
   try {
@@ -219,7 +259,7 @@ export async function createPlisioDepositAddress(input: {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 12_000);
   try {
-    const response = await fetch(`${PLISIO_DEPOSITS_API_BASE.replace(/\/$/, "")}/shops/deposit/new?${params.toString()}`, {
+    const response = await fetch(`${plisioDepositsApiBase()}/shops/deposit/new?${params.toString()}`, {
       headers: { Accept: "application/json" },
       signal: controller.signal,
     });
@@ -272,7 +312,7 @@ export async function createPlisioWithdrawal(input: {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15_000);
   try {
-    const response = await fetch(`${PLISIO_API_BASE.replace(/\/$/, "")}/operations/withdraw?${params.toString()}`, {
+    const response = await fetch(`${plisioApiBase()}/operations/withdraw?${params.toString()}`, {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: controller.signal,
@@ -322,7 +362,7 @@ export async function estimatePlisioWithdrawalFee(input: {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 12_000);
   try {
-    const response = await fetch(`${PLISIO_API_BASE.replace(/\/$/, "")}/operations/commission/${input.currency}?${params.toString()}`, {
+    const response = await fetch(`${plisioApiBase()}/operations/commission/${input.currency}?${params.toString()}`, {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: controller.signal,
@@ -375,7 +415,7 @@ export async function createPlisioInvoice(input: {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 12_000);
   try {
-    const response = await fetch(`${PLISIO_API_BASE.replace(/\/$/, "")}/invoices/new?${params.toString()}`, {
+    const response = await fetch(`${plisioApiBase()}/invoices/new?${params.toString()}`, {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: controller.signal,

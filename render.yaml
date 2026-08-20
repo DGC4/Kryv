@@ -114,6 +114,9 @@ envVarGroups:
         sync: false
       - key: PLISIO_ALLOWED_COINS
         value: BTC,LTC,ETH,DOGE
+      # Allowlist provider API destinations that receive Plisio credentials.
+      - key: PLISIO_API_ALLOWED_HOSTS
+        value: api.plisio.net,plisio.net
       # Allowlist checkout navigation destinations returned by Plisio. Any
       # white-label host must be explicitly reviewed and added here.
       - key: PLISIO_CHECKOUT_ALLOWED_HOSTS
