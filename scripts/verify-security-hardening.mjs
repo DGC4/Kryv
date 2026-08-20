@@ -313,6 +313,36 @@ requireMatch(
   "Only qualified or completed delivery records may count toward advertising frequency policy.",
 );
 requireMatch(
+  adsRoute,
+  /ad_campaign_approval_required/,
+  "Future ad delivery must require an explicit operator-approved campaign.",
+);
+requireMatch(
+  adsRoute,
+  /ad_campaign_budget_exhausted/,
+  "Future paid campaigns must fail closed once the approved budget has no remaining capacity.",
+);
+requireMatch(
+  adsRoute,
+  /isHttpsUrl\(creative\.assetUrl\)/,
+  "Future ad creatives must reject non-HTTPS asset URLs.",
+);
+requireMatch(
+  adsRoute,
+  /isHttpsUrl\(creative\.landingUrl\)/,
+  "Future ad creatives must reject non-HTTPS landing URLs.",
+);
+requireMatch(
+  adsRoute,
+  /ALLOWED_CREATIVE_TYPES/,
+  "Future ad creatives must use an explicit type allowlist.",
+);
+requireMatch(
+  adsRoute,
+  /creative_duration_not_allowed/,
+  "Future video creatives must have bounded duration compatible with the ad pod.",
+);
+requireMatch(
   adSlot,
   /AD_DELIVERY_PRESENTATION_ENABLED\s*=\s*false/,
   "Advertising presentation must remain independently disabled by default.",

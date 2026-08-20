@@ -38,6 +38,22 @@ type FrequencyPolicy = {
   windowMinutes: number;
 };
 
+const ALLOWED_CREATIVE_TYPES = new Set([
+  "image",
+  "video",
+  "sponsorship",
+  "house",
+]);
+
+function isHttpsUrl(value: string | null) {
+  if (!value) return true;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function parseFrequencyPolicy(value: unknown): FrequencyPolicy | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const candidate = value as Record<string, unknown>;
@@ -155,6 +171,9 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
       startsAt: adCampaignsTable.startsAt,
       endsAt: adCampaignsTable.endsAt,
       frequencyPolicy: adCampaignsTable.frequencyPolicy,
+      approvedByUserId: adCampaignsTable.approvedByUserId,
+      approvedAt: adCampaignsTable.approvedAt,
+      budgetHasCapacity: sql<boolean>`CASE WHEN ${adCampaignsTable.budgetAmount} IS NULL THEN true ELSE ${adCampaignsTable.budgetSpentAmount} < ${adCampaignsTable.budgetAmount} END`,
     })
     .from(adCampaignsTable)
     .where(eq(adCampaignsTable.id, rule.campaignId))
@@ -163,12 +182,20 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
     res.json(noDecision("ad_campaign_not_active"));
     return;
   }
+  if (!campaign.approvedAt || !campaign.approvedByUserId) {
+    res.json(noDecision("ad_campaign_approval_required"));
+    return;
+  }
   if (campaign.startsAt && campaign.startsAt > now || campaign.endsAt && campaign.endsAt <= now) {
     res.json(noDecision("ad_campaign_outside_delivery_window"));
     return;
   }
   if (campaign.fundingMode === "paid" && campaign.fundingStatus !== "funded") {
     res.json(noDecision("ad_campaign_funding_not_confirmed"));
+    return;
+  }
+  if (campaign.fundingMode === "paid" && !campaign.budgetHasCapacity) {
+    res.json(noDecision("ad_campaign_budget_exhausted"));
     return;
   }
   if (campaign.fundingMode === "promotional" && campaign.fundingStatus !== "promotional_approved") {
@@ -222,6 +249,25 @@ router.get("/ads/decision", async (req, res): Promise<void> => {
     .limit(1);
   if (!creative || channelId === undefined && videoId === undefined && surface !== "cinema") {
     res.json(noDecision("no_policy_matched_creative"));
+    return;
+  }
+  if (!ALLOWED_CREATIVE_TYPES.has(creative.creativeType)) {
+    res.json(noDecision("creative_type_not_allowed"));
+    return;
+  }
+  if (!isHttpsUrl(creative.assetUrl) || !isHttpsUrl(creative.landingUrl)) {
+    res.json(noDecision("creative_url_not_allowed"));
+    return;
+  }
+  if (
+    creative.creativeType === "video" &&
+    (!creative.durationSeconds ||
+      creative.durationSeconds < 1 ||
+      creative.durationSeconds > 120 ||
+      (rule.maxPodDurationSeconds !== null &&
+        creative.durationSeconds > rule.maxPodDurationSeconds))
+  ) {
+    res.json(noDecision("creative_duration_not_allowed"));
     return;
   }
 
