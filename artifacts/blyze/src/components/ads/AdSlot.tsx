@@ -43,6 +43,14 @@ function formatRemaining(seconds: number) {
   return `0:${String(safe).padStart(2, "0")}`;
 }
 
+function isApprovedCreativeAssetUrl(value: string) {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function AdDisclosure({
   advertiserName,
   label,
@@ -100,7 +108,12 @@ export function AdSlot({
     return () => window.clearInterval(interval);
   }, [creative, durationSeconds]);
 
-  if (!AD_DELIVERY_PRESENTATION_ENABLED || !creative) return null;
+  if (
+    !AD_DELIVERY_PRESENTATION_ENABLED ||
+    !creative ||
+    !isApprovedCreativeAssetUrl(creative.assetUrl)
+  )
+    return null;
 
   const remainingSeconds = Math.max(0, durationSeconds - elapsedSeconds);
   const mediaLabel = `${creative.label}, sponsored content on Kryv ${surface}`;
@@ -134,7 +147,9 @@ export function AdSlot({
             className="h-full w-full object-cover"
             src={creative.assetUrl}
             muted={muted}
+            autoPlay
             playsInline
+            preload="metadata"
             aria-label={mediaLabel}
             onTimeUpdate={(event) =>
               setElapsedSeconds(
@@ -201,7 +216,10 @@ export function AdSlot({
                 Skip ad
               </button>
             ) : (
-              <span className="inline-flex min-h-10 items-center rounded-xl border border-white/10 bg-black/25 px-3 text-xs font-bold text-white/55">
+              <span
+                className="inline-flex min-h-10 items-center rounded-xl border border-white/10 bg-black/25 px-3 text-xs font-bold text-white/55"
+                aria-live="polite"
+              >
                 {skipAfterSeconds > 0
                   ? `Skip in ${formatRemaining(skipAfterSeconds - elapsedSeconds)}`
                   : `Ad ${formatRemaining(remainingSeconds)}`}

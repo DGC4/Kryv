@@ -30,6 +30,7 @@ const [
   cinemaHome,
   apiSpec,
   adsRoute,
+  adSlot,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -43,6 +44,7 @@ const [
   source("artifacts/blyze/src/pages/cinema/Home.tsx"),
   source("lib/api-spec/openapi.yaml"),
   source("artifacts/api-server/src/routes/ads.ts"),
+  source("artifacts/blyze/src/components/ads/AdSlot.tsx"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -201,6 +203,16 @@ requireMatch(
   adsRoute,
   /req\.activeProfileId !== profileId/,
   "Future profile-aware advertising decisions must require the session-bound active profile grant.",
+);
+requireMatch(
+  adSlot,
+  /AD_DELIVERY_PRESENTATION_ENABLED\s*=\s*false/,
+  "Advertising presentation must remain independently disabled by default.",
+);
+requireMatch(
+  adSlot,
+  /new URL\(value\)\.protocol === "https:"/,
+  "Advertising presentation must reject non-HTTPS creative asset URLs.",
 );
 
 requireMatch(
