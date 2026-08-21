@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { Router, type IRouter } from "express";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   channelsTable,
   creatorBalanceMovementsTable,
@@ -222,8 +222,28 @@ router.get("/creator/finance", async (req, res): Promise<void> => {
   try {
     const channel = await getCreatorChannel(req.user!.userId);
     const [balanceRows, profileRows, payoutRows] = await Promise.all([
-      db.select().from(creatorBalancesTable).where(eq(creatorBalancesTable.channelId, channel.id)),
-      db.select().from(creatorPayoutProfilesTable).where(eq(creatorPayoutProfilesTable.channelId, channel.id)),
+      db
+        .select()
+        .from(creatorBalancesTable)
+        .where(
+          and(
+            eq(creatorBalancesTable.channelId, channel.id),
+            inArray(creatorBalancesTable.currency, SUPPORTED_CURRENCIES),
+          ),
+        )
+        .orderBy(asc(creatorBalancesTable.currency))
+        .limit(SUPPORTED_CURRENCIES.length),
+      db
+        .select()
+        .from(creatorPayoutProfilesTable)
+        .where(
+          and(
+            eq(creatorPayoutProfilesTable.channelId, channel.id),
+            inArray(creatorPayoutProfilesTable.currency, SUPPORTED_CURRENCIES),
+          ),
+        )
+        .orderBy(asc(creatorPayoutProfilesTable.currency))
+        .limit(SUPPORTED_CURRENCIES.length),
       db.select().from(payoutRequestsTable).where(eq(payoutRequestsTable.channelId, channel.id)).orderBy(desc(payoutRequestsTable.requestedAt)).limit(12),
     ]);
 

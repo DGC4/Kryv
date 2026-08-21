@@ -2922,12 +2922,18 @@ export const CreateCustomerWalletDepositAddressResponse = zod.object({
 /**
  * @summary Creator-only wallet, earnings, payout readiness, and recent payout requests
  */
+export const getCreatorFinanceResponseBalancesMax = 4;
+
+export const getCreatorFinanceResponsePayoutProfilesMax = 4;
+
 export const getCreatorFinanceResponsePayoutPreferenceWeekdayMin = 0;
 export const getCreatorFinanceResponsePayoutPreferenceWeekdayMax = 6;
 
 export const getCreatorFinanceResponsePayoutPreferenceMonthDayMax = 28;
 
 export const getCreatorFinanceResponsePayoutRequestsItemProviderTransactionUrlMax = 2048;
+
+export const getCreatorFinanceResponsePayoutRequestsMax = 12;
 
 
 
@@ -2940,7 +2946,7 @@ export const GetCreatorFinanceResponse = zod.object({
   "heldAmount": zod.string(),
   "usdReferenceValue": zod.string().nullable(),
   "rateUpdatedAt": zod.coerce.date().nullable()
-})),
+})).max(getCreatorFinanceResponseBalancesMax),
   "payoutProfiles": zod.array(zod.object({
   "id": zod.number(),
   "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
@@ -2949,7 +2955,7 @@ export const GetCreatorFinanceResponse = zod.object({
   "reviewStatus": zod.enum(['pending', 'approved', 'rejected']),
   "confirmedAt": zod.coerce.date().nullish(),
   "updatedAt": zod.coerce.date()
-})),
+})).max(getCreatorFinanceResponsePayoutProfilesMax),
   "payoutPreference": zod.object({
   "cadence": zod.enum(['manual']).describe('Scheduled cadence is unavailable because scheduled payout requests are hard-disabled.'),
   "minimumAmount": zod.string(),
@@ -2975,7 +2981,7 @@ export const GetCreatorFinanceResponse = zod.object({
   "reviewedAt": zod.coerce.date().nullish(),
   "completedAt": zod.coerce.date().nullish(),
   "providerTransactionUrl": zod.string().max(getCreatorFinanceResponsePayoutRequestsItemProviderTransactionUrlMax).nullish()
-})),
+})).max(getCreatorFinanceResponsePayoutRequestsMax),
   "achievements": zod.array(zod.object({
   "key": zod.string(),
   "title": zod.string(),

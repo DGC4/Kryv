@@ -13,9 +13,12 @@ import type { CreatorPayoutRequest } from './creatorPayoutRequest';
 
 export interface CreatorFinanceOverview {
   channelId: number;
+  /** @maxItems 4 */
   balances: CreatorBalance[];
+  /** @maxItems 4 */
   payoutProfiles: CreatorPayoutProfile[];
   payoutPreference: CreatorPayoutPreference;
+  /** @maxItems 12 */
   payoutRequests: CreatorPayoutRequest[];
   achievements: CreatorAchievement[];
   payoutRequestsEnabled: boolean;

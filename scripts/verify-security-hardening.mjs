@@ -1195,6 +1195,16 @@ requireMatch(
   "Creator payout reservation must normalize exact crypto amounts and revalidate the locked approved destination before atomically reserving balance.",
 );
 requireMatch(
+  creatorFinanceRoute,
+  /SUPPORTED_CURRENCIES = \["BTC", "LTC", "ETH", "DOGE"\][\s\S]*?router\.get\("\/creator\/finance"[\s\S]*?inArray\(creatorBalancesTable\.currency, SUPPORTED_CURRENCIES\)[\s\S]*?\.limit\(SUPPORTED_CURRENCIES\.length\)[\s\S]*?inArray\(creatorPayoutProfilesTable\.currency, SUPPORTED_CURRENCIES\)[\s\S]*?\.limit\(SUPPORTED_CURRENCIES\.length\)[\s\S]*?payoutRequestsTable\.requestedAt\)\)\.limit\(12\)/,
+  "Creator Wallet overview must SQL-filter and bound supported-asset balances, payout profiles, and recent payout requests.",
+);
+requireMatch(
+  apiSpec,
+  /CreatorFinanceOverview:[\s\S]*?balances:[\s\S]*?maxItems: 4[\s\S]*?payoutProfiles:[\s\S]*?maxItems: 4[\s\S]*?payoutRequests:[\s\S]*?maxItems: 12/,
+  "Creator Wallet overview contract must expose explicit supported-asset and recent-request bounds.",
+);
+requireMatch(
   apiSpec,
   /CreatorProfile:[\s\S]*?watch:[\s\S]*?maxItems: 48[\s\S]*?cinemaCredits:[\s\S]*?maxItems: 50[\s\S]*?CreatorProfileLive:[\s\S]*?recentStreams:[\s\S]*?maxItems: 6/,
   "Creator profile contracts must expose explicit Watch, Cinema-credit, and recent-stream rail limits.",

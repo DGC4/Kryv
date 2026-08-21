@@ -5362,14 +5362,17 @@ components:
         channelId: { type: integer }
         balances:
           type: array
+          maxItems: 4
           items: { $ref: "#/components/schemas/CreatorBalance" }
         payoutProfiles:
           type: array
+          maxItems: 4
           items: { $ref: "#/components/schemas/CreatorPayoutProfile" }
         payoutPreference:
           { $ref: "#/components/schemas/CreatorPayoutPreference" }
         payoutRequests:
           type: array
+          maxItems: 12
           items: { $ref: "#/components/schemas/CreatorPayoutRequest" }
         achievements:
           type: array
