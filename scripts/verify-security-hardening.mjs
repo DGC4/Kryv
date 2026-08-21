@@ -90,6 +90,7 @@ const [
   viewerDefaultIntegrityMigration,
   viewerDefaultIntegrityValidation,
   platformSchema,
+  pendingSchemaPromotionRunbook,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -163,6 +164,7 @@ const [
   source("lib/db/drizzle/0028_viewer_profile_default_integrity.sql"),
   source("KRYV_VIEWER_PROFILE_DEFAULT_INTEGRITY_NEON_VALIDATION.md"),
   source("lib/db/src/schema/platform.ts"),
+  source("KRYV_PRODUCTION_PENDING_SCHEMA_PROMOTION_RUNBOOK.md"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -1481,6 +1483,21 @@ requireMatch(
   viewerDefaultIntegrityValidation,
   /No production promotion has occurred[\s\S]*?no production promotion is authorized/,
   "Viewer-default validation evidence must explicitly prohibit unapproved production promotion.",
+);
+requireMatch(
+  pendingSchemaPromotionRunbook,
+  /0021_watch_video_maturity\.sql[\s\S]*?0022_platform_entitlements\.sql[\s\S]*?0023_ad_delivery_receipts\.sql[\s\S]*?0024_watch_catalog_query_indexes\.sql[\s\S]*?0025_notification_inbox_query_indexes\.sql[\s\S]*?0026_notification_fanout_query_indexes\.sql[\s\S]*?0027_notification_preference_integrity\.sql[\s\S]*?0028_viewer_profile_default_integrity\.sql/,
+  "Pending schema promotion runbook must inventory every isolated-only migration from 0021 through 0028.",
+);
+requireMatch(
+  pendingSchemaPromotionRunbook,
+  /No production promotion has occurred[\s\S]*?does not authorize one[\s\S]*?CONCURRENTLY[\s\S]*?outside a transaction/,
+  "Pending schema promotion runbook must retain explicit approval and concurrent-index execution boundaries.",
+);
+requireMatch(
+  pendingSchemaPromotionRunbook,
+  /AD_DELIVERY_RUNTIME_ENABLED = false[\s\S]*?must not[\s\S]*?be interpreted as approval to enable ad decisions/,
+  "Pending schema promotion runbook must preserve the advertising runtime hard-disable and separate launch boundary.",
 );
 requireMatch(
   fastpixLib,
