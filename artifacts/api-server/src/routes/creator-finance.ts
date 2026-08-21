@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   channelsTable,
@@ -35,6 +35,20 @@ class CreatorFinanceError extends Error {
     super(message);
     this.name = "CreatorFinanceError";
   }
+}
+
+function respondCreatorFinanceError(
+  res: Response,
+  error: unknown,
+  fallback: string,
+) {
+  if (error instanceof CreatorFinanceError) {
+    res.status(error.status).json({ error: error.message });
+    return;
+  }
+
+  console.error(fallback, error);
+  res.status(500).json({ error: fallback });
 }
 
 function toDecimalString(value: unknown) {
@@ -283,8 +297,7 @@ router.get("/creator/finance", async (req, res): Promise<void> => {
     };
     res.json(GetCreatorFinanceResponse.parse(payload));
   } catch (error) {
-    const status = error instanceof CreatorFinanceError ? error.status : 500;
-    res.status(status).json({ error: error instanceof Error ? error.message : "Creator finance could not be loaded" });
+    respondCreatorFinanceError(res, error, "Creator finance could not be loaded");
   }
 });
 
@@ -297,8 +310,11 @@ router.get("/creator/achievements", async (req, res): Promise<void> => {
       .where(eq(creatorPayoutProfilesTable.channelId, channel.id));
     res.json(GetCreatorAchievementsResponse.parse(await getAchievements(channel.id, profiles)));
   } catch (error) {
-    const status = error instanceof CreatorFinanceError ? error.status : 500;
-    res.status(status).json({ error: error instanceof Error ? error.message : "Creator achievements could not be loaded" });
+    respondCreatorFinanceError(
+      res,
+      error,
+      "Creator achievements could not be loaded",
+    );
   }
 });
 
@@ -348,8 +364,11 @@ router.post("/creator/finance/payout-profiles", async (req, res): Promise<void> 
     });
     res.json(SaveCreatorPayoutProfileResponse.parse(toProfile(profile)));
   } catch (error) {
-    const status = error instanceof CreatorFinanceError ? error.status : 500;
-    res.status(status).json({ error: error instanceof Error ? error.message : "Payout destination could not be saved" });
+    respondCreatorFinanceError(
+      res,
+      error,
+      "Payout destination could not be saved",
+    );
   }
 });
 
@@ -485,8 +504,11 @@ router.post("/creator/finance/payout-requests", async (req, res): Promise<void> 
     });
     res.status(201).json(CreateCreatorPayoutRequestResponse.parse(toPayoutRequest(payout)));
   } catch (error) {
-    const status = error instanceof CreatorFinanceError ? error.status : 500;
-    res.status(status).json({ error: error instanceof Error ? error.message : "Payout request could not be created" });
+    respondCreatorFinanceError(
+      res,
+      error,
+      "Payout request could not be created",
+    );
   }
 });
 

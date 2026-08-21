@@ -1222,6 +1222,11 @@ requireMatch(
   "Creator Wallet overview must SQL-filter and bound supported-asset balances, payout profiles, and recent payout requests.",
 );
 requireMatch(
+  creatorFinanceRoute,
+  /function respondCreatorFinanceError\([\s\S]*?error instanceof CreatorFinanceError[\s\S]*?res\.status\(error\.status\)\.json\(\{ error: error\.message \}\)[\s\S]*?console\.error\(fallback, error\)[\s\S]*?res\.status\(500\)\.json\(\{ error: fallback \}\)[\s\S]*?respondCreatorFinanceError\(res, error, "Creator finance could not be loaded"\)[\s\S]*?respondCreatorFinanceError\([\s\S]*?"Payout destination could not be saved"[\s\S]*?respondCreatorFinanceError\([\s\S]*?"Payout request could not be created"/,
+  "Creator finance must preserve known user-action errors while logging and sanitizing unexpected infrastructure failures.",
+);
+requireMatch(
   apiSpec,
   /CreatorFinanceOverview:[\s\S]*?balances:[\s\S]*?maxItems: 4[\s\S]*?payoutProfiles:[\s\S]*?maxItems: 4[\s\S]*?payoutRequests:[\s\S]*?maxItems: 12/,
   "Creator Wallet overview contract must expose explicit supported-asset and recent-request bounds.",
