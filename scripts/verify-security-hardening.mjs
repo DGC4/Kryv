@@ -678,6 +678,11 @@ requireMatch(
 );
 requireMatch(
   appServer,
+  /app\.use\(attachUserId\);[\s\S]*?app\.use\("\/api", \(req, res, next\) => \{[\s\S]*?if \(req\.user\)[\s\S]*?res\.setHeader\("Cache-Control", "private, no-store"\)[\s\S]*?app\.use\(requireTrustedSessionOrigin\);/,
+  "Authenticated API responses must be private and non-cacheable after session attachment.",
+);
+requireMatch(
+  appServer,
   /req\.originalUrl\.startsWith\("\/api\/webhooks\/"\)/,
   "The general API limiter must exempt provider webhooks using the mount-safe original request URL.",
 );

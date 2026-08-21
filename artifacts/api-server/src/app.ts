@@ -371,6 +371,18 @@ app.use("/api/webhooks/plisio", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(attachUserId);
+
+// Any response resolved in an authenticated session can include account context,
+// operational state, or financially sensitive metadata. Do not allow browsers or
+// shared intermediaries to retain it, while leaving anonymous public catalog reads
+// eligible for their route-specific cache policies.
+app.use("/api", (req, res, next) => {
+  if (req.user) {
+    res.setHeader("Cache-Control", "private, no-store");
+  }
+  next();
+});
+
 app.use(requireTrustedSessionOrigin);
 
 app.use((req, res, next) => {
