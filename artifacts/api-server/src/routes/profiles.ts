@@ -18,9 +18,10 @@ import {
 import { attachUserId } from "../lib/auth";
 import { toChannelDetail } from "../lib/channelSerializer";
 import { toVideoSummaryFromRelations } from "../lib/videoSerializer";
-import { getPublishedCinemaTitles } from "../lib/cinemaCatalog";
+import { getPublishedCinemaTitlesByIds } from "../lib/cinemaCatalog";
 
 const router: IRouter = Router();
+const MAX_CREATOR_PROFILE_CINEMA_CREDITS = 50;
 
 router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
   const params = GetCreatorProfileParams.safeParse(req.params);
@@ -66,7 +67,8 @@ router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
     db.select()
       .from(cinemaCreditsTable)
       .where(eq(cinemaCreditsTable.channelId, channel.id))
-      .orderBy(cinemaCreditsTable.displayOrder, desc(cinemaCreditsTable.createdAt)),
+      .orderBy(cinemaCreditsTable.displayOrder, desc(cinemaCreditsTable.createdAt))
+      .limit(MAX_CREATOR_PROFILE_CINEMA_CREDITS),
     db
       .select({ total: sql<number>`count(*)`.mapWith(Number) })
       .from(videosTable)
@@ -79,7 +81,11 @@ router.get("/profiles/:slug", attachUserId, async (req, res): Promise<void> => {
 
   const publicTitlesById = new Map(
     creditRows.length
-      ? (await getPublishedCinemaTitles()).map((title) => [title.id, title])
+      ? (
+          await getPublishedCinemaTitlesByIds(
+            creditRows.map((credit) => credit.cinemaTitleId),
+          )
+        ).map((title) => [title.id, title])
       : [],
   );
   const cinemaCredits = creditRows.flatMap((credit) => {

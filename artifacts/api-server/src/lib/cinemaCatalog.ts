@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import {
   channelsTable,
   cinemaCreditsTable,
@@ -137,11 +137,9 @@ export async function getPublishedCinemaTitleDetail(id: number): Promise<(Public
   };
 }
 
-export async function getPublishedCinemaTitles(): Promise<PublicCinemaTitle[]> {
-  const titles = await db.select()
-    .from(cinemaTitlesTable)
-    .where(eq(cinemaTitlesTable.publishState, "published"))
-    .orderBy(desc(cinemaTitlesTable.editorialRank), desc(cinemaTitlesTable.publishedAt));
+async function hydratePublishedCinemaTitles(
+  titles: CinemaTitleRow[],
+): Promise<PublicCinemaTitle[]> {
   if (titles.length === 0) return [];
 
   const titleIds = titles.map((title) => title.id);
@@ -170,11 +168,67 @@ export async function getPublishedCinemaTitles(): Promise<PublicCinemaTitle[]> {
   const now = new Date();
 
   return titles
-    .map((title) => toPublicCinemaTitle(
-      title,
-      assetsByTitleId.get(title.id) ?? [],
-      rightsWindowsByTitleId.get(title.id) ?? [],
-      now,
-    ))
+    .map((title) =>
+      toPublicCinemaTitle(
+        title,
+        assetsByTitleId.get(title.id) ?? [],
+        rightsWindowsByTitleId.get(title.id) ?? [],
+        now,
+      ),
+    )
     .filter((title): title is PublicCinemaTitle => title !== null);
+}
+
+export async function getPublishedCinemaTitles(options?: {
+  limit?: number;
+}): Promise<PublicCinemaTitle[]> {
+  const query = db
+    .select()
+    .from(cinemaTitlesTable)
+    .where(eq(cinemaTitlesTable.publishState, "published"))
+    .orderBy(desc(cinemaTitlesTable.editorialRank), desc(cinemaTitlesTable.publishedAt));
+  const titles = options?.limit === undefined
+    ? await query
+    : await query.limit(options.limit);
+  return hydratePublishedCinemaTitles(titles);
+}
+
+export async function getPublishedCinemaTitlesByIds(
+  titleIds: number[],
+): Promise<PublicCinemaTitle[]> {
+  const uniqueTitleIds = [...new Set(titleIds)];
+  if (!uniqueTitleIds.length) return [];
+
+  const titles = await db
+    .select()
+    .from(cinemaTitlesTable)
+    .where(
+      and(
+        eq(cinemaTitlesTable.publishState, "published"),
+        inArray(cinemaTitlesTable.id, uniqueTitleIds),
+      ),
+    )
+    .orderBy(desc(cinemaTitlesTable.editorialRank), desc(cinemaTitlesTable.publishedAt));
+  return hydratePublishedCinemaTitles(titles);
+}
+
+export async function searchPublishedCinemaTitles(
+  pattern: string,
+  limit: number,
+): Promise<PublicCinemaTitle[]> {
+  const titles = await db
+    .select()
+    .from(cinemaTitlesTable)
+    .where(
+      and(
+        eq(cinemaTitlesTable.publishState, "published"),
+        or(
+          ilike(cinemaTitlesTable.title, pattern),
+          ilike(cinemaTitlesTable.synopsis, pattern),
+        ),
+      ),
+    )
+    .orderBy(desc(cinemaTitlesTable.editorialRank), desc(cinemaTitlesTable.publishedAt))
+    .limit(limit);
+  return hydratePublishedCinemaTitles(titles);
 }

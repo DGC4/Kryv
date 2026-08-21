@@ -163,6 +163,7 @@ export interface CreatorProfileLive {
   viewerCount: number;
   /** @nullable */
   categoryName: string | null;
+  /** @maxItems 6 */
   recentStreams: CreatorProfileStream[];
 }
 
@@ -300,13 +301,17 @@ export type CreatorCinemaCredit = CinemaTitle & {
 export interface CreatorProfile {
   channel: ChannelDetail;
   live: CreatorProfileLive;
-  /** Newest ready Watch uploads, capped at 48 for a responsive profile rail. */
+  /**
+     * Newest ready Watch uploads, capped at 48 for a responsive profile rail.
+     * @maxItems 48
+     */
   watch: VideoSummary[];
   /**
      * Total ready Watch uploads for this creator, including releases beyond the initial profile rail.
      * @minimum 0
      */
   watchTotal: number;
+  /** @maxItems 50 */
   cinemaCredits: CreatorCinemaCredit[];
 }
 
@@ -470,9 +475,13 @@ export interface ClipSummary {
 }
 
 export interface SearchResults {
+  /** @maxItems 8 */
   channels: ChannelSummary[];
+  /** @maxItems 8 */
   videos: VideoSummary[];
+  /** @maxItems 8 */
   clips: ClipSummary[];
+  /** @maxItems 8 */
   cinema: CinemaTitle[];
 }
 

@@ -14,5 +14,6 @@ export interface CreatorProfileLive {
   viewerCount: number;
   /** @nullable */
   categoryName: string | null;
+  /** @maxItems 6 */
   recentStreams: CreatorProfileStream[];
 }

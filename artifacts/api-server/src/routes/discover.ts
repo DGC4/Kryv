@@ -6,7 +6,7 @@ import { requireAuth } from "../lib/auth";
 import { toChannelSummaries } from "../lib/channelSerializer";
 import { toVideoSummaryFromRelations } from "../lib/videoSerializer";
 import { readSharedJson, writeSharedJson } from "../lib/realtime";
-import { getPublishedCinemaTitles } from "../lib/cinemaCatalog";
+import { searchPublishedCinemaTitles } from "../lib/cinemaCatalog";
 import { getActiveProfileMaturity } from "../lib/liveMaturity";
 import { literalIlikePattern } from "../lib/search";
 import { refreshLiveChannelViewerCounts } from "../lib/liveViewerRefresh";
@@ -191,9 +191,9 @@ router.get("/search", async (req, res): Promise<void> => {
       ))
       .orderBy(desc(clipsTable.createdAt))
       .limit(8),
-    getPublishedCinemaTitles(),
+    searchPublishedCinemaTitles(pattern, 8),
   ]);
-  const cinema = cinemaCatalog.filter((title) => title.title.toLowerCase().includes(term) || title.synopsis?.toLowerCase().includes(term)).slice(0, 8);
+  const cinema = cinemaCatalog;
 
   res.json({
     channels: await toChannelSummaries(channels),

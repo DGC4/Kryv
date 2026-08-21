@@ -11,8 +11,12 @@ import type { ClipSummary } from './clipSummary';
 import type { VideoSummary } from './videoSummary';
 
 export interface SearchResults {
+  /** @maxItems 8 */
   channels: ChannelSummary[];
+  /** @maxItems 8 */
   videos: VideoSummary[];
+  /** @maxItems 8 */
   clips: ClipSummary[];
+  /** @maxItems 8 */
   cinema: CinemaTitle[];
 }

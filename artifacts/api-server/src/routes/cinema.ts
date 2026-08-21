@@ -29,6 +29,8 @@ import {
 import { writeAuditLog } from "../lib/operations";
 
 const router: IRouter = Router();
+const CINEMA_HOME_TITLE_LIMIT = 120;
+const CINEMA_HOME_ROW_LIMIT = 24;
 
 const maturityRank = { kids: 0, standard: 1, mature: 2 } as const;
 
@@ -124,8 +126,12 @@ async function getPublishedCinemaTitle(id: number) {
 
 router.get("/cinema/home", attachUserId, async (req, res): Promise<void> => {
   const [publishedTitles, genres] = await Promise.all([
-    getPublishedCinemaTitles(),
-    db.select().from(categoriesTable).where(eq(categoriesTable.kind, "genre")),
+    getPublishedCinemaTitles({ limit: CINEMA_HOME_TITLE_LIMIT }),
+    db
+      .select()
+      .from(categoriesTable)
+      .where(eq(categoriesTable.kind, "genre"))
+      .limit(50),
   ]);
   const profileMaturity = await getCinemaProfileMaturity(req);
   const profileFilteredTitles = req.user
@@ -139,14 +145,19 @@ router.get("/cinema/home", attachUserId, async (req, res): Promise<void> => {
   const catalogTitles = profileFilteredTitles.map(toCinemaCatalogCard);
 
   const rows = [
-    { title: "New on Kryv", items: catalogTitles },
+    {
+      title: "New on Kryv",
+      items: catalogTitles.slice(0, CINEMA_HOME_ROW_LIMIT),
+    },
     ...genres.map((genre) => ({
       title: genre.name,
-      items: catalogTitles.filter((title) =>
-        title.genres.some(
-          (value) => value.toLowerCase() === genre.name.toLowerCase(),
-        ),
-      ),
+      items: catalogTitles
+        .filter((title) =>
+          title.genres.some(
+            (value) => value.toLowerCase() === genre.name.toLowerCase(),
+          ),
+        )
+        .slice(0, CINEMA_HOME_ROW_LIMIT),
     })),
   ].filter((row) => row.items.length > 0);
 

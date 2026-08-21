@@ -804,6 +804,16 @@ export const SearchKryvQueryParams = zod.object({
   "q": zod.coerce.string().min(searchKryvQueryQMin).max(searchKryvQueryQMax)
 })
 
+export const searchKryvResponseChannelsMax = 8;
+
+export const searchKryvResponseVideosMax = 8;
+
+export const searchKryvResponseClipsMax = 8;
+
+export const searchKryvResponseCinemaMax = 8;
+
+
+
 export const SearchKryvResponse = zod.object({
   "channels": zod.array(zod.object({
   "id": zod.number(),
@@ -824,7 +834,7 @@ export const SearchKryvResponse = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
   "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
   "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
-})),
+})).max(searchKryvResponseChannelsMax),
   "videos": zod.array(zod.object({
   "id": zod.number(),
   "title": zod.string(),
@@ -845,7 +855,7 @@ export const SearchKryvResponse = zod.object({
   "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
-})),
+})).max(searchKryvResponseVideosMax),
   "clips": zod.array(zod.object({
   "id": zod.number(),
   "title": zod.string(),
@@ -858,7 +868,7 @@ export const SearchKryvResponse = zod.object({
   "processingStatus": zod.enum(['processing', 'ready', 'errored']),
   "playbackId": zod.string().nullable().describe('FastPix playback ID. Present only when the clip is ready for playback.'),
   "createdAt": zod.coerce.date()
-})),
+})).max(searchKryvResponseClipsMax),
   "cinema": zod.array(zod.object({
   "id": zod.number(),
   "slug": zod.string(),
@@ -875,7 +885,7 @@ export const SearchKryvResponse = zod.object({
   "trailerPlaybackId": zod.string().nullable(),
   "entitlementType": zod.enum(['free', 'subscription', 'rental', 'purchase']),
   "publishedAt": zod.coerce.date().nullable()
-}))
+})).max(searchKryvResponseCinemaMax)
 })
 
 
@@ -1125,7 +1135,13 @@ export const GetCreatorProfileParams = zod.object({
   "slug": zod.coerce.string()
 })
 
+export const getCreatorProfileResponseLiveRecentStreamsMax = 6;
+
+export const getCreatorProfileResponseWatchMax = 48;
+
 export const getCreatorProfileResponseWatchTotalMin = 0;
+
+export const getCreatorProfileResponseCinemaCreditsMax = 50;
 
 
 
@@ -1172,7 +1188,7 @@ export const GetCreatorProfileResponse = zod.object({
   "startedAt": zod.coerce.date(),
   "endedAt": zod.coerce.date().nullable(),
   "durationSeconds": zod.number().nullable()
-}))
+})).max(getCreatorProfileResponseLiveRecentStreamsMax)
 }),
   "watch": zod.array(zod.object({
   "id": zod.number(),
@@ -1194,7 +1210,7 @@ export const GetCreatorProfileResponse = zod.object({
   "youtubeVideoId": zod.string().nullable().describe('Official YouTube video identifier. Present only for rights-attested YouTube embeds.'),
   "uploadStatus": zod.enum(['waiting', 'processing', 'ready', 'errored']),
   "createdAt": zod.coerce.date()
-})).describe('Newest ready Watch uploads, capped at 48 for a responsive profile rail.'),
+})).max(getCreatorProfileResponseWatchMax).describe('Newest ready Watch uploads, capped at 48 for a responsive profile rail.'),
   "watchTotal": zod.number().min(getCreatorProfileResponseWatchTotalMin).describe('Total ready Watch uploads for this creator, including releases beyond the initial profile rail.'),
   "cinemaCredits": zod.array(zod.object({
   "id": zod.number(),
@@ -1214,7 +1230,7 @@ export const GetCreatorProfileResponse = zod.object({
   "publishedAt": zod.coerce.date().nullable()
 }).and(zod.object({
   "role": zod.string()
-})))
+}))).max(getCreatorProfileResponseCinemaCreditsMax)
 })
 
 

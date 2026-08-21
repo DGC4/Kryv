@@ -746,6 +746,21 @@ requireMatch(
   "Unified Discover search must use the shared literal ILIKE pattern.",
 );
 requireMatch(
+  cinemaCatalog,
+  /searchPublishedCinemaTitles[\s\S]*?eq\(cinemaTitlesTable\.publishState, "published"\)[\s\S]*?ilike\(cinemaTitlesTable\.title, pattern\)[\s\S]*?ilike\(cinemaTitlesTable\.synopsis, pattern\)[\s\S]*?\.limit\(limit\)/,
+  "Cinema search must use a bounded SQL title-or-synopsis filter over published catalog records.",
+);
+requireMatch(
+  discoverRoute,
+  /searchPublishedCinemaTitles\(pattern, 8\)[\s\S]*?const cinema = cinemaCatalog/,
+  "Discover search must use the bounded published Cinema query instead of scanning the full catalog in memory.",
+);
+requireMatch(
+  apiSpec,
+  /SearchResults:[\s\S]*?channels:[\s\S]*?maxItems: 8[\s\S]*?videos:[\s\S]*?maxItems: 8[\s\S]*?clips:[\s\S]*?maxItems: 8[\s\S]*?cinema:[\s\S]*?maxItems: 8/,
+  "SearchResults must explicitly document the eight-item cap for every compact result group.",
+);
+requireMatch(
   discoverRoute,
   /refreshLiveChannelViewerCounts\(\s*persistedLiveChannels/,
   "Discover must use the shared bounded FastPix viewer-refresh helper.",
@@ -1156,6 +1171,21 @@ requireMatch(
   "Creator profile responses must disclose the full ready Watch release count.",
 );
 requireMatch(
+  cinemaCatalog,
+  /getPublishedCinemaTitlesByIds[\s\S]*?new Set\(titleIds\)[\s\S]*?eq\(cinemaTitlesTable\.publishState, "published"\)[\s\S]*?inArray\(cinemaTitlesTable\.id, uniqueTitleIds\)/,
+  "Creator-scoped Cinema hydration must query only distinct requested published title IDs.",
+);
+requireMatch(
+  creatorProfileRoute,
+  /MAX_CREATOR_PROFILE_CINEMA_CREDITS = 50[\s\S]*?cinemaCreditsTable\.channelId, channel\.id[\s\S]*?\.limit\(MAX_CREATOR_PROFILE_CINEMA_CREDITS\)[\s\S]*?getPublishedCinemaTitlesByIds\([\s\S]*?creditRows\.map/,
+  "Creator profiles must cap Cinema credit rails and hydrate only the creator's credited title IDs.",
+);
+requireMatch(
+  apiSpec,
+  /CreatorProfile:[\s\S]*?watch:[\s\S]*?maxItems: 48[\s\S]*?cinemaCredits:[\s\S]*?maxItems: 50[\s\S]*?CreatorProfileLive:[\s\S]*?recentStreams:[\s\S]*?maxItems: 6/,
+  "Creator profile contracts must expose explicit Watch, Cinema-credit, and recent-stream rail limits.",
+);
+requireMatch(
   watchHome,
   /channelId: creatorChannelId/,
   "Watch home must accept the creator-profile channel filter in its bounded browse query.",
@@ -1479,6 +1509,16 @@ requireMatch(
   cinemaCatalog,
   /where\(and\([\s\S]*?eq\(cinemaTitlesTable\.id, id\)[\s\S]*?eq\(cinemaTitlesTable\.publishState, "published"\)/,
   "Cinema detail must fetch the requested published title directly rather than scanning the full catalog.",
+);
+requireMatch(
+  cinemaCatalog,
+  /getPublishedCinemaTitles\(options\?:[\s\S]*?options\?\.limit === undefined[\s\S]*?query\.limit\(options\.limit\)/,
+  "Cinema catalog retrieval must retain the reviewed optional bounded-query path for constrained consumers.",
+);
+requireMatch(
+  cinemaRoute,
+  /CINEMA_HOME_TITLE_LIMIT = 120[\s\S]*?CINEMA_HOME_ROW_LIMIT = 24[\s\S]*?getPublishedCinemaTitles\(\{ limit: CINEMA_HOME_TITLE_LIMIT \}\)[\s\S]*?categoriesTable\.kind, "genre"[\s\S]*?\.limit\(50\)[\s\S]*?catalogTitles\.slice\(0, CINEMA_HOME_ROW_LIMIT\)[\s\S]*?\.slice\(0, CINEMA_HOME_ROW_LIMIT\)/,
+  "Cinema home must bound its preload, genre lookup, and each returned rail while retaining profile-aware catalog construction.",
 );
 requireMatch(
   apiSpec,

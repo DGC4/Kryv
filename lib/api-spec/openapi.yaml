@@ -3569,6 +3569,7 @@ components:
         watch:
           description: Newest ready Watch uploads, capped at 48 for a responsive profile rail.
           type: array
+          maxItems: 48
           items:
             $ref: "#/components/schemas/VideoSummary"
         watchTotal:
@@ -3577,6 +3578,7 @@ components:
           minimum: 0
         cinemaCredits:
           type: array
+          maxItems: 50
           items:
             $ref: "#/components/schemas/CreatorCinemaCredit"
 
@@ -3590,6 +3592,7 @@ components:
         categoryName: { type: ["string", "null"] }
         recentStreams:
           type: array
+          maxItems: 6
           items:
             $ref: "#/components/schemas/CreatorProfileStream"
 
@@ -3784,15 +3787,19 @@ components:
       properties:
         channels:
           type: array
+          maxItems: 8
           items: { $ref: "#/components/schemas/ChannelSummary" }
         videos:
           type: array
+          maxItems: 8
           items: { $ref: "#/components/schemas/VideoSummary" }
         clips:
           type: array
+          maxItems: 8
           items: { $ref: "#/components/schemas/ClipSummary" }
         cinema:
           type: array
+          maxItems: 8
           items: { $ref: "#/components/schemas/CinemaTitle" }
 
     CryptoCurrency:
