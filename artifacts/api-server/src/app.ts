@@ -259,6 +259,24 @@ const guestCheckoutLimiter = rateLimit({
   message: { error: "Too many guest checkout attempts. Please wait before trying again." },
 });
 
+// Creator payout profile and payout-request writes can change an encrypted
+// destination or reserve creator funds. Keep them well below the general API
+// ceiling while allowing ordinary Creator Wallet reads and status refreshes.
+const creatorPayoutMutationLimiter = rateLimit({
+  store: sharedRateLimitStore("kryv:rate:creator-payout:"),
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) =>
+    req.method !== "POST" ||
+    !/^\/payout-(profiles|requests)\/?$/.test(req.path),
+  message: {
+    error:
+      "Too many creator payout requests. Please wait before changing a payout destination or requesting a payout.",
+  },
+});
+
 // Search is public and can invoke multiple catalog reads and ranking paths. Keep a
 // dedicated ceiling below the general API limiter to reduce bulk enumeration and
 // expensive wildcard-style probing while allowing ordinary debounced UI search.
@@ -336,6 +354,7 @@ app.use("/api/videos", (req, res, next) => {
   }
   next();
 });
+app.use("/api/creator/finance", creatorPayoutMutationLimiter);
 app.use("/api/search", searchLimiter);
 app.use("/api/ads/decision", adDecisionLimiter);
 app.use("/api", apiLimiter);

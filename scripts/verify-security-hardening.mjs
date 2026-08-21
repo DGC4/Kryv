@@ -55,6 +55,7 @@ const [
   adminRoute,
   adminDashboard,
   creatorProfileRoute,
+  creatorFinanceRoute,
   searchLib,
   ownerCinemaRoute,
   watchHome,
@@ -127,6 +128,7 @@ const [
   source("artifacts/api-server/src/routes/admin.ts"),
   source("artifacts/blyze/src/pages/dashboard/Admin.tsx"),
   source("artifacts/api-server/src/routes/profiles.ts"),
+  source("artifacts/api-server/src/routes/creator-finance.ts"),
   source("artifacts/api-server/src/lib/search.ts"),
   source("artifacts/api-server/src/routes/owner-cinema.ts"),
   source("artifacts/blyze/src/pages/watch/Home.tsx"),
@@ -702,8 +704,13 @@ requireMatch(
 );
 requireMatch(
   appServer,
-  /app\.use\("\/api\/ads\/decision", adDecisionLimiter\);/,
-  "Advertising decision evaluation must be narrowly mounted behind its dedicated rate limiter.",
+  /app\.use\("\/api\/ads\/decision", adDecisionLimiter\)/,
+  "Advertising decisions must retain their dedicated rate limiter mount.",
+);
+requireMatch(
+  appServer,
+  /creatorPayoutMutationLimiter[\s\S]*?kryv:rate:creator-payout:[\s\S]*?windowMs: 15 \* 60 \* 1000[\s\S]*?max: 8[\s\S]*?req\.method !== "POST"[\s\S]*?payout-\(profiles\|requests\)[\s\S]*?app\.use\("\/api\/creator\/finance", creatorPayoutMutationLimiter\)/,
+  "Creator payout profile and payout-request mutations must retain a dedicated shared low-volume rate limit.",
 );
 requireMatch(
   appServer,
@@ -1179,6 +1186,11 @@ requireMatch(
   creatorProfileRoute,
   /MAX_CREATOR_PROFILE_CINEMA_CREDITS = 50[\s\S]*?cinemaCreditsTable\.channelId, channel\.id[\s\S]*?\.limit\(MAX_CREATOR_PROFILE_CINEMA_CREDITS\)[\s\S]*?getPublishedCinemaTitlesByIds\([\s\S]*?creditRows\.map/,
   "Creator profiles must cap Cinema credit rails and hydrate only the creator's credited title IDs.",
+);
+requireMatch(
+  creatorFinanceRoute,
+  /normalizeCryptoAmount\(parsed\.data\.amount\)[\s\S]*?compareCryptoAmounts\(amount, "0"\) <= 0[\s\S]*?SELECT id FROM creator_payout_profiles WHERE id = \$\{profile\.id\} FOR UPDATE[\s\S]*?reviewStatus, "approved"[\s\S]*?confirmationStatus, "confirmed"[\s\S]*?SELECT id FROM creator_balances WHERE channel_id = \$\{channel\.id\} AND currency = \$\{parsed\.data\.currency\} FOR UPDATE[\s\S]*?compareCryptoAmounts\(String\(balance\.availableAmount\), amount\) < 0/,
+  "Creator payout reservation must normalize exact crypto amounts and revalidate the locked approved destination before atomically reserving balance.",
 );
 requireMatch(
   apiSpec,

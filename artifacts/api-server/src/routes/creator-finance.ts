@@ -22,6 +22,7 @@ import {
 import { getPlisioAssetSnapshots, isSupportedKryvCryptoCode, type KryvCryptoCode } from "../lib/plisio";
 import { requireAuth } from "../lib/auth";
 import { writeAuditLog } from "../lib/operations";
+import { compareCryptoAmounts, normalizeCryptoAmount } from "../lib/creatorFees";
 
 const router: IRouter = Router();
 const SUPPORTED_CURRENCIES = ["BTC", "LTC", "ETH", "DOGE"] as const;
@@ -357,16 +358,59 @@ router.post("/creator/finance/payout-requests", async (req, res): Promise<void> 
       throw new CreatorFinanceError("Complete the Creator Payout Ready achievements before requesting a payout.", 403);
     }
 
-    const amount = parsed.data.amount;
+    let amount: string;
+    try {
+      amount = normalizeCryptoAmount(parsed.data.amount);
+    } catch {
+      throw new CreatorFinanceError("The payout amount is not a valid crypto amount.");
+    }
+    if (compareCryptoAmounts(amount, "0") <= 0) {
+      throw new CreatorFinanceError("The payout amount must be greater than zero.");
+    }
     const idempotencyKey = `creator-payout:${channel.id}:${crypto.randomUUID()}`;
     const payout = await db.transaction(async (txn) => {
-      await txn.execute(sql`SELECT id FROM creator_balances WHERE channel_id = ${channel.id} AND currency = ${parsed.data.currency} FOR UPDATE`);
+      // Revalidate the destination after locking it: owner revocation or profile
+      // replacement cannot race an otherwise eligible payout reservation.
+      await txn.execute(
+        sql`SELECT id FROM creator_payout_profiles WHERE id = ${profile.id} FOR UPDATE`,
+      );
+      const [lockedProfile] = await txn
+        .select()
+        .from(creatorPayoutProfilesTable)
+        .where(
+          and(
+            eq(creatorPayoutProfilesTable.id, profile.id),
+            eq(creatorPayoutProfilesTable.channelId, channel.id),
+            eq(creatorPayoutProfilesTable.currency, parsed.data.currency),
+            eq(creatorPayoutProfilesTable.reviewStatus, "approved"),
+            eq(creatorPayoutProfilesTable.confirmationStatus, "confirmed"),
+          ),
+        )
+        .limit(1);
+      if (!lockedProfile) {
+        throw new CreatorFinanceError(
+          "The payout destination is no longer approved and confirmed.",
+          403,
+        );
+      }
+
+      await txn.execute(
+        sql`SELECT id FROM creator_balances WHERE channel_id = ${channel.id} AND currency = ${parsed.data.currency} FOR UPDATE`,
+      );
       const [balance] = await txn
         .select()
         .from(creatorBalancesTable)
-        .where(and(eq(creatorBalancesTable.channelId, channel.id), eq(creatorBalancesTable.currency, parsed.data.currency)))
+        .where(
+          and(
+            eq(creatorBalancesTable.channelId, channel.id),
+            eq(creatorBalancesTable.currency, parsed.data.currency),
+          ),
+        )
         .limit(1);
-      if (!balance || Number(balance.availableAmount) < Number(amount)) {
+      if (
+        !balance ||
+        compareCryptoAmounts(String(balance.availableAmount), amount) < 0
+      ) {
         throw new CreatorFinanceError("The requested amount exceeds your available creator balance.");
       }
 
@@ -378,8 +422,8 @@ router.post("/creator/finance/payout-requests", async (req, res): Promise<void> 
           currency: parsed.data.currency,
           amount,
           destinationReference: null,
-          payoutProfileId: profile.id,
-          destinationMasked: profile.addressMasked,
+          payoutProfileId: lockedProfile.id,
+          destinationMasked: lockedProfile.addressMasked,
           requestSource: "manual",
           status: "requested",
           provider: "plisio",
@@ -405,7 +449,10 @@ router.post("/creator/finance/payout-requests", async (req, res): Promise<void> 
         sourceType: "payout_request",
         sourceId: String(created.id),
         idempotencyKey: `movement:${idempotencyKey}`,
-        metadata: { requestSource: "manual", destinationMasked: profile.addressMasked },
+        metadata: {
+          requestSource: "manual",
+          destinationMasked: lockedProfile.addressMasked,
+        },
       });
       return created;
     });
