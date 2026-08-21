@@ -13,6 +13,13 @@ import { z } from "zod";
 
 const router = Router();
 
+// Authentication responses can establish, rotate, or revoke an HttpOnly session.
+// Keep both success and error responses out of browser and intermediary caches.
+router.use((_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 const signupSchema = z.object({
   email: z.string().email().max(320),
   username: z.string().trim().min(3).max(30).regex(/^[A-Za-z0-9_]+$/, "Use only letters, numbers, and underscores."),

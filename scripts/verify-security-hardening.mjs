@@ -217,6 +217,11 @@ requireMatch(
 );
 requireMatch(
   authRoute,
+  /router\.use\(\(_req, res, next\) => \{[\s\S]*?res\.setHeader\("Cache-Control", "no-store"\)[\s\S]*?next\(\);[\s\S]*?\}\);/,
+  "Authentication responses must remain non-cacheable before any session can be established or changed.",
+);
+requireMatch(
+  authRoute,
   /username\.toLowerCase\(\) === OWNER_USERNAME\.toLowerCase\(\)/,
   "Reserved owner display name must be protected.",
 );
