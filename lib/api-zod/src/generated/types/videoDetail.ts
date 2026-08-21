@@ -12,6 +12,9 @@ export type VideoDetail = VideoSummary & ({
   /** @nullable */
   description: string | null;
   isOwner: boolean;
-  /** Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published. */
+  /**
+     * Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.
+     * @maxItems 20
+     */
   musicCredits: VideoMusicCredit[];
 });

@@ -81,6 +81,12 @@ const [
   notificationFanoutIndexMigration,
   notificationFanoutIndexValidation,
   followsSchema,
+  notificationPreferenceIntegrityMigration,
+  notificationPreferenceIntegrityValidation,
+  streamingSchema,
+  viewerDefaultIntegrityMigration,
+  viewerDefaultIntegrityValidation,
+  platformSchema,
 ] = await Promise.all([
   source("artifacts/api-server/src/lib/auth.ts"),
   source("artifacts/api-server/src/routes/auth.ts"),
@@ -145,6 +151,12 @@ const [
   source("lib/db/drizzle/0026_notification_fanout_query_indexes.sql"),
   source("KRYV_NOTIFICATION_FANOUT_INDEX_NEON_VALIDATION.md"),
   source("lib/db/src/schema/follows.ts"),
+  source("lib/db/drizzle/0027_notification_preference_integrity.sql"),
+  source("KRYV_NOTIFICATION_PREFERENCE_INTEGRITY_NEON_VALIDATION.md"),
+  source("lib/db/src/schema/streaming.ts"),
+  source("lib/db/drizzle/0028_viewer_profile_default_integrity.sql"),
+  source("KRYV_VIEWER_PROFILE_DEFAULT_INTEGRITY_NEON_VALIDATION.md"),
+  source("lib/db/src/schema/platform.ts"),
 ]);
 
 requireMatch(authLib, /httpOnly:\s*true/, "Secure sessions must be HttpOnly.");
@@ -606,8 +618,13 @@ requireMatch(
 );
 requireMatch(
   meRoute,
-  /!channel\.matureContent \|\| profileMaturity === "mature"/,
-  "Account-summary followed channels must filter mature Live rooms by active profile maturity.",
+  /const MAX_ACCOUNT_SUMMARY_FOLLOWED_CHANNELS = 50[\s\S]*?getActiveProfileMaturity\(req\)[\s\S]*?profileMaturity === "mature"[\s\S]*?eq\(channelsTable\.matureContent, false\)[\s\S]*?orderBy\(desc\(followsTable\.createdAt\), desc\(followsTable\.id\)\)[\s\S]*?\.limit\(MAX_ACCOUNT_SUMMARY_FOLLOWED_CHANNELS\)[\s\S]*?toChannelSummaries\([\s\S]*?followedRows\.map/,
+  "Account-summary followed channels must apply profile maturity in SQL before stable bounded retrieval and batched hydration.",
+);
+requireMatch(
+  apiSpec,
+  /Me:[\s\S]*?followedChannels:[\s\S]*?type: array[\s\S]*?maxItems: 50[\s\S]*?ChannelSummary/,
+  "Account-summary followed channels must retain an explicit 50-item response contract cap.",
 );
 requireMatch(
   appServer,
@@ -960,9 +977,19 @@ requireMatch(
   "Watch music-credit validation must clearly reject malformed or credential-bearing external URLs.",
 );
 requireMatch(
+  videoSerializer,
+  /MAX_VIDEO_MUSIC_CREDITS = 20[\s\S]*?videoMusicCreditsTable[\s\S]*?\.orderBy\(asc\(videoMusicCreditsTable\.displayOrder\), asc\(videoMusicCreditsTable\.createdAt\)\)[\s\S]*?\.limit\(MAX_VIDEO_MUSIC_CREDITS\)/,
+  "Public Watch detail must retain the shared bounded music-credit hydration query.",
+);
+requireMatch(
   videosRoute,
-  /MAX_VIDEO_MUSIC_CREDITS = 20[\s\S]*?orderBy\(videoMusicCreditsTable\.displayOrder, videoMusicCreditsTable\.createdAt\)[\s\S]*?\.limit\(MAX_VIDEO_MUSIC_CREDITS\)/,
-  "Watch music-credit retrieval must retain a bounded display query.",
+  /MAX_VIDEO_MUSIC_CREDITS[\s\S]*?orderBy\(videoMusicCreditsTable\.displayOrder, videoMusicCreditsTable\.createdAt\)[\s\S]*?\.limit\(MAX_VIDEO_MUSIC_CREDITS\)/,
+  "Owner Watch music-credit retrieval must use the shared bounded display query.",
+);
+requireMatch(
+  apiSpec,
+  /\/videos\/\{id\}\/music-credits:[\s\S]*?type: array[\s\S]*?maxItems: 20[\s\S]*?VideoMusicCredit[\s\S]*?musicCredits:[\s\S]*?type: array[\s\S]*?maxItems: 20/,
+  "Watch credit list and detail contracts must explicitly cap music-credit responses at 20 items.",
 );
 requireMatch(
   videosRoute,
@@ -1338,6 +1365,61 @@ requireMatch(
   notificationFanoutIndexValidation,
   /No production promotion has occurred[\s\S]*?no production promotion is authorized/,
   "Fan-out index validation evidence must explicitly prohibit unapproved production promotion.",
+);
+requireMatch(
+  meRoute,
+  /router\.put\([\s\S]*?"\/me\/notification-preferences"[\s\S]*?SELECT id FROM users WHERE id = \$\{userId\} FOR UPDATE[\s\S]*?isNull\(notificationPreferencesTable\.channelId\)[\s\S]*?\.insert\(notificationPreferencesTable\)[\s\S]*?action: "notification_preferences_updated"[\s\S]*?sessionId: req\.user!\.sessionId \?\? null/,
+  "Global notification-preference mutations must serialize the empty-row check and insert, then preserve an auditable session-bound record.",
+);
+requireMatch(
+  notificationPreferenceIntegrityMigration,
+  /CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS notification_preferences_global_user_unique[\s\S]*?user_id[\s\S]*?WHERE channel_id IS NULL/,
+  "Production-pending notification-preference integrity must use a concurrent partial unique index.",
+);
+requireMatch(
+  streamingSchema,
+  /globalUserUnique: uniqueIndex\("notification_preferences_global_user_unique"\)[\s\S]*?\.on\(table\.userId\)[\s\S]*?\.where\(isNull\(table\.channelId\)\)/,
+  "Drizzle notification-preference metadata must retain the global partial unique index.",
+);
+requireMatch(
+  notificationPreferenceIntegrityValidation,
+  /zero rows[\s\S]*?notification_preferences_global_user_unique[\s\S]*?must run outside a transaction/,
+  "Notification-preference index validation must record duplicate preflight and the concurrent-build boundary.",
+);
+requireMatch(
+  notificationPreferenceIntegrityValidation,
+  /No production promotion has occurred[\s\S]*?no production promotion is authorized/,
+  "Notification-preference validation evidence must explicitly prohibit unapproved production promotion.",
+);
+requireMatch(
+  profileRoute,
+  /router\.patch\([\s\S]*?"\/me\/profiles\/:id"[\s\S]*?SELECT id FROM users WHERE id = \$\{userId\} FOR UPDATE[\s\S]*?existing\.isDefault && parsed\.data\.isDefault === false[\s\S]*?parsed\.data\.isDefault === true[\s\S]*?isDefault: false/,
+  "Viewer-profile default reassignment must revalidate and serialize profile state inside the account lock.",
+);
+requireMatch(
+  profileRoute,
+  /router\.delete\([\s\S]*?"\/me\/profiles\/:id"[\s\S]*?SELECT id FROM users WHERE id = \$\{userId\} FOR UPDATE[\s\S]*?profile\.isDefault[\s\S]*?\.delete\(viewerProfilesTable\)/,
+  "Viewer-profile deletion must revalidate default state inside the shared account lock before removal.",
+);
+requireMatch(
+  viewerDefaultIntegrityMigration,
+  /CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS viewer_profiles_default_user_unique[\s\S]*?user_id[\s\S]*?WHERE is_default = true/,
+  "Production-pending viewer-default integrity must use a concurrent partial unique index.",
+);
+requireMatch(
+  platformSchema,
+  /defaultUserUnique: uniqueIndex\("viewer_profiles_default_user_unique"\)[\s\S]*?\.on\(table\.userId\)[\s\S]*?\.where\(sql`\$\{table\.isDefault\} = true`\)/,
+  "Drizzle viewer-profile metadata must retain the default-account partial unique index.",
+);
+requireMatch(
+  viewerDefaultIntegrityValidation,
+  /zero rows[\s\S]*?viewer_profiles_default_user_unique[\s\S]*?must run outside a transaction/,
+  "Viewer-default index validation must record duplicate preflight and the concurrent-build boundary.",
+);
+requireMatch(
+  viewerDefaultIntegrityValidation,
+  /No production promotion has occurred[\s\S]*?no production promotion is authorized/,
+  "Viewer-default validation evidence must explicitly prohibit unapproved production promotion.",
 );
 requireMatch(
   fastpixLib,

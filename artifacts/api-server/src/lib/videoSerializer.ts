@@ -13,6 +13,8 @@ type VideoSummaryChannel =
   | null
   | undefined;
 
+export const MAX_VIDEO_MUSIC_CREDITS = 20;
+
 function publicPlaybackSource(video: Video): "fastpix" | "youtube" {
   // `playback_source` was introduced after early Watch records existed and is
   // stored as unconstrained text. A YouTube response is valid only when an
@@ -127,7 +129,8 @@ export async function toVideoDetail(
       .select()
       .from(videoMusicCreditsTable)
       .where(eq(videoMusicCreditsTable.videoId, video.id))
-      .orderBy(asc(videoMusicCreditsTable.displayOrder), asc(videoMusicCreditsTable.createdAt)),
+      .orderBy(asc(videoMusicCreditsTable.displayOrder), asc(videoMusicCreditsTable.createdAt))
+      .limit(MAX_VIDEO_MUSIC_CREDITS),
   ]);
   const summary = toVideoSummaryFromRelations(video, channel, categoryName);
   return {

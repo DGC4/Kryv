@@ -31,6 +31,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, attachUserId } from "../lib/auth";
 import {
+  MAX_VIDEO_MUSIC_CREDITS,
   toVideoSummaryFromRelations,
   toVideoDetail,
   toVideoMusicCredit,
@@ -42,7 +43,6 @@ import { watchHistoryTable } from "@workspace/db";
 import { literalIlikePattern } from "../lib/search";
 
 const router: IRouter = Router();
-const MAX_VIDEO_MUSIC_CREDITS = 20;
 
 function optionalTrimmed(value: string | undefined) {
   const trimmed = value?.trim();

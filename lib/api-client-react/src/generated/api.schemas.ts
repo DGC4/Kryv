@@ -870,7 +870,10 @@ export type VideoDetail = VideoSummary & ({
   /** @nullable */
   description: string | null;
   isOwner: boolean;
-  /** Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published. */
+  /**
+     * Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.
+     * @maxItems 20
+     */
   musicCredits: VideoMusicCredit[];
 });
 
@@ -1812,6 +1815,7 @@ export interface Me {
   avatarUrl: string | null;
   role: MeRole;
   channel: ChannelSummary | null;
+  /** @maxItems 50 */
   followedChannels: ChannelSummary[];
 }
 

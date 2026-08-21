@@ -49,6 +49,7 @@ import {
 
 const router: IRouter = Router();
 const MAX_VIEWER_PROFILES = 5;
+const MAX_ACCOUNT_SUMMARY_FOLLOWED_CHANNELS = 50;
 const PROFILE_PIN_MAX_ATTEMPTS = 5;
 const PROFILE_PIN_WINDOW_MS = 15 * 60 * 1000;
 
@@ -397,33 +398,29 @@ router.patch(
     }
 
     const userId = req.user!.userId;
-    const [existing] = await db
-      .select()
-      .from(viewerProfilesTable)
-      .where(
-        and(
-          eq(viewerProfilesTable.id, params.data.id),
-          eq(viewerProfilesTable.userId, userId),
-        ),
-      );
+    const result = await db.transaction(async (tx) => {
+      // Profile creation, default initialization, and default reassignment all
+      // share this account-level lock so exactly one default can emerge.
+      await tx.execute(sql`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`);
+      const [existing] = await tx
+        .select()
+        .from(viewerProfilesTable)
+        .where(
+          and(
+            eq(viewerProfilesTable.id, params.data.id),
+            eq(viewerProfilesTable.userId, userId),
+          ),
+        )
+        .limit(1);
+      if (!existing) return { profile: null, defaultUnsetBlocked: false };
+      if (existing.isDefault && parsed.data.isDefault === false) {
+        return { profile: null, defaultUnsetBlocked: true };
+      }
 
-    if (!existing) {
-      res.status(404).json({ error: "Viewer profile not found" });
-      return;
-    }
-    if (existing.isDefault && parsed.data.isDefault === false) {
-      res.status(400).json({
-        error:
-          "Choose another profile as default before changing this profile.",
-      });
-      return;
-    }
-
-    const isKidsProfile = parsed.data.isKidsProfile ?? existing.isKidsProfile;
-    const nextMaturityLevel = isKidsProfile
-      ? "kids"
-      : (parsed.data.maturityLevel ?? existing.maturityLevel);
-    const updated = await db.transaction(async (tx) => {
+      const isKidsProfile = parsed.data.isKidsProfile ?? existing.isKidsProfile;
+      const nextMaturityLevel = isKidsProfile
+        ? "kids"
+        : (parsed.data.maturityLevel ?? existing.maturityLevel);
       if (parsed.data.isDefault === true) {
         await tx
           .update(viewerProfilesTable)
@@ -455,11 +452,17 @@ router.patch(
         )
         .returning();
 
-      return profile;
+      return { profile: profile ?? null, defaultUnsetBlocked: false };
     });
-
+    if (result.defaultUnsetBlocked) {
+      res.status(400).json({
+        error: "Choose another profile as default before changing this profile.",
+      });
+      return;
+    }
+    const updated = result.profile;
     if (!updated) {
-      res.status(500).json({ error: "Unable to update viewer profile" });
+      res.status(404).json({ error: "Viewer profile not found" });
       return;
     }
 
@@ -490,38 +493,49 @@ router.delete(
       return;
     }
 
-    const [profile] = await db
-      .select()
-      .from(viewerProfilesTable)
-      .where(
-        and(
-          eq(viewerProfilesTable.id, params.data.id),
-          eq(viewerProfilesTable.userId, req.user!.userId),
-        ),
-      );
+    const userId = req.user!.userId;
+    const result = await db.transaction(async (tx) => {
+      // Deletion shares the account-level default-profile lock with profile
+      // creation and reassignment, so its default check cannot become stale.
+      await tx.execute(sql`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`);
+      const [profile] = await tx
+        .select()
+        .from(viewerProfilesTable)
+        .where(
+          and(
+            eq(viewerProfilesTable.id, params.data.id),
+            eq(viewerProfilesTable.userId, userId),
+          ),
+        )
+        .limit(1);
+      if (!profile) return { profile: null, defaultBlocked: false };
+      if (profile.isDefault) return { profile: null, defaultBlocked: true };
 
-    if (!profile) {
-      res.status(404).json({ error: "Viewer profile not found" });
-      return;
-    }
-    if (profile.isDefault) {
+      await tx
+        .delete(viewerProfilesTable)
+        .where(
+          and(
+            eq(viewerProfilesTable.id, profile.id),
+            eq(viewerProfilesTable.userId, userId),
+          ),
+        );
+      return { profile, defaultBlocked: false };
+    });
+    if (result.defaultBlocked) {
       res
         .status(400)
         .json({ error: "The default viewer profile cannot be deleted." });
       return;
     }
+    const profile = result.profile;
+    if (!profile) {
+      res.status(404).json({ error: "Viewer profile not found" });
+      return;
+    }
 
-    await db
-      .delete(viewerProfilesTable)
-      .where(
-        and(
-          eq(viewerProfilesTable.id, profile.id),
-          eq(viewerProfilesTable.userId, req.user!.userId),
-        ),
-      );
     clearActiveProfileGrant(res);
     await db.insert(auditLogsTable).values({
-      actorUserId: req.user!.userId,
+      actorUserId: userId,
       action: "viewer_profile_deleted",
       targetType: "viewer_profile",
       targetId: String(profile.id),
@@ -753,27 +767,50 @@ router.put(
       return;
     }
     const userId = req.user!.userId;
-    const [existing] = await db
-      .select({ id: notificationPreferencesTable.id })
-      .from(notificationPreferencesTable)
-      .where(
-        and(
-          eq(notificationPreferencesTable.userId, userId),
-          isNull(notificationPreferencesTable.channelId),
-        ),
-      )
-      .limit(1);
+    const preference = await db.transaction(async (tx) => {
+      // Serialize the global-preference lookup and mutation so parallel browser
+      // requests cannot both observe an empty row and insert competing defaults.
+      await tx.execute(sql`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`);
+      const [existing] = await tx
+        .select({ id: notificationPreferencesTable.id })
+        .from(notificationPreferencesTable)
+        .where(
+          and(
+            eq(notificationPreferencesTable.userId, userId),
+            isNull(notificationPreferencesTable.channelId),
+          ),
+        )
+        .limit(1);
 
-    const [preference] = existing
-      ? await db
-          .update(notificationPreferencesTable)
-          .set(parsed.data)
-          .where(eq(notificationPreferencesTable.id, existing.id))
-          .returning()
-      : await db
-          .insert(notificationPreferencesTable)
-          .values({ userId, ...parsed.data })
-          .returning();
+      const [updated] = existing
+        ? await tx
+            .update(notificationPreferencesTable)
+            .set(parsed.data)
+            .where(eq(notificationPreferencesTable.id, existing.id))
+            .returning()
+        : await tx
+            .insert(notificationPreferencesTable)
+            .values({ userId, ...parsed.data })
+            .returning();
+      return updated;
+    });
+    if (!preference) {
+      res.status(500).json({ error: "Unable to save notification preferences" });
+      return;
+    }
+    await db.insert(auditLogsTable).values({
+      actorUserId: userId,
+      action: "notification_preferences_updated",
+      targetType: "notification_preferences",
+      targetId: String(preference.id),
+      afterState: {
+        notifyOnLive: preference.notifyOnLive,
+        notifyOnUpload: preference.notifyOnUpload,
+        notifyOnClip: preference.notifyOnClip,
+        emailNotifications: preference.emailNotifications,
+      },
+      sessionId: req.user!.sessionId ?? null,
+    });
 
     res.json({
       notifyOnLive: preference.notifyOnLive,
@@ -851,18 +888,23 @@ router.get("/me", requireAuth, async (req, res): Promise<void> => {
     }
   }
 
+  const profileMaturity = await getActiveProfileMaturity(req);
   const followedRows = await db
     .select({ channel: channelsTable })
     .from(followsTable)
     .innerJoin(channelsTable, eq(followsTable.channelId, channelsTable.id))
-    .where(eq(followsTable.followerUserId, userId));
-  const profileMaturity = await getActiveProfileMaturity(req);
+    .where(
+      and(
+        eq(followsTable.followerUserId, userId),
+        profileMaturity === "mature"
+          ? undefined
+          : eq(channelsTable.matureContent, false),
+      ),
+    )
+    .orderBy(desc(followsTable.createdAt), desc(followsTable.id))
+    .limit(MAX_ACCOUNT_SUMMARY_FOLLOWED_CHANNELS);
   const followedChannels = await toChannelSummaries(
-    followedRows
-      .filter(
-        ({ channel }) => !channel.matureContent || profileMaturity === "mature",
-      )
-      .map(({ channel }) => channel),
+    followedRows.map(({ channel }) => channel),
   );
 
   res.json(

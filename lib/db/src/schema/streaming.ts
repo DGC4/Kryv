@@ -1,5 +1,5 @@
 import { index, pgTable, serial, text, timestamp, integer, boolean, numeric, jsonb, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+import { isNull, sql } from "drizzle-orm";
 import { usersTable } from "./users";
 import { channelsTable } from "./channels";
 import { videosTable } from "./videos";
@@ -363,6 +363,9 @@ export const notificationPreferencesTable = pgTable("notification_preferences", 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   userChannelIdx: index("notification_preferences_user_channel_idx").on(table.userId, table.channelId),
+  globalUserUnique: uniqueIndex("notification_preferences_global_user_unique")
+    .on(table.userId)
+    .where(isNull(table.channelId)),
 }));
 
 // ─── Blocked Users ────────────────────────────────────────────────────────────

@@ -2186,6 +2186,7 @@ paths:
             application/json:
               schema:
                 type: array
+                maxItems: 20
                 items:
                   $ref: "#/components/schemas/VideoMusicCredit"
         "401":
@@ -4305,6 +4306,7 @@ components:
             isOwner: { type: boolean }
             musicCredits:
               type: array
+              maxItems: 20
               description: Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.
               items:
                 $ref: "#/components/schemas/VideoMusicCredit"
@@ -5137,6 +5139,7 @@ components:
             - type: "null"
         followedChannels:
           type: array
+          maxItems: 50
           items:
             $ref: "#/components/schemas/ChannelSummary"
 

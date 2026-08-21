@@ -10,6 +10,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersTable } from "./users";
 import { channelsTable } from "./channels";
 import { videosTable } from "./videos";
@@ -28,6 +29,9 @@ export const viewerProfilesTable = pgTable("viewer_profiles", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   userProfileIdx: index("viewer_profiles_user_idx").on(table.userId, table.createdAt),
+  defaultUserUnique: uniqueIndex("viewer_profiles_default_user_unique")
+    .on(table.userId)
+    .where(sql`${table.isDefault} = true`),
 }));
 
 export const profileWatchStatesTable = pgTable("profile_watch_states", {

@@ -15,5 +15,6 @@ export interface Me {
   avatarUrl: string | null;
   role: MeRole;
   channel: ChannelSummary | null;
+  /** @maxItems 50 */
   followedChannels: ChannelSummary[];
 }

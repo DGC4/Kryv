@@ -20,6 +20,10 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Get current user profile, own channel, and followed channels
  */
+export const getMeResponseFollowedChannelsMax = 50;
+
+
+
 export const GetMeResponse = zod.object({
   "id": zod.number(),
   "username": zod.string(),
@@ -64,7 +68,7 @@ export const GetMeResponse = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
   "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
   "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
-}))
+})).max(getMeResponseFollowedChannelsMax)
 })
 
 
@@ -2264,6 +2268,8 @@ export const CreateVideoBody = zod.object({
 
 export const createVideoResponseOneTwoMusicCreditsItemDisplayOrderMin = 0;
 
+export const createVideoResponseOneTwoMusicCreditsMax = 20;
+
 
 
 export const CreateVideoResponse = zod.object({
@@ -2302,7 +2308,7 @@ export const CreateVideoResponse = zod.object({
   "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
   "rightsAttestedAt": zod.coerce.date(),
   "displayOrder": zod.number().min(createVideoResponseOneTwoMusicCreditsItemDisplayOrderMin)
-})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
+})).max(createVideoResponseOneTwoMusicCreditsMax).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
 })).and(zod.object({
   "uploadUrl": zod.string().nullable().describe('FastPix direct-upload URL — PUT the raw video file here from the browser. Null for official YouTube embeds.')
 }))
@@ -2316,6 +2322,8 @@ export const RefreshVideoProviderStatusParams = zod.object({
 })
 
 export const refreshVideoProviderStatusResponseTwoMusicCreditsItemDisplayOrderMin = 0;
+
+export const refreshVideoProviderStatusResponseTwoMusicCreditsMax = 20;
 
 
 
@@ -2355,7 +2363,7 @@ export const RefreshVideoProviderStatusResponse = zod.object({
   "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
   "rightsAttestedAt": zod.coerce.date(),
   "displayOrder": zod.number().min(refreshVideoProviderStatusResponseTwoMusicCreditsItemDisplayOrderMin)
-})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
+})).max(refreshVideoProviderStatusResponseTwoMusicCreditsMax).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
 }))
 
 
@@ -2471,7 +2479,7 @@ export const ListVideoMusicCreditsResponseItem = zod.object({
   "rightsAttestedAt": zod.coerce.date(),
   "displayOrder": zod.number().min(listVideoMusicCreditsResponseDisplayOrderMin)
 })
-export const ListVideoMusicCreditsResponse = zod.array(ListVideoMusicCreditsResponseItem)
+export const ListVideoMusicCreditsResponse = zod.array(ListVideoMusicCreditsResponseItem).max(20)
 
 
 /**
@@ -2554,6 +2562,8 @@ export const GetVideoParams = zod.object({
 
 export const getVideoResponseTwoMusicCreditsItemDisplayOrderMin = 0;
 
+export const getVideoResponseTwoMusicCreditsMax = 20;
+
 
 
 export const GetVideoResponse = zod.object({
@@ -2592,7 +2602,7 @@ export const GetVideoResponse = zod.object({
   "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
   "rightsAttestedAt": zod.coerce.date(),
   "displayOrder": zod.number().min(getVideoResponseTwoMusicCreditsItemDisplayOrderMin)
-})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
+})).max(getVideoResponseTwoMusicCreditsMax).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
 }))
 
 
@@ -2616,6 +2626,8 @@ export const UpdateVideoBody = zod.object({
 })
 
 export const updateVideoResponseTwoMusicCreditsItemDisplayOrderMin = 0;
+
+export const updateVideoResponseTwoMusicCreditsMax = 20;
 
 
 
@@ -2655,7 +2667,7 @@ export const UpdateVideoResponse = zod.object({
   "metadataSource": zod.enum(['publisher_attested', 'musicbrainz']),
   "rightsAttestedAt": zod.coerce.date(),
   "displayOrder": zod.number().min(updateVideoResponseTwoMusicCreditsItemDisplayOrderMin)
-})).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
+})).max(updateVideoResponseTwoMusicCreditsMax).describe('Owner-attested music acknowledgements for this Watch release. Empty when no factual credit record has been published.')
 }))
 
 
