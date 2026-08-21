@@ -6185,14 +6185,17 @@ components:
             - type: "null"
         devices:
           type: array
+          maxItems: 8
           items:
             $ref: "#/components/schemas/AdminUserDeviceSummary"
         activity:
           type: array
+          maxItems: 30
           items:
             $ref: "#/components/schemas/AdminUserActivityEvent"
         channels:
           type: array
+          maxItems: 1
           items:
             $ref: "#/components/schemas/ChannelSummary"
 

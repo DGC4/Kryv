@@ -868,6 +868,16 @@ requireMatch(
 );
 requireMatch(
   adminRoute,
+  /\/admin\/users\/:id\/activity[\s\S]*?usersTable\.id, userId[\s\S]*?\.limit\(1\)[\s\S]*?deviceHistoryTable\.lastSeen\)\)[\s\S]*?\.limit\(8\)[\s\S]*?activityLogsTable\.createdAt\)\)[\s\S]*?\.limit\(30\)[\s\S]*?channelsTable\.ownerUserId, userId[\s\S]*?\.limit\(1\)/,
+  "Owner user-activity detail must bound primary, device, activity, and unique-channel hydration.",
+);
+requireMatch(
+  apiSpec,
+  /AdminUserActivityDetail:[\s\S]*?devices:[\s\S]*?maxItems: 8[\s\S]*?activity:[\s\S]*?maxItems: 30[\s\S]*?channels:[\s\S]*?maxItems: 1/,
+  "Owner user-activity contract must expose its bounded device, event, and one-channel collections.",
+);
+requireMatch(
+  adminRoute,
   /OPERATIONAL_FEATURE_FLAG_KEYS = Object\.keys\(OPERATIONAL_FLAG_COPY\)[\s\S]*?MAX_ADMIN_OPERATIONAL_FEATURE_FLAGS = OPERATIONAL_FEATURE_FLAG_KEYS\.length[\s\S]*?\/admin\/feature-flags[\s\S]*?inArray\(featureFlagsTable\.key, OPERATIONAL_FEATURE_FLAG_KEYS\)[\s\S]*?\.limit\(MAX_ADMIN_OPERATIONAL_FEATURE_FLAGS\)/,
   "Owner feature-flag listing must query only the explicitly declared, bounded operational control set.",
 );

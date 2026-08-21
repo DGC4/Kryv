@@ -2705,8 +2705,11 @@ export interface AdminUserActivityDetail {
   user: AdminUser;
   activityObservabilityEnabled: boolean;
   currentPresence: AdminUserActivityPresence | null;
+  /** @maxItems 8 */
   devices: AdminUserDeviceSummary[];
+  /** @maxItems 30 */
   activity: AdminUserActivityEvent[];
+  /** @maxItems 1 */
   channels: ChannelSummary[];
 }
 

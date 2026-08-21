@@ -1505,7 +1505,8 @@ router.get(
         activityObservabilityEnabled: usersTable.activityObservabilityEnabled,
       })
       .from(usersTable)
-      .where(eq(usersTable.id, userId));
+      .where(eq(usersTable.id, userId))
+      .limit(1);
 
     if (!user) {
       res.status(404).json({ error: "User not found" });
@@ -1529,7 +1530,11 @@ router.get(
         .where(eq(activityLogsTable.userId, userId))
         .orderBy(desc(activityLogsTable.createdAt))
         .limit(30),
-      db.select().from(channelsTable).where(eq(channelsTable.ownerUserId, userId)),
+      db
+        .select()
+        .from(channelsTable)
+        .where(eq(channelsTable.ownerUserId, userId))
+        .limit(1),
     ]);
 
     await writeAuditLog(req, {

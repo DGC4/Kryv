@@ -3930,6 +3930,14 @@ export const GetAdminUserActivityParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const getAdminUserActivityResponseDevicesMax = 8;
+
+export const getAdminUserActivityResponseActivityMax = 30;
+
+export const getAdminUserActivityResponseChannelsMax = 1;
+
+
+
 export const GetAdminUserActivityResponse = zod.object({
   "user": zod.object({
   "id": zod.number(),
@@ -3951,11 +3959,11 @@ export const GetAdminUserActivityResponse = zod.object({
   "deviceBrowser": zod.string().nullable(),
   "lastSeen": zod.coerce.date().nullable(),
   "loginCount": zod.number()
-})),
+})).max(getAdminUserActivityResponseDevicesMax),
   "activity": zod.array(zod.object({
   "action": zod.string(),
   "createdAt": zod.coerce.date()
-})),
+})).max(getAdminUserActivityResponseActivityMax),
   "channels": zod.array(zod.object({
   "id": zod.number(),
   "slug": zod.string(),
@@ -3975,7 +3983,7 @@ export const GetAdminUserActivityResponse = zod.object({
   "fastpixPlaybackId": zod.string().nullish().describe('FastPix playback id used to build the HLS playback URL. Null until the channel has gone live at least once or access is restricted.'),
   "playbackAvailable": zod.boolean().describe('True only when the current viewer is permitted to receive a playable Live stream reference.'),
   "playbackBlockedReason": zod.string().nullable().describe('Viewer-safe explanation when playback is unavailable because the active profile is not eligible.')
-}))
+})).max(getAdminUserActivityResponseChannelsMax)
 })
 
 
