@@ -56,6 +56,7 @@ const [
   adminDashboard,
   creatorProfileRoute,
   creatorFinanceRoute,
+  walletRoute,
   searchLib,
   ownerCinemaRoute,
   watchHome,
@@ -130,6 +131,7 @@ const [
   source("artifacts/blyze/src/pages/dashboard/Admin.tsx"),
   source("artifacts/api-server/src/routes/profiles.ts"),
   source("artifacts/api-server/src/routes/creator-finance.ts"),
+  source("artifacts/api-server/src/routes/wallet.ts"),
   source("artifacts/api-server/src/lib/search.ts"),
   source("artifacts/api-server/src/routes/owner-cinema.ts"),
   source("artifacts/blyze/src/pages/watch/Home.tsx"),
@@ -1203,6 +1205,16 @@ requireMatch(
   apiSpec,
   /CreatorFinanceOverview:[\s\S]*?balances:[\s\S]*?maxItems: 4[\s\S]*?payoutProfiles:[\s\S]*?maxItems: 4[\s\S]*?payoutRequests:[\s\S]*?maxItems: 12/,
   "Creator Wallet overview contract must expose explicit supported-asset and recent-request bounds.",
+);
+requireMatch(
+  walletRoute,
+  /const supportedCurrencies = supportedKryvCryptoCodes\(\)[\s\S]*?inArray\(customerWalletBalancesTable\.currency, supportedCurrencies\)[\s\S]*?\.limit\(supportedCurrencies\.length\)[\s\S]*?inArray\([\s\S]*?customerWalletDepositAddressesTable\.currency,[\s\S]*?supportedCurrencies,[\s\S]*?\.limit\(supportedCurrencies\.length\)[\s\S]*?inArray\(customerWalletMovementsTable\.currency, supportedCurrencies\)[\s\S]*?\.orderBy\(desc\(customerWalletMovementsTable\.createdAt\)\)[\s\S]*?\.limit\(30\)/,
+  "Customer wallet overview must SQL-filter supported assets before bounding balances, deposit addresses, and movement history.",
+);
+requireMatch(
+  apiSpec,
+  /CustomerWalletOverview:[\s\S]*?balances:[\s\S]*?maxItems: 4[\s\S]*?depositAddresses:[\s\S]*?maxItems: 4[\s\S]*?movements:[\s\S]*?maxItems: 30/,
+  "Customer wallet contract must expose explicit supported-asset and recent-movement bounds.",
 );
 requireMatch(
   apiSpec,

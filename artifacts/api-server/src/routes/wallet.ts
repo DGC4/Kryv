@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { Router, type IRouter } from "express";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   customerWalletBalancesTable,
   customerWalletDepositAddressesTable,
@@ -18,6 +18,7 @@ import {
   getPlisioAssetSnapshots,
   isPlisioConfigured,
   isSupportedKryvCryptoCode,
+  supportedKryvCryptoCodes,
   type KryvCryptoCode,
   PlisioNotConfiguredError,
 } from "../lib/plisio";
@@ -78,10 +79,44 @@ router.use(requireAuth);
 
 router.get("/wallet", async (req, res): Promise<void> => {
   try {
+    const supportedCurrencies = supportedKryvCryptoCodes();
     const [balances, addresses, movements, snapshots, depositsEnabled] = await Promise.all([
-      db.select().from(customerWalletBalancesTable).where(eq(customerWalletBalancesTable.userId, req.user!.userId)),
-      db.select().from(customerWalletDepositAddressesTable).where(eq(customerWalletDepositAddressesTable.userId, req.user!.userId)),
-      db.select().from(customerWalletMovementsTable).where(eq(customerWalletMovementsTable.userId, req.user!.userId)).orderBy(desc(customerWalletMovementsTable.createdAt)).limit(30),
+      db
+        .select()
+        .from(customerWalletBalancesTable)
+        .where(
+          and(
+            eq(customerWalletBalancesTable.userId, req.user!.userId),
+            inArray(customerWalletBalancesTable.currency, supportedCurrencies),
+          ),
+        )
+        .orderBy(asc(customerWalletBalancesTable.currency))
+        .limit(supportedCurrencies.length),
+      db
+        .select()
+        .from(customerWalletDepositAddressesTable)
+        .where(
+          and(
+            eq(customerWalletDepositAddressesTable.userId, req.user!.userId),
+            inArray(
+              customerWalletDepositAddressesTable.currency,
+              supportedCurrencies,
+            ),
+          ),
+        )
+        .orderBy(asc(customerWalletDepositAddressesTable.currency))
+        .limit(supportedCurrencies.length),
+      db
+        .select()
+        .from(customerWalletMovementsTable)
+        .where(
+          and(
+            eq(customerWalletMovementsTable.userId, req.user!.userId),
+            inArray(customerWalletMovementsTable.currency, supportedCurrencies),
+          ),
+        )
+        .orderBy(desc(customerWalletMovementsTable.createdAt))
+        .limit(30),
       getPlisioAssetSnapshots().catch((): Awaited<ReturnType<typeof getPlisioAssetSnapshots>> => []),
       isWalletCustodyEnabled(),
     ]);

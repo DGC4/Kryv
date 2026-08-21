@@ -2865,8 +2865,14 @@ export const GetCinemaHomeResponse = zod.object({
 /**
  * @summary Retrieve the authenticated customer’s provider-backed crypto wallet balances, deposit addresses, and recent immutable movements
  */
+export const getCustomerWalletResponseBalancesMax = 4;
+
 export const getCustomerWalletResponseDepositAddressesItemAddressMin = 10;
 export const getCustomerWalletResponseDepositAddressesItemAddressMax = 256;
+
+export const getCustomerWalletResponseDepositAddressesMax = 4;
+
+export const getCustomerWalletResponseMovementsMax = 30;
 
 
 
@@ -2878,13 +2884,13 @@ export const GetCustomerWalletResponse = zod.object({
   "heldAmount": zod.string(),
   "usdReferenceValue": zod.string().nullable().describe('Provider-rate reference only; never used to settle crypto balances.'),
   "rateUpdatedAt": zod.coerce.date().nullable()
-})),
+})).max(getCustomerWalletResponseBalancesMax),
   "depositAddresses": zod.array(zod.object({
   "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
   "address": zod.string().min(getCustomerWalletResponseDepositAddressesItemAddressMin).max(getCustomerWalletResponseDepositAddressesItemAddressMax).describe('Kryv-managed customer deposit address; it is not a creator payout address.'),
   "status": zod.enum(['active', 'disabled']),
   "createdAt": zod.coerce.date()
-})),
+})).max(getCustomerWalletResponseDepositAddressesMax),
   "movements": zod.array(zod.object({
   "id": zod.number(),
   "currency": zod.enum(['BTC', 'LTC', 'ETH', 'DOGE']),
@@ -2893,7 +2899,7 @@ export const GetCustomerWalletResponse = zod.object({
   "heldDelta": zod.string(),
   "pendingDelta": zod.string(),
   "createdAt": zod.coerce.date()
-})),
+})).max(getCustomerWalletResponseMovementsMax),
   "depositsEnabled": zod.boolean(),
   "providerRateAvailable": zod.boolean()
 })

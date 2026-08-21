@@ -1873,8 +1873,11 @@ export interface CustomerWalletMovement {
 }
 
 export interface CustomerWalletOverview {
+  /** @maxItems 4 */
   balances: CustomerWalletBalance[];
+  /** @maxItems 4 */
   depositAddresses: CustomerWalletDepositAddress[];
+  /** @maxItems 30 */
   movements: CustomerWalletMovement[];
   depositsEnabled: boolean;
   providerRateAvailable: boolean;

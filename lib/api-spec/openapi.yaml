@@ -5222,12 +5222,15 @@ components:
       properties:
         balances:
           type: array
+          maxItems: 4
           items: { $ref: "#/components/schemas/CustomerWalletBalance" }
         depositAddresses:
           type: array
+          maxItems: 4
           items: { $ref: "#/components/schemas/CustomerWalletDepositAddress" }
         movements:
           type: array
+          maxItems: 30
           items: { $ref: "#/components/schemas/CustomerWalletMovement" }
         depositsEnabled: { type: boolean }
         providerRateAvailable: { type: boolean }
