@@ -78,6 +78,8 @@ const [
   notificationIndexValidation,
   header,
   webhooksRoute,
+  notificationFanout,
+  jobs,
   notificationFanoutIndexMigration,
   notificationFanoutIndexValidation,
   followsSchema,
@@ -148,6 +150,8 @@ const [
   source("KRYV_NOTIFICATION_INBOX_INDEXES_NEON_VALIDATION.md"),
   source("artifacts/blyze/src/components/Header.tsx"),
   source("artifacts/api-server/src/routes/webhooks.ts"),
+  source("artifacts/api-server/src/lib/notificationFanout.ts"),
+  source("artifacts/api-server/src/lib/jobs.ts"),
   source("lib/db/drizzle/0026_notification_fanout_query_indexes.sql"),
   source("KRYV_NOTIFICATION_FANOUT_INDEX_NEON_VALIDATION.md"),
   source("lib/db/src/schema/follows.ts"),
@@ -1317,14 +1321,29 @@ requireMatch(
   "Notification bell must consume the bounded inbox page and expose newer and older continuation controls.",
 );
 requireMatch(
-  webhooksRoute,
+  notificationFanout,
   /NOTIFICATION_FANOUT_BATCH_SIZE = 500[\s\S]*?gt\(followsTable\.id, lastFollowId\)[\s\S]*?orderBy\(asc\(followsTable\.id\)\)[\s\S]*?\.limit\(NOTIFICATION_FANOUT_BATCH_SIZE\)[\s\S]*?await process/,
-  "Webhook notification fan-out must use bounded keyset recipient batches rather than an unbounded follower read.",
+  "Notification fan-out must use bounded keyset recipient batches rather than an unbounded follower read.",
+);
+requireMatch(
+  notificationFanout,
+  /fanoutFollowedLiveNotifications[\s\S]*?inArray\(notificationPreferencesTable\.userId, followerIds\)[\s\S]*?fanoutFollowedContentNotifications[\s\S]*?inArray\(notificationPreferencesTable\.userId, followerIds\)/,
+  "Live and Watch/Clip followed-content notifications must evaluate preferences and insert within each bounded recipient batch.",
+);
+requireMatch(
+  jobs,
+  /"notification\.fanout"[\s\S]*?job\.type !== "notification\.fanout"/,
+  "Durable queue normalization must explicitly allow the reviewed notification fan-out job type.",
+);
+requireMatch(
+  worker,
+  /notificationFanoutInput[\s\S]*?boundedRequiredString[\s\S]*?job\.type === "notification\.fanout"[\s\S]*?fanoutFollowedLiveNotifications[\s\S]*?fanoutFollowedContentNotifications/,
+  "Worker notification fan-out must strictly validate bounded payload fields before dispatching a shared fan-out handler.",
 );
 requireMatch(
   webhooksRoute,
-  /createFollowedLiveNotifications[\s\S]*?forEachFollowedRecipientBatch[\s\S]*?inArray\(notificationPreferencesTable\.userId, followerIds\)[\s\S]*?createFollowedContentNotifications[\s\S]*?forEachFollowedRecipientBatch[\s\S]*?inArray\(notificationPreferencesTable\.userId, followerIds\)/,
-  "Live and Watch/Clip followed-content notifications must evaluate preferences and insert within each bounded recipient batch.",
+  /dispatchNotificationFanout[\s\S]*?type: "notification\.fanout"[\s\S]*?maxAttempts: 1[\s\S]*?if \(!queued\) await fallback\(\)[\s\S]*?notification-fanout:live:[\s\S]*?notification-fanout:watch_upload_ready:[\s\S]*?notification-fanout:clip_ready:/,
+  "Webhook notification fan-out must dispatch durable one-shot jobs with a bounded shared fallback when the queue is unavailable.",
 );
 requireMatch(
   notificationIndexMigration,

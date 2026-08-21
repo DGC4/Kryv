@@ -8,8 +8,21 @@ import {
 } from "./lib/jobs";
 import { logger } from "./lib/logger";
 import { executeOwnerApprovedPayout, NonRetryablePayoutError } from "./lib/payoutExecution";
+import {
+  fanoutFollowedContentNotifications,
+  fanoutFollowedLiveNotifications,
+  type FollowedContentNotificationInput,
+  type FollowedLiveNotificationInput,
+} from "./lib/notificationFanout";
 
 let stopping = false;
+
+class NonRetryableJobError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NonRetryableJobError";
+  }
+}
 
 function timingSafeSignature(payload: string, secret: string) {
   return crypto.createHmac("sha256", secret).update(payload).digest("hex");
@@ -18,6 +31,56 @@ function timingSafeSignature(payload: string, secret: string) {
 function positivePayoutRequestId(value: unknown) {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function boundedRequiredString(value: unknown, maxLength: number) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 && trimmed.length <= maxLength ? trimmed : null;
+}
+
+function boundedOptionalString(value: unknown, maxLength: number) {
+  if (value === null || value === undefined) return null;
+  return boundedRequiredString(value, maxLength);
+}
+
+function notificationFanoutInput(
+  payload: Record<string, unknown>,
+): FollowedLiveNotificationInput | FollowedContentNotificationInput | null {
+  const channelId = positivePayoutRequestId(payload.channelId);
+  if (!channelId) return null;
+
+  if (payload.kind === "live") {
+    const channelSlug = boundedRequiredString(payload.channelSlug, 120);
+    const channelDisplayName = boundedRequiredString(payload.channelDisplayName, 160);
+    const streamSessionId = positivePayoutRequestId(payload.streamSessionId);
+    const streamTitle = boundedOptionalString(payload.streamTitle, 300);
+    if (!channelSlug || !channelDisplayName || !streamSessionId) return null;
+    if (payload.streamTitle !== null && payload.streamTitle !== undefined && !streamTitle) {
+      return null;
+    }
+    return {
+      channelId,
+      channelSlug,
+      channelDisplayName,
+      streamTitle,
+      streamSessionId,
+    };
+  }
+
+  if (payload.kind === "watch_upload_ready" || payload.kind === "clip_ready") {
+    const contentId = positivePayoutRequestId(payload.contentId);
+    const contentTitle = boundedRequiredString(payload.contentTitle, 300);
+    if (!contentId || !contentTitle) return null;
+    return {
+      channelId,
+      notificationType: payload.kind,
+      contentId,
+      contentTitle,
+    };
+  }
+
+  return null;
 }
 
 function validatedAnalyticsWebhookUrl(value: string) {
@@ -64,15 +127,37 @@ async function processJob(job: KryvDurableJob) {
   }
   if (job.type === "payout.request") {
     const payoutRequestId = positivePayoutRequestId(job.payload.payoutRequestId);
-    if (!payoutRequestId) throw new NonRetryablePayoutError("Payout job has an invalid payout request identifier");
+    if (!payoutRequestId) {
+      throw new NonRetryablePayoutError(
+        "Payout job has an invalid payout request identifier",
+      );
+    }
     await executeOwnerApprovedPayout(payoutRequestId);
     return;
   }
-  throw new NonRetryablePayoutError("Worker received an unsupported job type");
+  if (job.type === "notification.fanout") {
+    const input = notificationFanoutInput(job.payload);
+    if (!input) {
+      throw new NonRetryableJobError("Notification fan-out job payload is invalid");
+    }
+    // Fan-out is explicitly one-shot until receipt-level idempotency exists. A
+    // failed batch is preserved in the dead-letter queue for operator review,
+    // rather than automatically replaying user-visible alerts.
+    if ("streamSessionId" in input) {
+      await fanoutFollowedLiveNotifications(input);
+    } else {
+      await fanoutFollowedContentNotifications(input);
+    }
+    return;
+  }
+  throw new NonRetryableJobError("Worker received an unsupported job type");
 }
 
 async function handleFailedJob(job: KryvDurableJob, error: unknown) {
-  if (error instanceof NonRetryablePayoutError) {
+  if (
+    error instanceof NonRetryablePayoutError ||
+    error instanceof NonRetryableJobError
+  ) {
     const deadLettered = await deadLetterDurableJob(job, "non_retryable_job", error);
     logger.warn(
       { error, jobId: job.id, type: job.type, deadLettered },

@@ -8,7 +8,7 @@ export const DEFAULT_MAX_JOB_ATTEMPTS = 4;
 
 export type KryvDurableJob = {
   id: string;
-  type: "analytics.event" | "payout.request";
+  type: "analytics.event" | "payout.request" | "notification.fanout";
   occurredAt: string;
   payload: Record<string, unknown>;
   /** Zero for an initial delivery; incremented for every scheduled retry. */
@@ -72,7 +72,13 @@ export function normalizeDurableJob(value: unknown): Required<KryvDurableJob> {
   if (!value || typeof value !== "object") throw new Error("Durable job is not an object");
   const job = value as Partial<KryvDurableJob>;
   if (!job.id || typeof job.id !== "string") throw new Error("Durable job is missing an id");
-  if (job.type !== "analytics.event" && job.type !== "payout.request") throw new Error("Durable job has an unsupported type");
+  if (
+    job.type !== "analytics.event" &&
+    job.type !== "payout.request" &&
+    job.type !== "notification.fanout"
+  ) {
+    throw new Error("Durable job has an unsupported type");
+  }
   if (!job.occurredAt || typeof job.occurredAt !== "string") throw new Error("Durable job is missing occurredAt");
   if (!job.payload || typeof job.payload !== "object" || Array.isArray(job.payload)) throw new Error("Durable job is missing payload");
 

@@ -1,9 +1,15 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, gt, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
 
-import { adCampaignFundingsTable, adCampaignsTable, adRevenueMovementsTable, cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, followsTable, notificationPreferencesTable, notificationsTable, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, usersTable, videosTable, streamSessionsTable } from "@workspace/db";
+import { adCampaignFundingsTable, adCampaignsTable, adRevenueMovementsTable, cinemaTitleAssetsTable, clipsTable, creatorBalanceMovementsTable, creatorBalancesTable, creatorFeePoliciesTable, customerWalletBalancesTable, customerWalletDepositAddressesTable, customerWalletMovementsTable, db, paymentEventsTable, paymentIntentsTable, channelsTable, platformRevenueMovementsTable, subscriptionsTable, tipsTable, usersTable, videosTable, streamSessionsTable } from "@workspace/db";
 import { addCryptoAmounts, compareCryptoAmounts, KRYV_PLATFORM_FEE_BPS, normalizeCryptoAmount, quoteCreatorPlatformFee, type CreatorFeeQuote } from "../lib/creatorFees";
 import { enqueueDurableJob } from "../lib/jobs";
+import {
+  fanoutFollowedContentNotifications,
+  fanoutFollowedLiveNotifications,
+  type FollowedContentNotificationInput,
+  type FollowedLiveNotificationInput,
+} from "../lib/notificationFanout";
 import { deleteSharedKey, publishRealtimeEvent } from "../lib/realtime";
 import { logger } from "../lib/logger";
 import { fastpix } from "../lib/fastpix";
@@ -11,82 +17,22 @@ import { isPlisioConfigured, isSupportedKryvCryptoCode, verifyPlisioJsonCallback
 
 const router: IRouter = Router();
 const DISCOVER_SUMMARY_CACHE_KEY = "kryv:discover:summary:v1";
-const NOTIFICATION_FANOUT_BATCH_SIZE = 500;
 
-async function forEachFollowedRecipientBatch(
-  channelId: number,
-  process: (followerIds: number[]) => Promise<void>,
+async function dispatchNotificationFanout(
+  id: string,
+  payload: Record<string, unknown>,
+  fallback: () => Promise<void>,
 ) {
-  let lastFollowId = 0;
-  while (true) {
-    const followers = await db
-      .select({ id: followsTable.id, userId: followsTable.followerUserId })
-      .from(followsTable)
-      .where(
-        and(
-          eq(followsTable.channelId, channelId),
-          gt(followsTable.id, lastFollowId),
-        ),
-      )
-      .orderBy(asc(followsTable.id))
-      .limit(NOTIFICATION_FANOUT_BATCH_SIZE);
-    if (!followers.length) return;
-
-    lastFollowId = followers[followers.length - 1]!.id;
-    await process(followers.map((follower) => follower.userId));
-    if (followers.length < NOTIFICATION_FANOUT_BATCH_SIZE) return;
-  }
-}
-
-async function createFollowedLiveNotifications(channel: { id: number; slug: string; displayName: string; streamTitle: string | null }, streamSessionId: number) {
-  await forEachFollowedRecipientBatch(channel.id, async (followerIds) => {
-    const preferences = await db
-      .select({ userId: notificationPreferencesTable.userId, notifyOnLive: notificationPreferencesTable.notifyOnLive })
-      .from(notificationPreferencesTable)
-      .where(and(inArray(notificationPreferencesTable.userId, followerIds), isNull(notificationPreferencesTable.channelId)));
-    const livePreferenceByUserId = new Map(preferences.map((preference) => [preference.userId, preference.notifyOnLive]));
-    const recipientIds = followerIds.filter((userId) => livePreferenceByUserId.get(userId) !== false);
-    if (!recipientIds.length) return;
-
-    await db.insert(notificationsTable).values(recipientIds.map((userId) => ({
-      userId,
-      type: "followed_channel_live",
-      title: `${channel.displayName} is live`,
-      message: channel.streamTitle || "A creator you follow just started broadcasting on Kryv.",
-      data: { channelId: channel.id, channelSlug: channel.slug, streamSessionId },
-    })));
+  const queued = await enqueueDurableJob({
+    id,
+    type: "notification.fanout",
+    occurredAt: new Date().toISOString(),
+    payload,
+    // A replay after partial recipient insertion can produce duplicate alerts.
+    // Keep failures durable and operator-visible until receipt idempotency ships.
+    maxAttempts: 1,
   });
-}
-
-async function createFollowedContentNotifications(input: { channelId: number; notificationType: "watch_upload_ready" | "clip_ready"; contentId: number; contentTitle: string }) {
-  const [channel] = await db
-    .select({ id: channelsTable.id, slug: channelsTable.slug, displayName: channelsTable.displayName })
-    .from(channelsTable)
-    .where(eq(channelsTable.id, input.channelId))
-    .limit(1);
-  if (!channel) return;
-
-  const isClip = input.notificationType === "clip_ready";
-  await forEachFollowedRecipientBatch(channel.id, async (followerIds) => {
-    const preferences = await db
-      .select({ userId: notificationPreferencesTable.userId, notifyOnUpload: notificationPreferencesTable.notifyOnUpload, notifyOnClip: notificationPreferencesTable.notifyOnClip })
-      .from(notificationPreferencesTable)
-      .where(and(inArray(notificationPreferencesTable.userId, followerIds), isNull(notificationPreferencesTable.channelId)));
-    const preferenceByUserId = new Map(preferences.map((preference) => [preference.userId, preference]));
-    const recipientIds = followerIds.filter((userId) => {
-      const preference = preferenceByUserId.get(userId);
-      return input.notificationType === "watch_upload_ready" ? preference?.notifyOnUpload !== false : preference?.notifyOnClip === true;
-    });
-    if (!recipientIds.length) return;
-
-    await db.insert(notificationsTable).values(recipientIds.map((userId) => ({
-      userId,
-      type: input.notificationType,
-      title: `${channel.displayName} published a ${isClip ? "Clip" : "Watch release"}`,
-      message: input.contentTitle,
-      data: { channelId: channel.id, channelSlug: channel.slug, ...(isClip ? { clipId: input.contentId } : { videoId: input.contentId }) },
-    })));
-  });
+  if (!queued) await fallback();
 }
 
 function publishAuthoritativeLiveState(channel: { id: number; isLive: boolean; viewerCount: number; fastpixPlaybackId: string | null }, providerEvent: string) {
@@ -794,7 +740,27 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
             .set({ totalStreamCount: sql`${channelsTable.totalStreamCount} + 1` })
             .where(eq(channelsTable.id, updatedChannel.id));
           if (createdSession) {
-            createFollowedLiveNotifications(updatedChannel, createdSession.id).catch((error) => logger.error({ error, channelId: updatedChannel.id, streamSessionId: createdSession.id }, "Unable to create followed-live inbox alerts"));
+            const input: FollowedLiveNotificationInput = {
+              channelId: updatedChannel.id,
+              channelSlug: updatedChannel.slug,
+              channelDisplayName: updatedChannel.displayName,
+              streamTitle: updatedChannel.streamTitle,
+              streamSessionId: createdSession.id,
+            };
+            dispatchNotificationFanout(
+              `notification-fanout:live:${createdSession.id}`,
+              { kind: "live", ...input },
+              () => fanoutFollowedLiveNotifications(input),
+            ).catch((error) =>
+              logger.error(
+                {
+                  error,
+                  channelId: updatedChannel.id,
+                  streamSessionId: createdSession.id,
+                },
+                "Unable to dispatch followed-live inbox alerts",
+              ),
+            );
           }
         }
         publishAuthoritativeLiveState(updatedChannel, event.type);
@@ -1001,10 +967,40 @@ router.post("/webhooks/fastpix", async (req, res): Promise<void> => {
           .returning({ id: clipsTable.id, channelId: clipsTable.channelId, title: clipsTable.title }));
       }
       for (const video of newlyReadyVideos) {
-        createFollowedContentNotifications({ channelId: video.channelId, notificationType: "watch_upload_ready", contentId: video.id, contentTitle: video.title }).catch((error) => logger.error({ error, videoId: video.id, channelId: video.channelId }, "Unable to create Watch-ready inbox alerts"));
+        const input: FollowedContentNotificationInput = {
+          channelId: video.channelId,
+          notificationType: "watch_upload_ready",
+          contentId: video.id,
+          contentTitle: video.title,
+        };
+        dispatchNotificationFanout(
+          `notification-fanout:watch_upload_ready:${video.id}`,
+          { kind: input.notificationType, ...input },
+          () => fanoutFollowedContentNotifications(input),
+        ).catch((error) =>
+          logger.error(
+            { error, videoId: video.id, channelId: video.channelId },
+            "Unable to dispatch Watch-ready inbox alerts",
+          ),
+        );
       }
       for (const clip of newlyReadyClips) {
-        createFollowedContentNotifications({ channelId: clip.channelId, notificationType: "clip_ready", contentId: clip.id, contentTitle: clip.title }).catch((error) => logger.error({ error, clipId: clip.id, channelId: clip.channelId }, "Unable to create Clip-ready inbox alerts"));
+        const input: FollowedContentNotificationInput = {
+          channelId: clip.channelId,
+          notificationType: "clip_ready",
+          contentId: clip.id,
+          contentTitle: clip.title,
+        };
+        dispatchNotificationFanout(
+          `notification-fanout:clip_ready:${clip.id}`,
+          { kind: input.notificationType, ...input },
+          () => fanoutFollowedContentNotifications(input),
+        ).catch((error) =>
+          logger.error(
+            { error, clipId: clip.id, channelId: clip.channelId },
+            "Unable to dispatch Clip-ready inbox alerts",
+          ),
+        );
       }
       break;
     }
